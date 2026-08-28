@@ -112,6 +112,12 @@ storage_make_uuid(char out[37])
     snprintf(out, 37, "00000000-0000-4000-8000-%012d", uuid_counter);
 }
 
+int
+storage_habits_initialized(void)
+{
+    return 0;
+}
+
 static void
 test_date_helpers(void)
 {

@@ -260,13 +260,15 @@ import_sync_key_path :: (app: InbeApp*, path: const char*) -> int #private {
        sync_account_import_private_key_preview(&account, path) {
         if settings_sync_account_save_prepared(app, &account,
                                                InbePendingSyncAccountImport, 0) {
+            settings_sync_account_connect(app)
             TraceLog(LOG_INFO, "SYNC: Private key imported from %s", path)
         }
         return 1
     }
 
     settings_screen_set_status_error(GetLocaleText("sync_private_key_import_failed"))
-    TraceLog(LOG_ERROR, "SYNC: Private key import failed")
+    TraceLog(LOG_ERROR, "SYNC: Private key import failed (path=%s)",
+             path != nil ? path : "")
     unused app
     return 0
 }
@@ -1018,7 +1020,11 @@ draw_modals :: (app: InbeApp*) -> int {
             action := app->pending_sync_account_action
             app_close_modal(app)
             if settings_sync_account_save_prepared(app, &account, action, 1) {
-                app_reload_after_import(app, 0)
+                if action == InbePendingSyncAccountImport {
+                    settings_sync_account_connect(app)
+                } else {
+                    app_reload_after_import(app, 0)
+                }
             } else {
                 settings_screen_set_status_error(GetLocaleText("sync_account_switch_failed"))
             }

@@ -90,6 +90,12 @@ storage_habits_load(void *habits_ptr)
     return habits->count > 0 || meta_equals("habits_initialized", "true");
 }
 
+int
+storage_habits_initialized(void)
+{
+    return g_storage.db != NULL && meta_equals("habits_initialized", "true");
+}
+
 void
 storage_mark_habits_initialized(void)
 {

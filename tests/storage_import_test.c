@@ -1730,6 +1730,39 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
 }
 
 static void
+test_default_habits_can_wait_for_language_setup(void)
+{
+    char root[512];
+    InbeHabits habits;
+
+    make_clean_root(root, sizeof(root), "deferred-default-habits");
+    check_true("init deferred default habit db", storage_init(root));
+
+    memset(&habits, 0, sizeof(habits));
+    habits_init_with_defaults(&habits, 0);
+    check_int("deferred startup keeps habits empty", habits.count, 0);
+    check_int("deferred startup does not initialize habits",
+              storage_habits_initialized(), 0);
+    habits_free(&habits);
+
+    memset(&habits, 0, sizeof(habits));
+    check_true("seed defaults after language setup",
+               habits_seed_default_set_if_needed(&habits));
+    check_int("deferred defaults seeded", habits.count, 2);
+    check_true("deferred meditation exists", find_habit_ci(&habits, "Meditation") != NULL);
+    check_true("deferred yoga exists", find_habit_ci(&habits, "Yoga") != NULL);
+    check_int("deferred habits initialized", storage_habits_initialized(), 1);
+    habits_free(&habits);
+
+    memset(&habits, 0, sizeof(habits));
+    check_true("load deferred seeded defaults", storage_habits_load(&habits));
+    check_int("deferred persisted count", habits.count, 2);
+    habits_free(&habits);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_existing_default_meditation_is_not_repaired_on_startup(void)
 {
     char root[512];
@@ -2159,6 +2192,7 @@ main(void)
     test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
     test_empty_initialized_habits_seed_meditation_on_startup();
+    test_default_habits_can_wait_for_language_setup();
     test_existing_default_meditation_is_not_repaired_on_startup();
     test_sync_payload_omits_uploaded_state_after_upload_marker();
     test_sync_backfill_includes_existing_habits();

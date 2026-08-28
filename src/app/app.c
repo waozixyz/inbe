@@ -97,6 +97,7 @@ ReadonlyTextBox(ReadonlyTextBoxProps props)
 }
 
 static void app_apply_route(InbeApp *app, AppRoute route);
+static void app_restore_habits_view_settings(InbeApp *app);
 
 typedef struct InbeRouteBinding {
     const char *id;
@@ -1065,13 +1066,19 @@ apply_language_selection(InbeApp *app, int language_index, int save_now)
 void
 app_accept_language_selection(InbeApp *app)
 {
+    int first_language_setup;
+
     if(app == NULL)
         return;
+
+    first_language_setup = storage_get_setting_int("language_setup_done", 0) == 0;
 
     if(app->language_system || !app->language_selected)
         apply_system_language_selection(app, 1);
     else
         save_settings(app);
+    if(first_language_setup && habits_seed_default_set_if_needed(&app->habits))
+        app_restore_habits_view_settings(app);
 }
 
 static void
@@ -1199,7 +1206,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
         practice_update_session_sounds(app);
     }
 
-    habits_init(&app->habits);
+    habits_init_with_defaults(&app->habits, app->language_selected);
     if(reload_settings)
         app_restore_habits_view_settings(app);
     if(!reload_settings) {
@@ -1454,7 +1461,7 @@ app_init(void *vapp) {
     }
     practice_update_circle_bounds(app, app_content_top_reserved(app),
                                   app_content_bottom_reserved(app));
-    habits_init(&app->habits);
+    habits_init_with_defaults(&app->habits, app->language_selected);
     app_restore_habits_view_settings(app);
     app->habit_detail_index = -1;
     memset(&app->habit_session_edit, 0, sizeof(app->habit_session_edit));

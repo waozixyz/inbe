@@ -1,7 +1,6 @@
 var statusElement = document.querySelector('#status');
 var progressElement = document.querySelector('#progress');
 var loadingScreen = document.querySelector('#loading-screen');
-var canvasFallbackPath = 'canvas/';
 
 function storageOriginLooksPersistent() {
   var protocol = window.location && window.location.protocol;
@@ -17,21 +16,8 @@ function reportStorageOriginProblem() {
   );
 }
 
-function webglAvailable() {
-  var canvas;
-  var gl;
-
-  try {
-    canvas = document.createElement('canvas');
-    gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-  } catch (e) {
-    gl = null;
-  }
-  return !!gl;
-}
-
 function selectedRenderer() {
-  return window.__inbeRenderer === 'canvas' ? 'canvas' : 'raylib';
+  return 'canvas';
 }
 
 window.__inbeLoadApp = function(src) {
@@ -40,21 +26,27 @@ window.__inbeLoadApp = function(src) {
 
   Module.__inbeRenderer = renderer;
 
-  if (renderer !== 'canvas' && !webglAvailable()) {
-    if (statusElement) {
-      statusElement.textContent = 'Starting Canvas renderer...';
-    }
-    if (progressElement) progressElement.hidden = true;
-    console.warn('INBE: WebGL is disabled or unavailable; using Canvas renderer');
-    window.location.replace(canvasFallbackPath + window.location.search + window.location.hash);
-    return;
-  }
-
   script = document.createElement('script');
   script.async = true;
   script.src = src;
   document.body.appendChild(script);
 };
+
+function routineRuntimeLog(text) {
+  return /^(AUDIO: Loaded sound asset|AUDIO: Cannot play sound because sound is not loaded|DATA: root directory|INBE: app init|INBE: DPI scale|INBE: Global app pointer set|INBE: Loaded play_in_background setting|INBE_EMBED: geometry|SYNC: queued local changes|SYNC: starting background sync|SYNC: payload|SYNC: dispatched|SYNC: background sync complete|SYNC: refreshing social cache|SYNC: social cache refreshed|SYNC: websocket event listener started)/.test(text || '');
+}
+
+function mirrorRuntimeLog(text, isErrorStream) {
+  if (routineRuntimeLog(text)) {
+    if (Module.__inbeVerboseLogs)
+      console.debug(text);
+    return;
+  }
+  if (isErrorStream || /\b(error|failed|invalid|missing|aborted|exception)\b/i.test(text || ''))
+    console.error(text);
+  else
+    console.log(text);
+}
 
 function hideLoadingScreen() {
   if (!loadingScreen) return;
@@ -310,13 +302,13 @@ var Module = {
     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
     Module.__inbeLastLog = text;
     noteAppReadyFromLog(text);
-    console.log(text);
+    mirrorRuntimeLog(text, false);
   },
   printErr: function(text) {
     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
     Module.__inbeLastLog = text;
     noteAppReadyFromLog(text);
-    console.error(text);
+    mirrorRuntimeLog(text, true);
   },
   canvas: (function() {
     var canvas = document.getElementById('canvas') || document.querySelector('canvas.emscripten');
@@ -330,11 +322,6 @@ var Module = {
       var frame = document.getElementById('canvas-frame') || document.body;
       frame.appendChild(canvas);
     }
-    canvas.addEventListener('webglcontextlost', function(e) {
-      flushStorageBeforePageSuspends();
-      alert('WebGL context lost. Reload the page to continue.');
-      e.preventDefault();
-    }, false);
     canvas.addEventListener('contextmenu', function(e) {
       var rect = canvas.getBoundingClientRect();
       var width = canvas.width || rect.width || 1;

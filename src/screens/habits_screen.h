@@ -118,6 +118,7 @@ typedef struct HabitLinkedContext {
 
 /* Core habits functions */
 void habits_init(InbeHabits *habits);
+void habits_init_with_defaults(InbeHabits *habits, int seed_defaults);
 void habits_free(InbeHabits *habits);
 void habits_save(InbeHabits *habits);
 void habits_flush_save(InbeApp *app);
@@ -134,6 +135,7 @@ void habit_increment_day(InbeHabits *habits, int index, int day_index, int delta
 void habit_toggle_today(InbeHabits *habits, int index);
 void habits_add_default(InbeHabits *habits);
 void habits_add_default_set(InbeHabits *habits);
+int habits_seed_default_set_if_needed(InbeHabits *habits);
 void habits_delete(InbeHabits *habits, int index);
 int habits_move(InbeHabits *habits, int from_index, int to_index);
 int habits_name_exists(const InbeHabits *habits, const char *name, int exclude_index);

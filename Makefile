@@ -198,8 +198,6 @@ WIN32_LIBOQS_A := $(WIN32_LIBOQS_BUILD_DIR)/lib/liboqs.a
 WIN32_LIBOQS_INCLUDE := -I$(WIN32_LIBOQS_BUILD_DIR)/include
 WIN64_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN64_ARCH)/inbe.res
 WIN32_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN32_ARCH)/inbe.res
-WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
-WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
 KRYON_ICON_DIR := icons
@@ -219,10 +217,8 @@ KRYON_SRCS := $(filter-out $(KRYON_TERMI_SRCS),$(KRYON_SRCS))
 ifneq ($(KRYON_BACKEND),libdraw)
 KRYON_SRCS := $(filter-out $(KRYON_DIR)/src/platform/plan9/%.c,$(KRYON_SRCS))
 endif
-# The raylib web build links the generated raylib wrappers; the canvas
-# backend sources define the same public surface and belong only to the
-# web-canvas target (which drops the wrappers instead).
-KRYON_WEB_SRCS := $(filter-out $(KRYON_DIR)/src/backend/canvas_%.c,$(KRYON_SRCS))
+# The web build uses kryon's Canvas2D backend directly: no raylib, no WebGL.
+KRYON_WEB_SRCS := $(KRYON_SRCS)
 KRYON_WINDOWS_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_CLICK_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_INCLUDE := -I$(KRYON_DIR)/include
@@ -498,17 +494,16 @@ DESKTOP_TRAY_LDLIBS :=
 else
 $(error Unknown KRYON_BACKEND '$(KRYON_BACKEND)' (expected raylib, libdraw, or termi))
 endif
-KRYON_WEB_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 KRYON_WINDOWS_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 KRYON_CLICK_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
-WEB_APP_SCRIPT := <script>window.__inbeRenderer="raylib";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
+WEB_APP_SCRIPT := <script>window.__inbeRenderer="canvas";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
 WEB_BOOT_JS := src/web_boot.js
-# Canvas-backend web build: kryon's HTML5 Canvas2D Tier A backend instead of
-# raylib+GLFW - no libraylib.web.a, no WebGL. The app and support libraries
-# are still Emscripten/WASM, including ksync/liboqs for sync-account parity.
+# Canvas-only web build: Kryon's HTML5 Canvas2D Tier A backend. The app and
+# support libraries are still Emscripten/WASM, including ksync/liboqs for
+# sync-account parity.
 WEB_CANVAS_DIR := $(BUILD_DIST_DIR)/web-canvas
 WEB_CANVAS_TARGET := $(WEB_CANVAS_DIR)/index.html
 WEB_CANVAS_APP_SCRIPT := <script>window.__inbeRenderer="canvas";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
@@ -645,7 +640,7 @@ vendor-prebuilds: vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-
 
 vendor-prebuilds-native: $(KRYON_NATIVE_BACKEND_DEPS) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK)
 
-vendor-prebuilds-web: web-tools-check $(WEB_RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(WEB_LIBOQS_A)
+vendor-prebuilds-web: web-tools-check $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(WEB_LIBOQS_A)
 
 vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(WIN64_CURL_A) $(WIN32_CURL_A) $(WIN64_LIBOQS_A) $(WIN32_LIBOQS_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H)
 
@@ -893,7 +888,6 @@ sync-web-icons: $(KRYON_SYNC_ICONS)
 	sh $(KRYON_SYNC_ICONS) --group tiles --flat web-assets/icons $(WEB_SHARED_TILE_ICONS)
 	sh $(KRYON_SYNC_ICONS) --group proj --flat web-assets/icons $(WEB_SHARED_PROJECT_ICONS)
 
-$(WEB_RAYLIB_A): web-tools-check
 $(WEB_LIBOQS_A): web-tools-check
 
 $(CLICK_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
@@ -1397,51 +1391,37 @@ $(FLATPAK_TARGET): Makefile $(FLATPAK_MANIFEST) | $(FLATPAK_BUILD_DIR) $(FLATPAK
 		sh -lc 'set -eu; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''inbe-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/inbe; install -D -m644 packaging/linux/appimage/inbe.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/inbe.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/inbe.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
 	test -f $@
 
-$(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
+$(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRY_GEN_STAMP) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
 	rm -f $(WEB_DIST_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
-		$(APP_INCLUDE) \
-		$(KRYON_INCLUDE) \
-		$(SQLITE_INCLUDE) \
+		$(APP_INCLUDE) -I$(KRYON_DIR)/include \
+		-I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src -I$(SQLITE_BUILD_DIR) \
 		$(WEB_LIBOQS_INCLUDE) \
+		-DKRYON_BACKEND_CANVAS=1 \
 		-DHAS_LIBOQS=1 \
 		-DPLATFORM_WEB \
-		-DSUPPORT_MODULE_RAUDIO=1 \
-		-DSUPPORT_FILEFORMAT_OGG=1 \
-		-DSUPPORT_FILEFORMAT_MP3=0 \
 		-o $(WEB_JS_TARGET) \
-		$(WEB_SRC) \
-		$(KRYON_WEB_SRCS) \
-		$(SQLITE_SRC) \
-		$(WEB_RAYLIB_A) \
+		$(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) \
 		$(WEB_LIBOQS_A) \
-		-sUSE_GLFW=3 \
-		-sASYNCIFY \
-		-sFORCE_FILESYSTEM=1 \
-		-sFETCH=1 \
-		-sALLOW_MEMORY_GROWTH=0 \
-		-sINITIAL_MEMORY=268435456 \
-		-sSTACK_SIZE=33554432 \
-		-sGLOBAL_BASE=67108864 \
-		-sASYNCIFY_STACK_SIZE=1048576 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_enable_extension_breaks \
-		-lidbfs.js \
-		-lm
+		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
+		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
+		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_show_practice_home,_app_web_test_screen,_app_web_test_practice_start_click_x,_app_web_test_practice_start_click_y,_app_web_test_enable_extension_breaks \
+		--preload-file locales --preload-file assets
 
-$(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) $(WEB_CANVAS_TARGET) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) validate-meditation-audio | $(WEB_DIST_DIR)
+$(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) validate-meditation-audio | $(WEB_DIST_DIR)
 	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_DIST_DIR)/index_boot.js
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index_boot.js
 	cp vendor/kryon/web/kryon-web-present.js $(WEB_DIST_DIR)/kryon-web-present.js
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/kryon-web-present.js
 	rm -rf $(WEB_DIST_DIR)/canvas
-	cp -R $(WEB_CANVAS_DIR) $(WEB_DIST_DIR)/canvas
 	rm -rf $(WEB_DIST_DIR)/web-assets $(WEB_DIST_DIR)/site-icons
 	cp -R web-assets $(WEB_DIST_DIR)/
 	cp -R site-icons $(WEB_DIST_DIR)/
 	cp manifest.json $(WEB_DIST_DIR)/webmanifest.json
 
-web-canvas: $(WEB_CANVAS_TARGET)
+web-canvas: web
 
 $(WEB_CANVAS_DIR):
 	mkdir -p $@
@@ -1461,7 +1441,7 @@ $(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) $(S
 		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
 		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
 		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_enable_extension_breaks \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_show_practice_home,_app_web_test_screen,_app_web_test_practice_start_click_x,_app_web_test_practice_start_click_y,_app_web_test_enable_extension_breaks \
 		--preload-file locales --preload-file assets
 	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_CANVAS_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_CANVAS_DIR)/index_boot.js
@@ -1695,25 +1675,23 @@ web:
 	cd $(WEB_DIST_DIR) && zip -9 -r $(abspath $(WEB_DIST_ZIP)) .
 
 web-smoke-test: $(WEB_SMOKE_TEST)
-	WEB_SMOKE_RENDERER=raylib WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
+	WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 web-canvas-smoke-test: $(WEB_SMOKE_TEST)
-	WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_CANVAS_DIR)
+	WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 web-compare-test:
 	$(MAKE) $(WEB_TARGET)
 	$(MAKE) web-smoke-test
-	$(MAKE) web-canvas
-	$(MAKE) web-canvas-smoke-test
 
 web-side-by-side-test: $(WEB_SIDE_BY_SIDE_TEST)
 	bash $(WEB_SIDE_BY_SIDE_TEST)
 
 web-smoke-test-firefox: $(WEB_SMOKE_TEST)
-	WEB_SMOKE_RENDERER=raylib WEB_SMOKE_BROWSER="firefox" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
+	WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="firefox" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 web-smoke-test-librewolf: $(WEB_SMOKE_TEST)
-	WEB_SMOKE_RENDERER=raylib WEB_SMOKE_BROWSER="librewolf" WEB_SMOKE_ALLOW_WEBGL_DISABLED=1 node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
+	WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="librewolf" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 site: web
 	sh site/build.sh
@@ -1729,31 +1707,20 @@ chrome-web-store-test: chrome-web-store
 	unzip -t $(CHROME_WEB_STORE_ZIP) >/dev/null
 	test -f $(CHROME_WEB_STORE_DIR)/web-assets/icons/chromewebstore.png
 	test -f $(CHROME_WEB_STORE_DIR)/extension_boot.js
-	test -f $(CHROME_WEB_STORE_DIR)/canvas/extension_boot.js
 	test -f $(CHROME_WEB_STORE_DIR)/extension_app.js
-	test -f $(CHROME_WEB_STORE_DIR)/canvas/extension_app.js
 	grep -q 'src="extension_boot.js"' $(CHROME_WEB_STORE_DIR)/index.html
-	grep -q 'src="extension_boot.js"' $(CHROME_WEB_STORE_DIR)/canvas/index.html
 	grep -q 'src="extension_app.js"' $(CHROME_WEB_STORE_DIR)/index.html
-	grep -q 'src="extension_app.js"' $(CHROME_WEB_STORE_DIR)/canvas/index.html
 	! grep -q '<script>window.__inbeRenderer' $(CHROME_WEB_STORE_DIR)/index.html
-	! grep -q '<script>window.__inbeRenderer' $(CHROME_WEB_STORE_DIR)/canvas/index.html
 	grep -q 'notifications' $(CHROME_WEB_STORE_DIR)/manifest.json
 
-$(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_EXTENSION_BOOT) $(CHROME_WEB_STORE_EXTENSION_APP) $(CHROME_WEB_STORE_EXTENSION_CANVAS_APP) $(CHROME_WEB_STORE_ICONS) | $(CHROME_WEB_STORE_DIR)
+$(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_EXTENSION_BOOT) $(CHROME_WEB_STORE_EXTENSION_APP) $(CHROME_WEB_STORE_ICONS) | $(CHROME_WEB_STORE_DIR)
 	rm -rf $(CHROME_WEB_STORE_DIR)
 	mkdir -p $(CHROME_WEB_STORE_DIR)/icons
 	cp -R $(WEB_DIST_DIR)/. $(CHROME_WEB_STORE_DIR)/
 	cp $(CHROME_WEB_STORE_EXTENSION_BOOT) $(CHROME_WEB_STORE_DIR)/extension_boot.js
 	cp $(CHROME_WEB_STORE_EXTENSION_APP) $(CHROME_WEB_STORE_DIR)/extension_app.js
 	perl -0pi -e 's#(<script src="index_boot\.js\?v=[^"]+"></script>)#<script src="extension_boot.js"></script>\n    $$1#' $(CHROME_WEB_STORE_DIR)/index.html
-	perl -0pi -e 's#<script>window\.__inbeRenderer="raylib";window\.__inbeLoadApp\("index\.js\?v=[^"]+"\)</script>#<script src="extension_app.js"></script>#' $(CHROME_WEB_STORE_DIR)/index.html
-	if [ -f $(CHROME_WEB_STORE_DIR)/canvas/index.html ]; then \
-		cp $(CHROME_WEB_STORE_EXTENSION_BOOT) $(CHROME_WEB_STORE_DIR)/canvas/extension_boot.js; \
-		cp $(CHROME_WEB_STORE_EXTENSION_CANVAS_APP) $(CHROME_WEB_STORE_DIR)/canvas/extension_app.js; \
-		perl -0pi -e 's#(<script src="index_boot\.js\?v=[^"]+"></script>)#<script src="extension_boot.js"></script>\n    $$1#' $(CHROME_WEB_STORE_DIR)/canvas/index.html; \
-		perl -0pi -e 's#<script>window\.__inbeRenderer="canvas";window\.__inbeLoadApp\("index\.js\?v=[^"]+"\)</script>#<script src="extension_app.js"></script>#' $(CHROME_WEB_STORE_DIR)/canvas/index.html; \
-	fi
+	perl -0pi -e 's#<script>window\.__inbeRenderer="canvas";window\.__inbeLoadApp\("index\.js\?v=[^"]+"\)</script>#<script src="extension_app.js"></script>#' $(CHROME_WEB_STORE_DIR)/index.html
 	sed -e 's#__APP_VERSION__#$(APP_VERSION)#g' \
 		$(CHROME_WEB_STORE_MANIFEST) > $(CHROME_WEB_STORE_DIR)/manifest.json
 	cp $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_DIR)/service_worker.js

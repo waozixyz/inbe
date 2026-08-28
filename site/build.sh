@@ -244,9 +244,6 @@ for path in \
 	build/web/index.html \
 	build/web/index.js \
 	build/web/index.wasm \
-	build/web/canvas/index.html \
-	build/web/canvas/index.js \
-	build/web/canvas/index.wasm \
 	build/telegram/index.html \
 	build/telegram/index.js \
 	build/telegram/index.wasm \

@@ -7,6 +7,7 @@
 #import "screens/profile_social.h" #private
 #import "screens/settings/settings_screen.h" #private
 #import <stdio.h>
+#import <string.h>
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
@@ -490,6 +491,24 @@ app_draw_sidebar_settings_items :: (app: InbeApp*, x: int, y: int*, w: int,
     return 0
 }
 
+app_compact_public_id :: (public_id: const char*, out: char*, out_size: size_t) #private {
+    len: size_t
+
+    if out == NULL || out_size == 0 {
+        return
+    }
+    out[0] = '\0'
+    if public_id == NULL {
+        return
+    }
+    len = strlen(public_id)
+    if len <= 12 {
+        snprintf(out, out_size, "%s", public_id)
+        return
+    }
+    snprintf(out, out_size, "%.*s...%.*s", 4, public_id, 4, public_id + len - 4)
+}
+
 app_sidebar_account_label :: (out: char*, out_size: size_t) #private {
     account: KsyncAccount
     alias: const char*
@@ -505,7 +524,7 @@ app_sidebar_account_label :: (out: char*, out_size: size_t) #private {
     if alias != NULL && alias[0] != '\0' {
         snprintf(out, out_size, "@%s", alias)
     } else {
-        snprintf(out, out_size, "%.12s...", account.public_id)
+        app_compact_public_id(account.public_id, out, out_size)
     }
 }
 

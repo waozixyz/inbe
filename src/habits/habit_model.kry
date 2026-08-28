@@ -224,6 +224,14 @@ habits_add_default_set :: (habits: InbeHabits*) {
     habits_save(habits)
 }
 
+habits_seed_default_set_if_needed :: (habits: InbeHabits*) -> int {
+    if habits == nil || habits->count > 0 {
+        return 0
+    }
+    habits_add_default_set(habits)
+    return habits->count > 0
+}
+
 habits_delete :: (habits: InbeHabits*, index: int) {
     if habits == nil || index < 0 || index >= habits->count {
         return
@@ -352,7 +360,7 @@ habits_add_custom :: (habits: InbeHabits*, name: const char*, color: Color,
     return habits->selected
 }
 
-habits_init :: (habits: InbeHabits*) {
+habits_init_with_defaults :: (habits: InbeHabits*, seed_defaults: int) {
     if habits == nil {
         return
     }
@@ -365,14 +373,19 @@ habits_init :: (habits: InbeHabits*) {
             habits->hold_stats_range_days = 7
         }
         if habits->count <= 0 {
-            habits_add_default_set(habits)
+            if seed_defaults {
+                habits_seed_default_set_if_needed(habits)
+            }
+            habits->loaded = 1
             return
         }
         if habits->count == 3 &&
            strcmp(habits->items[0].id, "mind") == 0 &&
            strcmp(habits->items[1].id, "yoga") == 0 &&
            strcmp(habits->items[2].id, "fitness") == 0 {
-            habits_add_default_set(habits)
+            if seed_defaults {
+                habits_add_default_set(habits)
+            }
             return
         }
         if habits->selected < 0 || habits->selected >= habits->count {
@@ -381,10 +394,20 @@ habits_init :: (habits: InbeHabits*) {
         habits->loaded = 1
         return
     }
-    habits_add_default_set(habits)
+    if seed_defaults {
+        habits_add_default_set(habits)
+    } else {
+        habits_free(habits)
+        memset(habits, 0, sizeof(*habits))
+        habits->loaded = 1
+    }
     if habits->hold_stats_range_days != 31 {
         habits->hold_stats_range_days = 7
     }
+}
+
+habits_init :: (habits: InbeHabits*) {
+    habits_init_with_defaults(habits, 1)
 }
 
 habit_set_day :: (habits: InbeHabits*, index: int, day_index: int, completed: int) {

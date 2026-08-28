@@ -320,7 +320,7 @@ app_web_test_show_first_run_guide(void)
         app_close_modal(app);
     app_switch_screen(app, InbeScreenStart);
     save_settings(app);
-    FlushWebStorageSyncBlocking(3000, 1);
+    FlushWebStorageSync(1);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -536,7 +536,7 @@ app_web_test_import_sync_key(void)
     storage_set_setting_text("sync_account_alias", "");
     storage_set_sync_server_connected(0);
     storage_settings_end_write();
-    FlushWebStorageSyncBlocking(3000, 1);
+    FlushWebStorageSync(1);
     web_test_sync_key_import_status = 1;
 }
 
@@ -560,6 +560,60 @@ app_web_test_habits_click_y(void)
     int y = 0;
 
     return habits_overview_test_click_point(app, &x, &y) ? y : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void
+app_web_test_show_practice_home(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    if(app == NULL)
+        return;
+
+    snprintf(app->language, sizeof(app->language), "%s", "es");
+    app->language_system = 0;
+    app->language_selected = 1;
+    app->tutorial_seen = 1;
+    app->main_tab = APP_MAIN_TAB_PRACTICE;
+    app->practice_tab = PRACTICE_TAB_PLAY;
+    app->exercise_type = EXERCISE_WIM_HOF;
+    if(app->modal.active)
+        app_close_modal(app);
+    app_switch_screen(app, InbeScreenStart);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_screen(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    return app != NULL ? (int)app->inbe.screen : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_practice_start_click_x(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    if(app == NULL || !web_test_rect_valid(app->practice_home_bounds_start))
+        return -1;
+    return (int)(app->practice_home_bounds_start.x +
+                 app->practice_home_bounds_start.width * 0.5f);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_practice_start_click_y(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    if(app == NULL || !web_test_rect_valid(app->practice_home_bounds_start))
+        return -1;
+    return (int)(app->practice_home_bounds_start.y +
+                 app->practice_home_bounds_start.height * 0.5f);
 }
 
 EMSCRIPTEN_KEEPALIVE

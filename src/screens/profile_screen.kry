@@ -9,6 +9,7 @@
 #import "sync_account.h"
 #import "stddef.h"
 #import "stdio.h"
+#import "string.h"
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
@@ -94,6 +95,24 @@ profile_save_identity :: (app: InbeApp*) #private {
     save_settings(app)
 }
 
+profile_compact_public_id :: (public_id: const char*, out: char*, out_size: size_t) #private {
+    len: size_t
+
+    if out == nil || out_size == 0 {
+        return
+    }
+    out[0] = '\0'
+    if public_id == nil {
+        return
+    }
+    len = strlen(public_id)
+    if len <= 12 {
+        snprintf(out, out_size, "%s", public_id)
+        return
+    }
+    snprintf(out, out_size, "%.*s...%.*s", 4, public_id, 4, public_id + len - 4)
+}
+
 profile_draw_identity :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     account: KsyncAccount = {0}
     account_text: [80] char = {0}
@@ -114,8 +133,8 @@ profile_draw_identity :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         if alias != nil && alias[0] != '\0' {
             snprintf(account_text, sizeof(account_text), "@%s", alias)
         } else {
-            snprintf(account_text, sizeof(account_text), "%.12s...",
-                     account.public_id)
+            profile_compact_public_id(account.public_id, account_text,
+                                      sizeof(account_text))
         }
     } else {
         snprintf(account_text, sizeof(account_text), "%s",

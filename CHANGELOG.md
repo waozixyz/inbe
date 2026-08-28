@@ -1,4 +1,17 @@
 # Changelog
+## [1.9.12] - 2026-08-28
+### Changed
+- Web builds now use the Canvas renderer directly, so browsers without WebGL no longer need a fallback path.
+- Sync account IDs now display in a compact first-four/last-four format in profile and sync settings.
+
+### Fixed
+- Importing a sync key now connects the account automatically once the key is accepted.
+- Background sync no longer blocks or interrupts starting a practice.
+- Start Practice now remains responsive while sync is running in the background.
+- Profile and sync account text can be selected reliably with double-click and drag selection.
+- Web console output is quieter during normal startup and sync.
+- Android UI scaling now uses the best detected device scale, fixing undersized menu text on tall phones.
+
 ## [1.9.11] - 2026-08-28
 ### Changed
 - Practice screens now show only the practices that are currently available.

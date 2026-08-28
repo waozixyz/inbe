@@ -97,7 +97,7 @@ sync_account_import_private_key_preview :: (account: KsyncAccount*,
     }
     memset(account, 0, sizeof(*account))
     if !ImportKsyncAccountFile(filename, account) {
-        TraceLog(LOG_WARNING, "SYNC: Private key import failed: invalid key file")
+        TraceLog(LOG_WARNING, "SYNC: Private key import failed")
         return 0
     }
     return 1

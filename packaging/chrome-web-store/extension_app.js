@@ -1,2 +1,2 @@
-window.__inbeRenderer = "raylib";
+window.__inbeRenderer = "canvas";
 window.__inbeLoadApp("index.js");

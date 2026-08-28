@@ -26,6 +26,8 @@ static sync_account_alias_key: const char* = "sync_account_alias"
 
 static save_dialog_callback: SettingsSyncKeySaveDialog = nil
 static import_dialog_callback: SettingsSyncKeyImportDialog = nil
+static public_id_field_cursor: int = 0
+static public_id_field_focused: int = 0
 
 set_save_dialog :: (callback: SettingsSyncKeySaveDialog) {
     save_dialog_callback = callback
@@ -60,18 +62,28 @@ draw_public_id_link :: (text: const char*, x: int, w: int, y: int*, font: int) -
 
 draw_public_id_field :: (text: const char*, x: int, w: int, y: int*, font: int,
                         style: TextInputStyle) #private {
-    field_h: int
+    field_text: [KSYNC_PUBLIC_ID_HEX_SIZE] char = {0}
+    field_h := ScaleUIPx(38)
 
     if text == nil || y == nil {
         return
     }
 
-    field_h = UIGetNodeHeight(UINodeReadonlyTextBox((ReadonlyTextBoxProps){.bounds = {(float)x, 0, (float)w, 0}, .text = text, .font = font, .style = style}))
-    ReadonlyTextBox((ReadonlyTextBoxProps){
+    snprintf(field_text, sizeof(field_text), "%s", text)
+    if public_id_field_cursor > (int)strlen(field_text) {
+        public_id_field_cursor = (int)strlen(field_text)
+    }
+    TextField((TextFieldProps){
         .bounds = {(float)x, (float)*y, (float)w, (float)field_h},
-        .text = text,
+        .text = field_text,
+        .text_size = sizeof(field_text),
+        .cursor_position = &public_id_field_cursor,
+        .focused = &public_id_field_focused,
+        .max_codepoints = (int)strlen(field_text),
         .font = font,
+        .focus_id = 9421,
         .style = style,
+        .read_only = 1,
     })
     *y += field_h
 }
@@ -398,6 +410,10 @@ run_connect :: (app: InbeApp*) #private {
         storage_set_sync_server_connected(0)
         settings_screen_set_status_error(GetLocaleText(result_key(result)))
     }
+}
+
+connect :: (app: InbeApp*) {
+    run_connect(app)
 }
 
 logout :: (app: InbeApp*) #private {

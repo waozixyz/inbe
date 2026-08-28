@@ -146,6 +146,7 @@ int storage_habits_empty(void);
 int storage_habits_load(void *habits);
 void storage_habits_save(const void *habits);
 int storage_habit_day_save(const char *habit_id, int local_date, int completed, int count);
+int storage_habits_initialized(void);
 void storage_mark_habits_initialized(void);
 
 int storage_export_zip(const char *path);

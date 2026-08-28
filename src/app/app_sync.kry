@@ -14,6 +14,7 @@ WEB :: #defined(PLATFORM_WEB)
 
 static inbe_sync_server_url_key: const char* = "sync_server_url"
 static inbe_sync_input_quiet_seconds: const double = 0.45
+static inbe_sync_ui_quiet_seconds: const double = 1.50
 
 #enum {
     INBE_SOCIAL_ACTION_QUEUE_MAX = 8
@@ -553,7 +554,8 @@ app_background_sync_safe :: (app: const InbeApp*) -> int #private {
        app->profile_friend_input_focused {
         return 0
     }
-    if app->inbe.screen == InbeScreenPracticeSession ||
+    if app->inbe.screen == InbeScreenStart ||
+       app->inbe.screen == InbeScreenPracticeSession ||
        app->inbe.screen == InbeScreenMeditation ||
        app->inbe.screen == InbeScreenSunSalutation {
         return 0
@@ -624,8 +626,31 @@ app_input_active :: () -> int #private {
            IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)
 }
 
-app_apply_pending_sync_refresh :: (app: InbeApp*) #private {
-    if !g_sync.data_refresh_pending || !app_background_sync_safe(app) {
+app_sync_record_input :: (now: double) #private {
+    if app_input_active() {
+        g_sync.last_input_at = now
+    }
+}
+
+app_sync_user_idle :: (now: double) -> int #private {
+    return !app_input_active() && now >= g_sync.last_input_at + inbe_sync_ui_quiet_seconds
+}
+
+app_sync_ui_update_safe :: (app: const InbeApp*, now: double) -> int #private {
+    if !app_background_sync_safe(app) {
+        return 0
+    }
+    if !app_sync_user_idle(now) {
+        return 0
+    }
+    if app->inbe.screen == InbeScreenStart {
+        return 0
+    }
+    return 1
+}
+
+app_apply_pending_sync_refresh :: (app: InbeApp*, now: double) #private {
+    if !g_sync.data_refresh_pending || !app_sync_ui_update_safe(app, now) {
         return
     }
     g_sync.data_refresh_pending = 0
@@ -658,7 +683,10 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
     action: [16] char = ""
     action_value: [96] char = ""
 
-    if !g_sync.social_refresh_pending || !app_background_sync_safe(app) {
+    now := GetTime()
+
+    if !g_sync.social_refresh_pending || !app_background_sync_safe(app) ||
+       !app_sync_user_idle(now) {
         return
     }
     if g_sync.dirty_sync_at > 0.0 {
@@ -979,26 +1007,24 @@ app_sync_pump :: (app: InbeApp*) {
     if IsUIInspectActive() {
         return
     }
+    now = GetTime()
+    app_sync_record_input(now)
     app_collect_finished_sync()
     app_collect_finished_social_refresh(app)
-    if storage_sync_review_pending() && app_background_sync_safe(app) {
+    if storage_sync_review_pending() && app_sync_ui_update_safe(app, now) {
         if storage_sync_review_clear_if_no_visible_diff() {
             app_reload_after_import(app, 0)
         } else {
             app_open_modal(app, UIModalSyncReview)
         }
     }
-    app_apply_pending_sync_refresh(app)
+    app_apply_pending_sync_refresh(app, now)
     app_apply_pending_social_refresh(app)
     if !app_sync_url(url, sizeof(url)) {
         app_clear_disconnected_sync_work()
         return
     }
     app_ensure_sync_events(url)
-    now = GetTime()
-    if app_input_active() {
-        g_sync.last_input_at = now
-    }
     if g_sync.dirty_sync_at > 0.0 && now >= g_sync.dirty_sync_at {
         should_sync = 1
         dirty_due = 1
@@ -1051,5 +1077,5 @@ app_sync_pump :: (app: InbeApp*) {
     } else if dirty_due || repair_due {
         g_sync.dirty_sync_at = now + inbe_sync_input_quiet_seconds
     }
-    app_apply_pending_sync_refresh(app)
+    app_apply_pending_sync_refresh(app, now)
 }

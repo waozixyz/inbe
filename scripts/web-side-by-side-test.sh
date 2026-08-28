@@ -20,10 +20,10 @@ usage() {
     cat <<EOF
 Usage: $0 [options]
 
-Build and test both web renderers, then serve a side-by-side comparison page.
+Build and test the Canvas2D web renderer, then serve a preview page.
 
 Options:
-  --no-build      Skip rebuilding build/dist/web and build/dist/web-canvas.
+  --no-build      Skip rebuilding build/dist/web.
   --no-smoke      Skip automated smoke tests.
   --no-serve      Exit after build/smoke checks.
   --open          Open the side-by-side page with xdg-open after serving starts.
@@ -116,10 +116,9 @@ sock.close()
 PY
 }
 
-write_side_by_side_page() {
+write_preview_page() {
     mkdir -p "$WORK_DIR"
-    ln -sfn "$ROOT/build/dist/web" "$WORK_DIR/raylib"
-    ln -sfn "$ROOT/build/dist/web-canvas" "$WORK_DIR/canvas"
+    ln -sfn "$ROOT/build/dist/web" "$WORK_DIR/app"
     ln -sfn "$ROOT/build/dist/web/site-icons" "$WORK_DIR/site-icons"
     ln -sfn "$ROOT/build/dist/web/web-assets" "$WORK_DIR/web-assets"
     cat > "$WORK_DIR/index.html" <<'HTML'
@@ -128,7 +127,7 @@ write_side_by_side_page() {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Inner Breeze Web Renderer Compare</title>
+    <title>Inner Breeze Web Preview</title>
     <style>
       html,
       body {
@@ -139,21 +138,10 @@ write_side_by_side_page() {
         font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
-      .compare {
+      .preview {
         min-height: 100%;
         display: grid;
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .pane {
-        min-width: 0;
-        display: grid;
         grid-template-rows: auto 1fr;
-        border-left: 1px solid rgba(255, 255, 255, 0.18);
-      }
-
-      .pane:first-child {
-        border-left: 0;
       }
 
       .bar {
@@ -185,38 +173,16 @@ write_side_by_side_page() {
         background: #17172a;
       }
 
-      @media (max-width: 900px) {
-        .compare {
-          grid-template-columns: 1fr;
-          grid-template-rows: 1fr 1fr;
-        }
-
-        .pane {
-          border-left: 0;
-          border-top: 1px solid rgba(255, 255, 255, 0.18);
-        }
-
-        .pane:first-child {
-          border-top: 0;
-        }
-      }
     </style>
   </head>
   <body>
-    <main class="compare">
-      <section class="pane">
-        <div class="bar">
-          <span class="label">Raylib / WebGL</span>
-          <span class="path">/raylib/index.html</span>
-        </div>
-        <iframe src="/raylib/index.html" title="Inner Breeze Raylib WebGL"></iframe>
-      </section>
+    <main class="preview">
       <section class="pane">
         <div class="bar">
           <span class="label">Canvas2D</span>
-          <span class="path">/canvas/index.html</span>
+          <span class="path">/app/index.html</span>
         </div>
-        <iframe src="/canvas/index.html" title="Inner Breeze Canvas2D"></iframe>
+        <iframe src="/app/index.html" title="Inner Breeze Canvas2D"></iframe>
       </section>
     </main>
   </body>
@@ -232,24 +198,17 @@ cleanup() {
 trap cleanup EXIT
 
 if [ "$BUILD" -eq 1 ]; then
-    run_step build "Build raylib/WebGL and Canvas web outputs" make build/dist/web/index.html
+    run_step build "Build Canvas2D web output" make build/dist/web/index.html
 fi
 
 if [ ! -f build/dist/web/index.html ] || [ ! -f build/dist/web/index.js ] || [ ! -f build/dist/web/index.wasm ]; then
-    echo "Missing raylib/WebGL web build in build/dist/web" >&2
-    exit 1
-fi
-
-if [ ! -f build/dist/web-canvas/index.html ] || [ ! -f build/dist/web-canvas/index.js ] || [ ! -f build/dist/web-canvas/index.wasm ]; then
-    echo "Missing Canvas web build in build/dist/web-canvas" >&2
+    echo "Missing Canvas2D web build in build/dist/web" >&2
     exit 1
 fi
 
 if [ "$SMOKE" -eq 1 ]; then
-    run_step smoke-raylib "Smoke test raylib/WebGL renderer" \
-        env WEB_SMOKE_RENDERER=raylib WEB_SMOKE_BROWSER="$BROWSER" node scripts/web-smoke-test.mjs build/dist/web
     run_step smoke-canvas "Smoke test Canvas2D renderer" \
-        env WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="$BROWSER" node scripts/web-smoke-test.mjs build/dist/web-canvas
+        env WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="$BROWSER" node scripts/web-smoke-test.mjs build/dist/web
 fi
 
 if [ "$SERVE" -eq 0 ]; then
@@ -257,11 +216,11 @@ if [ "$SERVE" -eq 0 ]; then
     exit 0
 fi
 
-write_side_by_side_page
+write_preview_page
 PORT="$(choose_port)"
 URL="http://127.0.0.1:$PORT/"
 
-printf '\nSide-by-side page: %s\n' "$URL"
+printf '\nPreview page: %s\n' "$URL"
 printf 'Logs: %s\n' "$LOG_DIR"
 printf 'Serving root: %s\n' "$WORK_DIR"
 printf 'Press Ctrl-C to stop.\n\n'

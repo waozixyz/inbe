@@ -88,7 +88,8 @@ exercise_manual_bit :: (exercise_type: int) -> int #private {
     }
 
     sync_web_storage_critical :: () -> int {
-        return FlushWebStorageSyncBlocking(3000, 1)
+        FlushWebStorageSync(1)
+        return 1
     }
 } #else {
     sync_web_storage_critical :: () -> int {

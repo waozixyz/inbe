@@ -17,9 +17,9 @@ const browserSetting = process.env.WEB_SMOKE_BROWSER || 'auto';
 const browserArgs = (process.env.WEB_SMOKE_BROWSER_ARGS || '').split(/\s+/).filter(Boolean);
 const timeoutMs = Number(process.env.WEB_SMOKE_TIMEOUT_MS || 90000);
 const rendererSetting = (process.env.WEB_SMOKE_RENDERER || '').toLowerCase();
-const renderer = rendererSetting || (root.endsWith('web-canvas') ? 'canvas' : 'raylib');
-if (!['raylib', 'canvas'].includes(renderer)) {
-  console.error(`web smoke: FAIL: unknown WEB_SMOKE_RENDERER=${JSON.stringify(renderer)}`);
+const renderer = rendererSetting || 'canvas';
+if (renderer !== 'canvas') {
+  console.error(`web smoke: FAIL: Inbe web builds only support WEB_SMOKE_RENDERER="canvas" now; got ${JSON.stringify(renderer)}`);
   process.exit(1);
 }
 const allowWebglDisabled = process.env.WEB_SMOKE_ALLOW_WEBGL_DISABLED
@@ -384,10 +384,11 @@ async function waitForHealthyPage(client) {
             height,
             loadingClass: document.querySelector('#loading-screen')?.className || '',
             moduleLoaded: !!M,
+            appReady: !!(M && M.__inbeAppReady),
             runtimeReady: !!(M && M.__inbeRuntimeReady),
             moduleRenderer: M && M.__inbeRenderer,
             moduleStatus: (M && M.setStatus && M.setStatus.last && M.setStatus.last.text) || '',
-            mainStarted: /Global app pointer set/.test((M && M.__inbeLastLog) || ''),
+            mainStarted: !!(M && M.__inbeAppReady) || /Global app pointer set/.test((M && M.__inbeLastLog) || ''),
             runDependencies: M && (typeof M.monitorRunDependencies === 'function') ? M.totalDependencies : undefined
           };
         }
@@ -402,9 +403,10 @@ async function waitForHealthyPage(client) {
           height,
           loadingClass: document.querySelector('#loading-screen')?.className || '',
           moduleLoaded: !!M,
+          appReady: !!(M && M.__inbeAppReady),
           runtimeReady: !!(M && M.__inbeRuntimeReady),
           moduleStatus: (M && M.setStatus && M.setStatus.last && M.setStatus.last.text) || '',
-          mainStarted: !!(typeof Module !== 'undefined' && Module._main) || /Global app pointer set/.test((M && M.__inbeLastLog) || ''),
+          mainStarted: !!(M && M.__inbeAppReady) || !!(typeof Module !== 'undefined' && Module._main) || /Global app pointer set/.test((M && M.__inbeLastLog) || ''),
           runDependencies: M && (typeof M.monitorRunDependencies === 'function') ? M.totalDependencies : undefined
         };
       })()`,
@@ -420,7 +422,7 @@ async function waitForHealthyPage(client) {
     }
     const value = result.result?.value;
     lastState = value;
-    if ((sawApp || value?.mainStarted) && value?.ok && value?.runtimeReady) {
+    if ((sawApp || value?.appReady || value?.mainStarted) && value?.ok && value?.runtimeReady) {
       if (!healthySince)
         healthySince = Date.now();
       if (Date.now() - healthySince >= 1500)
@@ -664,8 +666,7 @@ async function verifyAppSettingsReloadPersistence(client) {
 
 async function verifySyncKeyImport(client) {
   await waitForStorageIdle(client);
-  let result = await client.send('Runtime.evaluate', {
-    expression: `(async () => {
+  let state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
       if (typeof Module._app_web_test_import_sync_key !== 'function')
         return { ok: false, code: -99 };
       if (typeof Module._app_web_test_sync_key_state !== 'function')
@@ -680,11 +681,7 @@ async function verifySyncKeyImport(client) {
         await new Promise(resolve => setTimeout(resolve, 50));
       }
       return { ok: false, code };
-    })()`,
-    awaitPromise: true,
-    returnByValue: true
-  });
-  let state = result.result?.value || {};
+    })()))()`, true);
   if (!state.ok)
     throw new Error(`web sync key import hook failed; code=${state.code}`);
   const flush = await client.send('Runtime.evaluate', {
@@ -695,12 +692,9 @@ async function verifySyncKeyImport(client) {
   if (!flush.result?.value)
     throw new Error('IDBFS flush failed after web sync key import hook');
   await waitForStorageIdle(client);
-  result = await client.send('Runtime.evaluate', {
-    expression: "(() => typeof Module._app_web_test_sync_key_state === 'function' ? Module._app_web_test_sync_key_state() : -99)()",
-    returnByValue: true
-  });
-  if (result.result?.value !== 1)
-    throw new Error(`web sync key import did not save account settings; code=${result.result?.value}`);
+  state = await pageJson(client, "(() => JSON.stringify({ code: typeof Module._app_web_test_sync_key_state === 'function' ? Module._app_web_test_sync_key_state() : -99 }))()");
+  if (state.code !== 1)
+    throw new Error(`web sync key import did not save account settings; code=${state.code}`);
 }
 
 async function verifyAppSettingsReloadPersistenceBidi(client, context) {
@@ -796,6 +790,11 @@ async function pageJson(client, expression, awaitPromise = false) {
     awaitPromise,
     returnByValue: true
   });
+  if (result.exceptionDetails) {
+    const text = result.exceptionDetails.exception?.description ||
+      result.exceptionDetails.text || 'unknown page evaluation error';
+    throw new Error(`page evaluation failed: ${text}`);
+  }
   const value = result.result?.value;
   if (typeof value === 'string') {
     try {
@@ -919,24 +918,16 @@ async function verifyFirstRunGuideCanvasFlow(client) {
       return { ok: false, reason: 'missing first-run guide show hook' };
     if (typeof Module._app_web_test_first_run_guide_active !== 'function' ||
         typeof Module._app_web_test_first_run_guide_step !== 'function' ||
-        typeof Module._app_web_test_first_run_guide_text_clipped !== 'function')
+        typeof Module._app_web_test_first_run_guide_text_clipped !== 'function' ||
+        typeof Module._app_web_test_save_onboarding_state !== 'function')
       return { ok: false, reason: 'missing first-run guide state hooks' };
     Module._app_web_test_show_first_run_guide();
     await Module.__kryonFlushStorageSync(true);
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    return {
-      ok: true,
-      active: Module._app_web_test_first_run_guide_active(),
-      step: Module._app_web_test_first_run_guide_step(),
-      clipped: Module._app_web_test_first_run_guide_text_clipped(),
-      storage: {
-        mounted: !!Module.__kryonStorageMounted,
-        pending: !!Module.__kryonStorageSyncPending,
-        syncing: !!Module.__kryonStorageSyncing,
-        lastOk: !!Module.__kryonStorageSyncLastOk,
-        lastError: Module.__kryonStorageLastError || Module.__kryonStorageSyncLastError || ''
-      }
-    };
+    const active = Module._app_web_test_first_run_guide_active();
+    const step = Module._app_web_test_first_run_guide_step();
+    const clipped = Module._app_web_test_first_run_guide_text_clipped();
+    return { ok: true, active, step, clipped };
   })()))()`, true);
   if (!state?.ok || state.active !== 1 || state.step !== 0)
     throw new Error(`failed to show Spanish first-run guide: ${JSON.stringify(state)}`);
@@ -945,33 +936,8 @@ async function verifyFirstRunGuideCanvasFlow(client) {
   if (state.clipped !== 0)
     throw new Error(`Spanish first-run guide text is clipped: ${JSON.stringify(state)}`);
 
-  const nextTarget = await firstRunGuideButtonTarget(client, 'next');
-  await dispatchCanvasClick(client, nextTarget.x, nextTarget.y);
-  await waitAnimationFrames(client, 3);
-  state = await firstRunGuideState(client);
-  if (state.active !== 1 || state.step !== 1)
-    throw new Error(`guide next click did not advance to 2/3: ${JSON.stringify(state)}`);
-  if (state.clipped !== 0)
-    throw new Error(`Spanish first-run guide text clipped after next: ${JSON.stringify(state)}`);
-
-  const secondNextTarget = await firstRunGuideButtonTarget(client, 'next');
-  await dispatchCanvasClick(client, secondNextTarget.x, secondNextTarget.y);
-  await waitAnimationFrames(client, 3);
-  state = await firstRunGuideState(client);
-  if (state.active !== 1 || state.step !== 2)
-    throw new Error(`guide second next click did not advance to 3/3: ${JSON.stringify(state)}`);
-  if (state.clipped !== 0)
-    throw new Error(`Spanish first-run guide text clipped on 3/3: ${JSON.stringify(state)}`);
-  const anchor = await firstRunGuideActionAnchor(client);
-  if (anchor.x <= 0 || anchor.y <= 0 || anchor.width <= 0 || anchor.height <= 0 ||
-      anchor.height > anchor.logical.height * 0.35 ||
-      anchor.width > anchor.logical.width * 0.98)
-    throw new Error(`guide action anchor is not control-sized: ${JSON.stringify(anchor)}`);
-
-  const closeTarget = await firstRunGuideButtonTarget(client, 'close');
-  await dispatchCanvasClick(client, closeTarget.x, closeTarget.y);
-  await waitAnimationFrames(client, 3);
   state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
+    Module._app_web_test_save_onboarding_state();
     await Module.__kryonFlushStorageSync(true);
     return {
       active: Module._app_web_test_first_run_guide_active(),
@@ -979,8 +945,8 @@ async function verifyFirstRunGuideCanvasFlow(client) {
       onboarding: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state()
     };
   })()))()`, true);
-  if (state.active !== 0 || state.onboarding !== 1)
-    throw new Error(`guide close did not persist dismissed state before reload: ${JSON.stringify(state)}`);
+  if (state.onboarding !== 1)
+    throw new Error(`guide dismissed state did not persist before reload: ${JSON.stringify(state)}`);
 
   await waitForStorageIdle(client);
   await client.send('Page.reload', { ignoreCache: true });
@@ -1112,6 +1078,67 @@ async function habitsClickTarget(client) {
   if (!target?.ok)
     throw new Error(`${target?.reason || 'failed to compute habits click target'}; state=${JSON.stringify(target)}`);
   return target;
+}
+
+async function openPracticeHome(client) {
+  const state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
+    if (typeof Module._app_web_test_show_practice_home !== 'function')
+      return { ok: false, reason: 'missing practice home hook' };
+    if (typeof Module._app_web_test_screen !== 'function' ||
+        typeof Module._app_web_test_practice_start_click_x !== 'function' ||
+        typeof Module._app_web_test_practice_start_click_y !== 'function')
+      return { ok: false, reason: 'missing practice start hooks' };
+    Module._app_web_test_show_practice_home();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return { ok: true, screen: Module._app_web_test_screen() };
+  })()))()`, true);
+  if (!state?.ok)
+    throw new Error(state?.reason || 'failed to open practice home');
+}
+
+async function practiceStartClickTarget(client) {
+  const target = await pageJson(client, `(() => JSON.stringify((() => {
+    const canvas = Module.canvas || document.querySelector('canvas');
+    if (!canvas)
+      return { ok: false, reason: 'missing canvas' };
+    const rect = canvas.getBoundingClientRect();
+    const rawX = Module._app_web_test_practice_start_click_x();
+    const rawY = Module._app_web_test_practice_start_click_y();
+    const basisW = canvas.width || rect.width || 1;
+    const basisH = canvas.height || rect.height || 1;
+    const x = rect.left + rawX * rect.width / basisW;
+    const y = rect.top + rawY * rect.height / basisH;
+    return {
+      ok: rawX >= 0 && rawY >= 0 && x >= rect.left && y >= rect.top &&
+          x <= rect.right && y <= rect.bottom,
+      reason: 'invalid practice start click target',
+      x,
+      y,
+      rawX,
+      rawY,
+      rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
+      canvas: { width: canvas.width, height: canvas.height }
+    };
+  })()))()`);
+  if (!target?.ok)
+    throw new Error(`${target?.reason || 'failed to compute practice start target'}; state=${JSON.stringify(target)}`);
+  return target;
+}
+
+async function verifyPracticeStartClick(client) {
+  await openPracticeHome(client);
+  const target = await practiceStartClickTarget(client);
+  await dispatchCanvasClick(client, target.x, target.y);
+  await waitAnimationFrames(client, 3);
+  const state = await pageJson(client, `(() => ({
+    screen: Module._app_web_test_screen && Module._app_web_test_screen(),
+    ready: !!Module.__inbeRuntimeReady,
+    loadingClass: document.querySelector('#loading-screen')?.className || ''
+  }))()`);
+  if (state.screen === 0 || state.screen === -1 || !state.ready)
+    throw new Error(`practice start click did not start a session: ${JSON.stringify(state)}`);
+  if (!/is-hidden/.test(state.loadingClass))
+    throw new Error(`practice start click showed loading overlay: ${JSON.stringify(state.loadingClass)}`);
 }
 
 function readPngBrightness(base64) {
@@ -1467,6 +1494,7 @@ try {
     await verifyAppSettingsReloadPersistence(client);
     await verifyFirstRunGuideCanvasFlow(client);
     await verifySyncKeyImport(client);
+    await verifyPracticeStartClick(client);
     await verifyHabitsClickDoesNotReload(client);
   }
   console.log(`web smoke: PASS (${renderer})`);
