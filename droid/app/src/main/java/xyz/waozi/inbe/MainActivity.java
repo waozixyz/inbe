@@ -14,8 +14,9 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
 import android.graphics.Insets;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.widget.Toast;
 import android.app.AlertDialog;
@@ -71,8 +72,8 @@ public class MainActivity extends NativeActivity {
         System.loadLibrary("main");
     }
 
-    // [system bars, cutouts] mirrored in native.
-    private final int[] cachedInsets = new int[8];
+    // [system bars, IME, cutouts] mirrored in native.
+    private final int[] cachedInsets = new int[9];
     private boolean activityPaused = false;
     private boolean windowFocused = true;
     private boolean backgroundExecutionActive = false;
@@ -87,7 +88,7 @@ public class MainActivity extends NativeActivity {
     private int pendingDebugDonationReminderRetries = 0;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    private native void nativeSetInsets(int left, int top, int right, int bottom,
+    private native void nativeSetInsets(int left, int top, int right, int bottom, int imeBottom,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
     private native void nativeSetDeviceDensity(float density);
     private native void nativeSetSystemDark(int dark);
@@ -962,21 +963,25 @@ public class MainActivity extends NativeActivity {
             int systemTop = 0;
             int systemRight = 0;
             int systemBottom = 0;
+            int imeBottom = 0;
             int cLeft = 0, cTop = 0, cRight = 0, cBottom = 0;
 
             // Inbe owns a single edge-to-edge native surface. Java reports the
             // system bar insets; native applies them once against the real GL surface.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Insets systemBars = insets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+                Insets ime = insets.getInsets(WindowInsets.Type.ime());
                 systemLeft = systemBars.left;
                 systemTop = systemBars.top;
                 systemRight = systemBars.right;
                 systemBottom = systemBars.bottom;
+                imeBottom = ime.bottom;
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 systemLeft = insets.getSystemWindowInsetLeft();
                 systemTop = insets.getSystemWindowInsetTop();
                 systemRight = insets.getSystemWindowInsetRight();
                 systemBottom = insets.getSystemWindowInsetBottom();
+                imeBottom = inferImeBottom(systemBottom);
             }
             // Display cutout calculations
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -994,13 +999,14 @@ public class MainActivity extends NativeActivity {
                 cachedInsets[1] = systemTop;
                 cachedInsets[2] = systemRight;
                 cachedInsets[3] = systemBottom;
-                cachedInsets[4] = cLeft;
-                cachedInsets[5] = cTop;
-                cachedInsets[6] = cRight;
-                cachedInsets[7] = cBottom;
+                cachedInsets[4] = imeBottom;
+                cachedInsets[5] = cLeft;
+                cachedInsets[6] = cTop;
+                cachedInsets[7] = cRight;
+                cachedInsets[8] = cBottom;
             }
 
-            nativeSetInsets(systemLeft, systemTop, systemRight, systemBottom,
+            nativeSetInsets(systemLeft, systemTop, systemRight, systemBottom, imeBottom,
                 cLeft, cTop, cRight, cBottom);
 
             // Set device density for proper DPI scaling
@@ -1015,14 +1021,25 @@ public class MainActivity extends NativeActivity {
 
     /**
      * Called from native code via JNI to pull array memory safely.
-     * * @return Array copy containing [left, top, right, bottom, cutout left, top, right, bottom]
+     * * @return Array copy containing [left, top, right, bottom, ime bottom, cutout left, top, right, bottom]
      */
     public int[] getInsetsNative() {
-        int[] result = new int[8];
+        int[] result = new int[9];
         synchronized (cachedInsets) {
             System.arraycopy(cachedInsets, 0, result, 0, cachedInsets.length);
         }
         return result;
+    }
+
+    private int inferImeBottom(int navBar) {
+        View decorView = getWindow().getDecorView();
+        Rect visible = new Rect();
+        decorView.getWindowVisibleDisplayFrame(visible);
+        int rootHeight = decorView.getRootView().getHeight();
+        int hiddenBottom = rootHeight - visible.bottom;
+
+        if (hiddenBottom <= navBar) return 0;
+        return hiddenBottom;
     }
 
     private void syncLifecycleState(String reason) {

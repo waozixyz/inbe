@@ -374,29 +374,18 @@ android_clamp_content_size(int size, int leading_inset, int trailing_inset)
     return content_size;
 }
 
-static int
-android_nonnegative(int value)
-{
-    return value > 0 ? value : 0;
-}
-
-static int
-android_max_nonnegative(int first, int second)
-{
-    first = android_nonnegative(first);
-    second = android_nonnegative(second);
-    return first > second ? first : second;
-}
-
 static AndroidViewport
 android_resolve_viewport(int width, int height, AndroidInsets value)
 {
     static AndroidViewport last_logged = {-1, -1, -1, -1, -1, -1, -1, -1};
     AndroidViewport viewport;
-    viewport.left = android_max_nonnegative(value.system_left, value.cutout_left);
-    viewport.top = android_max_nonnegative(value.system_top, value.cutout_top);
-    viewport.right = android_max_nonnegative(value.system_right, value.cutout_right);
-    viewport.bottom = android_max_nonnegative(value.system_bottom, value.cutout_bottom);
+    KrySafeArea safe_area = GetAndroidSafeArea();
+
+    (void)value;
+    viewport.left = safe_area.left;
+    viewport.top = safe_area.top;
+    viewport.right = safe_area.right;
+    viewport.bottom = safe_area.bottom;
 
     viewport.x = viewport.left;
     viewport.y = viewport.top;
