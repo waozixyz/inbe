@@ -1082,6 +1082,27 @@ Inner Breeze 업데이트
 [sync_status_repair_pending]
 동기화 복구 대기 중
 ---
+[sync_status_secure_migration_pending]
+보안 데이터 마이그레이션 대기 중
+---
+[sync_secure_migration_title]
+보안 동기화 업데이트
+---
+[sync_secure_migration_message]
+v4 전용 동기화 사용 전, 이 기기의 이전 동기화 데이터 보호 형식 변환이 필요합니다.
+---
+[sync_secure_migration_updating_message]
+보안 동기화 데이터를 업데이트 중입니다. 완료될 때까지 Inbe를 열어 두세요.
+---
+[sync_secure_migration_done_message]
+보안 동기화 데이터가 업데이트되었습니다.
+---
+[sync_secure_migration_later_button]
+나중에
+---
+[sync_secure_migration_start_button]
+지금 업데이트
+---
 [sync_status_local_queued]
 로컬 변경 대기 중
 ---

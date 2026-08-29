@@ -1083,6 +1083,27 @@ Revisione in sospeso
 [sync_status_repair_pending]
 Riparazione sync in sospeso
 ---
+[sync_status_secure_migration_pending]
+Migrazione sicura dei dati in sospeso
+---
+[sync_secure_migration_title]
+Aggiornamento sincronizzazione sicura
+---
+[sync_secure_migration_message]
+Inbe deve cifrare di nuovo su questo dispositivo i vecchi dati sincronizzati prima di usare solo la sincronizzazione v4.
+---
+[sync_secure_migration_updating_message]
+Aggiornamento dei dati di sincronizzazione sicura. Tieni Inbe aperto fino al termine.
+---
+[sync_secure_migration_done_message]
+I dati di sincronizzazione sicura sono aggiornati.
+---
+[sync_secure_migration_later_button]
+Più tardi
+---
+[sync_secure_migration_start_button]
+Aggiorna ora
+---
 [sync_status_local_queued]
 Modifiche locali in coda
 ---

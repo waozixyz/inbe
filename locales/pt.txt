@@ -1083,6 +1083,27 @@ Revisão pendente
 [sync_status_repair_pending]
 Reparo de sincronização pendente
 ---
+[sync_status_secure_migration_pending]
+Migração segura de dados pendente
+---
+[sync_secure_migration_title]
+Atualização da sincronização segura
+---
+[sync_secure_migration_message]
+O Inbe precisa criptografar novamente neste dispositivo os dados sincronizados antigos antes de usar apenas a sincronização v4.
+---
+[sync_secure_migration_updating_message]
+Atualizando os dados de sincronização segura. Mantenha o Inbe aberto até terminar.
+---
+[sync_secure_migration_done_message]
+Os dados de sincronização segura estão atualizados.
+---
+[sync_secure_migration_later_button]
+Mais tarde
+---
+[sync_secure_migration_start_button]
+Atualizar agora
+---
 [sync_status_local_queued]
 Alterações locais na fila
 ---

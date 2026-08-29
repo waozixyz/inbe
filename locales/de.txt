@@ -1083,6 +1083,27 @@ Prüfung ausstehend
 [sync_status_repair_pending]
 Sync-Reparatur ausstehend
 ---
+[sync_status_secure_migration_pending]
+Sichere Datenmigration ausstehend
+---
+[sync_secure_migration_title]
+Aktualisierung der sicheren Synchronisierung
+---
+[sync_secure_migration_message]
+Inbe muss ältere synchronisierte Daten auf diesem Gerät neu verschlüsseln, bevor nur v4-Sync verwendet werden kann.
+---
+[sync_secure_migration_updating_message]
+Sichere Sync-Daten werden aktualisiert. Lass Inbe geöffnet, bis der Vorgang abgeschlossen ist.
+---
+[sync_secure_migration_done_message]
+Sichere Sync-Daten sind aktualisiert.
+---
+[sync_secure_migration_later_button]
+Später
+---
+[sync_secure_migration_start_button]
+Jetzt aktualisieren
+---
 [sync_status_local_queued]
 Lokale Änderungen warten
 ---

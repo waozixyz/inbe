@@ -7,7 +7,7 @@
 enum {
     INBE_STORAGE_PATH_SIZE = 512,
     INBE_STORAGE_ID_SIZE = 64,
-    INBE_SYNC_PROTOCOL_VERSION = 3
+    INBE_SYNC_PROTOCOL_VERSION = 4
 };
 
 typedef struct InbeStorageSessionCheckin {
@@ -55,12 +55,16 @@ typedef struct InbeStorageSyncStatus {
     int server_connected;
     int review_pending;
     int repair_pending;
+    int secure_migration_pending;
     int protocol_upgrade_available;
     int latest_protocol;
     int full_upload_done;
     long long server_version;
     long long server_clock;
     long long queued_changes;
+    long long secure_migration_queued;
+    long long secure_migration_total;
+    long long secure_migration_done;
 } InbeStorageSyncStatus;
 
 int storage_init(const char *root);
@@ -137,6 +141,7 @@ void storage_purge_synced_deleted_data(void);
 const char *storage_sync_client_id(void);
 void storage_make_uuid(char out[37]);
 void storage_reset_sync_state(void);
+void storage_enqueue_all_sync_state(void);
 const char *storage_sync_data_owner_public_id(void);
 void storage_set_sync_data_owner_public_id(const char *public_id);
 int storage_has_local_syncable_data(void);

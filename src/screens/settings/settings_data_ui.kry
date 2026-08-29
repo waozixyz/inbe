@@ -437,6 +437,9 @@ draw_sync_status :: (x: int, w: int, y: int*) {
     } else if status.repair_pending {
         snprintf(line, sizeof(line), "%s",
                     GetLocaleText("sync_status_repair_pending"))
+    } else if status.secure_migration_pending {
+        snprintf(line, sizeof(line), "%s",
+                    GetLocaleText("sync_status_secure_migration_pending"))
     } else if status.queued_changes > 0 {
         snprintf(line, sizeof(line), "%s",
                     GetLocaleText("sync_status_local_queued"))
@@ -451,7 +454,8 @@ draw_sync_status :: (x: int, w: int, y: int*) {
     status_line_color = body_color
     if status.protocol_upgrade_available ||
        status.review_pending ||
-       status.repair_pending {
+       status.repair_pending ||
+       status.secure_migration_pending {
         status_line_color = warn_color
     }
     Text(line, x, row_y, font, status_line_color)

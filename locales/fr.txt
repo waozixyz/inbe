@@ -1082,6 +1082,27 @@ Révision en attente
 [sync_status_repair_pending]
 Réparation synchro en attente
 ---
+[sync_status_secure_migration_pending]
+Migration sécurisée des données en attente
+---
+[sync_secure_migration_title]
+Mise à jour de la synchronisation sécurisée
+---
+[sync_secure_migration_message]
+Inbe doit rechiffrer sur cet appareil les anciennes données synchronisées avant d'utiliser uniquement la synchronisation v4.
+---
+[sync_secure_migration_updating_message]
+Mise à jour des données de synchronisation sécurisée. Gardez Inbe ouvert jusqu'à la fin.
+---
+[sync_secure_migration_done_message]
+Les données de synchronisation sécurisée sont à jour.
+---
+[sync_secure_migration_later_button]
+Plus tard
+---
+[sync_secure_migration_start_button]
+Mettre à jour
+---
 [sync_status_local_queued]
 Changements locaux en attente
 ---

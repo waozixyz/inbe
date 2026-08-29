@@ -563,6 +563,44 @@ app_background_sync_safe :: (app: const InbeApp*) -> int #private {
     return 1
 }
 
+app_background_secure_migration_safe :: (app: const InbeApp*) -> int #private {
+    if app == nil {
+        return 0
+    }
+    if app->modal.active && app->modal.type != UIModalSecureMigration {
+        return 0
+    }
+    if app->habit_edit.active ||
+       app->sync_server_url_focused ||
+       app->sync_alias_focused ||
+       app->profile_friend_input_focused {
+        return 0
+    }
+    if app->inbe.screen == InbeScreenPracticeSession ||
+       app->inbe.screen == InbeScreenMeditation ||
+       app->inbe.screen == InbeScreenSunSalutation {
+        return 0
+    }
+    return 1
+}
+
+app_secure_migration_prompt_safe :: (app: const InbeApp*) -> int #private {
+    if app == nil || app->modal.active {
+        return 0
+    }
+    if !app_background_secure_migration_safe(app) {
+        return 0
+    }
+    if app->secure_migration_prompt_seen ||
+       app->file_dialog_active ||
+       app->backgrounded ||
+       app->close_prompt_open ||
+       app->nav_sidebar_open {
+        return 0
+    }
+    return 1
+}
+
 app_modal_type_name :: (type: UIModalType) -> const char* #private {
     switch type {
     case UIModalNone:
@@ -611,6 +649,8 @@ app_modal_type_name :: (type: UIModalType) -> const char* #private {
         return "profile_picture_picker"
     case UIModalDonationReminder:
         return "donation_reminder"
+    case UIModalSecureMigration:
+        return "secure_migration"
     default:
         break
     }
@@ -998,6 +1038,7 @@ app_sync_pump :: (app: InbeApp*) {
     should_sync := 0
     dirty_due := 0
     repair_due := 0
+    migration_due := 0
     url: [256] char
     sync_status: InbeStorageSyncStatus
 
@@ -1031,10 +1072,24 @@ app_sync_pump :: (app: InbeApp*) {
     }
     if storage_sync_status(&sync_status) &&
        sync_status.has_account &&
-       sync_status.repair_pending &&
+       sync_status.server_connected &&
+       (sync_status.repair_pending ||
+        (sync_status.secure_migration_pending &&
+         !app->secure_migration_deferred)) &&
        (g_sync.dirty_sync_at <= 0.0 || now >= g_sync.dirty_sync_at) {
+        if sync_status.secure_migration_pending &&
+           !storage_sync_review_pending() &&
+           app_secure_migration_prompt_safe(app) {
+            app_open_modal(app, UIModalSecureMigration)
+            return
+        }
         should_sync = 1
-        repair_due = 1
+        if sync_status.repair_pending {
+            repair_due = 1
+        }
+        if sync_status.secure_migration_pending {
+            migration_due = 1
+        }
     }
     #if !WEB {
         sync_lock()
@@ -1055,7 +1110,8 @@ app_sync_pump :: (app: InbeApp*) {
         }
         return
     }
-    if !app_background_sync_safe(app) {
+    if !app_background_sync_safe(app) &&
+       !(migration_due && app_background_secure_migration_safe(app)) {
         TraceLog(LOG_INFO,
                     "SYNC: delayed; modal=%d type=%s screen=%d pending_review=%d tutorial_seen=%d habits_guide_seen=%d",
                     app->modal.active,
@@ -1064,17 +1120,17 @@ app_sync_pump :: (app: InbeApp*) {
                     storage_sync_review_pending(),
                     app->tutorial_seen,
                     app->habits_guide_seen)
-        if g_sync.dirty_sync_at <= 0.0 || repair_due {
+        if g_sync.dirty_sync_at <= 0.0 || repair_due || migration_due {
             g_sync.dirty_sync_at = now + 1.0
         }
         return
     }
     if app_sync_now(app) {
-        if dirty_due || repair_due {
+        if dirty_due || repair_due || migration_due {
             g_sync.dirty_sync_at = 0.0
         }
         TraceLog(LOG_INFO, "SYNC: dispatched")
-    } else if dirty_due || repair_due {
+    } else if dirty_due || repair_due || migration_due {
         g_sync.dirty_sync_at = now + inbe_sync_input_quiet_seconds
     }
     app_apply_pending_sync_refresh(app, now)

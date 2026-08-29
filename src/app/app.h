@@ -143,6 +143,7 @@ typedef enum {
     UIModalProfilePicturePicker,
     UIModalAboutDonation,
     UIModalDonationReminder,
+    UIModalSecureMigration,
 } UIModalType;
 
 typedef enum InbePendingSyncAccountAction {
@@ -472,6 +473,9 @@ struct InbeApp {
     int donation_reminder_next_prompt_practice_count;
     int donation_reminder_observed_practice_count;
     int donation_reminder_observed_practice_count_initialized;
+    int secure_migration_prompt_seen;
+    int secure_migration_deferred;
+    int secure_migration_started;
     int push_picker_open;
     int push_distributor_count;
     char push_distributors[APP_PUSH_DISTRIBUTOR_MAX][96];

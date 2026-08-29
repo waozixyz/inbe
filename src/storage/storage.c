@@ -2,9 +2,12 @@
 
 #include "db.h"
 
+#include "ksync_account.h"
+#include "ksync_crypto.h"
 #include "kryon.h"
 #include <sqlite3.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +28,16 @@ static long long
 storage_sync_outbox_batch_seq(int limit);
 static int
 storage_has_pending_sync_outbox(void);
+static int
+storage_has_pending_encrypted_shadow_migration(void);
+static int
+storage_sync_response_has_legacy_records(const char *response_json);
+static long long
+storage_encrypted_shadow_source_count(void);
+static void
+storage_prepare_encrypted_shadow_migration_queue(void);
+static void
+storage_clear_completed_encrypted_shadow_outbox_if_stale(void);
 static int
 storage_has_orphan_habit_days(void);
 static int
@@ -52,7 +65,13 @@ storage_json_valid(const char *json);
 #define STORAGE_SYNC_ACCOUNT_ALIAS_KEY "sync_account_alias"
 #define STORAGE_SYNC_DATA_OWNER_PUBLIC_ID_KEY "sync_data_owner_public_id"
 #define STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY "sync_zero_habit_day_repair_v1_done"
+#define STORAGE_SYNC_ENCRYPTED_SHADOW_KEY "sync_encrypted_shadow_v4_complete_v2"
+#define STORAGE_SYNC_ENCRYPTED_SHADOW_LEGACY_SEEN_KEY "sync_encrypted_shadow_v4_legacy_seen_v2"
+#define STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY "sync_encrypted_shadow_v4_queued_v2"
+#define STORAGE_SYNC_ENCRYPTED_SHADOW_TOTAL_KEY "sync_encrypted_shadow_v4_total_v2"
 #define STORAGE_SYNC_OP_BATCH_LIMIT 400
+#define STORAGE_SYNC_RECORD_KEY_CONTEXT "inbe-ksync-record-key-v1"
+#define STORAGE_SYNC_RECORD_KEY_ID "inbe-v4-main"
 
 long long
 storage_next_change_time(void)
@@ -225,6 +244,15 @@ json_append_key_string(JsonBuilder *json, const char *key, const char *value)
 }
 
 static void
+json_free(JsonBuilder *json)
+{
+    if(json == NULL)
+        return;
+    free(json->data);
+    memset(json, 0, sizeof(*json));
+}
+
+static void
 json_append_epoch(JsonBuilder *json, long long seconds)
 {
     char formatted[32];
@@ -343,6 +371,10 @@ storage_reset_sync_state(void)
     storage_sync_review_delete_json();
     set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 0);
     set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0);
+    set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_KEY, 0);
+    set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_LEGACY_SEEN_KEY, 0);
+    set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY, 0);
+    set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_TOTAL_KEY, 0);
     exec_sql("DELETE FROM sync_outbox");
     if(storage_has_sync_account())
         storage_enqueue_all_sync_state();
@@ -977,6 +1009,173 @@ storage_append_sync_ops_json(JsonBuilder *json, long long through_seq)
     json_append(json, "]");
 }
 
+static const char *
+storage_encrypted_collection_for_entity(const char *entity_type)
+{
+    if(entity_type == NULL)
+        return NULL;
+    if(strcmp(entity_type, "habit") == 0)
+        return "inbe.habits";
+    if(strcmp(entity_type, "habit_day") == 0)
+        return "inbe.habit_days";
+    if(strcmp(entity_type, "session") == 0)
+        return "inbe.sessions";
+    return NULL;
+}
+
+static int
+storage_encrypted_record_id(const char *entity_type, const char *entity_id,
+                            int local_date, char *out, size_t out_size)
+{
+    int written;
+
+    if(out == NULL || out_size == 0 || entity_type == NULL ||
+       entity_id == NULL || entity_id[0] == '\0')
+        return 0;
+    out[0] = '\0';
+    if(strcmp(entity_type, "habit_day") == 0)
+        written = snprintf(out, out_size, "%s:%d", entity_id, local_date);
+    else
+        written = snprintf(out, out_size, "%s", entity_id);
+    return written > 0 && (size_t)written < out_size;
+}
+
+static int
+storage_private_record_key(uint8_t out[32])
+{
+    const char *private_key_hex = storage_get_setting_text(STORAGE_SYNC_PRIVATE_KEY_KEY);
+    uint8_t private_key[(KSYNC_PRIVATE_KEY_HEX_SIZE - 1) / 2];
+    int ok;
+
+    if(private_key_hex == NULL)
+        return 0;
+    ok = KsyncCryptoHexToBytes(private_key_hex, private_key, sizeof(private_key));
+    if(ok) {
+        KsyncCryptoHmacSha256(private_key, sizeof(private_key),
+                              (const uint8_t *)STORAGE_SYNC_RECORD_KEY_CONTEXT,
+                              strlen(STORAGE_SYNC_RECORD_KEY_CONTEXT), out);
+    }
+    memset(private_key, 0, sizeof(private_key));
+    return ok;
+}
+
+static int
+storage_append_encrypted_record_json(JsonBuilder *json, const uint8_t key[32],
+                                     const char *collection, const char *record_id,
+                                     const char *entity_type, const char *entity_id,
+                                     int local_date, long long queued_at, int deleted)
+{
+    JsonBuilder plain = {0};
+    JsonBuilder aad = {0};
+    uint8_t nonce[12];
+    uint8_t *sealed = NULL;
+    char *sealed_hex = NULL;
+    char nonce_hex[25];
+    size_t sealed_len;
+    int ok = 0;
+
+    if(json == NULL || key == NULL || collection == NULL || record_id == NULL)
+        return 0;
+    plain.ok = 1;
+    storage_append_sync_op_payload(&plain, entity_type, entity_id, local_date);
+    if(!plain.ok || plain.data == NULL)
+        goto done;
+
+    sealed_len = plain.len + 16;
+    sealed = (uint8_t *)malloc(sealed_len);
+    sealed_hex = (char *)malloc(sealed_len * 2 + 1);
+    if(sealed == NULL || sealed_hex == NULL)
+        goto done;
+
+    aad.ok = 1;
+    json_append(&aad, collection);
+    json_append(&aad, "\n");
+    json_append(&aad, record_id);
+    json_append(&aad, "\n");
+    json_append(&aad, STORAGE_SYNC_RECORD_KEY_ID);
+    if(!aad.ok || aad.data == NULL)
+        goto done;
+
+    KsyncCryptoRandom(nonce, sizeof(nonce));
+    if(!KsyncCryptoChaCha20Poly1305Seal(key, nonce, (const uint8_t *)plain.data,
+                                        plain.len, (const uint8_t *)aad.data,
+                                        aad.len, sealed))
+        goto done;
+    if(!KsyncCryptoBytesToHex(nonce, sizeof(nonce), nonce_hex, sizeof(nonce_hex)) ||
+       !KsyncCryptoBytesToHex(sealed, sealed_len, sealed_hex, sealed_len * 2 + 1))
+        goto done;
+
+    json_append(json, "{");
+    json_append_key_string(json, "collection", collection);
+    json_append(json, ",");
+    json_append_key_string(json, "id", record_id);
+    json_append(json, ",");
+    json_append_key_string(json, "key_id", STORAGE_SYNC_RECORD_KEY_ID);
+    json_append(json, ",");
+    json_append_key_string(json, "nonce", nonce_hex);
+    json_append(json, ",");
+    json_append_key_string(json, "ciphertext", sealed_hex);
+    json_append(json, ",\"updated_at\":");
+    json_append_epoch(json, queued_at);
+    if(deleted)
+        json_appendf(json, ",\"deleted_at\":%lld", queued_at > 0 ? queued_at : now_seconds());
+    json_append(json, "}");
+    ok = json->ok;
+
+done:
+    json_free(&plain);
+    json_free(&aad);
+    free(sealed);
+    free(sealed_hex);
+    return ok;
+}
+
+static void
+storage_append_encrypted_records_json(JsonBuilder *json, long long through_seq)
+{
+    sqlite3_stmt *stmt = NULL;
+    uint8_t key[32];
+    int has_key;
+    int first = 1;
+
+    json_append(json, "\"encrypted_records\":[");
+    has_key = storage_private_record_key(key);
+    if(has_key && g_storage.db != NULL &&
+       sqlite3_prepare_v2(g_storage.db,
+                          "SELECT seq,entity_type,entity_id,local_date,queued_at "
+                          "FROM sync_outbox WHERE seq<=?1 ORDER BY seq",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_int64(stmt, 1, through_seq);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *entity_type = (const char *)sqlite3_column_text(stmt, 1);
+            const char *entity_id = (const char *)sqlite3_column_text(stmt, 2);
+            int local_date = sqlite3_column_int(stmt, 3);
+            long long queued_at = sqlite3_column_int64(stmt, 4);
+            const char *collection = storage_encrypted_collection_for_entity(entity_type);
+            int is_delete = storage_sync_op_is_delete(entity_type, entity_id, local_date);
+            char record_id[180];
+
+            if(collection == NULL ||
+               !storage_encrypted_record_id(entity_type, entity_id, local_date,
+                                            record_id, sizeof(record_id)))
+                continue;
+            if(!first)
+                json_append(json, ",");
+            first = 0;
+            if(!storage_append_encrypted_record_json(json, key, collection, record_id,
+                                                     entity_type, entity_id, local_date,
+                                                     queued_at, is_delete)) {
+                json->ok = 0;
+                break;
+            }
+        }
+    }
+    if(stmt != NULL)
+        sqlite3_finalize(stmt);
+    memset(key, 0, sizeof(key));
+    json_append(json, "]");
+}
+
 char *
 storage_build_sync_payload_json(const char *user_id_hash, const char *public_key_hex)
 {
@@ -985,6 +1184,8 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     long long through_seq;
     int full_upload_done;
     int force_zero_day_repair;
+    uint8_t shadow_key[32];
+    int can_shadow_encrypt;
 
     if(g_storage.db == NULL || user_id_hash == NULL || user_id_hash[0] == '\0')
         return NULL;
@@ -994,6 +1195,11 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
         return NULL;
     if(!get_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 0))
         storage_enqueue_all_sync_state();
+    can_shadow_encrypt = storage_private_record_key(shadow_key);
+    memset(shadow_key, 0, sizeof(shadow_key));
+    if(can_shadow_encrypt && storage_has_pending_encrypted_shadow_migration() &&
+       get_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY, 0) == 0)
+        storage_prepare_encrypted_shadow_migration_queue();
     since_server_version = get_meta_int64("sync_last_server_version", 0);
     full_upload_done = get_meta_int64("sync_full_upload_done", 0) != 0;
     if(!get_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0) || storage_has_orphan_habit_days())
@@ -1006,6 +1212,8 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     json.ok = 1;
     json_append(&json, "{");
     json_appendf(&json, "\"protocol_version\":%d,", INBE_SYNC_PROTOCOL_VERSION);
+    json_append(&json, "\"client_capabilities\":[\"v4-encrypted-records\","
+                       "\"v4-dual-write-transition\"],");
     json_append_key_string(&json, "user_id_hash", user_id_hash);
     json_append(&json, ",");
     json_append_key_string(&json, "client_id", storage_sync_client_id());
@@ -1031,6 +1239,8 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     json_append(&json, ",\"sessions\":[]");
     json_append(&json, ",");
     storage_append_sync_ops_json(&json, through_seq);
+    json_append(&json, ",");
+    storage_append_encrypted_records_json(&json, through_seq);
     json_append(&json, "}");
 
     if(!json.ok || json.data == NULL) {
@@ -1153,6 +1363,92 @@ storage_has_pending_sync_outbox(void)
 }
 
 static int
+storage_has_pending_encrypted_shadow_migration(void)
+{
+    if(!storage_has_sync_account())
+        return 0;
+    return get_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_KEY, 0) == 0;
+}
+
+static long long
+storage_encrypted_shadow_queue_count(void)
+{
+    if(g_storage.db == NULL)
+        return 0;
+    return db_select_int64(
+        "SELECT COUNT(*) FROM sync_outbox "
+        "WHERE entity_type IN ('habit','habit_day','session')",
+        0);
+}
+
+static long long
+storage_encrypted_shadow_source_count(void)
+{
+    if(g_storage.db == NULL)
+        return 0;
+    return db_select_int64(
+        "SELECT "
+        "(SELECT COUNT(*) FROM habits "
+        " WHERE user_id=(SELECT id FROM users LIMIT 1)) + "
+        "(SELECT COUNT(*) FROM habit_days hd "
+        " JOIN habits h ON h.id=hd.habit_id "
+        " WHERE h.user_id=(SELECT id FROM users LIMIT 1)) + "
+        "(SELECT COUNT(*) FROM sessions "
+        " WHERE user_id=(SELECT id FROM users LIMIT 1))",
+        0);
+}
+
+static void
+storage_prepare_encrypted_shadow_migration_queue(void)
+{
+    long long total;
+    long long queued;
+
+    if(g_storage.db == NULL || !storage_has_pending_encrypted_shadow_migration())
+        return;
+    storage_enqueue_all_sync_state();
+    total = storage_encrypted_shadow_source_count();
+    queued = storage_encrypted_shadow_queue_count();
+    if(total < queued)
+        total = queued;
+    set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_TOTAL_KEY, total);
+    set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY, 1);
+}
+
+static void
+storage_clear_completed_encrypted_shadow_outbox_if_stale(void)
+{
+    long long outbox_count;
+    long long shadow_count;
+    long long source_count;
+
+    if(g_storage.db == NULL ||
+       get_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_KEY, 0) == 0 ||
+       get_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_LEGACY_SEEN_KEY, 0) == 0)
+        return;
+
+    outbox_count = db_select_int64("SELECT COUNT(*) FROM sync_outbox", 0);
+    if(outbox_count <= 0) {
+        set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_LEGACY_SEEN_KEY, 0);
+        set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY, 0);
+        set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_TOTAL_KEY, 0);
+        return;
+    }
+
+    shadow_count = storage_encrypted_shadow_queue_count();
+    source_count = storage_encrypted_shadow_source_count();
+    if(outbox_count != shadow_count || shadow_count != source_count)
+        return;
+
+    if(exec_sql("DELETE FROM sync_outbox "
+                "WHERE entity_type IN ('habit','habit_day','session')")) {
+        set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_LEGACY_SEEN_KEY, 0);
+        set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY, 0);
+        set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_TOTAL_KEY, 0);
+    }
+}
+
+static int
 storage_has_orphan_habit_days(void)
 {
     return db_select_int64(
@@ -1193,6 +1489,31 @@ static int
 storage_json_array_has_items(const char *json, const char *path)
 {
     return storage_json_array_count(json, path) > 0;
+}
+
+static int
+storage_sync_response_has_legacy_records(const char *response_json)
+{
+    static const char *const paths[] = {
+        "$.changes.habits",
+        "$.changes.habit_days",
+        "$.changes.sessions",
+        "$.changes.session_rounds",
+        "$.changes.meditation_logs",
+        "$.changes.social_cache",
+        "$.data.habits",
+        "$.data.habit_days",
+        "$.data.sessions",
+        "$.data.session_rounds",
+        "$.data.meditation_logs",
+        "$.data.social_cache",
+    };
+
+    for(size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); i++) {
+        if(storage_json_array_has_items(response_json, paths[i]))
+            return 1;
+    }
+    return 0;
 }
 
 static int
@@ -1562,6 +1883,23 @@ storage_apply_sync_response_json(const char *response_json)
     set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 1);
     set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 1);
     set_meta_int64(STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY, 1);
+    if((storage_json_extract_int64(response_json, "$.latest_protocol", 0) >= 4 ||
+        storage_json_extract_int64(response_json, "$.protocol_version", 0) >= 4 ||
+        storage_json_array_has_items(response_json, "$.changes.encrypted_records") ||
+        storage_json_array_has_items(response_json, "$.data.encrypted_records")) &&
+       !storage_has_pending_sync_outbox()) {
+        if(storage_sync_response_has_legacy_records(response_json) &&
+           get_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_LEGACY_SEEN_KEY, 0) == 0) {
+            set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_LEGACY_SEEN_KEY, 1);
+            set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY, 0);
+            storage_prepare_encrypted_shadow_migration_queue();
+        } else {
+            set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_KEY, 1);
+            set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_LEGACY_SEEN_KEY, 0);
+            set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY, 0);
+            set_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_TOTAL_KEY, 0);
+        }
+    }
     storage_mark_habits_initialized();
     storage_schedule_persist();
     return 1;
@@ -1635,13 +1973,29 @@ storage_sync_status(InbeStorageSyncStatus *status)
     status->server_connected = storage_sync_server_connected();
     status->review_pending = get_meta_int64(STORAGE_SYNC_PENDING_REVIEW_KEY, 0) != 0;
     status->repair_pending = get_meta_int64(STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY, 0) == 0;
+    status->secure_migration_pending = storage_has_pending_encrypted_shadow_migration();
     status->full_upload_done = get_meta_int64("sync_full_upload_done", 0) != 0;
     status->server_version = get_meta_int64("sync_last_server_version", 0);
     status->server_clock = get_meta_int64(STORAGE_SYNC_SERVER_CLOCK_KEY, 0);
     status->latest_protocol = (int)get_meta_int64(STORAGE_SYNC_LATEST_PROTOCOL_KEY,
                                                   INBE_SYNC_PROTOCOL_VERSION);
     status->protocol_upgrade_available = status->latest_protocol > INBE_SYNC_PROTOCOL_VERSION;
+    storage_clear_completed_encrypted_shadow_outbox_if_stale();
     status->queued_changes = db_select_int64("SELECT COUNT(*) FROM sync_outbox", 0);
+    status->secure_migration_queued = storage_encrypted_shadow_queue_count();
+    status->secure_migration_total = get_meta_int64(STORAGE_SYNC_ENCRYPTED_SHADOW_TOTAL_KEY, 0);
+    if(status->secure_migration_pending) {
+        if(status->secure_migration_total <= 0)
+            status->secure_migration_total = storage_encrypted_shadow_source_count();
+        if(status->secure_migration_total < status->secure_migration_queued)
+            status->secure_migration_total = status->secure_migration_queued;
+        status->secure_migration_done = status->secure_migration_total -
+                                        status->secure_migration_queued;
+        if(status->secure_migration_done < 0)
+            status->secure_migration_done = 0;
+        if(status->secure_migration_done > status->secure_migration_total)
+            status->secure_migration_done = status->secure_migration_total;
+    }
     return 1;
 }
 

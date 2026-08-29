@@ -423,6 +423,129 @@ test_sync_payload_includes_queued_current_edits(void)
 }
 
 static void
+fill_test_private_key(char out[5121])
+{
+    for(int i = 0; i < 5120; i++)
+        out[i] = (i % 2) == 0 ? '4' : '2';
+    out[5120] = '\0';
+}
+
+static void
+test_sync_payload_includes_v4_encrypted_shadow_records(void)
+{
+    char root[512];
+    char db_path[512];
+    char private_key[5121];
+    char collection[80];
+    char record_id[180];
+    char ciphertext[512];
+    InbeHabits habits;
+    InbeStorageSyncStatus status;
+    char *payload;
+    sqlite3 *db = NULL;
+    int count;
+
+    make_clean_root(root, sizeof(root), "sync-v4-encrypted-shadow");
+    check_true("init v4 encrypted shadow db", storage_init(root));
+    fill_test_private_key(private_key);
+    storage_set_setting_text("sync_public_id", "test-public-id");
+    storage_set_setting_text("sync_public_key", "test-public-key");
+    storage_set_setting_text("sync_private_key", private_key);
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    habit_set_day_count(&habits, 0, 20260829, 3);
+    habits_save(&habits);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("v4 protocol in sync payload",
+               payload != NULL && strstr(payload, "\"protocol_version\":4") != NULL);
+    check_true("v4 client capabilities in sync payload",
+               payload != NULL && strstr(payload, "\"client_capabilities\"") != NULL &&
+                   strstr(payload, "v4-encrypted-records") != NULL);
+    count = storage_json_array_count_path(payload, "$.encrypted_records");
+    check_true("v4 encrypted shadow records present", count > 0);
+    check_true("first encrypted collection",
+               storage_json_array_object_text(payload, "$.encrypted_records", 0,
+                                              "collection", collection,
+                                              sizeof(collection)) &&
+                   collection[0] != '\0');
+    check_true("first encrypted record id",
+               storage_json_array_object_text(payload, "$.encrypted_records", 0,
+                                              "id", record_id, sizeof(record_id)) &&
+                   record_id[0] != '\0');
+    check_true("first encrypted ciphertext",
+               storage_json_array_object_text(payload, "$.encrypted_records", 0,
+                                              "ciphertext", ciphertext,
+                                              sizeof(ciphertext)) &&
+                   ciphertext[0] != '\0' && strstr(ciphertext, "Yoga") == NULL);
+    storage_free_sync_payload_json(payload);
+
+    check_true("apply v4 transition response",
+               storage_apply_sync_response_json(
+                   "{\"protocol_version\":4,\"latest_protocol\":4,\"status\":\"ok\","
+                   "\"server_version\":10,\"server_clock\":10,"
+                   "\"server_state_hash\":\"abc\","
+                   "\"changes_complete\":true,\"full_snapshot_required\":false,"
+                   "\"changes\":{\"habits\":[{\"id\":\"remote-habit\","
+                   "\"name\":\"Remote\",\"color_r\":80,\"color_g\":120,"
+                   "\"color_b\":160,\"sync_mode\":1,\"sync_activity\":1,"
+                   "\"counter_enabled\":0,\"sort_order\":20,"
+                   "\"deleted_at\":0,\"updated_at\":\"2026-08-29T12:30:00Z\"}],"
+                   "\"habit_days\":[],\"sessions\":[],"
+                   "\"meditation_logs\":[],\"social_cache\":[],"
+                   "\"encrypted_records\":[]}}"));
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    count = storage_json_array_count_path(payload, "$.encrypted_records");
+    check_true("v4 migration continues after legacy rows arrive", count > 0);
+    storage_free_sync_payload_json(payload);
+
+    check_true("apply v4 transition completion response",
+               storage_apply_sync_response_json(
+                   "{\"protocol_version\":4,\"latest_protocol\":4,\"status\":\"ok\","
+                   "\"server_version\":11,\"server_clock\":11,"
+                   "\"server_state_hash\":\"def\","
+                   "\"changes_complete\":true,\"full_snapshot_required\":false,"
+                   "\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],"
+                   "\"meditation_logs\":[],\"social_cache\":[],"
+                   "\"encrypted_records\":[]}}"));
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_int("v4 encrypted shadow backfill complete",
+              storage_json_array_count_path(payload, "$.encrypted_records"), 0);
+    storage_free_sync_payload_json(payload);
+
+    storage_enqueue_all_sync_state();
+    memset(&status, 0, sizeof(status));
+    check_true("v4 stale shadow queue status", storage_sync_status(&status));
+    check_true("v4 stale shadow queue recreated", status.queued_changes > 0);
+    storage_close();
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open stale v4 queue db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db != NULL) {
+        check_true("mark stale completed v4 queue",
+                   sqlite3_exec(db,
+                                "INSERT OR REPLACE INTO meta(key,value) "
+                                "VALUES('sync_encrypted_shadow_v4_complete_v2','1');"
+                                "INSERT OR REPLACE INTO meta(key,value) "
+                                "VALUES('sync_encrypted_shadow_v4_legacy_seen_v2','1');"
+                                "INSERT OR REPLACE INTO meta(key,value) "
+                                "VALUES('sync_encrypted_shadow_v4_queued_v2','1');",
+                                NULL, NULL, NULL) == SQLITE_OK);
+        sqlite3_close(db);
+        db = NULL;
+    }
+    check_true("reopen stale completed v4 queue db", storage_init(root));
+    memset(&status, 0, sizeof(status));
+    check_true("load stale completed v4 queue status", storage_sync_status(&status));
+    check_int("stale completed v4 queue cleared", (int)status.queued_changes, 0);
+    check_int("stale completed v4 queue is not pending",
+              status.secure_migration_pending, 0);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_sync_payload_batches_large_outbox(void)
 {
     char root[512];
@@ -2198,6 +2321,7 @@ main(void)
     test_sync_backfill_includes_existing_habits();
     test_sync_payload_excludes_local_settings();
     test_sync_payload_includes_queued_current_edits();
+    test_sync_payload_includes_v4_encrypted_shadow_records();
     test_sync_payload_batches_large_outbox();
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();

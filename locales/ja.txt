@@ -1085,6 +1085,27 @@ Inner Breezeを更新してください
 [sync_status_repair_pending]
 同期修復待ち
 ---
+[sync_status_secure_migration_pending]
+安全なデータ移行待ち
+---
+[sync_secure_migration_title]
+安全な同期の更新
+---
+[sync_secure_migration_message]
+v4 のみの同期を使う前に、この端末で古い同期データを安全な形式に更新する必要があります。
+---
+[sync_secure_migration_updating_message]
+安全な同期データを更新中です。完了まで Inbe を開いたままにしてください。
+---
+[sync_secure_migration_done_message]
+安全な同期データは更新済みです。
+---
+[sync_secure_migration_later_button]
+後で
+---
+[sync_secure_migration_start_button]
+今すぐ更新
+---
 [sync_status_local_queued]
 ローカル変更が待機中
 ---

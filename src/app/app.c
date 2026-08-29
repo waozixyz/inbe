@@ -1924,6 +1924,126 @@ draw_donation_reminder_modal(InbeApp *app)
 }
 
 static void
+draw_secure_migration_modal(InbeApp *app)
+{
+    InbeStorageSyncStatus status;
+    UIPanelFrame frame;
+    ParagraphSpec message;
+    const char *message_text;
+    int modal_h;
+    int message_h;
+    int y;
+    int button_y;
+    int button_h;
+    int gap;
+    int hover = 0;
+
+    if(app == NULL)
+        return;
+
+    memset(&status, 0, sizeof(status));
+    storage_sync_status(&status);
+
+    if(!status.has_account || !status.server_connected) {
+        app_close_modal(app);
+        return;
+    }
+
+    if(!status.secure_migration_pending) {
+        message_text = GetLocaleText("sync_secure_migration_done_message");
+    } else if(app->secure_migration_started) {
+        message_text = GetLocaleText("sync_secure_migration_updating_message");
+    } else {
+        message_text = GetLocaleText("sync_secure_migration_message");
+    }
+
+    memset(&message, 0, sizeof(message));
+    message.text = message_text;
+    message.width = ScaleUIPx(380) - ScaleUIPx(36);
+    message.font = GetUIFontSize();
+    message.line_gap = ScaleUIPx(4);
+    message.color = GetThemeText();
+    message_h = UIGetNodeHeight(UINodeParagraph(message, 0, 0));
+    button_h = ScaleUIPx(36);
+    gap = ScaleUIPx(10);
+    modal_h = ScaleUIPx(74) + message_h + ScaleUIPx(24) + button_h +
+              ScaleUIPx(24);
+    if(status.secure_migration_pending && app->secure_migration_started)
+        modal_h += ScaleUIPx(42);
+    if(modal_h < ScaleUIPx(210))
+        modal_h = ScaleUIPx(210);
+
+    frame = ModalFrame(ScaleUIPx(380), modal_h,
+                       GetLocaleText("sync_secure_migration_title"),
+                       (Texture2D){0}, (Texture2D){0});
+    y = frame.content_y;
+    message.width = frame.content_w;
+    Paragraph(message, frame.content_x, &y);
+    y += ScaleUIPx(18);
+
+    if(status.secure_migration_pending && app->secure_migration_started) {
+        long long total = status.secure_migration_total;
+        long long done = status.secure_migration_done;
+        char progress_label[64];
+        int progress_max;
+        int progress_value;
+
+        if(total <= 0)
+            total = status.secure_migration_queued > 0
+                        ? status.secure_migration_queued
+                        : 1;
+        if(done < 0)
+            done = 0;
+        if(done > total)
+            done = total;
+        progress_max = total > INT_MAX ? INT_MAX : (int)total;
+        progress_value = done > INT_MAX ? INT_MAX : (int)done;
+        snprintf(progress_label, sizeof(progress_label), "%lld / %lld",
+                 done, total);
+        Progress((ProgressBarProps){
+            .bounds = {
+                (float)frame.content_x,
+                (float)y,
+                (float)frame.content_w,
+                (float)ScaleUIPx(24)
+            },
+            .min = 0,
+            .max = progress_max > 0 ? progress_max : 1,
+            .value = progress_value,
+            .label = progress_label
+        });
+        return;
+    }
+
+    button_y = frame.y + frame.h - ScaleUIPx(24) - button_h;
+    if(!status.secure_migration_pending) {
+        int button_w = ScaleUIPx(120);
+        if(StyledButton(frame.x + (frame.w - button_w) / 2, button_y,
+                        button_w, button_h, GetLocaleText("ok_button"),
+                        ButtonStylePrimary, 0, &hover))
+            app_close_modal(app);
+    } else {
+        int button_w = (frame.content_w - gap) / 2;
+        if(StyledButton(frame.content_x, button_y, button_w, button_h,
+                        GetLocaleText("sync_secure_migration_later_button"),
+                        ButtonStyleSecondary, 0, &hover)) {
+            app->secure_migration_prompt_seen = 1;
+            app->secure_migration_deferred = 1;
+            app_close_modal(app);
+        }
+        if(StyledButton(frame.content_x + button_w + gap, button_y,
+                        button_w, button_h,
+                        GetLocaleText("sync_secure_migration_start_button"),
+                        ButtonStylePrimary, 0, &hover)) {
+            app->secure_migration_prompt_seen = 1;
+            app->secure_migration_deferred = 0;
+            app->secure_migration_started = 1;
+            app_auto_sync(app);
+        }
+    }
+}
+
+static void
 draw_global_modal(InbeApp *app)
 {
     int modal_result;
@@ -1940,6 +2060,10 @@ draw_global_modal(InbeApp *app)
 
     if(app->modal.type == UIModalDonationReminder) {
         draw_donation_reminder_modal(app);
+        return;
+    }
+    if(app->modal.type == UIModalSecureMigration) {
+        draw_secure_migration_modal(app);
         return;
     }
     if(app->modal.type == UIModalAboutDonation) {
