@@ -770,11 +770,19 @@ async function verifySyncKeyImportBidi(client, context) {
           return { ok: false, code: -99 };
         if (typeof Module._app_web_test_sync_key_state !== 'function')
           return { ok: false, code: -98 };
-        Module._app_web_test_import_sync_key();
+        try {
+          Module._app_web_test_import_sync_key();
+        } catch (error) {
+          return { ok: false, code: -95, phase: 'import', error: String(error && error.stack || error) };
+        }
         const deadline = Date.now() + ${timeoutMs};
         let code = 0;
         while (Date.now() < deadline) {
-          code = Module._app_web_test_sync_key_state();
+          try {
+            code = Module._app_web_test_sync_key_state();
+          } catch (error) {
+            return { ok: false, code: -94, phase: 'state', error: String(error && error.stack || error) };
+          }
           if (code !== 0)
             break;
           await new Promise(resolve => setTimeout(resolve, 50));
@@ -785,13 +793,17 @@ async function verifySyncKeyImportBidi(client, context) {
           return { ok: false, code: -97 };
         if (!await Module.__kryonFlushStorageSync(true))
           return { ok: false, code: -96 };
-        code = Module._app_web_test_sync_key_state();
+        try {
+          code = Module._app_web_test_sync_key_state();
+        } catch (error) {
+          return { ok: false, code: -93, phase: 'readback', error: String(error && error.stack || error) };
+        }
         return { ok: code === 1, code };
       })()))()`
   });
   let state = bidiJsonResult(result, 'sync key hook availability check');
   if (!state.ok)
-    throw new Error(`Firefox web sync key import hook failed; code=${state.code}`);
+    throw new Error(`Firefox web sync key import hook failed; code=${state.code}; phase=${state.phase || 'unknown'}; error=${state.error || ''}`);
   await waitForStorageIdleBidi(client, context);
   result = await client.send('script.evaluate', {
     target: { context },

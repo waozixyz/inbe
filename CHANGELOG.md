@@ -1,4 +1,8 @@
 # Changelog
+## [1.9.15] - 2026-08-29
+### Fixed
+- Fixed a web startup stability issue that could affect browser smoke checks after reload.
+
 ## [1.9.14] - 2026-08-29
 ### Changed
 - Updated the bundled Kryon runtime to the latest release for improved web runtime compatibility.

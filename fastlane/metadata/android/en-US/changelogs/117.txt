@@ -1,0 +1,3 @@
+Fixed
+---
+- Fixed a web startup stability issue that could affect browser smoke checks after reload.

@@ -327,7 +327,7 @@ app_web_test_first_run_guide_active(void)
 {
     InbeApp *app = get_global_inbe_app();
 
-    return practice_screen_first_run_guide_active(app);
+    return app != NULL ? practice_screen_first_run_guide_active(app) : 0;
 }
 
 EMSCRIPTEN_KEEPALIVE
