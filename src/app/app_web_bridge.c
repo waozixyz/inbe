@@ -319,7 +319,6 @@ app_web_test_show_first_run_guide(void)
         app_close_modal(app);
     app_switch_screen(app, InbeScreenStart);
     save_settings(app);
-    FlushWebStorageSync(1);
 }
 
 EMSCRIPTEN_KEEPALIVE

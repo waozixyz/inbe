@@ -875,7 +875,7 @@ async function firstRunGuideButtonTarget(client, kind) {
   return target;
 }
 
-async function firstRunGuideState(client, requireDebug = true) {
+async function firstRunGuideState(client, requireDebug = true, requireActive = false) {
   const start = Date.now();
   let state = null;
 
@@ -885,7 +885,8 @@ async function firstRunGuideState(client, requireDebug = true) {
       step: Module._app_web_test_first_run_guide_step(),
       clipped: Module._app_web_test_first_run_guide_text_clipped()
     }))()`);
-    if (!requireDebug || state?.clipped !== -1)
+    if ((!requireActive || (state?.active === 1 && state?.step === 0)) &&
+        (!requireDebug || state?.clipped !== -1))
       return state;
     await waitAnimationFrames(client, 1);
   }
@@ -923,12 +924,12 @@ async function verifyFirstRunGuideCanvasFlow(client) {
       return { ok: false, reason: 'missing first-run guide state hooks' };
     Module._app_web_test_show_first_run_guide();
     await Module.__kryonFlushStorageSync(true);
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    const active = Module._app_web_test_first_run_guide_active();
-    const step = Module._app_web_test_first_run_guide_step();
-    const clipped = Module._app_web_test_first_run_guide_text_clipped();
-    return { ok: true, active, step, clipped };
+    return { ok: true };
   })()))()`, true);
+  if (state?.ok) {
+    await waitAnimationFrames(client, 2);
+    state = { ok: true, ...(await firstRunGuideState(client, true, true)) };
+  }
   if (!state?.ok || state.active !== 1 || state.step !== 0)
     throw new Error(`failed to show Spanish first-run guide: ${JSON.stringify(state)}`);
   if (state.clipped === -1)
