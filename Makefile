@@ -209,7 +209,6 @@ KRYON_SYNC_ICONS := $(KRYON_DIR)/scripts/sync-icons.sh
 WEB_SHARED_PLATFORM_ICONS := appimage chromewebstore debian droid fdroid fedora flatpak freebsd github itch playstore snap tux win
 WEB_SHARED_LANGUAGE_ICONS := ray uxn wasm wasm4
 WEB_SHARED_TILE_ICONS := tile2
-WEB_SHARED_PROJECT_ICONS := inbe
 KRYON_LIBDRAW_SRCS := $(filter $(KRYON_DIR)/src/backend/libdraw_%.c,$(KRYON_SRCS))
 KRYON_TERMI_SRCS := $(filter $(KRYON_DIR)/src/backend/termi_%.c,$(KRYON_SRCS))
 KRYON_SRCS := $(filter-out $(KRYON_LIBDRAW_SRCS),$(KRYON_SRCS))
@@ -886,7 +885,7 @@ sync-web-icons: $(KRYON_SYNC_ICONS)
 	sh $(KRYON_SYNC_ICONS) --group platforms --flat web-assets/icons $(WEB_SHARED_PLATFORM_ICONS)
 	sh $(KRYON_SYNC_ICONS) --group language --flat web-assets/icons $(WEB_SHARED_LANGUAGE_ICONS)
 	sh $(KRYON_SYNC_ICONS) --group tiles --flat web-assets/icons $(WEB_SHARED_TILE_ICONS)
-	sh $(KRYON_SYNC_ICONS) --group proj --flat web-assets/icons $(WEB_SHARED_PROJECT_ICONS)
+	cp assets/app/icon.png web-assets/icons/inbe.png
 
 $(WEB_LIBOQS_A): web-tools-check
 
