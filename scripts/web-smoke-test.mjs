@@ -741,28 +741,44 @@ async function verifySyncKeyImportBidi(client, context) {
   await waitForStorageIdleBidi(client, context);
   let result = await client.send('script.evaluate', {
     target: { context },
-    awaitPromise: true,
+    awaitPromise: false,
     resultOwnership: 'none',
-    expression: `(async () => JSON.stringify(await (async () => {
+    expression: `JSON.stringify((() => {
       if (typeof Module._app_web_test_import_sync_key !== 'function')
         return { ok: false, code: -99 };
       if (typeof Module._app_web_test_sync_key_state !== 'function')
         return { ok: false, code: -98 };
-      Module._app_web_test_import_sync_key();
-      const deadline = Date.now() + ${timeoutMs};
-      let code = 0;
-      while (Date.now() < deadline) {
-        code = Module._app_web_test_sync_key_state();
-        if (code !== 0)
-          return { ok: code === 1, code };
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-      return { ok: false, code };
-    })()))()`
+      return { ok: true };
+    })())`
   });
   let state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
+    throw new Error(`Firefox web sync key import hook unavailable; code=${state.code}`);
+
+  await client.send('script.evaluate', {
+    target: { context },
+    awaitPromise: false,
+    resultOwnership: 'none',
+    expression: "Module._app_web_test_import_sync_key(); true"
+  });
+
+  const deadline = Date.now() + timeoutMs;
+  state = { ok: false, code: 0 };
+  while (Date.now() < deadline) {
+    result = await client.send('script.evaluate', {
+      target: { context },
+      awaitPromise: false,
+      resultOwnership: 'none',
+      expression: "JSON.stringify((() => { const code = typeof Module._app_web_test_sync_key_state === 'function' ? Module._app_web_test_sync_key_state() : -99; return { ok: code === 1, code }; })())"
+    });
+    state = JSON.parse(result.result?.value || '{}');
+    if (state.code !== 0)
+      break;
+    await delay(50);
+  }
+  if (!state.ok)
     throw new Error(`Firefox web sync key import hook failed; code=${state.code}`);
+
   const flush = await client.send('script.evaluate', {
     target: { context },
     awaitPromise: true,
