@@ -71,8 +71,8 @@ public class MainActivity extends NativeActivity {
         System.loadLibrary("main");
     }
 
-    // [status_bar, nav_bar, cutouts] mirrored in native.
-    private final int[] cachedInsets = new int[6];
+    // [system bars, cutouts] mirrored in native.
+    private final int[] cachedInsets = new int[8];
     private boolean activityPaused = false;
     private boolean windowFocused = true;
     private boolean backgroundExecutionActive = false;
@@ -87,7 +87,7 @@ public class MainActivity extends NativeActivity {
     private int pendingDebugDonationReminderRetries = 0;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    private native void nativeSetInsets(int status, int nav,
+    private native void nativeSetInsets(int left, int top, int right, int bottom,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
     private native void nativeSetDeviceDensity(float density);
     private native void nativeSetSystemDark(int dark);
@@ -815,7 +815,7 @@ public class MainActivity extends NativeActivity {
         configureSystemBars();
 
         synchronized (cachedInsets) {
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < cachedInsets.length; i++) {
                 cachedInsets[i] = 0;
             }
         }
@@ -958,19 +958,25 @@ public class MainActivity extends NativeActivity {
         if (insets == null) return;
 
         try {
-            int statusBar = 0;
-            int navBar = 0;
+            int systemLeft = 0;
+            int systemTop = 0;
+            int systemRight = 0;
+            int systemBottom = 0;
             int cLeft = 0, cTop = 0, cRight = 0, cBottom = 0;
 
             // Inbe owns a single edge-to-edge native surface. Java reports the
             // system bar insets; native applies them once against the real GL surface.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Insets systemBars = insets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
-                statusBar = systemBars.top;
-                navBar = systemBars.bottom;
+                systemLeft = systemBars.left;
+                systemTop = systemBars.top;
+                systemRight = systemBars.right;
+                systemBottom = systemBars.bottom;
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                statusBar = insets.getSystemWindowInsetTop();
-                navBar = insets.getSystemWindowInsetBottom();
+                systemLeft = insets.getSystemWindowInsetLeft();
+                systemTop = insets.getSystemWindowInsetTop();
+                systemRight = insets.getSystemWindowInsetRight();
+                systemBottom = insets.getSystemWindowInsetBottom();
             }
             // Display cutout calculations
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -984,15 +990,18 @@ public class MainActivity extends NativeActivity {
             }
 
             synchronized (cachedInsets) {
-                cachedInsets[0] = statusBar;
-                cachedInsets[1] = navBar;
-                cachedInsets[2] = cLeft;
-                cachedInsets[3] = cTop;
-                cachedInsets[4] = cRight;
-                cachedInsets[5] = cBottom;
+                cachedInsets[0] = systemLeft;
+                cachedInsets[1] = systemTop;
+                cachedInsets[2] = systemRight;
+                cachedInsets[3] = systemBottom;
+                cachedInsets[4] = cLeft;
+                cachedInsets[5] = cTop;
+                cachedInsets[6] = cRight;
+                cachedInsets[7] = cBottom;
             }
 
-            nativeSetInsets(statusBar, navBar, cLeft, cTop, cRight, cBottom);
+            nativeSetInsets(systemLeft, systemTop, systemRight, systemBottom,
+                cLeft, cTop, cRight, cBottom);
 
             // Set device density for proper DPI scaling
             DisplayMetrics metrics = new DisplayMetrics();
@@ -1006,12 +1015,12 @@ public class MainActivity extends NativeActivity {
 
     /**
      * Called from native code via JNI to pull array memory safely.
-     * * @return Array copy containing [status, nav, left, top, right, bottom]
+     * * @return Array copy containing [left, top, right, bottom, cutout left, top, right, bottom]
      */
     public int[] getInsetsNative() {
-        int[] result = new int[6];
+        int[] result = new int[8];
         synchronized (cachedInsets) {
-            System.arraycopy(cachedInsets, 0, result, 0, 6);
+            System.arraycopy(cachedInsets, 0, result, 0, cachedInsets.length);
         }
         return result;
     }

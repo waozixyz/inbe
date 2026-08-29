@@ -35,8 +35,10 @@ static void android_wakelock_set_activity_impl(JNIEnv *env, jobject thiz) {
 }
 
 static volatile struct {
-    int status_bar;
-    int nav_bar;
+    int system_left;
+    int system_top;
+    int system_right;
+    int system_bottom;
     int cutout_left;
     int cutout_top;
     int cutout_right;
@@ -48,16 +50,19 @@ static int pending_practice_start = -1;
 static int pending_donation_reminder = 0;
 
 static void nativeSetInsets(JNIEnv *env, jobject thiz,
-    jint status_bar, jint nav_bar,
+    jint system_left, jint system_top, jint system_right, jint system_bottom,
     jint cutout_left, jint cutout_top, jint cutout_right, jint cutout_bottom)
 {
     TraceLog(LOG_INFO,
-             "INBE: Java insets: status=%d nav=%d cutout_top=%d",
-             status_bar, nav_bar, cutout_top);
+             "INBE: Java insets: system=%d,%d,%d,%d cutout=%d,%d,%d,%d",
+             system_left, system_top, system_right, system_bottom,
+             cutout_left, cutout_top, cutout_right, cutout_bottom);
 
     pthread_mutex_lock(&insets_mutex);
-    current_insets.status_bar = status_bar;
-    current_insets.nav_bar = nav_bar;
+    current_insets.system_left = system_left;
+    current_insets.system_top = system_top;
+    current_insets.system_right = system_right;
+    current_insets.system_bottom = system_bottom;
     current_insets.cutout_left = cutout_left;
     current_insets.cutout_top = cutout_top;
     current_insets.cutout_right = cutout_right;
@@ -256,7 +261,7 @@ static jboolean nativeDebugOpenDonationReminder(JNIEnv *env, jobject thiz)
 }
 
 static const JNINativeMethod g_methods[] = {
-    {"nativeSetInsets", "(IIIIII)V", (void*)nativeSetInsets},
+    {"nativeSetInsets", "(IIIIIIII)V", (void*)nativeSetInsets},
     {"nativeSetDeviceDensity", "(F)V", (void*)nativeSetDeviceDensity},
     {"nativeWakeLockReady", "()V", (void*)android_wakelock_set_activity_impl},
     {"nativeSetBackgroundActive", "(Z)V", (void*)nativeSetBackgroundActive},
@@ -321,8 +326,10 @@ void android_insets_get(AndroidInsets *out) {
     pthread_mutex_lock(&insets_mutex);
 
     if (out) {
-        out->status_bar = current_insets.status_bar;
-        out->nav_bar = current_insets.nav_bar;
+        out->system_left = current_insets.system_left;
+        out->system_top = current_insets.system_top;
+        out->system_right = current_insets.system_right;
+        out->system_bottom = current_insets.system_bottom;
         out->cutout_left = current_insets.cutout_left;
         out->cutout_top = current_insets.cutout_top;
         out->cutout_right = current_insets.cutout_right;
@@ -341,15 +348,15 @@ int android_insets_is_initialized(void) {
 }
 
 int android_get_system_top_reserved(void) {
-    int status_bar;
+    int system_bar;
     int cutout_top;
 
     pthread_mutex_lock(&insets_mutex);
-    status_bar = current_insets.status_bar;
+    system_bar = current_insets.system_top;
     cutout_top = current_insets.cutout_top;
     pthread_mutex_unlock(&insets_mutex);
 
-    // Return the max of status bar and camera cutout, ensuring non-negative
-    int system_top = status_bar > cutout_top ? status_bar : cutout_top;
+    // Return the max of system bar and camera cutout, ensuring non-negative
+    int system_top = system_bar > cutout_top ? system_bar : cutout_top;
     return system_top > 0 ? system_top : 0;
 }

@@ -411,29 +411,28 @@ android_nonnegative(int value)
     return value > 0 ? value : 0;
 }
 
+static int
+android_max_nonnegative(int first, int second)
+{
+    first = android_nonnegative(first);
+    second = android_nonnegative(second);
+    return first > second ? first : second;
+}
+
 static AndroidViewport
 android_resolve_viewport(int width, int height, AndroidInsets value)
 {
     static AndroidViewport last_logged = {-1, -1, -1, -1, -1, -1, -1, -1};
     AndroidViewport viewport;
-    int cutout_left = android_nonnegative(value.cutout_left);
-    int cutout_right = android_nonnegative(value.cutout_right);
-    int nav_bar = android_nonnegative(value.nav_bar);
-    int content_top = android_nonnegative(value.status_bar);
-    int cutout_top = android_nonnegative(value.cutout_top);
-
-    if(cutout_top > content_top)
-        content_top = cutout_top;
-
-    viewport.left = cutout_left;
-    viewport.right = cutout_right;
-    viewport.top = content_top;
-    viewport.bottom = 0;
+    viewport.left = android_max_nonnegative(value.system_left, value.cutout_left);
+    viewport.top = android_max_nonnegative(value.system_top, value.cutout_top);
+    viewport.right = android_max_nonnegative(value.system_right, value.cutout_right);
+    viewport.bottom = android_max_nonnegative(value.system_bottom, value.cutout_bottom);
 
     viewport.x = viewport.left;
     viewport.y = viewport.top;
     viewport.width = android_clamp_content_size(width, viewport.left, viewport.right);
-    viewport.height = height - viewport.top;
+    viewport.height = android_clamp_content_size(height, viewport.top, viewport.bottom);
 
     if(viewport.width <= 0) {
         viewport.x = 0;
@@ -449,8 +448,8 @@ android_resolve_viewport(int width, int height, AndroidInsets value)
        viewport.top != last_logged.top || viewport.bottom != last_logged.bottom ||
        viewport.left != last_logged.left || viewport.right != last_logged.right) {
         TraceLog(LOG_INFO,
-                 "ANDROID_VIEWPORT: surface=%dx%d top=%d nav=%d viewport=%d,%d %dx%d insets l=%d t=%d r=%d b=%d",
-                 width, height, content_top, nav_bar,
+                 "ANDROID_VIEWPORT: surface=%dx%d viewport=%d,%d %dx%d insets l=%d t=%d r=%d b=%d",
+                 width, height,
                  viewport.x, viewport.y, viewport.width, viewport.height,
                  viewport.left, viewport.top, viewport.right, viewport.bottom);
         last_logged = viewport;
@@ -510,9 +509,9 @@ frame(void)
     if (!android_insets_is_initialized()) {
         return;
     }
-    app_set_android_bottom_nav_height(android_nonnegative(insets.nav_bar));
 
     viewport = android_resolve_viewport(width, height, insets);
+    app_set_android_bottom_nav_height(viewport.bottom);
     if(viewport.x != previous_viewport.x || viewport.y != previous_viewport.y ||
        viewport.width != previous_viewport.width || viewport.height != previous_viewport.height ||
        viewport.top != previous_viewport.top || viewport.bottom != previous_viewport.bottom ||

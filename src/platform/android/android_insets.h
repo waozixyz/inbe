@@ -7,8 +7,10 @@
 #include <jni.h>
 
 typedef struct {
-	int status_bar;
-	int nav_bar;
+	int system_left;
+	int system_top;
+	int system_right;
+	int system_bottom;
 	int cutout_left;
 	int cutout_top;
 	int cutout_right;
@@ -24,8 +26,10 @@ int android_take_pending_donation_reminder(void);
 void android_wakelock_set_activity(JNIEnv *env, jobject activity);
 #else
 typedef struct {
-	int status_bar;
-	int nav_bar;
+	int system_left;
+	int system_top;
+	int system_right;
+	int system_bottom;
 	int cutout_left;
 	int cutout_top;
 	int cutout_right;
