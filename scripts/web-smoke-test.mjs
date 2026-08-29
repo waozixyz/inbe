@@ -609,6 +609,28 @@ async function waitForStorageIdleBidi(client, context) {
   throw new Error('Firefox IDBFS sync did not finish within ' + timeoutMs + 'ms; state=' + JSON.stringify(lastState));
 }
 
+function bidiResultValue(result, label) {
+  if (result.type === 'exception') {
+    const exception = result.exceptionDetails?.text ||
+      result.exceptionDetails?.exception?.value ||
+      result.exceptionDetails?.exception?.description ||
+      JSON.stringify(result.exceptionDetails || result);
+    throw new Error(`${label} threw in Firefox: ${exception}`);
+  }
+  if (!result.result || !Object.hasOwn(result.result, 'value'))
+    throw new Error(`${label} did not return a value in Firefox: ${JSON.stringify(result).slice(0, 1000)}`);
+  return result.result.value;
+}
+
+function bidiJsonResult(result, label) {
+  const value = bidiResultValue(result, label);
+  try {
+    return JSON.parse(value || '{}');
+  } catch (error) {
+    throw new Error(`${label} returned invalid JSON in Firefox: ${JSON.stringify(value)}; ${error.message}`);
+  }
+}
+
 async function verifyReloadPersistence(client) {
   await waitForStorageIdle(client);
   const marker = `web-smoke-${Date.now()}`;
@@ -741,53 +763,35 @@ async function verifySyncKeyImportBidi(client, context) {
   await waitForStorageIdleBidi(client, context);
   let result = await client.send('script.evaluate', {
     target: { context },
-    awaitPromise: false,
-    resultOwnership: 'none',
-    expression: `JSON.stringify((() => {
-      if (typeof Module._app_web_test_import_sync_key !== 'function')
-        return { ok: false, code: -99 };
-      if (typeof Module._app_web_test_sync_key_state !== 'function')
-        return { ok: false, code: -98 };
-      return { ok: true };
-    })())`
-  });
-  let state = JSON.parse(result.result?.value || '{}');
-  if (!state.ok)
-    throw new Error(`Firefox web sync key import hook unavailable; code=${state.code}`);
-
-  await client.send('script.evaluate', {
-    target: { context },
-    awaitPromise: false,
-    resultOwnership: 'none',
-    expression: "Module._app_web_test_import_sync_key(); true"
-  });
-
-  const deadline = Date.now() + timeoutMs;
-  state = { ok: false, code: 0 };
-  while (Date.now() < deadline) {
-    result = await client.send('script.evaluate', {
-      target: { context },
-      awaitPromise: false,
-      resultOwnership: 'none',
-      expression: "JSON.stringify((() => { const code = typeof Module._app_web_test_sync_key_state === 'function' ? Module._app_web_test_sync_key_state() : -99; return { ok: code === 1, code }; })())"
-    });
-    state = JSON.parse(result.result?.value || '{}');
-    if (state.code !== 0)
-      break;
-    await delay(50);
-  }
-  if (!state.ok)
-    throw new Error(`Firefox web sync key import hook failed; code=${state.code}`);
-
-  const flush = await client.send('script.evaluate', {
-    target: { context },
     awaitPromise: true,
     resultOwnership: 'none',
-    expression: "(async () => JSON.stringify({ ok: await Module.__kryonFlushStorageSync(true) }))()"
+    expression: `(async () => JSON.stringify(await (async () => {
+        if (typeof Module._app_web_test_import_sync_key !== 'function')
+          return { ok: false, code: -99 };
+        if (typeof Module._app_web_test_sync_key_state !== 'function')
+          return { ok: false, code: -98 };
+        Module._app_web_test_import_sync_key();
+        const deadline = Date.now() + ${timeoutMs};
+        let code = 0;
+        while (Date.now() < deadline) {
+          code = Module._app_web_test_sync_key_state();
+          if (code !== 0)
+            break;
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        if (code !== 1)
+          return { ok: false, code };
+        if (typeof Module.__kryonFlushStorageSync !== 'function')
+          return { ok: false, code: -97 };
+        if (!await Module.__kryonFlushStorageSync(true))
+          return { ok: false, code: -96 };
+        code = Module._app_web_test_sync_key_state();
+        return { ok: code === 1, code };
+      })()))()`
   });
-  state = JSON.parse(flush.result?.value || '{}');
+  let state = bidiJsonResult(result, 'sync key hook availability check');
   if (!state.ok)
-    throw new Error('Firefox IDBFS flush failed after web sync key import hook');
+    throw new Error(`Firefox web sync key import hook failed; code=${state.code}`);
   await waitForStorageIdleBidi(client, context);
   result = await client.send('script.evaluate', {
     target: { context },
@@ -795,7 +799,7 @@ async function verifySyncKeyImportBidi(client, context) {
     resultOwnership: 'none',
     expression: "JSON.stringify((() => { const code = typeof Module._app_web_test_sync_key_state === 'function' ? Module._app_web_test_sync_key_state() : -99; return { ok: code === 1, code }; })())"
   });
-  state = JSON.parse(result.result?.value || '{}');
+  state = bidiJsonResult(result, 'sync key settings readback');
   if (!state.ok)
     throw new Error(`Firefox web sync key import did not save account settings; code=${state.code}`);
 }

@@ -1,0 +1,3 @@
+Changed
+---
+- Updated the bundled Kryon runtime to the latest release for improved web runtime compatibility.

@@ -218,6 +218,7 @@ KRYON_SRCS := $(filter-out $(KRYON_DIR)/src/platform/plan9/%.c,$(KRYON_SRCS))
 endif
 # The web build uses kryon's Canvas2D backend directly: no raylib, no WebGL.
 KRYON_WEB_SRCS := $(KRYON_SRCS)
+KRYON_WEB_SRCS := $(filter-out $(KRYON_DIR)/src/backend/dom_%.c,$(KRYON_WEB_SRCS))
 KRYON_WINDOWS_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_CLICK_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_INCLUDE := -I$(KRYON_DIR)/include
@@ -506,7 +507,7 @@ WEB_BOOT_JS := src/web_boot.js
 WEB_CANVAS_DIR := $(BUILD_DIST_DIR)/web-canvas
 WEB_CANVAS_TARGET := $(WEB_CANVAS_DIR)/index.html
 WEB_CANVAS_APP_SCRIPT := <script>window.__inbeRenderer="canvas";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
-KRYON_CANVAS_SRCS := $(filter-out $(KRYON_RAYLIB_WRAPPERS_C),$(KRYON_SRCS))
+KRYON_CANVAS_SRCS := $(filter-out $(KRYON_DIR)/src/backend/dom_%.c,$(filter-out $(KRYON_RAYLIB_WRAPPERS_C),$(KRYON_SRCS)))
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
 WEB_SMOKE_BROWSER ?= auto
 WEB_SMOKE_TEST := scripts/web-smoke-test.mjs

@@ -1,4 +1,8 @@
 # Changelog
+## [1.9.14] - 2026-08-29
+### Changed
+- Updated the bundled Kryon runtime to the latest release for improved web runtime compatibility.
+
 ## [1.9.13] - 2026-08-29
 ### Changed
 - Sync now uses the protocol v4 secure data format when the account has been migrated, while keeping the transition path compatible with existing synced data.
