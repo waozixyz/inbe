@@ -75,10 +75,6 @@ extern struct android_app *GetAndroidApp(void);
 #endif
 
 #if !defined(PLATFORM_WEB) && !ANDROID_BUILD
-enum {
-    INBE_DESKTOP_SINGLE_INSTANCE_PATH_MAX = 600
-};
-
 static const char *INBE_DESKTOP_APP_ID = "xyz.waozi.inbe";
 static const char *INBE_DESKTOP_APP_NAME = "inbe";
 static const char *INBE_DESKTOP_DISPLAY_NAME = "Inner Breeze";
@@ -216,33 +212,6 @@ handle_shutdown_signal(int signum)
 {
     (void)signum;
     g_shutdown_requested = 1;
-}
-#endif
-
-#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
-static void
-inbe_ensure_single_instance(void)
-{
-    char lock_path[INBE_DESKTOP_SINGLE_INSTANCE_PATH_MAX];
-    int acquired;
-
-    if(getenv("INBE_NO_SINGLE_INSTANCE") != NULL)
-        return;
-
-    acquired = AcquireDesktopSingleInstanceMode(
-        INBE_DESKTOP_APP_ID, DESKTOP_SINGLE_INSTANCE_REPLACE,
-        lock_path, (int)sizeof(lock_path));
-    if(acquired != 1) {
-        TraceLog(LOG_WARNING, "INBE: cannot acquire single-instance lock: %s",
-                 lock_path[0] != '\0' ? lock_path : "unknown path");
-        return;
-    }
-    TraceLog(LOG_INFO, "INBE: single-instance lock acquired: %s", lock_path);
-}
-#else
-static void
-inbe_ensure_single_instance(void)
-{
 }
 #endif
 
@@ -1006,7 +975,7 @@ int main(int argc, char **argv) {
 #endif
     }
     install_trace_log_filter();
-    if(getenv("INBE_NO_SINGLE_INSTANCE") != NULL)
+    if(getenv("INBE_NO_SINGLE_INSTANCE") != NULL || screenshot.active)
         SetSingleInstance(0);
     if(!screenshot.active)
         inbe_init_desktop_identity();
@@ -1050,13 +1019,6 @@ int main(int argc, char **argv) {
     SetConfigFlags(GetWebWindowFlags());
 #elif !ANDROID_BUILD
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN);
-#endif
-
-#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
-    /* One live instance per user: a normal launch replaces any existing
-     * one; screenshot mode is one-shot and leaves the running app alone. */
-    if(!screenshot.active)
-        inbe_ensure_single_instance();
 #endif
 
 #if defined(_WIN32) && !ANDROID_BUILD
