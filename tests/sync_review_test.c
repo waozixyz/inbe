@@ -755,7 +755,8 @@ test_sync_payload_includes_v2_ops(void)
               1);
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
-    check_contains("v3 payload protocol", payload, "\"protocol_version\":3");
+    check_contains("v4 payload protocol", payload, "\"protocol_version\":4");
+    check_contains("v4 payload capabilities", payload, "\"client_capabilities\"");
     check_contains("v2 payload client clock", payload, "\"client_clock\":0");
     check_contains("v2 payload ops array", payload, "\"ops\":[");
     check_contains("v2 payload habit op", payload, "\"entity_type\":\"habit\"");
@@ -782,7 +783,7 @@ test_normal_response_records_server_hash(void)
     const char *response = "{"
                            "\"server_version\":5,"
                            "\"server_clock\":77,"
-                           "\"latest_protocol\":3,"
+                           "\"latest_protocol\":4,"
                            "\"server_state_hash\":\"normal-hash-001\","
                            "\"account_alias\":\"waozi\","
                            "\"changes\":{\"habits\":[],\"habit_days\":[],"
@@ -819,7 +820,7 @@ test_latest_protocol_warning_targets_current_client_only(void)
     const char *response = "{"
                            "\"server_version\":6,"
                            "\"server_clock\":78,"
-                           "\"latest_protocol\":4,"
+                           "\"latest_protocol\":5,"
                            "\"changes\":{\"habits\":[],\"habit_days\":[],"
                            "\"sessions\":[],\"meditation_logs\":[]}"
                            "}";
@@ -828,7 +829,7 @@ test_latest_protocol_warning_targets_current_client_only(void)
     check_true("init latest protocol db", storage_init(root));
     check_true("apply newer protocol response", storage_apply_sync_response_json(response));
     check_true("newer protocol loads status", storage_sync_status(&status));
-    check_int("newer protocol recorded", status.latest_protocol, 4);
+    check_int("newer protocol recorded", status.latest_protocol, 5);
     check_true("newer protocol warns current client", status.protocol_upgrade_available);
 
     storage_close();

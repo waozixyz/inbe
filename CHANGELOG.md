@@ -1,4 +1,16 @@
 # Changelog
+## [1.9.13] - 2026-08-29
+### Changed
+- Sync now uses the protocol v4 secure data format when the account has been migrated, while keeping the transition path compatible with existing synced data.
+
+### Fixed
+- Secure data migration now appears only for connected accounts that still need migration, and shows progress while the update is running.
+- Sync migration no longer leaves stale queued changes after all local data has been uploaded in the secure format.
+- Profile and sync account text can be selected by double-clicking.
+- Desktop startup no longer fails when the single-instance lock is unavailable.
+- Android landscape layouts now respect system bars and display cutouts.
+- Android releases now include the expected per-ABI APK downloads alongside the universal APK.
+
 ## [1.9.12] - 2026-08-28
 ### Changed
 - Web builds now use the Canvas renderer directly, so browsers without WebGL no longer need a fallback path.

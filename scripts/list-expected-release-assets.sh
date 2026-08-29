@@ -17,6 +17,10 @@ fi
 
 cat <<EOF
 inbe-$version.apk
+inbe-$version-arm64-v8a.apk
+inbe-$version-armeabi-v7a.apk
+inbe-$version-x86.apk
+inbe-$version-x86_64.apk
 inbe-$version.aab
 inbe-web.zip
 inbe-chrome-web-store.zip

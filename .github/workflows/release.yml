@@ -720,6 +720,14 @@ jobs:
             exit 1
           fi
           cp "build/android/inbe-$VERSION.apk" build/release/android/
+          for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+            split="build/android/inbe-$VERSION-$abi.apk"
+            if [ ! -f "$split" ]; then
+              echo "Missing split APK: $split"
+              exit 1
+            fi
+            cp "$split" build/release/android/
+          done
           aab="$(find droid/app/build/outputs/bundle/release build/android -type f -name '*.aab' | head -n 1)"
           if [ -z "$aab" ]; then
             echo "No release AAB was produced"
