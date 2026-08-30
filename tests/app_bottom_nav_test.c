@@ -462,13 +462,6 @@ EndUIScreenScaffold(UIScreenScaffold scaffold)
     EndUIScrollPage(scaffold.page);
 }
 
-void
-TitleBar(const char *title, int height)
-{
-    (void)title;
-    (void)height;
-}
-
 int
 UIReturnTitleBar(Texture2D return_icon, const char *title, int height)
 {
