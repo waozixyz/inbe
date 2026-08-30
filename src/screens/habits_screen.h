@@ -16,6 +16,7 @@ enum {
 enum {
     INBE_HABIT_MAX = 32,
     INBE_HABIT_ID_SIZE = 40,
+    INBE_HABIT_PENDING_DAY_SAVE_MAX = 128,
     INBE_HABIT_NAME_SIZE = 40,
     INBE_HABIT_DESCRIPTION_SIZE = 256,
     HABIT_LINKED_ENTRY_MAX = 128,
@@ -70,11 +71,20 @@ typedef struct InbeHabit {
     int day_capacity;
 } InbeHabit;
 
+typedef struct InbeHabitDaySave {
+    char habit_id[INBE_HABIT_ID_SIZE];
+    int day_index;
+    int completed;
+    int count;
+} InbeHabitDaySave;
+
 typedef struct InbeHabits {
     InbeHabit items[INBE_HABIT_MAX];
     char loaded_ids[INBE_HABIT_MAX][INBE_HABIT_ID_SIZE];
+    InbeHabitDaySave pending_day_saves[INBE_HABIT_PENDING_DAY_SAVE_MAX];
     int count;
     int loaded_count;
+    int pending_day_save_count;
     int selected;
     int scroll;
     int tab_scroll;

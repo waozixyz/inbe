@@ -38,6 +38,11 @@ language_screen_draw :: (app: InbeApp*) {
     if LocaleDropdown(260, dropdown_x, dropdown_y, dropdown_w, dropdown_h, selected_index) {
         selection_changed = 1
     }
+    if selection_changed {
+        apply_language_selection(app, *selected_index, 0)
+        app->settings_dirty = 1
+        app->settings_save_delay_ticks = 18
+    }
 
     title_font = GetUITitleFontSize(GetLocaleText("language_picker_title"), content_w)
     title_w = TextWidth(GetLocaleText("language_picker_title"), title_font)
@@ -48,12 +53,6 @@ language_screen_draw :: (app: InbeApp*) {
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->practice_tab = PRACTICE_TAB_PLAY
         app_switch_screen(app, InbeScreenStart)
-    }
-
-    if selection_changed {
-        apply_language_selection(app, *selected_index, 0)
-        app->settings_dirty = 1
-        app->settings_save_delay_ticks = 18
     }
 }
 

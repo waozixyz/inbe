@@ -527,6 +527,7 @@ struct InbeApp {
     int android_orientation;
     int main_tab;
     InbeHabits habits;
+    int habits_flush_post_frame_scheduled;
     int habit_detail_index;
     int habit_detail_day;
     char habit_detail_session_path[FS_PATH_MAX];

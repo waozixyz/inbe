@@ -125,6 +125,7 @@ habit_completed_today :: (habit: const InbeHabit*) -> int {
 habits_save :: (habits: InbeHabits*) {
     if habits != nil {
         habits->dirty = 0
+        habits->pending_day_save_count = 0
     }
     storage_habits_save(habits)
     if habits != nil {
@@ -139,11 +140,73 @@ habits_save :: (habits: InbeHabits*) {
     }
 }
 
-habits_flush_save :: (app: InbeApp*) {
-    if app == nil || !app->habits.dirty {
+habits_queue_day_save :: (habits: InbeHabits*, habit: const InbeHabit*,
+                              day_index: int, completed: int,
+                              count: int) #private {
+    pending: InbeHabitDaySave*
+
+    if habits == nil || habit == nil || habit->id[0] == '\0' ||
+       day_index <= 0 {
         return
     }
-    habits_save(&app->habits)
+    if count < 0 {
+        count = 0
+    }
+    completed = completed || count > 0
+    for int i = 0; i < habits->pending_day_save_count; i++ {
+        pending = &habits->pending_day_saves[i]
+        if pending->day_index == day_index &&
+           strcmp(pending->habit_id, habit->id) == 0 {
+            pending->completed = completed ? 1 : 0
+            pending->count = count
+            return
+        }
+    }
+    if habits->pending_day_save_count >= INBE_HABIT_PENDING_DAY_SAVE_MAX {
+        habits->dirty = 1
+        return
+    }
+    pending = &habits->pending_day_saves[habits->pending_day_save_count]
+    copy_text(pending->habit_id, sizeof(pending->habit_id), habit->id)
+    pending->day_index = day_index
+    pending->completed = completed ? 1 : 0
+    pending->count = count
+    habits->pending_day_save_count++
+}
+
+habits_flush_day_saves :: (habits: InbeHabits*) #private {
+    pending: [INBE_HABIT_PENDING_DAY_SAVE_MAX] InbeHabitDaySave
+    count: int
+
+    if habits == nil || habits->pending_day_save_count <= 0 {
+        return
+    }
+    count = habits->pending_day_save_count
+    if count > INBE_HABIT_PENDING_DAY_SAVE_MAX {
+        count = INBE_HABIT_PENDING_DAY_SAVE_MAX
+    }
+    memcpy(pending, habits->pending_day_saves,
+              (size_t)count * sizeof(pending[0]))
+    habits->pending_day_save_count = 0
+    for int i = 0; i < count; i++ {
+        if !storage_habit_day_save(pending[i].habit_id,
+                                      pending[i].day_index,
+                                      pending[i].completed,
+                                      pending[i].count) {
+            habits->dirty = 1
+        }
+    }
+}
+
+habits_flush_save :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+    if app->habits.dirty {
+        habits_save(&app->habits)
+    } else {
+        habits_flush_day_saves(&app->habits)
+    }
 }
 
 habits_clear_days :: (habits: InbeHabits*) -> int {
@@ -432,8 +495,7 @@ habit_set_day :: (habits: InbeHabits*, index: int, day_index: int, completed: in
         habit->day_count++
     }
     habits->selected = index
-    habits->dirty = !storage_habit_day_save(habit->id, day_index,
-                                            completed != 0, count)
+    habits_queue_day_save(habits, habit, day_index, completed != 0, count)
 }
 
 habit_set_day_count :: (habits: InbeHabits*, index: int, day_index: int, count: int) {
@@ -459,7 +521,7 @@ habit_set_day_count :: (habits: InbeHabits*, index: int, day_index: int, count: 
         habit->day_count++
     }
     habits->selected = index
-    habits->dirty = !storage_habit_day_save(habit->id, day_index, count > 0, count)
+    habits_queue_day_save(habits, habit, day_index, count > 0, count)
 }
 
 habit_toggle_day :: (habits: InbeHabits*, index: int, day_index: int) {
@@ -484,9 +546,9 @@ habit_toggle_day :: (habits: InbeHabits*, index: int, day_index: int) {
         habit->day_count++
     }
     habits->selected = index
-    habits->dirty = !storage_habit_day_save(habit->id, day_index,
-                                            habit_completed_day(habit, day_index),
-                                            habit_day_count(habit, day_index))
+    habits_queue_day_save(habits, habit, day_index,
+                             habit_completed_day(habit, day_index),
+                             habit_day_count(habit, day_index))
 }
 
 habit_increment_day :: (habits: InbeHabits*, index: int, day_index: int, delta: int) {

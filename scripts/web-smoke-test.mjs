@@ -686,6 +686,28 @@ async function verifyAppSettingsReloadPersistence(client) {
     throw new Error('app settings did not persist across reload');
 }
 
+async function verifyLanguageRouteDoesNotOverrideSavedOnboarding(client, port) {
+  await waitForStorageIdle(client);
+  await client.send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html#/language` });
+  await waitForHealthyPage(client);
+  await waitForStorageIdle(client);
+
+  const result = await client.send('Runtime.evaluate', {
+    expression: `(() => ({
+      hash: location.hash || '',
+      onboarding: typeof Module._app_web_test_onboarding_state === 'function'
+        ? Module._app_web_test_onboarding_state()
+        : -1
+    }))()`,
+    returnByValue: true
+  });
+  const value = result.result?.value || {};
+  if (value.onboarding !== 1)
+    throw new Error(`saved onboarding state missing before language route check; state=${JSON.stringify(value)}`);
+  if (value.hash === '#/language')
+    throw new Error('saved onboarding state was overridden by stale #/language route');
+}
+
 async function verifySyncKeyImport(client) {
   await waitForStorageIdle(client);
   let state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
@@ -1525,6 +1547,7 @@ try {
     await verifyRenderingLive(client);
     await verifyReloadPersistence(client);
     await verifyAppSettingsReloadPersistence(client);
+    await verifyLanguageRouteDoesNotOverrideSavedOnboarding(client, port);
     await verifyFirstRunGuideCanvasFlow(client);
     await verifySyncKeyImport(client);
     await verifyPracticeStartClick(client);

@@ -33,6 +33,10 @@ AppSidebarSettingsItem :: struct {
 
 static android_bottom_nav_height: int = 0
 
+app_nav_sidebar_separator :: () -> Color #private {
+    return DarkenUIColor(GetThemeSurface(), 16)
+}
+
 app_nav_mark_int_used :: (value: int) #private {
     if value == 0 {
         return
@@ -604,6 +608,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     sidebar_x: int
     pad: int
     footer_h: int
+    footer_y: int
     footer_gap: int
     close_h: int
     close_y: int
@@ -667,13 +672,17 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
         footer_h = view_height > ScaleUIPx(80) ? view_height - ScaleUIPx(80)
                                                : view_height
     }
+    footer_y = view_height - footer_h
+    if footer_y < 0 {
+        footer_y = 0
+    }
 
     scrim.a = 92
     DrawRectangle(0, 0, view_width, view_height, scrim)
     DrawRectangle(sidebar_x, 0, sidebar_w, view_height, GetThemeSurface())
     if sidebar_x > 0 {
         DrawLine(sidebar_x, 0, sidebar_x, view_height,
-                    DarkenUIColor(GetThemeSurface(), 42))
+                    app_nav_sidebar_separator())
     }
 
     if app->nav_sidebar_open_frame == app->inbe.frame {
@@ -739,8 +748,8 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
 
     EndUIScrollContainer(area, view)
 
-    DrawLine(sidebar_x, view_height - footer_h, sidebar_x + sidebar_w,
-                view_height - footer_h, DarkenUIColor(GetThemeSurface(), 28))
+    DrawRectangle(sidebar_x, footer_y, sidebar_w, view_height - footer_y,
+                  GetThemeSurface())
     if StyledButton(sidebar_x + pad, close_y, sidebar_w - pad * 2,
                            close_h, GetLocaleText("close_button"),
                            ButtonStyleSecondary, app->modal.active,

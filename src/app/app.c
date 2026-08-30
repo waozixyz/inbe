@@ -122,6 +122,112 @@ static const InbeRouteBinding inbe_route_bindings[] = {
     {"habit_session_edit", InbeScreenHabitSessionEdit},
 };
 
+static int g_app_route_version = -1;
+
+static void
+app_route_copy_hash_id(char *dst, size_t dst_size, const char *hash)
+{
+    size_t n = 0;
+
+    if(dst == NULL || dst_size == 0)
+        return;
+    dst[0] = '\0';
+    if(hash == NULL)
+        return;
+    while(*hash == ' ' || *hash == '\t' || *hash == '#')
+        hash++;
+    if(*hash == '/')
+        hash++;
+    while(hash[n] != '\0' && hash[n] != '/' && hash[n] != '?' &&
+          hash[n] != '&' && n + 1 < dst_size) {
+        dst[n] = hash[n];
+        n++;
+    }
+    dst[n] = '\0';
+}
+
+static int
+app_screen_for_route_id(const char *id)
+{
+    size_t i;
+
+    if(id == NULL || id[0] == '\0')
+        return -1;
+    for(i = 0; i < sizeof(inbe_route_bindings) / sizeof(inbe_route_bindings[0]);
+        i++) {
+        if(strcmp(inbe_route_bindings[i].id, id) == 0)
+            return inbe_route_bindings[i].screen;
+    }
+    return -1;
+}
+
+static const char *
+app_route_id_for_screen(int screen)
+{
+    size_t i;
+
+    for(i = 0; i < sizeof(inbe_route_bindings) / sizeof(inbe_route_bindings[0]);
+        i++) {
+        if(inbe_route_bindings[i].screen == screen)
+            return inbe_route_bindings[i].id;
+    }
+    return NULL;
+}
+
+static void
+app_write_current_route(InbeApp *app, int push)
+{
+    const char *id;
+    const char *path;
+    char route[320];
+
+    if(app == NULL)
+        return;
+    id = app_route_id_for_screen(app->inbe.screen);
+    if(id == NULL || id[0] == '\0')
+        return;
+    path = GetRoutePath();
+    if(path == NULL || path[0] == '\0')
+        path = "/";
+    snprintf(route, sizeof(route), "%s#/%s", path, id);
+    if(push)
+        PushRoute(route);
+    else
+        ReplaceRoute(route);
+    g_app_route_version = GetRouteVersion();
+}
+
+static void
+app_sync_route_from_url(InbeApp *app)
+{
+    int version;
+    char id[96];
+    int screen;
+    AppRoute route;
+
+    if(app == NULL)
+        return;
+    version = GetRouteVersion();
+    if(version == g_app_route_version)
+        return;
+    g_app_route_version = version;
+
+    app_route_copy_hash_id(id, sizeof(id), GetRouteHash());
+    screen = app_screen_for_route_id(id);
+    if(screen < 0) {
+        app_write_current_route(app, 0);
+        return;
+    }
+    if(screen == InbeScreenLanguage && app->language_selected) {
+        app_write_current_route(app, 0);
+        return;
+    }
+
+    route = app_current_route(app);
+    route.screen = screen;
+    app_switch_route(app, route);
+}
+
 static int
 app_profile_enabled(void)
 {
@@ -618,6 +724,7 @@ app_observe_direct_route_change(InbeApp *app, AppRoute before_route)
         return;
     if(app->inbe.screen == InbeScreenHabits && before_route.screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;
+    app_write_current_route(app, 1);
 }
 
 static void
@@ -629,6 +736,37 @@ app_flush_deferred_settings(InbeApp *app)
     app->settings_save_delay_ticks--;
     if(app->settings_save_delay_ticks <= 0 && app->settings_dirty)
         save_settings(app);
+}
+
+static int
+app_habits_save_pending(const InbeApp *app)
+{
+    return app != NULL &&
+           (app->habits.dirty || app->habits.pending_day_save_count > 0);
+}
+
+static void
+app_flush_habits_post_frame(void *userdata)
+{
+    InbeApp *app = userdata;
+
+    if(app == NULL)
+        return;
+    app->habits_flush_post_frame_scheduled = 0;
+    habits_flush_save(app);
+}
+
+static void
+app_schedule_habits_post_frame_flush(InbeApp *app)
+{
+    if(!app_habits_save_pending(app) ||
+       app->habits_flush_post_frame_scheduled)
+        return;
+    app->habits_flush_post_frame_scheduled = 1;
+    if(!SchedulePostFrameCallback(app_flush_habits_post_frame, app)) {
+        app->habits_flush_post_frame_scheduled = 0;
+        habits_flush_save(app);
+    }
 }
 
 int
@@ -1083,6 +1221,9 @@ app_accept_language_selection(InbeApp *app)
         apply_system_language_selection(app, 1);
     else
         save_settings(app);
+#if defined(PLATFORM_WEB)
+    (void)sync_web_storage_critical();
+#endif
     if(first_language_setup && habits_seed_default_set_if_needed(&app->habits))
         app_restore_habits_view_settings(app);
 }
@@ -2311,7 +2452,7 @@ updateapp(InbeApp *app)
     int center_y;
     int i;
     int hover = 0;
-    AppRoute frame_route = app_current_route(app);
+    AppRoute frame_route;
     int first_run_guide_active = 0;
     int habits_guide_active = 0;
     int practice_fullscreen_modal = 0;
@@ -2320,6 +2461,9 @@ updateapp(InbeApp *app)
     int bottom_input_reserved = 0;
     Rectangle input_rect;
     Rectangle input_clip_rect;
+
+    app_sync_route_from_url(app);
+    frame_route = app_current_route(app);
 
 #if ANDROID_BUILD
     {
@@ -2671,7 +2815,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
     EndUIClip();
     }
     profile_habits_start = app_profile_now();
-    habits_flush_save(app);
+    app_schedule_habits_post_frame_flush(app);
     app_profile_accum(&g_app_profile.habits_total,
                       &g_app_profile.habits_max,
                       profile_habits_start);
@@ -2704,6 +2848,7 @@ app_destroy(void *vapp)
     app->break_hud = NULL;
 
     save_settings(app);
+    app->habits_flush_post_frame_scheduled = 0;
     habits_flush_save(app);
 
     if(!IsUIInspectActive())

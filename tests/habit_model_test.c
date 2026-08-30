@@ -149,35 +149,41 @@ test_date_helpers(void)
 static void
 test_count_mutations(void)
 {
-    InbeHabits habits = {0};
+    InbeApp app = {0};
+    InbeHabits *habits = &app.habits;
     int index;
 
     reset_stubs();
-    index = habits_add_custom(&habits, "Walk", (Color){1, 2, 3, 255},
+    index = habits_add_custom(habits, "Walk", (Color){1, 2, 3, 255},
                               INBE_HABIT_SYNC_NONE, 0);
     expect_int("add custom index", index, 0);
-    expect_int("add custom count", habits.count, 1);
-    expect_str("add custom name", habits.items[0].name, "Walk");
-    expect_str("add custom id copied to loaded id", habits.loaded_ids[0],
+    expect_int("add custom count", habits->count, 1);
+    expect_str("add custom name", habits->items[0].name, "Walk");
+    expect_str("add custom id copied to loaded id", habits->loaded_ids[0],
                "00000000-0000-4000-8000-000000000001");
 
-    habit_toggle_day(&habits, 0, 20260828);
-    expect_int("toggle creates one day", habits.items[0].day_count, 1);
-    expect_int("toggle completes day", habit_completed_day(&habits.items[0], 20260828), 1);
-    expect_int("toggle count", habit_day_count(&habits.items[0], 20260828), 1);
+    habit_toggle_day(habits, 0, 20260828);
+    expect_int("toggle creates one day", habits->items[0].day_count, 1);
+    expect_int("toggle completes day", habit_completed_day(&habits->items[0], 20260828), 1);
+    expect_int("toggle count", habit_day_count(&habits->items[0], 20260828), 1);
 
-    habit_toggle_day(&habits, 0, 20260828);
-    expect_int("second toggle leaves day record", habits.items[0].day_count, 1);
-    expect_int("second toggle clears completed", habit_completed_day(&habits.items[0], 20260828), 0);
-    expect_int("second toggle count", habit_day_count(&habits.items[0], 20260828), 0);
+    habit_toggle_day(habits, 0, 20260828);
+    expect_int("second toggle leaves day record", habits->items[0].day_count, 1);
+    expect_int("second toggle clears completed", habit_completed_day(&habits->items[0], 20260828), 0);
+    expect_int("second toggle count", habit_day_count(&habits->items[0], 20260828), 0);
 
-    habit_set_day_count(&habits, 0, 20260828, 3);
-    expect_int("explicit count", habit_day_count(&habits.items[0], 20260828), 3);
-    habit_increment_day(&habits, 0, 20260828, -5);
-    expect_int("count clamps at zero", habit_day_count(&habits.items[0], 20260828), 0);
-    expect_int("day save calls", storage_day_save_count, 4);
+    habit_set_day_count(habits, 0, 20260828, 3);
+    expect_int("explicit count", habit_day_count(&habits->items[0], 20260828), 3);
+    habit_increment_day(habits, 0, 20260828, -5);
+    expect_int("count clamps at zero", habit_day_count(&habits->items[0], 20260828), 0);
+    expect_int("day save calls before flush", storage_day_save_count, 0);
+    expect_int("pending day saves coalesce", habits->pending_day_save_count, 1);
 
-    habits_free(&habits);
+    habits_flush_save(&app);
+    expect_int("day save calls after flush", storage_day_save_count, 1);
+    expect_int("pending day saves cleared", habits->pending_day_save_count, 0);
+
+    habits_free(habits);
 }
 
 static void
@@ -190,8 +196,13 @@ test_dirty_flush_on_storage_failure(void)
                       INBE_HABIT_SYNC_NONE, 0);
     storage_day_save_result = 0;
     habit_toggle_day(&app.habits, 0, 20260828);
-    expect_int("failed day save marks dirty", app.habits.dirty, 1);
+    expect_int("failed day save waits for flush", app.habits.dirty, 0);
+    expect_int("failed day save pending", app.habits.pending_day_save_count, 1);
 
+    habits_flush_save(&app);
+    expect_int("failed day save marks dirty", app.habits.dirty, 1);
+    expect_int("failed day save calls", storage_day_save_count, 1);
+    storage_day_save_result = 1;
     habits_flush_save(&app);
     expect_int("flush clears dirty", app.habits.dirty, 0);
     expect_int("flush saves once after add", storage_save_count, 2);

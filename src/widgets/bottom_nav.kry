@@ -125,7 +125,8 @@ app_draw_bottom_nav :: (app: InbeApp*) {
     result := (BottomNavResult){0}
 
     if app_android_bottom_nav_height() > 0 {
-        DrawRectangle(0, view_height - app_android_bottom_nav_height(), view_width, app_android_bottom_nav_height(), BLACK)
+        DrawRectangle(0, view_height - app_android_bottom_nav_height(), view_width,
+                      app_android_bottom_nav_height(), GetThemeBackground())
     }
 
     if app != NULL && (app->nav_sidebar_open || bottom_nav_sidebar_screen_active(app)) {
