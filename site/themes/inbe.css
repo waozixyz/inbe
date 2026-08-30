@@ -1,10 +1,10 @@
 :root {
-	--accent: #2c7388;
-	--accent-deep: #174b5d;
-	--accent-soft: rgba(44, 115, 136, 0.10);
-	--hover-web: #f4fafb;
-	--hover-android: #f2faf4;
-	--hover-windows: #fbf4f4;
-	--hover-linux: #fbfaf0;
-	--tool-panel-bg: #fbf9f2;
+	--accent: #b46a5a;
+	--accent-deep: #9a5343;
+	--accent-soft: rgba(180, 106, 90, 0.10);
+	--hover-web: #fdf6f0;
+	--hover-android: #f6faf3;
+	--hover-windows: #fbf4f0;
+	--hover-linux: #fbf8ee;
+	--tool-panel-bg: #fbf7f0;
 }
