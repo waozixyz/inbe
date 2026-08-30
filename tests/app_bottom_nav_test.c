@@ -182,6 +182,14 @@ UINodeTabBar(TabBarProps bar)
     return node;
 }
 
+UIWidgetNode
+UINodeTitleBar(int height)
+{
+    UIWidgetNode node = {0};
+    node.bounds.height = height > 0 ? height : 52;
+    return node;
+}
+
 KeyID
 Key(const char *text)
 {
@@ -407,6 +415,51 @@ void
 EndUIScrollPage(UIScrollPage page)
 {
     (void)page;
+}
+
+UIScreenScaffold
+BeginUIScreenScaffold(UIScreenScaffoldSpec spec)
+{
+    UIScreenScaffold scaffold = {0};
+    int title_h = spec.title_height > 0
+                      ? spec.title_height
+                      : UIGetNodeHeight(UINodeTitleBar(0));
+    int top_gap = spec.top_gap > 0 ? spec.top_gap : 0;
+
+    scaffold.title_height = title_h;
+    if(spec.draw_title != NULL)
+        scaffold.closed = spec.draw_title(spec.title, title_h,
+                                          spec.title_user_data != NULL
+                                              ? spec.title_user_data
+                                              : spec.user_data);
+    scaffold.content_y = title_h + top_gap;
+    scaffold.content_h = view_height - scaffold.content_y -
+                         spec.bottom_reserved;
+    if(scaffold.content_h < 0)
+        scaffold.content_h = 0;
+    scaffold.page = BeginUIScrollPage((UIScrollPageSpec){
+        .y = scaffold.content_y,
+        .height = scaffold.content_h,
+        .max_content_width = spec.max_content_width,
+        .min_content_width = spec.min_content_width,
+        .side_padding = spec.side_padding,
+        .scroll_offset = spec.scroll_offset,
+        .wheel_step = spec.wheel_step,
+        .scrollbar_x = spec.scrollbar_x,
+        .measure_passes = spec.measure_passes,
+        .content_height = spec.content_height,
+        .user_data = spec.user_data
+    });
+    scaffold.content_x = scaffold.page.content_x;
+    scaffold.content_w = scaffold.page.content_w;
+    scaffold.y = scaffold.page.content_y;
+    return scaffold;
+}
+
+void
+EndUIScreenScaffold(UIScreenScaffold scaffold)
+{
+    EndUIScrollPage(scaffold.page);
 }
 
 int

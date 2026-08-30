@@ -815,10 +815,6 @@ app_customize_nav_scaffold_title :: (title: const char*, height: int,
                                      user_data: void*) -> int #private {
     app := (InbeApp*)user_data
 
-    if app == nil {
-        TitleBar(title, height)
-        return 0
-    }
     if app_draw_close_title_bar(app, title, height) {
         app_block_pointer_frame(app)
         app_open_main_tab(app, app->main_tab, 0)
