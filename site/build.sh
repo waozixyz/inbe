@@ -55,7 +55,6 @@ sync_shared_web_icons() {
 	sh "$sync_script" --group language --flat "$root_dir/web-assets/icons" \
 		ray uxn wasm wasm4
 	sh "$sync_script" --group tiles --flat "$root_dir/web-assets/icons" tile2
-	sh "$sync_script" --group proj --flat "$root_dir/web-assets/icons" inbe
 }
 
 expand_template_file() {
