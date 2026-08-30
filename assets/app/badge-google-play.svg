@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="246" height="72" viewBox="0 0 246 72" role="img" aria-label="Get it on Google Play">
-  <rect x="1" y="1" width="244" height="70" rx="8" fill="#070707" stroke="#242424" stroke-width="2"/>
-  <path d="M30 18 L30 54 L58 36 Z" fill="#34a853"/>
-  <path d="M30 18 L45 36 L30 54 Z" fill="#4285f4"/>
-  <path d="M45 36 L58 36 L50 27 Z" fill="#fbbc04"/>
-  <path d="M45 36 L58 36 L50 45 Z" fill="#ea4335"/>
-  <text x="78" y="28" fill="#f7f7f7" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing=".5">GET IT ON</text>
-  <text x="78" y="51" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700">Google Play</text>
-</svg>

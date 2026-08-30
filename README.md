@@ -4,10 +4,10 @@
 
 <p align="center">
   <a href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe">
-    <img src="assets/app/badge-google-play.svg" alt="Get it on Google Play" height="56">
+    <img src="assets/app/badge-google-play.png" alt="Get it on Google Play" height="56">
   </a>
   <a href="https://f-droid.org/packages/xyz.waozi.inbe/">
-    <img src="assets/app/badge-f-droid.svg" alt="Get it on F-Droid" height="56">
+    <img src="assets/app/badge-f-droid.png" alt="Get it on F-Droid" height="56">
   </a>
 </p>
 

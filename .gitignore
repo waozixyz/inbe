@@ -36,6 +36,7 @@ social-posts.local.json
 /main
 !droid/app/src/main
 droid/app/src/main/assets
+droid/app/src/gplay/google-services.json
 droid/*.apk
 droid/*.aab
 

@@ -14,9 +14,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan Tracked Files and History
+        run: |
+          set -euo pipefail
+          python3 scripts/check-secrets.py --working-tree
+          python3 scripts/check-secrets.py --history
+
   test:
     name: Test
     runs-on: ubuntu-latest
+    needs: secret-scan
     timeout-minutes: 60
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -687,6 +703,11 @@ jobs:
           mkdir -p ~/.android
           echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/inbe-release.keystore
 
+      - name: Prepare Firebase config
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: ./scripts/write-google-services-json.sh
+
       - name: Copy Android Assets
         run: ./scripts/copy-android-assets.sh
 
@@ -719,21 +740,24 @@ jobs:
             echo "Could not read INBE_VERSION_STRING"
             exit 1
           fi
-          cp "build/android/inbe-$VERSION.apk" build/release/android/
-          for abi in arm64-v8a armeabi-v7a x86 x86_64; do
-            split="build/android/inbe-$VERSION-$abi.apk"
-            if [ ! -f "$split" ]; then
-              echo "Missing split APK: $split"
+          for flavor in fdroid gplay; do
+            apk="build/android/inbe-$VERSION-$flavor.apk"
+            if [ ! -f "$apk" ]; then
+              echo "Missing universal APK: $apk"
               exit 1
             fi
-            cp "$split" build/release/android/
+            cp "$apk" build/release/android/
+            for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+              split="build/android/inbe-$VERSION-$flavor-$abi.apk"
+              if [ ! -f "$split" ]; then
+                echo "Missing split APK: $split"
+                exit 1
+              fi
+              cp "$split" build/release/android/
+            done
           done
-          aab="$(find droid/app/build/outputs/bundle/release build/android -type f -name '*.aab' | head -n 1)"
-          if [ -z "$aab" ]; then
-            echo "No release AAB was produced"
-            exit 1
-          fi
-          cp "$aab" "build/release/android/inbe-$VERSION.aab"
+          cp "build/android/inbe-$VERSION-fdroid.aab" build/release/android/
+          cp "build/android/inbe-$VERSION-gplay.aab" build/release/android/
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
@@ -952,7 +976,7 @@ jobs:
           VERSION="${{ needs.release.outputs.version }}"
 
           web_zip="build/release/inbe-web.zip"
-          android_apk="build/release/inbe-$VERSION.apk"
+          android_apk="build/release/inbe-$VERSION-fdroid.apk"
           windows_zip="build/release/inbe-windows.zip"
           linux_appimage="build/release/inbe-linux-x86_64.AppImage"
 
@@ -1025,7 +1049,7 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: xyz.waozi.inbe
-          releaseFiles: build/release/android/*.aab
+          releaseFiles: build/release/android/inbe-${{ needs.release.outputs.version }}-gplay.aab
           track: production
           status: completed
 
@@ -1075,7 +1099,7 @@ jobs:
       - name: Upload APK to Amazon Appstore
         if: steps.amazon_secrets.outputs.configured == 'true'
         env:
-          AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}.apk
+          AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}-fdroid.apk
         run: |
           set -euo pipefail
           if ! node scripts/upload-amazon-appstore.mjs; then

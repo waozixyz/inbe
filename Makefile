@@ -548,7 +548,7 @@ MEDITATION_AUDIO_TRACKS := \
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
 .PHONY: web-canvas web-canvas-smoke-test web-compare-test web-side-by-side-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run tui run-tui run-termi run-termi-direct run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean android-rebuild validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site site-release-assets-check chrome-web-store chrome-web-store-test firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons sync-web-icons social-install social-login social-draft social-x-draft social-post social-x-post social-x-post-dry-run social-post-dry-run
-.PHONY: no-vendor-edits test-tui-screenshot test-termi-screenshot test-termi-screenshot-direct
+.PHONY: no-vendor-edits secret-check secret-check-history hooks-install test-tui-screenshot test-termi-screenshot test-termi-screenshot-direct
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
@@ -709,10 +709,19 @@ test-desktop-windows:
 no-vendor-edits:
 	bash ./scripts/check-no-vendor-edits.sh
 
+secret-check:
+	python3 ./scripts/check-secrets.py --working-tree
+
+secret-check-history:
+	python3 ./scripts/check-secrets.py --history
+
+hooks-install:
+	sh ./scripts/install-git-hooks.sh
+
 embedded-image-assets-check: $(EMBEDDED_ASSETS_C)
 	bash ./tests/embedded_image_assets_test.sh
 
-test: no-vendor-edits $(TESTS) font-bundle-check audio-test-fixture-check embedded-image-assets-check
+test: no-vendor-edits secret-check $(TESTS) font-bundle-check audio-test-fixture-check embedded-image-assets-check
 	bash ./tests/screenshot_scene_test.sh
 	echo "== Inbe tests =="; \
 	status=0; \
@@ -1548,21 +1557,21 @@ android-copy-release-apks: | $(ANDROID_BUILD_DIR)
 		echo "Could not read INBE_VERSION_STRING from $(VERSION_FILE)"; \
 		exit 1; \
 	fi; \
-	universal="$$(find droid/app/build/outputs/apk -path '*/release/*' -name '*universal*release*.apk' | head -n 1)"; \
-	if [ -z "$$universal" ]; then universal="$$(find droid/app/build/outputs/apk -path '*/release/*' -name '*release*.apk' | head -n 1)"; fi; \
-	if [ -z "$$universal" ]; then \
-		echo "No release APK was available for versioned copy"; \
-		exit 1; \
-	fi; \
-	cp "$$universal" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION).apk"; \
-	cp "$$universal" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-latest.apk"; \
-	for abi in arm64-v8a armeabi-v7a x86 x86_64; do \
-		split="$$(find droid/app/build/outputs/apk -path '*/release/*' -name "app-*$$abi-release*.apk" | head -n 1)"; \
-		if [ -z "$$split" ] || [ ! -f "$$split" ]; then \
-			echo "No release APK was produced for ABI $$abi"; \
+	for flavor in fdroid gplay; do \
+		universal="$$(find droid/app/build/outputs/apk -path '*/release/*' -name "app-$$flavor-universal-release*.apk" | head -n 1)"; \
+		if [ -z "$$universal" ] || [ ! -f "$$universal" ]; then \
+			echo "No $$flavor universal release APK was produced"; \
 			exit 1; \
 		fi; \
-		cp "$$split" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-$$abi.apk"; \
+		cp "$$universal" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-$$flavor.apk"; \
+		for abi in arm64-v8a armeabi-v7a x86 x86_64; do \
+			split="$$(find droid/app/build/outputs/apk -path '*/release/*' -name "app-$$flavor-$$abi-release*.apk" | head -n 1)"; \
+			if [ -z "$$split" ] || [ ! -f "$$split" ]; then \
+				echo "No $$flavor release APK was produced for ABI $$abi"; \
+				exit 1; \
+			fi; \
+			cp "$$split" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-$$flavor-$$abi.apk"; \
+		done; \
 	done
 
 android-copy-bundle: | $(ANDROID_BUILD_DIR)
@@ -1576,6 +1585,21 @@ android-copy-bundle: | $(ANDROID_BUILD_DIR)
 	if [ "$$found" -eq 0 ]; then \
 		echo "No release AAB was produced"; \
 		exit 1; \
+	fi; \
+	if [ -z "$(APP_VERSION)" ]; then \
+		echo "Could not read INBE_VERSION_STRING from $(VERSION_FILE)"; \
+		exit 1; \
+	fi; \
+	for flavor in fdroid gplay; do \
+		bundle="$$(find droid/app/build/outputs/bundle -path "*$${flavor}Release*" -name "app-$$flavor-release.aab" | head -n 1)"; \
+		if [ -z "$$bundle" ] || [ ! -f "$$bundle" ]; then \
+			echo "No $$flavor release AAB was produced"; \
+			exit 1; \
+		fi; \
+		cp "$$bundle" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-$$flavor.aab"; \
+	done; \
+	if [ -f "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-gplay.apk" ]; then \
+		cp "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-gplay.apk" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-latest.apk"; \
 	fi
 
 android-install: android-debug

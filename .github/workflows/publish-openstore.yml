@@ -39,6 +39,12 @@ jobs:
           fetch-depth: 0
           lfs: true
 
+      - name: Scan Tracked Files and History
+        run: |
+          set -euo pipefail
+          python3 scripts/check-secrets.py --working-tree
+          python3 scripts/check-secrets.py --history
+
       - name: Install build dependencies
         run: |
           sudo dpkg --add-architecture arm64

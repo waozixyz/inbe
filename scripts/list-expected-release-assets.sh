@@ -16,12 +16,18 @@ if [ -z "$version" ]; then
 fi
 
 cat <<EOF
-inbe-$version.apk
-inbe-$version-arm64-v8a.apk
-inbe-$version-armeabi-v7a.apk
-inbe-$version-x86.apk
-inbe-$version-x86_64.apk
-inbe-$version.aab
+inbe-$version-fdroid.apk
+inbe-$version-fdroid-arm64-v8a.apk
+inbe-$version-fdroid-armeabi-v7a.apk
+inbe-$version-fdroid-x86.apk
+inbe-$version-fdroid-x86_64.apk
+inbe-$version-fdroid.aab
+inbe-$version-gplay.apk
+inbe-$version-gplay-arm64-v8a.apk
+inbe-$version-gplay-armeabi-v7a.apk
+inbe-$version-gplay-x86.apk
+inbe-$version-gplay-x86_64.apk
+inbe-$version-gplay.aab
 inbe-web.zip
 inbe-chrome-web-store.zip
 inbe-firefox-addons.zip

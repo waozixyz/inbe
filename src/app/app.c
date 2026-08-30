@@ -172,7 +172,7 @@ app_bitcoin_trocador_url(void)
            "&address=bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5"
            "&donation=True&simple_mode=True&amount=0.001&name=Inner+Breeze"
            "&email=waotzi@proton.me&ticker_from=btc&network_from=Mainnet"
-           "&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff";
+           "&buttonbgcolor=23657d&textcolor=fffdf8&bgcolor=f3f1eaff";
 }
 
 const char *
@@ -182,7 +182,7 @@ app_monero_trocador_url(void)
            "&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH"
            "&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze"
            "&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet"
-           "&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff";
+           "&buttonbgcolor=23657d&textcolor=fffdf8&bgcolor=f3f1eaff";
 }
 
 const char *
@@ -1694,18 +1694,30 @@ app_donation_address_box_height(const char *address, int w, int font,
     return UIGetNodeHeight(UINodeReadonlyTextBox(props));
 }
 
+static int app_donation_button_stack(int w);
+
 static int
 app_donation_coin_section_height(const char *address, int w)
 {
     int label_font = GetUIFontSize();
     int address_font = GetUISmallFontSize();
+    int pad = ScaleUIPx(12);
     int button_h = ScaleUIPx(36);
+    int gap = ScaleUIPx(8);
+    int content_w = w - pad * 2;
+    int action_h = button_h;
 
-    return TextLineHeight(label_font) +
+    if(content_w < ScaleUIPx(120))
+        content_w = ScaleUIPx(120);
+    if(app_donation_button_stack(content_w))
+        action_h = button_h * 3 + gap * 2;
+
+    return pad +
+           TextLineHeight(label_font) +
            ScaleUIPx(6) +
-           app_donation_address_box_height(address, w, address_font,
+           app_donation_address_box_height(address, content_w, address_font,
                                            app_donation_address_style()) +
-           ScaleUIPx(8) + button_h + ScaleUIPx(18);
+           ScaleUIPx(10) + action_h + pad;
 }
 
 static char app_donation_bitcoin_text[96];
@@ -1716,6 +1728,13 @@ static int app_donation_bitcoin_focused;
 static int app_donation_monero_focused;
 static int app_donation_bitcoin_scroll;
 static int app_donation_monero_scroll;
+static int app_donation_modal_scroll;
+
+static int
+app_donation_button_stack(int w)
+{
+    return w < ScaleUIPx(330);
+}
 
 static void
 app_draw_donation_coin_section(const char *label, const char *address,
@@ -1731,9 +1750,15 @@ app_draw_donation_coin_section(const char *label, const char *address,
 {
     int label_font = GetUIFontSize();
     int address_font = GetUISmallFontSize();
+    int pad = ScaleUIPx(12);
     int button_h = ScaleUIPx(36);
     int gap = ScaleUIPx(8);
-    int button_w = (w - gap * 2) / 3;
+    int content_x = x + pad;
+    int content_w = w - pad * 2;
+    int button_w = (content_w - gap * 2) / 3;
+    int stack_buttons = app_donation_button_stack(content_w);
+    int card_y = y != NULL ? *y : 0;
+    int card_h;
     int box_h;
     int hover = 0;
     TextInputStyle style = app_donation_address_style();
@@ -1748,14 +1773,25 @@ app_draw_donation_coin_section(const char *label, const char *address,
 
     snprintf(address_text, address_text_size, "%s", address);
 
-    Text(label, x, *y, label_font, GetThemeText());
+    card_h = app_donation_coin_section_height(address, w);
+    DrawRectangleRounded((Rectangle){(float)x, (float)card_y, (float)w,
+                         (float)card_h}, 0.08f, 8,
+                         DarkenUIColor(GetThemeBackground(), 5));
+    DrawRectangleRoundedLinesEx((Rectangle){(float)x, (float)card_y,
+                                (float)w, (float)card_h}, 0.08f, 8,
+                                (float)ScaleUIPx(1),
+                                DarkenUIColor(GetThemeBackground(), 26));
+
+    *y = card_y + pad;
+    Text(label, content_x, *y, label_font, GetThemeText());
     *y += TextLineHeight(label_font) + ScaleUIPx(6);
 
-    box_h = app_donation_address_box_height(address, w, address_font, style);
+    box_h = app_donation_address_box_height(address, content_w, address_font,
+                                           style);
     memset(&text_area, 0, sizeof(text_area));
-    text_area.bounds.x = (float)x;
+    text_area.bounds.x = (float)content_x;
     text_area.bounds.y = (float)*y;
-    text_area.bounds.width = (float)w;
+    text_area.bounds.width = (float)content_w;
     text_area.bounds.height = (float)box_h;
     text_area.text = address_text;
     text_area.text_size = address_text_size;
@@ -1769,9 +1805,12 @@ app_draw_donation_coin_section(const char *label, const char *address,
     text_area.read_only = 1;
     text_area.wrap = 1;
     TextArea(text_area);
-    *y += box_h + ScaleUIPx(8);
+    *y += box_h + ScaleUIPx(10);
 
-    if(StyledButton(x, *y, button_w, button_h,
+    if(stack_buttons)
+        button_w = content_w;
+
+    if(StyledButton(content_x, *y, button_w, button_h,
                      GetLocaleText("copy_address_button"),
                      ButtonStyleSecondary, 0, &hover)) {
 #if ANDROID_BUILD
@@ -1787,19 +1826,27 @@ app_draw_donation_coin_section(const char *label, const char *address,
         ShowToast(GetLocaleText("address_copied"));
 #endif
     }
-    if(StyledButton(x + button_w + gap, *y, button_w, button_h,
+
+    if(stack_buttons)
+        *y += button_h + gap;
+    if(StyledButton(stack_buttons ? content_x : content_x + button_w + gap,
+                     *y, button_w, button_h,
                      GetLocaleText("open_wallet_button"),
                      ButtonStyleSecondary, 0, &hover)) {
         if(!OpenURI(wallet_url))
             ShowToast(GetLocaleText("wallet_not_installed_toast"));
     }
-    if(StyledButton(x + (button_w + gap) * 2, *y, button_w, button_h,
+
+    if(stack_buttons)
+        *y += button_h + gap;
+    if(StyledButton(stack_buttons ? content_x :
+                     content_x + (button_w + gap) * 2, *y, button_w, button_h,
                      GetLocaleText("trocador_button"),
                      ButtonStylePrimary, 0, &hover)) {
         (void)OpenURI(trocador_url);
     }
 
-    *y += button_h + ScaleUIPx(18);
+    *y = card_y + card_h;
 }
 
 static void
@@ -1807,10 +1854,24 @@ draw_about_donation_modal(InbeApp *app)
 {
     UIPanelFrame frame;
     ParagraphSpec message;
+    UIScrollArea scroll_area;
+    UIScrollView scroll_view;
     int modal_w;
     int modal_h;
     int content_w;
+    int max_modal_h;
+    int message_h;
+    int content_h;
+    int coin_w;
+    int coin_gap;
+    int bitcoin_h;
+    int monero_h;
+    int coins_h;
+    int columns;
+    int scroll_h;
+    int scroll_content_w;
     int y;
+    int coin_y;
     int button_w;
     int button_h = ScaleUIPx(36);
     int hover = 0;
@@ -1819,12 +1880,17 @@ draw_about_donation_modal(InbeApp *app)
     if(app == NULL)
         return;
 
-    modal_w = ScaleUIPx(460);
+    modal_w = ScaleUIPx(760);
+    if(view_width < ScaleUIPx(820))
+        modal_w = ScaleUIPx(460);
     if(modal_w > view_width - ScaleUIPx(24))
         modal_w = view_width - ScaleUIPx(24);
     if(modal_w < ScaleUIPx(240))
         modal_w = ScaleUIPx(240);
     content_w = modal_w - ScaleUIPx(36);
+    coin_gap = ScaleUIPx(12);
+    columns = content_w >= ScaleUIPx(640);
+    coin_w = columns ? (content_w - coin_gap) / 2 : content_w;
 
     memset(&message, 0, sizeof(message));
     message.text = GetLocaleText("about_donation_message");
@@ -1832,14 +1898,21 @@ draw_about_donation_modal(InbeApp *app)
     message.font = GetUISmallFontSize();
     message.line_gap = ScaleUIPx(4);
     message.color = DarkenUIColor(GetThemeText(), 28);
-    modal_h = ScaleUIPx(58) +
-              UIGetNodeHeight(UINodeParagraph(message, 0, 0)) +
-              ScaleUIPx(14) +
-              app_donation_coin_section_height(app_bitcoin_donation_address(),
-                                               content_w) +
-              app_donation_coin_section_height(app_monero_donation_address(),
-                                               content_w) +
-              button_h + ScaleUIPx(16);
+    message_h = UIGetNodeHeight(UINodeParagraph(message, 0, 0));
+    bitcoin_h = app_donation_coin_section_height(app_bitcoin_donation_address(),
+                                                 coin_w);
+    monero_h = app_donation_coin_section_height(app_monero_donation_address(),
+                                                coin_w);
+    coins_h = columns ? (bitcoin_h > monero_h ? bitcoin_h : monero_h)
+                      : bitcoin_h + coin_gap + monero_h;
+    content_h = message_h + ScaleUIPx(16) + coins_h;
+    modal_h = ScaleUIPx(58) + content_h + ScaleUIPx(14) + button_h +
+              ScaleUIPx(16);
+    max_modal_h = view_height - ScaleUIPx(24);
+    if(modal_h > max_modal_h)
+        modal_h = max_modal_h;
+    if(modal_h < ScaleUIPx(260))
+        modal_h = ScaleUIPx(260);
 
     memset(&empty_icon, 0, sizeof(empty_icon));
     frame = ModalFrame(modal_w, modal_h,
@@ -1850,10 +1923,37 @@ draw_about_donation_modal(InbeApp *app)
         return;
     }
 
-    y = frame.content_y;
-    message.width = frame.content_w;
-    Paragraph(message, frame.content_x, &y);
-    y += ScaleUIPx(14);
+    button_w = ScaleUIPx(120);
+    if(button_w > frame.content_w)
+        button_w = frame.content_w;
+
+    scroll_h = frame.content_h - button_h - ScaleUIPx(14);
+    if(scroll_h < ScaleUIPx(120))
+        scroll_h = ScaleUIPx(120);
+    scroll_area = (UIScrollArea){
+        .bounds = {
+            (float)frame.content_x,
+            (float)frame.content_y,
+            (float)frame.content_w,
+            (float)scroll_h
+        },
+        .content_height = content_h,
+        .content_x = frame.content_x,
+        .content_width = frame.content_w,
+        .scroll_offset = &app_donation_modal_scroll,
+        .wheel_step = ScaleUIPx(34),
+        .scrollbar_x = frame.content_x + frame.content_w - ScaleUIPx(8)
+    };
+
+    scroll_view = BeginUIScrollContainer(scroll_area);
+    scroll_content_w = scroll_view.content_w;
+    columns = scroll_content_w >= ScaleUIPx(640);
+    coin_w = columns ? (scroll_content_w - coin_gap) / 2 : scroll_content_w;
+    message.width = scroll_content_w;
+    y = scroll_view.content_y;
+    Paragraph(message, scroll_view.content_x, &y);
+    y += ScaleUIPx(16);
+    coin_y = y;
 
     app_draw_donation_coin_section("Bitcoin",
                                    app_bitcoin_donation_address(),
@@ -1865,22 +1965,38 @@ draw_about_donation_modal(InbeApp *app)
                                    &app_donation_bitcoin_focused,
                                    &app_donation_bitcoin_scroll,
                                    6101,
-                                   frame.content_x, frame.content_w, &y);
-    app_draw_donation_coin_section("Monero",
-                                   app_monero_donation_address(),
-                                   app_monero_wallet_url(),
-                                   app_monero_trocador_url(),
-                                   app_donation_monero_text,
-                                   sizeof(app_donation_monero_text),
-                                   &app_donation_monero_cursor,
-                                   &app_donation_monero_focused,
-                                   &app_donation_monero_scroll,
-                                   6102,
-                                   frame.content_x, frame.content_w, &y);
+                                   scroll_view.content_x, coin_w, &coin_y);
+    if(columns) {
+        coin_y = y;
+        app_draw_donation_coin_section("Monero",
+                                       app_monero_donation_address(),
+                                       app_monero_wallet_url(),
+                                       app_monero_trocador_url(),
+                                       app_donation_monero_text,
+                                       sizeof(app_donation_monero_text),
+                                       &app_donation_monero_cursor,
+                                       &app_donation_monero_focused,
+                                       &app_donation_monero_scroll,
+                                       6102,
+                                       scroll_view.content_x + coin_w +
+                                           coin_gap,
+                                       coin_w, &coin_y);
+    } else {
+        coin_y += coin_gap;
+        app_draw_donation_coin_section("Monero",
+                                       app_monero_donation_address(),
+                                       app_monero_wallet_url(),
+                                       app_monero_trocador_url(),
+                                       app_donation_monero_text,
+                                       sizeof(app_donation_monero_text),
+                                       &app_donation_monero_cursor,
+                                       &app_donation_monero_focused,
+                                       &app_donation_monero_scroll,
+                                       6102,
+                                       scroll_view.content_x, coin_w, &coin_y);
+    }
+    EndUIScrollContainer(scroll_area, scroll_view);
 
-    button_w = ScaleUIPx(120);
-    if(button_w > frame.content_w)
-        button_w = frame.content_w;
     if(StyledButton(frame.x + (frame.w - button_w) / 2,
                      frame.y + frame.h - button_h - ScaleUIPx(16),
                      button_w, button_h,

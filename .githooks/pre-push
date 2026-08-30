@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+tmp=$(mktemp "${TMPDIR:-/tmp}/inbe-pre-push.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+cat > "$tmp"
+
+if command -v git-lfs >/dev/null 2>&1; then
+	git lfs pre-push "$@" < "$tmp"
+elif git lfs version >/dev/null 2>&1; then
+	git lfs pre-push "$@" < "$tmp"
+else
+	printf '%s\n' "This repository uses Git LFS, but git-lfs is not available." >&2
+	exit 2
+fi
+
+scripts/check-secrets.py --pre-push "$@" < "$tmp"
