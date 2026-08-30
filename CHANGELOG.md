@@ -1,4 +1,13 @@
 # Changelog
+## [1.9.17] - 2026-08-30
+### Changed
+- Web habit check-ins now update more smoothly, reducing the visible flash when changing a habit.
+
+### Fixed
+- Web screen navigation now keeps stable browser routes, so opening or returning to a screen uses the expected address.
+- Language selection and onboarding settings now persist reliably before returning to the main screen.
+- Stack sidebar navigation no longer shows a stray black line or overflows at the bottom.
+
 ## [1.9.16] - 2026-08-29
 ### Changed
 - Sync now speaks Ksync protocol v5 compatibility mode while keeping existing secure synced data usable.
