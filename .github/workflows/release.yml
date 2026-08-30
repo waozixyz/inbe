@@ -718,12 +718,12 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x droid/gradlew
-          ./droid/gradlew -p droid assembleRelease \
+          ./droid/gradlew -p droid assembleRelease assembleGplay \
             -Pkeystore.path="$HOME/.android/inbe-release.keystore" \
             -Pkeystore.alias="$KEY_ALIAS" \
             -Pkeystore.password="$KEYSTORE_PASSWORD" \
             --stacktrace
-          ./droid/gradlew -p droid bundleRelease \
+          ./droid/gradlew -p droid bundleGplay \
             -Pkeystore.path="$HOME/.android/inbe-release.keystore" \
             -Pkeystore.alias="$KEY_ALIAS" \
             -Pkeystore.password="$KEYSTORE_PASSWORD" \
@@ -740,23 +740,13 @@ jobs:
             echo "Could not read INBE_VERSION_STRING"
             exit 1
           fi
-          for flavor in fdroid gplay; do
-            apk="build/android/inbe-$VERSION-$flavor.apk"
+          for apk in "build/android/inbe-$VERSION.apk" "build/android/inbe-$VERSION-gplay.apk"; do
             if [ ! -f "$apk" ]; then
               echo "Missing universal APK: $apk"
               exit 1
             fi
             cp "$apk" build/release/android/
-            for abi in arm64-v8a armeabi-v7a x86 x86_64; do
-              split="build/android/inbe-$VERSION-$flavor-$abi.apk"
-              if [ ! -f "$split" ]; then
-                echo "Missing split APK: $split"
-                exit 1
-              fi
-              cp "$split" build/release/android/
-            done
           done
-          cp "build/android/inbe-$VERSION-fdroid.aab" build/release/android/
           cp "build/android/inbe-$VERSION-gplay.aab" build/release/android/
 
       - name: Upload Android Artifacts
@@ -926,6 +916,7 @@ jobs:
     name: Publish itch.io
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    continue-on-error: true
     needs:
       - build-web
       - release
@@ -976,7 +967,7 @@ jobs:
           VERSION="${{ needs.release.outputs.version }}"
 
           web_zip="build/release/inbe-web.zip"
-          android_apk="build/release/inbe-$VERSION-fdroid.apk"
+          android_apk="build/release/inbe-$VERSION.apk"
           windows_zip="build/release/inbe-windows.zip"
           linux_appimage="build/release/inbe-linux-x86_64.AppImage"
 
@@ -1022,6 +1013,7 @@ jobs:
     name: Publish Google Play Production
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    continue-on-error: true
     needs:
       - build-android
       - release
@@ -1057,6 +1049,7 @@ jobs:
     name: Publish Amazon Appstore
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    continue-on-error: true
     needs:
       - build-android
       - release
@@ -1099,7 +1092,7 @@ jobs:
       - name: Upload APK to Amazon Appstore
         if: steps.amazon_secrets.outputs.configured == 'true'
         env:
-          AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}-fdroid.apk
+          AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}.apk
         run: |
           set -euo pipefail
           if ! node scripts/upload-amazon-appstore.mjs; then
@@ -1110,6 +1103,7 @@ jobs:
     name: Publish Chrome Web Store
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    continue-on-error: true
     needs:
       - build-chrome-extension
       - release
@@ -1235,6 +1229,7 @@ jobs:
     name: Publish Firefox Add-ons
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    continue-on-error: true
     needs:
       - build-firefox-addons
       - release
@@ -1297,6 +1292,7 @@ jobs:
     name: Publish winget manifest
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    continue-on-error: true
     needs: release
     if: needs.release.outputs.tag_pushed == 'true'
     env:

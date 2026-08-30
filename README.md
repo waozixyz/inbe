@@ -9,6 +9,9 @@
   <a href="https://f-droid.org/packages/xyz.waozi.inbe/">
     <img src="assets/app/badge-f-droid.png" alt="Get it on F-Droid" height="56">
   </a>
+  <a href="https://waozi.itch.io/inbe">
+    <img src="https://static.itch.io/images/badge.svg" alt="Download on itch.io" height="56">
+  </a>
 </p>
 
 # Inner Breeze

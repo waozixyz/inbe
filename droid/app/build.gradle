@@ -6,11 +6,6 @@ plugins {
 def hasGplayFirebaseConfig = file("src/gplay/google-services.json").exists()
 if (hasGplayFirebaseConfig) {
     apply plugin: 'com.google.gms.google-services'
-    tasks.configureEach { task ->
-        if (task.name.startsWith("processFdroid") && task.name.endsWith("GoogleServices")) {
-            task.enabled = false
-        }
-    }
 }
 
 android {
@@ -62,25 +57,26 @@ android {
         }
     }
 
-    flavorDimensions "channel"
-    productFlavors {
-        fdroid {
-            dimension "channel"
-        }
-        gplay {
-            dimension "channel"
-            minSdk 23
-        }
+    buildFeatures {
+        buildConfig true
     }
-    
 
     buildTypes {
         release {
             signingConfig project.hasProperty('fDroidBuild') ? null : signingConfigs.release
             minifyEnabled false
+            buildConfigField "boolean", "INBE_GPLAY", "false"
+        }
+        gplay {
+            initWith release
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            matchingFallbacks = ['release']
+            buildConfigField "boolean", "INBE_GPLAY", "true"
         }
         debug {
             signingConfig signingConfigs.debug
+            buildConfigField "boolean", "INBE_GPLAY", "false"
         }
     }
 
@@ -110,8 +106,15 @@ android {
     }
 }
 
+androidComponents {
+    beforeVariants(selector().withBuildType("gplay")) { variantBuilder ->
+        variantBuilder.minSdk = 23
+    }
+}
+
 gradle.taskGraph.whenReady { taskGraph ->
-    if (taskGraph.hasTask(":app:assembleRelease")
+    def signedTasks = [":app:assembleRelease", ":app:bundleRelease", ":app:assembleGplay", ":app:bundleGplay"]
+    if (signedTasks.any { taskGraph.hasTask(it) }
         && !project.findProperty('keystore.password')
         && !project.hasProperty('fDroidBuild')) {
         throw new GradleException("Use: make android-release PASSWORD=your-password")
@@ -121,7 +124,7 @@ gradle.taskGraph.whenReady { taskGraph ->
 dependencies {
     implementation 'androidx.core:core:1.12.0'
     implementation 'androidx.health.connect:connect-client:1.1.0'
-    fdroidImplementation 'org.unifiedpush.android:connector:3.3.3-rc1'
+    implementation 'org.unifiedpush.android:connector:3.3.3-rc1'
     gplayImplementation platform('com.google.firebase:firebase-bom:34.18.0')
     gplayImplementation 'com.google.firebase:firebase-messaging'
 }

@@ -1509,7 +1509,7 @@ android-release:
 	$(MAKE) android-copy-assets
 	$(MAKE) android-local-properties
 	@if [ -n "$(PASSWORD)" ]; then \
-		$(ANDROID_GRADLE_ENV) $(GRADLE) -p droid assembleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" $(ANDROID_GRADLE_ARGS) || exit $$?; \
+		$(ANDROID_GRADLE_ENV) $(GRADLE) -p droid assembleRelease assembleGplay -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" $(ANDROID_GRADLE_ARGS) || exit $$?; \
 	else \
 		echo "Set PASSWORD=your-keystore-password for release builds"; \
 		exit 1; \
@@ -1521,7 +1521,7 @@ android-bundle:
 	$(MAKE) android-copy-assets
 	$(MAKE) android-local-properties
 	@if [ -n "$(PASSWORD)" ]; then \
-		$(ANDROID_GRADLE_ENV) $(GRADLE) -p droid bundleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" $(ANDROID_GRADLE_ARGS) || exit $$?; \
+		$(ANDROID_GRADLE_ENV) $(GRADLE) -p droid bundleGplay -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" $(ANDROID_GRADLE_ARGS) || exit $$?; \
 	else \
 		echo "Set PASSWORD=your-keystore-password for bundle builds"; \
 		exit 1; \
@@ -1543,7 +1543,7 @@ android-copy-debug-apks: | $(ANDROID_BUILD_DIR)
 
 android-copy-release-apks: | $(ANDROID_BUILD_DIR)
 	@found=0; \
-	for apk in droid/app/build/outputs/apk/*/release/*.apk droid/app/build/outputs/apk/release/*.apk; do \
+	for apk in droid/app/build/outputs/apk/release/*.apk droid/app/build/outputs/apk/gplay/*.apk; do \
 		if [ -f "$$apk" ]; then \
 			cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; \
 			found=1; \
@@ -1557,26 +1557,22 @@ android-copy-release-apks: | $(ANDROID_BUILD_DIR)
 		echo "Could not read INBE_VERSION_STRING from $(VERSION_FILE)"; \
 		exit 1; \
 	fi; \
-	for flavor in fdroid gplay; do \
-		universal="$$(find droid/app/build/outputs/apk -path '*/release/*' -name "app-$$flavor-universal-release*.apk" | head -n 1)"; \
-		if [ -z "$$universal" ] || [ ! -f "$$universal" ]; then \
-			echo "No $$flavor universal release APK was produced"; \
-			exit 1; \
-		fi; \
-		cp "$$universal" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-$$flavor.apk"; \
-		for abi in arm64-v8a armeabi-v7a x86 x86_64; do \
-			split="$$(find droid/app/build/outputs/apk -path '*/release/*' -name "app-$$flavor-$$abi-release*.apk" | head -n 1)"; \
-			if [ -z "$$split" ] || [ ! -f "$$split" ]; then \
-				echo "No $$flavor release APK was produced for ABI $$abi"; \
-				exit 1; \
-			fi; \
-			cp "$$split" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-$$flavor-$$abi.apk"; \
-		done; \
-	done
+	release_universal="$$(find droid/app/build/outputs/apk -path '*/release/*' -name "app-universal-release*.apk" | head -n 1)"; \
+	if [ -z "$$release_universal" ] || [ ! -f "$$release_universal" ]; then \
+		echo "No universal release APK was produced"; \
+		exit 1; \
+	fi; \
+	cp "$$release_universal" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION).apk"; \
+	gplay_universal="$$(find droid/app/build/outputs/apk -path '*/gplay/*' -name "app-universal-gplay*.apk" | head -n 1)"; \
+	if [ -z "$$gplay_universal" ] || [ ! -f "$$gplay_universal" ]; then \
+		echo "No gplay universal release APK was produced"; \
+		exit 1; \
+	fi; \
+	cp "$$gplay_universal" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-gplay.apk"
 
 android-copy-bundle: | $(ANDROID_BUILD_DIR)
 	@found=0; \
-	for bundle in droid/app/build/outputs/bundle/*Release/*.aab droid/app/build/outputs/bundle/release/*.aab; do \
+	for bundle in droid/app/build/outputs/bundle/*Release/*.aab droid/app/build/outputs/bundle/release/*.aab droid/app/build/outputs/bundle/gplay/*.aab; do \
 		if [ -f "$$bundle" ]; then \
 			cp "$$bundle" "$(ANDROID_BUILD_DIR)/$$(basename "$$bundle")"; \
 			found=1; \
@@ -1590,14 +1586,12 @@ android-copy-bundle: | $(ANDROID_BUILD_DIR)
 		echo "Could not read INBE_VERSION_STRING from $(VERSION_FILE)"; \
 		exit 1; \
 	fi; \
-	for flavor in fdroid gplay; do \
-		bundle="$$(find droid/app/build/outputs/bundle -path "*$${flavor}Release*" -name "app-$$flavor-release.aab" | head -n 1)"; \
-		if [ -z "$$bundle" ] || [ ! -f "$$bundle" ]; then \
-			echo "No $$flavor release AAB was produced"; \
-			exit 1; \
-		fi; \
-		cp "$$bundle" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-$$flavor.aab"; \
-	done; \
+	gplay_bundle="$$(find droid/app/build/outputs/bundle -path "*gplay*" -name "app-gplay.aab" | head -n 1)"; \
+	if [ -z "$$gplay_bundle" ] || [ ! -f "$$gplay_bundle" ]; then \
+		echo "No gplay release AAB was produced"; \
+		exit 1; \
+	fi; \
+	cp "$$gplay_bundle" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-gplay.aab"; \
 	if [ -f "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-gplay.apk" ]; then \
 		cp "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-gplay.apk" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-latest.apk"; \
 	fi

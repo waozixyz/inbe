@@ -1,6 +1,7 @@
 package xyz.waozi.inbe;
 
 import android.widget.Toast;
+import java.lang.reflect.Method;
 import org.json.JSONObject;
 
 final class PaymentBridge {
@@ -9,11 +10,18 @@ final class PaymentBridge {
     private PaymentBridge() {}
 
     static String channel() {
+        String gplayChannel = gplayChannel();
+        if (gplayChannel != null) {
+            return gplayChannel;
+        }
         return "monero";
     }
 
     static void purchaseTokens(final MainActivity activity, final String productId,
                                final String accountId, final String authToken) {
+        if (purchaseGplayTokens(activity, productId, accountId, authToken)) {
+            return;
+        }
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -40,6 +48,34 @@ final class PaymentBridge {
                 }
             }
         }, "inbe-monero-token-invoice").start();
+    }
+
+    private static String gplayChannel() {
+        try {
+            Method method = Class.forName("xyz.waozi.inbe.GplayPaymentBridge").getDeclaredMethod("channel");
+            method.setAccessible(true);
+            return (String) method.invoke(null);
+        } catch (ClassNotFoundException e) {
+            return null;
+        } catch (Exception e) {
+            return "disabled";
+        }
+    }
+
+    private static boolean purchaseGplayTokens(MainActivity activity, String productId,
+                                               String accountId, String authToken) {
+        try {
+            Method method = Class.forName("xyz.waozi.inbe.GplayPaymentBridge").getDeclaredMethod(
+                    "purchaseTokens", MainActivity.class, String.class, String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(null, activity, productId, accountId, authToken);
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        } catch (Exception e) {
+            showToast(activity, "Token purchases are not available in this build.");
+            return true;
+        }
     }
 
     private static String[] authHeaders(String authToken) {

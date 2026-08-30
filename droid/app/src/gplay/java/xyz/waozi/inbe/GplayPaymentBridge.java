@@ -2,8 +2,8 @@ package xyz.waozi.inbe;
 
 import android.widget.Toast;
 
-final class PaymentBridge {
-    private PaymentBridge() {}
+final class GplayPaymentBridge {
+    private GplayPaymentBridge() {}
 
     static String channel() {
         return "disabled";

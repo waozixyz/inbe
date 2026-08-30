@@ -3,10 +3,10 @@ package xyz.waozi.inbe;
 import android.widget.Toast;
 import com.google.firebase.messaging.FirebaseMessaging;
 
-final class PushBridge {
+final class GplayPushBridge {
     private static String lastToken;
 
-    private PushBridge() {}
+    private GplayPushBridge() {}
 
     static boolean isRegistered(MainActivity activity) {
         return lastToken != null && !lastToken.isEmpty();
