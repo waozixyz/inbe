@@ -61,7 +61,8 @@ list(REMOVE_ITEM KRYON_SOURCES
 file(GLOB KRYON_K2C_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/k2c/*.c")
 list(APPEND KRYON_K2C_SOURCES
     "${KRYON_DIR}/cmd/kir/kir.c"
-    "${KRYON_DIR}/cmd/kir/kir_parse.c")
+    "${KRYON_DIR}/cmd/kir/kir_parse.c"
+    "${KRYON_DIR}/cmd/kir/kir_text.c")
 find_program(HOST_CC NAMES cc clang gcc REQUIRED)
 set(KRYON_K2C "${CMAKE_BINARY_DIR}/host-tools/k2c")
 # needs the kir headers on the include path
