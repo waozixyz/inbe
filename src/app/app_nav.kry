@@ -811,9 +811,25 @@ app_first_unused_bottom_nav_route :: (app: const InbeApp*) -> int #private {
                                    APP_NAV_ROUTE_HABITS)
 }
 
+app_customize_nav_scaffold_title :: (title: const char*, height: int,
+                                     user_data: void*) -> int #private {
+    app := (InbeApp*)user_data
+
+    if app == nil {
+        TitleBar(title, height)
+        return 0
+    }
+    if app_draw_close_title_bar(app, title, height) {
+        app_block_pointer_frame(app)
+        app_open_main_tab(app, app->main_tab, 0)
+        return 1
+    }
+    return 0
+}
+
 app_draw_customize_nav_page :: (app: InbeApp*) -> int {
     options: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const char*
-    page: UIScrollPage
+    scaffold: UIScreenScaffold
     reorder_items: [APP_BOTTOM_NAV_CONTENT_MAX] UIReorderItem
     reorder: UIReorderListResult
     selected: [APP_BOTTOM_NAV_CONTENT_MAX] int
@@ -842,24 +858,23 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
     }
     draw_count = app->bottom_nav_config_route_count
 
-    if app_draw_close_title_bar(app, GetLocaleText("customize_nav_title"),
-                                UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))) {
-        app_block_pointer_frame(app)
-        app_open_main_tab(app, app->main_tab, 0)
-        return 1
-    }
-
     options[0] = app_nav_route_label(APP_NAV_ROUTE_HABITS)
     options[1] = app_nav_route_label(APP_NAV_ROUTE_PRACTICE)
 
-    page = BeginUIScrollPage((UIScrollPageSpec){
-        .y = UIGetNodeHeight(UINodeTabBar((TabBarProps){0})) + ScaleUIPx(8),
-        .height = view_height - UIGetNodeHeight(UINodeTabBar((TabBarProps){0})) - ScaleUIPx(8),
+    scaffold = BeginUIScreenScaffold((UIScreenScaffoldSpec){
+        .title = GetLocaleText("customize_nav_title"),
+        .top_gap = ScaleUIPx(8),
         .max_content_width = ScaleUIPx(CONTENT_MAX_W),
         .min_content_width = ScaleUIPx(300),
-        .scroll_offset = &app->nav_sidebar_scroll
+        .scroll_offset = &app->nav_sidebar_scroll,
+        .draw_title = app_customize_nav_scaffold_title,
+        .title_user_data = app
     })
-    y = page.content_y
+    if scaffold.closed {
+        EndUIScreenScaffold(scaffold)
+        return 1
+    }
+    y = scaffold.page.content_y
 
     for int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++ {
         selected[i] = app_nav_option_index(app->bottom_nav_config_routes[i])
@@ -869,24 +884,24 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
         row_y[i] = y + i * row_h
         reorder_items[i] = (UIReorderItem){
             .id = app->bottom_nav_config_routes[i] * 100 + i + 1,
-            .bounds = {(float)page.content_x, (float)row_y[i],
-                       (float)page.content_w, (float)row_h},
+            .bounds = {(float)scaffold.page.content_x, (float)row_y[i],
+                       (float)scaffold.page.content_w, (float)row_h},
             .disabled = 0
         }
     }
 
     reorder = UpdateUIReorderList((UIReorderList){
         .id = 701,
-        .bounds = {(float)page.content_x, (float)page.content_y,
-                   (float)page.content_w,
+        .bounds = {(float)scaffold.page.content_x, (float)scaffold.page.content_y,
+                   (float)scaffold.page.content_w,
                    (float)(row_h * draw_count)},
         .items = reorder_items,
         .item_count = draw_count,
         .handle_width = handle_w,
         .scroll_offset = &app->nav_sidebar_scroll,
-        .max_scroll = page.view.max_scroll,
-        .viewport_top = (int)page.area.bounds.y,
-        .viewport_bottom = (int)(page.area.bounds.y + page.area.bounds.height)
+        .max_scroll = scaffold.page.view.max_scroll,
+        .viewport_top = (int)scaffold.page.area.bounds.y,
+        .viewport_bottom = (int)(scaffold.page.area.bounds.y + scaffold.page.area.bounds.height)
     })
     if reorder.committed {
         action = APP_NAV_CONFIG_ACTION_MOVE
@@ -898,8 +913,8 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
         trash_hover := 0
         icon_w := ScaleUIPx(36)
         icon_gap := ScaleUIPx(8)
-        dropdown_x := page.content_x + handle_w
-        trash_x := page.content_x + page.content_w - icon_w
+        dropdown_x := scaffold.page.content_x + handle_w
+        trash_x := scaffold.page.content_x + scaffold.page.content_w - icon_w
         dropdown_w := trash_x - icon_gap - dropdown_x
         dropdown_y := row_y[i] + (row_h - button_h) / 2
 
@@ -911,7 +926,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
             continue
         }
 
-        ReorderHandle(0, page.content_x, row_y[i], handle_w, row_h,
+        ReorderHandle(0, scaffold.page.content_x, row_y[i], handle_w, row_h,
                                reorder.active && i == reorder.active_index)
         if Dropdown(740 + i, dropdown_x, dropdown_y,
                                 dropdown_w, button_h, options,
@@ -940,8 +955,8 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
         trash_hover := 0
         icon_w := ScaleUIPx(36)
         icon_gap := ScaleUIPx(8)
-        dropdown_x := page.content_x + handle_w
-        trash_x := page.content_x + page.content_w - icon_w
+        dropdown_x := scaffold.page.content_x + handle_w
+        trash_x := scaffold.page.content_x + scaffold.page.content_w - icon_w
         dropdown_w := trash_x - icon_gap - dropdown_x
         overlay_y := row_y[i] + reorder.drag_delta_y
         dropdown_y := overlay_y + (row_h - button_h) / 2
@@ -949,9 +964,9 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
         if dropdown_w < ScaleUIPx(48) {
             dropdown_w = ScaleUIPx(48)
         }
-        DrawRectangle(page.content_x, overlay_y, page.content_w, row_h,
+        DrawRectangle(scaffold.page.content_x, overlay_y, scaffold.page.content_w, row_h,
                          LightenUIColor(GetThemeBackground(), 8))
-        ReorderHandle(0, page.content_x, overlay_y, handle_w, row_h, 1)
+        ReorderHandle(0, scaffold.page.content_x, overlay_y, handle_w, row_h, 1)
         Dropdown(740 + i, dropdown_x, dropdown_y,
                                 dropdown_w, button_h, options,
                                 APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i])
@@ -965,7 +980,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
 
     if draw_count < APP_BOTTOM_NAV_CONFIGURABLE_COUNT {
         add_hover := 0
-        if StyledButton(page.content_x, y, page.content_w, button_h,
+        if StyledButton(scaffold.page.content_x, y, scaffold.page.content_w, button_h,
                                GetLocaleText("customize_nav_add"),
                                ButtonStyleSecondary, 0, &add_hover) &&
            action == APP_NAV_CONFIG_ACTION_NONE {
@@ -974,7 +989,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
         y += button_h + ScaleUIPx(14)
     }
 
-    EndUIScrollPage(page)
+    EndUIScreenScaffold(scaffold)
 
     if action == APP_NAV_CONFIG_ACTION_MOVE {
         changed = app_move_bottom_nav_config_route(app, action_index,

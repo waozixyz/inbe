@@ -446,6 +446,12 @@ app_draw_close_title_bar(InbeApp *app, const char *title, int height)
 }
 
 int
+app_scaffold_close_title(const char *title, int height, void *user_data)
+{
+    return app_draw_close_title_bar((InbeApp *)user_data, title, height);
+}
+
+int
 app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
                                   int height)
 {

@@ -139,32 +139,35 @@ settings_screen_tab_label :: (tab: int) -> const char* {
     return GetLocaleText("settings_title")
 }
 
-settings_draw_section_header :: (app: InbeApp*, tab: int) #private {
-    header_h := UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
-    title := settings_screen_tab_label(tab)
+settings_scaffold_title :: (title: const char*, height: int, user_data: void*) -> int #private {
+    app := (InbeApp*)user_data
 
-    if app_draw_close_title_bar(app, title, header_h) {
+    if app == nil {
+        TitleBar(title, height)
+        return 0
+    }
+
+    if app_draw_close_title_bar(app, title, height) {
         app->settings_scroll = 0
         if app->modal.type == UIModalThemePicker {
             app_close_modal(app)
         }
         settings_screen_clear_status()
-        if app_return_to_nav_sidebar_if_needed(app) {
-            return
+        if !app_return_to_nav_sidebar_if_needed(app) {
+            app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? InbeScreenHabits : InbeScreenStart)
         }
-        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? InbeScreenHabits : InbeScreenStart)
+        return 1
     }
+    return 0
 }
 
 settings_screen_draw :: (app: InbeApp*) -> int {
-    detail_header_h := 0
-    tab_content_start_y := 0
-    content_viewport_h := 0
     device_state := (SettingsDeviceState){0}
     page_ctx := (SettingsScrollPageContext){0}
-    page := (UIScrollPage){0}
+    scaffold := (UIScreenScaffold){0}
     y := 0
     drawn := 0
+    title := (const char*)NULL
 
     if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
         app->settings_drag_slider = 0
@@ -179,11 +182,6 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         }
     }
 
-    detail_header_h = UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
-    tab_content_start_y = detail_header_h
-    tab_content_start_y += ScaleUIPx(8)
-    content_viewport_h = view_height - tab_content_start_y - app_content_bottom_reserved(app)
-
     #if ANDROID {
         settings_data_handle_android_import(app)
     } #else_if WEB {
@@ -194,44 +192,51 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         meditation_music_update(app)
     }
 
-    if content_viewport_h < 0 {
-        content_viewport_h = 0
-    }
-
-    settings_draw_section_header(app, app->settings_tab)
+    title = settings_screen_tab_label(app->settings_tab)
     page_ctx = (SettingsScrollPageContext){app, app->settings_tab}
-    page = BeginUIScrollPage((UIScrollPageSpec){.y = tab_content_start_y, .height = content_viewport_h, .max_content_width = ScaleUIPx(CONTENT_MAX_W), .min_content_width = ScaleUIPx(320), .scroll_offset = &app->settings_scroll, .content_height = settings_scroll_page_content_height, .user_data = &page_ctx})
-    y = page.content_y
+    scaffold = BeginUIScreenScaffold((UIScreenScaffoldSpec){
+        .title = title,
+        .top_gap = ScaleUIPx(8),
+        .bottom_reserved = app_content_bottom_reserved(app),
+        .max_content_width = ScaleUIPx(CONTENT_MAX_W),
+        .min_content_width = ScaleUIPx(320),
+        .scroll_offset = &app->settings_scroll,
+        .content_height = settings_scroll_page_content_height,
+        .user_data = &page_ctx,
+        .draw_title = settings_scaffold_title,
+        .title_user_data = app
+    })
+    y = scaffold.page.content_y
 
     if app->settings_tab == SETTINGS_TAB_THEME {
-        theme_panel.draw(app, page.content_x, page.content_w,
+        theme_panel.draw(app, scaffold.page.content_x, scaffold.page.content_w,
                             &y, &app->theme_state)
         drawn = 1
     }
     if drawn == 0 && app->settings_tab == SETTINGS_TAB_AUDIO {
-        settings_audio_draw(app, page.content_x, page.content_w, &y)
+        settings_audio_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y)
         drawn = 1
     }
     if drawn == 0 && app->settings_tab == SETTINGS_TAB_DEVICE {
-        settings_device_draw(app, page.content_x, page.content_w, &y, &device_state)
+        settings_device_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y, &device_state)
         drawn = 1
     }
     #if DESKTOP {
         if drawn == 0 && app->settings_tab == SETTINGS_TAB_BREAKS {
-            settings_breaks_draw(app, page.content_x, page.content_w, &y)
+            settings_breaks_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y)
             drawn = 1
         }
     }
     if drawn == 0 && app->settings_tab == SETTINGS_TAB_NOTIFICATIONS {
-        settings_notifications_draw(app, page.content_x, page.content_w, &y)
+        settings_notifications_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y)
         drawn = 1
     }
     if drawn == 0 {
-        settings_about_draw(app, page.content_x, page.content_w, &y)
+        settings_about_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y)
     }
 
-    EndUIScrollPage(page)
-    SetUIDropdownClipTop(tab_content_start_y)
+    EndUIScreenScaffold(scaffold)
+    SetUIDropdownClipTop(scaffold.content_y)
     SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
     if app->settings_tab == SETTINGS_TAB_DEVICE {
         settings_device_handle_overlays(app, &device_state)
