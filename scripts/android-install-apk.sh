@@ -43,15 +43,24 @@ ABI=$(adb_run shell getprop ro.product.cpu.abi 2>&1 | tr -d '\r' | head -n 1) ||
 }
 [ -n "$ABI" ] || fail "device ABI is empty."
 
-APK="$APK_DIR/app-$ABI-$VARIANT.apk"
+APK=""
+for candidate in \
+    "$APK_DIR"/*/"$VARIANT"/app-*-"$ABI"-"$VARIANT".apk \
+    "$APK_DIR"/app-*-"$ABI"-"$VARIANT".apk \
+    "$APK_DIR"/*/"$VARIANT"/app-"$ABI"-"$VARIANT".apk \
+    "$APK_DIR"/app-"$ABI"-"$VARIANT".apk \
+    "$APK_DIR"/*/"$VARIANT"/app-*-"$VARIANT".apk \
+    "$APK_DIR"/app-"$VARIANT".apk; do
+    if [ -f "$candidate" ]; then
+        APK=$candidate
+        break
+    fi
+done
 if [ ! -f "$APK" ]; then
-    APK="$APK_DIR/app-$VARIANT.apk"
-fi
-if [ ! -f "$APK" ]; then
-    echo "Expected ABI APK: $APK_DIR/app-$ABI-$VARIANT.apk" >&2
-    echo "Expected fallback: $APK_DIR/app-$VARIANT.apk" >&2
+    echo "Expected ABI APK below: $APK_DIR/*/$VARIANT/app-*-$ABI-$VARIANT.apk" >&2
+    echo "Expected fallback below: $APK_DIR/*/$VARIANT/app-*-$VARIANT.apk" >&2
     echo "Available APKs:" >&2
-    ls -1 "$APK_DIR"/*.apk >&2 2>/dev/null || true
+    find "$APK_DIR" -type f -name '*.apk' -print >&2 2>/dev/null || true
     fail "no installable $VARIANT APK for device ABI '$ABI'."
 fi
 

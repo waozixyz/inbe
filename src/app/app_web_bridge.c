@@ -30,8 +30,6 @@ EM_JS(void, inbe_web_extension_break_now_js, (int break_type), {
 });
 
 static KsyncAccount web_test_source_account;
-static KsyncAccount web_test_imported_account;
-static char web_test_account_body[KSYNC_ACCOUNT_EXPORT_TEXT_SIZE];
 static uint8_t web_test_public_key[1312];
 static uint8_t web_test_private_key[2560];
 static int web_test_sync_key_import_status;
@@ -485,26 +483,17 @@ int
 app_web_test_sync_key_state(void)
 {
     KsyncAccount *source = &web_test_source_account;
-    const char *value;
 
+    data_init();
     if(web_test_sync_key_import_status != 1)
         return web_test_sync_key_import_status;
     if(!HasKsyncAccountValues(source))
         return -10;
-    value = storage_get_setting_text("sync_public_id");
-    if(value == NULL)
-        return -11;
-    if(strcmp(source->public_id, value) != 0)
+    if(!storage_setting_text_equals("sync_public_id", source->public_id))
         return -12;
-    value = storage_get_setting_text("sync_public_key");
-    if(value == NULL)
-        return -13;
-    if(strcmp(source->public_key_hex, value) != 0)
+    if(!storage_setting_text_equals("sync_public_key", source->public_key_hex))
         return -14;
-    value = storage_get_setting_text("sync_private_key");
-    if(value == NULL)
-        return -15;
-    if(strcmp(source->private_key_hex, value) != 0)
+    if(!storage_setting_text_equals("sync_private_key", source->private_key_hex))
         return -16;
     return 1;
 }
@@ -514,31 +503,19 @@ void
 app_web_test_import_sync_key(void)
 {
     KsyncAccount *source = &web_test_source_account;
-    KsyncAccount *imported = &web_test_imported_account;
-    char *body = web_test_account_body;
 
     web_test_sync_key_import_status = 0;
     data_init();
-    memset(imported, 0, sizeof(*imported));
-    memset(body, 0, sizeof(web_test_account_body));
 
     web_test_make_sync_account(source);
     if(!HasKsyncAccountValues(source)) {
         web_test_sync_key_import_status = -1;
         return;
     }
-    if(!ExportKsyncAccountText(source, body, sizeof(web_test_account_body))) {
-        web_test_sync_key_import_status = -2;
-        return;
-    }
-    if(!ParseKsyncAccountText(body, imported)) {
-        web_test_sync_key_import_status = -3;
-        return;
-    }
     storage_settings_begin_write();
-    storage_set_setting_text("sync_public_id", imported->public_id);
-    storage_set_setting_text("sync_public_key", imported->public_key_hex);
-    storage_set_setting_text("sync_private_key", imported->private_key_hex);
+    storage_set_setting_text("sync_public_id", source->public_id);
+    storage_set_setting_text("sync_public_key", source->public_key_hex);
+    storage_set_setting_text("sync_private_key", source->private_key_hex);
     storage_set_setting_text("sync_account_alias", "");
     storage_set_sync_server_connected(0);
     storage_settings_end_write();

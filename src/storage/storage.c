@@ -568,6 +568,26 @@ storage_get_setting_text(const char *key)
 }
 
 int
+storage_setting_text_equals(const char *key, const char *value)
+{
+    sqlite3_stmt *stmt = NULL;
+    int ok = 0;
+
+    if(g_storage.db == NULL || key == NULL || value == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT 1 FROM settings WHERE user_id=?1 AND key=?2 AND value=?3",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    bind_text(stmt, 2, key);
+    bind_text(stmt, 3, value);
+    ok = sqlite3_step(stmt) == SQLITE_ROW;
+    sqlite3_finalize(stmt);
+    return ok;
+}
+
+int
 storage_list_settings(void (*callback)(const char *key, const char *value, void *user),
                       void *user)
 {
@@ -1212,8 +1232,12 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     json.ok = 1;
     json_append(&json, "{");
     json_appendf(&json, "\"protocol_version\":%d,", INBE_SYNC_PROTOCOL_VERSION);
+    json_append(&json, "\"app_id\":\"inbe\",");
     json_append(&json, "\"client_capabilities\":[\"v4-encrypted-records\","
-                       "\"v4-dual-write-transition\"],");
+                       "\"v4-dual-write-transition\","
+                       "\"v5-dual-read\","
+                       "\"v5-legacy-encrypted-collections\"],");
+    json_append(&json, "\"include_legacy_data\":true,");
     json_append_key_string(&json, "user_id_hash", user_id_hash);
     json_append(&json, ",");
     json_append_key_string(&json, "client_id", storage_sync_client_id());

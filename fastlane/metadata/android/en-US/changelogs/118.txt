@@ -1,0 +1,3 @@
+Fixed
+---
+- Fixed web sync key import stability in Firefox.

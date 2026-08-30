@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="246" height="72" viewBox="0 0 246 72" role="img" aria-label="Get it on F-Droid">
+  <rect x="1" y="1" width="244" height="70" rx="8" fill="#070707" stroke="#242424" stroke-width="2"/>
+  <rect x="26" y="25" width="34" height="26" rx="5" fill="#8abf17"/>
+  <rect x="32" y="16" width="22" height="13" rx="4" fill="#8abf17"/>
+  <line x1="34" y1="17" x2="28" y2="9" stroke="#8abf17" stroke-width="3" stroke-linecap="round"/>
+  <line x1="52" y1="17" x2="58" y2="9" stroke="#8abf17" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="36" cy="37" r="3" fill="#ffffff"/>
+  <circle cx="50" cy="37" r="3" fill="#ffffff"/>
+  <rect x="32" y="51" width="8" height="6" rx="2" fill="#8abf17"/>
+  <rect x="46" y="51" width="8" height="6" rx="2" fill="#8abf17"/>
+  <text x="78" y="28" fill="#f7f7f7" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing=".5">GET IT ON</text>
+  <text x="78" y="51" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">F-Droid</text>
+</svg>

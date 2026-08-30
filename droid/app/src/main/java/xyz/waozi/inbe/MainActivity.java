@@ -12,19 +12,12 @@ import android.content.pm.PackageManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Insets;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.widget.Toast;
-import android.app.AlertDialog;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import org.unifiedpush.android.connector.UnifiedPush;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -41,8 +34,6 @@ import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import androidx.core.view.WindowCompat;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -657,96 +648,38 @@ public class MainActivity extends NativeActivity {
         }
     }
 
-    /**
-     * Called from native settings: set up UnifiedPush. With no distributor
-     * installed, offer Sunup on F-Droid; with several, let the user pick.
-     */
     public boolean isUnifiedPushRegistered() {
-        return PushServiceImpl.getEndpoint(this) != null;
+        return PushBridge.isRegistered(this);
     }
 
     public String[] getUnifiedPushDistributors() {
-        final List<String> distributors = UnifiedPush.getDistributors(this);
-        return distributors.toArray(new String[0]);
+        return PushBridge.getDistributors(this);
     }
 
     public String[] getUnifiedPushDistributorLabels() {
-        PackageManager pm = getPackageManager();
-        List<String> labels = new ArrayList<>();
-        for (String pkg : UnifiedPush.getDistributors(this)) {
-            try {
-                labels.add(pm.getApplicationLabel(
-                        pm.getApplicationInfo(pkg, 0)).toString());
-            } catch (PackageManager.NameNotFoundException e) {
-                labels.add(pkg);
-            }
-        }
-        return labels.toArray(new String[0]);
+        return PushBridge.getDistributorLabels(this);
     }
 
     public String[] getUnifiedPushDistributorIcons() {
-        PackageManager pm = getPackageManager();
-        File dir = new File(getCacheDir(), "push-icons");
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        List<String> paths = new ArrayList<>();
-        List<String> distributors = UnifiedPush.getDistributors(this);
-        for (int i = 0; i < distributors.size(); i++) {
-            File out = new File(dir, "icon_" + i + ".png");
-            try {
-                Drawable drawable = pm.getApplicationIcon(distributors.get(i));
-                Bitmap bmp = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888);
-                Canvas canvas = new Canvas(bmp);
-                drawable.setBounds(0, 0, 96, 96);
-                drawable.draw(canvas);
-                FileOutputStream fos = new FileOutputStream(out);
-                bmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                fos.close();
-                paths.add(out.getAbsolutePath());
-            } catch (Exception e) {
-                Log.w(TAG, "icon export failed for " + distributors.get(i), e);
-                paths.add("");
-            }
-        }
-        return paths.toArray(new String[0]);
+        return PushBridge.getDistributorIcons(this);
     }
 
     public void configureUnifiedPushWith(final String pkg) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                requestNotificationPermissionIfNeeded();
-                UnifiedPush.saveDistributor(MainActivity.this, pkg);
-                UnifiedPush.register(MainActivity.this, "inbe", "Inner Breeze", null);
-                Toast.makeText(MainActivity.this,
-                        "Push: registering with " + pkg,
-                        Toast.LENGTH_SHORT).show();
-            }
-        });
+        requestNotificationPermissionIfNeeded();
+        PushBridge.configureWith(this, pkg);
     }
 
     public void configureUnifiedPush() {
-        // Called via JNI from the native render thread; toasts, dialogs and
-        // permission requests need the UI thread's Looper. Only reached when
-        // no distributor is installed at all.
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (!UnifiedPush.getDistributors(MainActivity.this).isEmpty()) {
-                    return;
-                }
-                Toast.makeText(MainActivity.this,
-                        "Install a UnifiedPush distributor (e.g. Sunup)",
-                        Toast.LENGTH_LONG).show();
-                try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
-                            "https://f-droid.org/en/packages/org.unifiedpush.distributor.sunup/")));
-                } catch (Exception e) {
-                    Log.w(TAG, "no activity to open F-Droid");
-                }
-            }
-        });
+        requestNotificationPermissionIfNeeded();
+        PushBridge.configure(this);
+    }
+
+    public String paymentChannel() {
+        return PaymentBridge.channel();
+    }
+
+    public void purchaseTokens(final String productId, final String accountId, final String authToken) {
+        PaymentBridge.purchaseTokens(this, productId, accountId, authToken);
     }
 
     public void acquireWakeLock() {

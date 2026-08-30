@@ -95,12 +95,5 @@
             android:name="xyz.waozi.inbe.SessionForegroundService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
-        <service
-            android:name="xyz.waozi.inbe.PushServiceImpl"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="org.unifiedpush.android.connector.PUSH_EVENT" />
-            </intent-filter>
-        </service>
     </application>
 </manifest>

@@ -1521,7 +1521,7 @@ android-bundle:
 
 android-copy-debug-apks: | $(ANDROID_BUILD_DIR)
 	@found=0; \
-	for apk in droid/app/build/outputs/apk/debug/*.apk; do \
+	for apk in droid/app/build/outputs/apk/*/debug/*.apk droid/app/build/outputs/apk/debug/*.apk; do \
 		if [ -f "$$apk" ]; then \
 			cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; \
 			found=1; \
@@ -1534,7 +1534,7 @@ android-copy-debug-apks: | $(ANDROID_BUILD_DIR)
 
 android-copy-release-apks: | $(ANDROID_BUILD_DIR)
 	@found=0; \
-	for apk in droid/app/build/outputs/apk/release/*.apk; do \
+	for apk in droid/app/build/outputs/apk/*/release/*.apk droid/app/build/outputs/apk/release/*.apk; do \
 		if [ -f "$$apk" ]; then \
 			cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; \
 			found=1; \
@@ -1548,8 +1548,8 @@ android-copy-release-apks: | $(ANDROID_BUILD_DIR)
 		echo "Could not read INBE_VERSION_STRING from $(VERSION_FILE)"; \
 		exit 1; \
 	fi; \
-	universal="$$(find droid/app/build/outputs/apk/release -maxdepth 1 -name '*universal*release*.apk' | head -n 1)"; \
-	if [ -z "$$universal" ]; then universal="$$(find droid/app/build/outputs/apk/release -maxdepth 1 -name '*release*.apk' | head -n 1)"; fi; \
+	universal="$$(find droid/app/build/outputs/apk -path '*/release/*' -name '*universal*release*.apk' | head -n 1)"; \
+	if [ -z "$$universal" ]; then universal="$$(find droid/app/build/outputs/apk -path '*/release/*' -name '*release*.apk' | head -n 1)"; fi; \
 	if [ -z "$$universal" ]; then \
 		echo "No release APK was available for versioned copy"; \
 		exit 1; \
@@ -1557,9 +1557,7 @@ android-copy-release-apks: | $(ANDROID_BUILD_DIR)
 	cp "$$universal" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION).apk"; \
 	cp "$$universal" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-latest.apk"; \
 	for abi in arm64-v8a armeabi-v7a x86 x86_64; do \
-		split="droid/app/build/outputs/apk/release/app-$$abi-release.apk"; \
-		if [ ! -f "$$split" ]; then split="droid/app/build/outputs/apk/release/app-$$abi-release-unsigned.apk"; fi; \
-		if [ ! -f "$$split" ]; then split="$$(find droid/app/build/outputs/apk/release -maxdepth 1 -name "app-$$abi-release*.apk" | head -n 1)"; fi; \
+		split="$$(find droid/app/build/outputs/apk -path '*/release/*' -name "app-*$$abi-release*.apk" | head -n 1)"; \
 		if [ -z "$$split" ] || [ ! -f "$$split" ]; then \
 			echo "No release APK was produced for ABI $$abi"; \
 			exit 1; \
@@ -1569,7 +1567,7 @@ android-copy-release-apks: | $(ANDROID_BUILD_DIR)
 
 android-copy-bundle: | $(ANDROID_BUILD_DIR)
 	@found=0; \
-	for bundle in droid/app/build/outputs/bundle/release/*.aab; do \
+	for bundle in droid/app/build/outputs/bundle/*Release/*.aab droid/app/build/outputs/bundle/release/*.aab; do \
 		if [ -f "$$bundle" ]; then \
 			cp "$$bundle" "$(ANDROID_BUILD_DIR)/$$(basename "$$bundle")"; \
 			found=1; \
@@ -1583,12 +1581,12 @@ android-copy-bundle: | $(ANDROID_BUILD_DIR)
 android-install: android-debug
 	ADB='$(ADB)' sh scripts/android-install-apk.sh \
 		"$(ANDROID_APP_ID)" "$(ANDROID_ACTIVITY)" \
-		droid/app/build/outputs/apk/debug debug
+		droid/app/build/outputs/apk debug
 
 android-install-release: android-release
 	ADB='$(ADB)' sh scripts/android-install-apk.sh \
 		"$(ANDROID_APP_ID)" "$(ANDROID_ACTIVITY)" \
-		droid/app/build/outputs/apk/release release
+		droid/app/build/outputs/apk release
 
 android-avd:
 	@if [ "$(UNAME_S)" = "FreeBSD" ]; then \

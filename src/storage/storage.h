@@ -7,7 +7,7 @@
 enum {
     INBE_STORAGE_PATH_SIZE = 512,
     INBE_STORAGE_ID_SIZE = 64,
-    INBE_SYNC_PROTOCOL_VERSION = 4
+    INBE_SYNC_PROTOCOL_VERSION = 5
 };
 
 typedef struct InbeStorageSessionCheckin {
@@ -74,6 +74,7 @@ const char *storage_db_path(void);
 int storage_get_setting_int(const char *key, int fallback);
 int storage_list_settings(void (*callback)(const char *key, const char *value, void *user), void *user);
 const char *storage_get_setting_text(const char *key);
+int storage_setting_text_equals(const char *key, const char *value);
 void storage_set_setting_int(const char *key, int value);
 void storage_set_setting_text(const char *key, const char *value);
 void storage_settings_begin_write(void);

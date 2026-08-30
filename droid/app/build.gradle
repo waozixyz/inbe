@@ -3,6 +3,16 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+def hasGplayFirebaseConfig = file("src/gplay/google-services.json").exists()
+if (hasGplayFirebaseConfig) {
+    apply plugin: 'com.google.gms.google-services'
+    tasks.configureEach { task ->
+        if (task.name.startsWith("processFdroid") && task.name.endsWith("GoogleServices")) {
+            task.enabled = false
+        }
+    }
+}
+
 android {
     namespace 'xyz.waozi.inbe'
     compileSdk 36
@@ -37,10 +47,11 @@ android {
     }
 
     defaultConfig {
+        applicationId "xyz.waozi.inbe"
         minSdk 21
         targetSdk 36
-        versionCode 117
-        versionName "1.9.15"
+        versionCode 118
+        versionName "1.9.16"
         externalNativeBuild {
             cmake {
                 if (System.getProperty('os.name').toLowerCase().contains('freebsd')) {
@@ -48,6 +59,17 @@ android {
                               '-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON'
                 }
             }
+        }
+    }
+
+    flavorDimensions "channel"
+    productFlavors {
+        fdroid {
+            dimension "channel"
+        }
+        gplay {
+            dimension "channel"
+            minSdk 23
         }
     }
     
@@ -98,6 +120,8 @@ gradle.taskGraph.whenReady { taskGraph ->
 
 dependencies {
     implementation 'androidx.core:core:1.12.0'
-    implementation 'org.unifiedpush.android:connector:3.3.3-rc1'
     implementation 'androidx.health.connect:connect-client:1.1.0'
+    fdroidImplementation 'org.unifiedpush.android:connector:3.3.3-rc1'
+    gplayImplementation platform('com.google.firebase:firebase-bom:34.18.0')
+    gplayImplementation 'com.google.firebase:firebase-messaging'
 }

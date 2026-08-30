@@ -1,4 +1,11 @@
 # Changelog
+## [1.9.16] - 2026-08-29
+### Changed
+- Sync now speaks Ksync protocol v5 compatibility mode while keeping existing secure synced data usable.
+
+### Fixed
+- Fixed web sync key import stability in Firefox.
+
 ## [1.9.15] - 2026-08-29
 ### Fixed
 - Fixed a web startup stability issue that could affect browser smoke checks after reload.

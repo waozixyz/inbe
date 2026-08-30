@@ -457,11 +457,17 @@ test_sync_payload_includes_v4_encrypted_shadow_records(void)
     habits_save(&habits);
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
-    check_true("v4 protocol in sync payload",
-               payload != NULL && strstr(payload, "\"protocol_version\":4") != NULL);
-    check_true("v4 client capabilities in sync payload",
+    check_true("v5 protocol in sync payload",
+               payload != NULL && strstr(payload, "\"protocol_version\":5") != NULL);
+    check_true("inbe app id in sync payload",
+               payload != NULL && strstr(payload, "\"app_id\":\"inbe\"") != NULL);
+    check_true("v5 legacy data opt-in in sync payload",
+               payload != NULL && strstr(payload, "\"include_legacy_data\":true") != NULL);
+    check_true("v5 compatibility capabilities in sync payload",
                payload != NULL && strstr(payload, "\"client_capabilities\"") != NULL &&
-                   strstr(payload, "v4-encrypted-records") != NULL);
+                   strstr(payload, "v4-encrypted-records") != NULL &&
+                   strstr(payload, "v5-dual-read") != NULL &&
+                   strstr(payload, "v5-legacy-encrypted-collections") != NULL);
     count = storage_json_array_count_path(payload, "$.encrypted_records");
     check_true("v4 encrypted shadow records present", count > 0);
     check_true("first encrypted collection",
@@ -541,6 +547,182 @@ test_sync_payload_includes_v4_encrypted_shadow_records(void)
     check_int("stale completed v4 queue is not pending",
               status.secure_migration_pending, 0);
 
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+seed_versioned_sync_account(const char *root, int encrypted_shadow_complete)
+{
+    char db_path[512];
+    sqlite3 *db = NULL;
+    char *err = NULL;
+    const char *sql =
+        "DELETE FROM sync_outbox;"
+        "DELETE FROM session_rounds;"
+        "DELETE FROM sessions;"
+        "DELETE FROM habit_days;"
+        "DELETE FROM habits;"
+        "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,"
+        "sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
+        "VALUES('release-hydrate',(SELECT id FROM users LIMIT 1),'Hydrate',"
+        "42,133,180,1,1,1,10,0,1781902800);"
+        "INSERT INTO habit_days(habit_id,local_date,completed,count,session_count,updated_at) "
+        "VALUES('release-hydrate',20260829,1,5,0,1781902800);"
+        "INSERT INTO sessions(id,user_id,started_at,local_date,topic,activity,source,"
+        "imported_at,rounds_hash,mood_before,mood_after,energy,stress,note,tags,"
+        "deleted_at,updated_at) "
+        "VALUES('release-session',(SELECT id FROM users LIMIT 1),1781902800,20260829,"
+        "0,1,'release-fixture',1781902800,12345,2,4,3,1,'migrated cleanly',"
+        "'morning',0,1781902920);"
+        "INSERT INTO session_rounds(session_id,round_index,seconds) "
+        "VALUES('release-session',0,45);"
+        "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_server_version','300');"
+        "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');"
+        "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_backfill_v2_done','1');"
+        "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_upload_at','1781902920');";
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open versioned sync fixture db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db == NULL)
+        return;
+    check_true("seed versioned sync fixture rows",
+               sqlite3_exec(db, sql, NULL, NULL, &err) == SQLITE_OK);
+    if(err != NULL) {
+        fprintf(stderr, "SQL error: %s\n", err);
+        sqlite3_free(err);
+        err = NULL;
+    }
+    if(encrypted_shadow_complete) {
+        check_true("mark versioned v4 encrypted shadow complete",
+                   sqlite3_exec(db,
+                                "INSERT OR REPLACE INTO meta(key,value) "
+                                "VALUES('sync_encrypted_shadow_v4_complete_v2','1');"
+                                "INSERT OR REPLACE INTO meta(key,value) "
+                                "VALUES('sync_encrypted_shadow_v4_legacy_seen_v2','1');"
+                                "INSERT OR REPLACE INTO meta(key,value) "
+                                "VALUES('sync_encrypted_shadow_v4_queued_v2','1');",
+                                NULL, NULL, &err) == SQLITE_OK);
+        if(err != NULL) {
+            fprintf(stderr, "SQL error: %s\n", err);
+            sqlite3_free(err);
+        }
+    } else {
+        check_true("clear versioned encrypted shadow markers",
+                   sqlite3_exec(db,
+                                "DELETE FROM meta WHERE key IN ("
+                                "'sync_encrypted_shadow_v4_complete_v2',"
+                                "'sync_encrypted_shadow_v4_legacy_seen_v2',"
+                                "'sync_encrypted_shadow_v4_queued_v2',"
+                                "'sync_encrypted_shadow_v4_total_v2');",
+                                NULL, NULL, &err) == SQLITE_OK);
+        if(err != NULL) {
+            fprintf(stderr, "SQL error: %s\n", err);
+            sqlite3_free(err);
+        }
+    }
+    sqlite3_close(db);
+}
+
+static void
+assert_versioned_fixture_displayed(const char *label)
+{
+    InbeHabits habits;
+
+    memset(&habits, 0, sizeof(habits));
+    check_true(label, storage_habits_load(&habits));
+    check_true("versioned Hydrate habit is displayable",
+               find_habit_ci(&habits, "Hydrate") != NULL);
+    check_int("versioned habit count", storage_habit_count(), 1);
+    check_int("versioned session count", storage_session_count(), 1);
+    habits_free(&habits);
+}
+
+static void
+test_sync_migration_matrix_keeps_release_data_displayable(void)
+{
+    char root[512];
+    char private_key[5121];
+    char *payload;
+    InbeStorageSyncStatus status;
+
+    fill_test_private_key(private_key);
+
+    make_clean_root(root, sizeof(root), "sync-migration-v3-fixture");
+    check_true("init v3 release fixture db", storage_init(root));
+    storage_set_setting_text("sync_public_id", "test-public-id");
+    storage_set_setting_text("sync_public_key", "test-public-key");
+    storage_set_setting_text("sync_private_key", private_key);
+    storage_close();
+    seed_versioned_sync_account(root, 0);
+    check_true("open migrated v3 release fixture db", storage_init(root));
+    assert_versioned_fixture_displayed("load migrated v3 release fixture habits");
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("migrated v3 payload stays on v5",
+               payload != NULL && strstr(payload, "\"protocol_version\":5") != NULL);
+    check_true("migrated v3 payload registers inbe",
+               payload != NULL && strstr(payload, "\"app_id\":\"inbe\"") != NULL);
+    check_true("migrated v3 payload queues encrypted shadow",
+               storage_json_array_count_path(payload, "$.encrypted_records") > 0);
+    storage_free_sync_payload_json(payload);
+    storage_close();
+    remove_tree(root);
+
+    make_clean_root(root, sizeof(root), "sync-migration-v4-fixture");
+    check_true("init v4 release fixture db", storage_init(root));
+    storage_set_setting_text("sync_public_id", "test-public-id");
+    storage_set_setting_text("sync_public_key", "test-public-key");
+    storage_set_setting_text("sync_private_key", private_key);
+    storage_close();
+    seed_versioned_sync_account(root, 1);
+    check_true("open migrated v4 release fixture db", storage_init(root));
+    assert_versioned_fixture_displayed("load migrated v4 release fixture habits");
+    memset(&status, 0, sizeof(status));
+    check_true("load migrated v4 sync status", storage_sync_status(&status));
+    check_int("migrated v4 secure migration complete", status.secure_migration_pending, 0);
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("migrated v4 payload registers inbe",
+               payload != NULL && strstr(payload, "\"app_id\":\"inbe\"") != NULL);
+    check_int("migrated v4 does not rerun encrypted migration",
+              storage_json_array_count_path(payload, "$.encrypted_records"), 0);
+    storage_free_sync_payload_json(payload);
+    storage_close();
+    remove_tree(root);
+
+    make_clean_root(root, sizeof(root), "sync-migration-v5-fixture");
+    check_true("init v5 release fixture db", storage_init(root));
+    check_true("apply v5 release fixture snapshot",
+               storage_apply_sync_response_json(
+                   "{\"protocol_version\":5,\"latest_protocol\":5,\"status\":\"ok\","
+                   "\"server_version\":500,\"server_clock\":500,"
+                   "\"server_state_hash\":\"v5fixture\","
+                   "\"changes_complete\":true,\"full_snapshot_required\":false,"
+                   "\"changes\":{\"habits\":[{\"id\":\"release-hydrate\","
+                   "\"name\":\"Hydrate\",\"color_r\":42,\"color_g\":133,"
+                   "\"color_b\":180,\"sync_mode\":1,\"sync_activity\":1,"
+                   "\"counter_enabled\":1,\"sort_order\":10,\"deleted_at\":0,"
+                   "\"updated_at\":\"2026-08-29T12:00:00Z\"}],"
+                   "\"habit_days\":[{\"habit_id\":\"release-hydrate\","
+                   "\"local_date\":20260829,\"completed\":true,\"count\":5,"
+                   "\"updated_at\":\"2026-08-29T12:00:00Z\"}],"
+                   "\"sessions\":[{\"id\":\"release-session\","
+                   "\"started_at\":\"2026-08-29T12:00:00Z\","
+                   "\"local_date\":20260829,\"topic\":\"0\",\"activity\":1,"
+                   "\"source\":\"release-fixture\",\"rounds_hash\":\"12345\","
+                   "\"deleted_at\":0,\"updated_at\":\"2026-08-29T12:02:00Z\","
+                   "\"rounds\":[{\"round_index\":0,\"breaths\":0,"
+                   "\"hold_seconds\":45}]}],\"meditation_logs\":[],"
+                   "\"social_cache\":[],\"encrypted_records\":[]}}"));
+    assert_versioned_fixture_displayed("load migrated v5 release fixture habits");
+    memset(&status, 0, sizeof(status));
+    check_true("load v5 fixture sync status", storage_sync_status(&status));
+    check_int("v5 fixture latest protocol", status.latest_protocol, 5);
+    check_int("v5 fixture has no protocol upgrade warning",
+              status.protocol_upgrade_available, 0);
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("v5 fixture payload registers inbe",
+               payload != NULL && strstr(payload, "\"app_id\":\"inbe\"") != NULL);
+    storage_free_sync_payload_json(payload);
     storage_close();
     remove_tree(root);
 }
@@ -2322,6 +2504,7 @@ main(void)
     test_sync_payload_excludes_local_settings();
     test_sync_payload_includes_queued_current_edits();
     test_sync_payload_includes_v4_encrypted_shadow_records();
+    test_sync_migration_matrix_keeps_release_data_displayable();
     test_sync_payload_batches_large_outbox();
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();
