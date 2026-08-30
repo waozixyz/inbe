@@ -207,7 +207,7 @@ target_compile_definitions(raylib PRIVATE
 
 target_compile_options(raylib PRIVATE
     -include "${KRYON_RAYLIB_BACKEND_RENAME_HEADER}"
-    -Os
+    -Oz
     -ffunction-sections
     -fdata-sections
 )
@@ -277,7 +277,7 @@ target_compile_definitions(main PRIVATE
 )
 
 target_compile_options(main PRIVATE
-    -Os
+    -Oz
     -ffunction-sections
     -fdata-sections
     -fvisibility=hidden

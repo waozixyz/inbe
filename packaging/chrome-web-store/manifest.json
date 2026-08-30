@@ -11,8 +11,12 @@
     "notifications",
     "storage"
   ],
+  "host_permissions": [
+    "https://api.waozi.xyz/*",
+    "https://inbe.waozi.xyz/*"
+  ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https://api.waozi.xyz wss://api.waozi.xyz https://inbe.waozi.xyz; object-src 'self'"
   },
   "icons": {
     "16": "icons/icon-16.png",

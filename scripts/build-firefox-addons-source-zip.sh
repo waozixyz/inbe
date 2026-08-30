@@ -63,6 +63,19 @@ rm -f "$OUT_ABS"
            '*/node_modules/*' \
            '*/build/*' \
            '*/vendor-builds/*' \
+           '*/unpackaged_assets/audio/*' \
+           '*/web-assets/dl/*' \
+           '*/vendor/sqlite/art/*' \
+           '*/vendor/sqlite/doc/*' \
+           '*/vendor/sqlite/mptest/*' \
+           '*/vendor/sqlite/test/*' \
+           '*/vendor/kryon/docs/site/*' \
+           '*/vendor/kryon/fonts/noto/*' \
+           '*/vendor/kryon/vendor/liboqs/docs/*' \
+           '*/vendor/kryon/vendor/liboqs/tests/*' \
+           '*/vendor/kryon/vendor/raylib/examples/*' \
+           '*/vendor/kryon/vendor/raylib/logo/*' \
+           '*/vendor/kryon/vendor/raylib/projects/*' \
            '*/tmp/*'
 )
 

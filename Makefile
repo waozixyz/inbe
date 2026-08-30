@@ -427,7 +427,7 @@ COMMON_CFLAGS := -Wall -Wextra -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-se
 CFLAGS := $(COMMON_CFLAGS) -std=c99 $(RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(DESKTOP_TRAY_CFLAGS) $(KRYON_NOTIFICATION_CPPFLAGS) $(KRYON_NOTIFICATION_CFLAGS)
 NATIVE_SYSTEM_LDLIBS := $(KRYON_NOTIFICATION_LDLIBS) -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,) $(SYSTEM_THEME_LDLIBS)
 WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DESKTOP_TRAY_ENABLED
-WEB_CFLAGS := $(filter-out -Os -DUI_WINDOW_HAVE_SDL,$(COMMON_CFLAGS)) -O1 -std=gnu99
+WEB_CFLAGS := $(filter-out -Os -DUI_WINDOW_HAVE_SDL,$(COMMON_CFLAGS)) -Oz -std=gnu99
 CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DISABLE_KRYON_FILE_DIALOG -DHAS_LIBCURL=1 $(AARCH64_KRYON_CURL_CFLAGS)
 LDFLAGS := -Wl,--gc-sections -s
 WINDOWS_LDFLAGS := -Wl,--gc-sections -static -static-libgcc -mwindows
@@ -536,7 +536,7 @@ FIREFOX_ADDONS_APP_SCRIPT := <script src="extension_loader.js"></script>
 FIREFOX_ADDONS_ICON_DIR := $(CHROME_WEB_STORE_ICON_DIR)
 FIREFOX_ADDONS_ICONS := $(CHROME_WEB_STORE_ICONS)
 ADDONS_LINTER ?= npx --yes addons-linter
-WEB_ASSET_FILES := $(shell find web-assets site-icons -type f 2>/dev/null)
+WEB_ASSET_FILES := $(filter-out web-assets/dl/% web-assets/canvas_index.html,$(shell find web-assets site-icons -type f 2>/dev/null))
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
@@ -1418,7 +1418,7 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_A
 		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_show_practice_home,_app_web_test_screen,_app_web_test_practice_start_click_x,_app_web_test_practice_start_click_y,_app_web_test_enable_extension_breaks \
 		--preload-file locales --preload-file assets
 
-$(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) validate-meditation-audio | $(WEB_DIST_DIR)
+$(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) | $(WEB_DIST_DIR)
 	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_DIST_DIR)/index_boot.js
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index_boot.js
@@ -1427,6 +1427,8 @@ $(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/w
 	rm -rf $(WEB_DIST_DIR)/canvas
 	rm -rf $(WEB_DIST_DIR)/web-assets $(WEB_DIST_DIR)/site-icons
 	cp -R web-assets $(WEB_DIST_DIR)/
+	rm -rf $(WEB_DIST_DIR)/web-assets/dl
+	rm -f $(WEB_DIST_DIR)/web-assets/canvas_index.html
 	cp -R site-icons $(WEB_DIST_DIR)/
 	cp manifest.json $(WEB_DIST_DIR)/webmanifest.json
 
@@ -1459,6 +1461,8 @@ $(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) $(S
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_CANVAS_DIR)/kryon-web-present.js
 	rm -rf $(WEB_CANVAS_DIR)/web-assets $(WEB_CANVAS_DIR)/site-icons
 	cp -R web-assets $(WEB_CANVAS_DIR)/
+	rm -rf $(WEB_CANVAS_DIR)/web-assets/dl
+	rm -f $(WEB_CANVAS_DIR)/web-assets/canvas_index.html
 	cp -R site-icons $(WEB_CANVAS_DIR)/
 	cp manifest.json $(WEB_CANVAS_DIR)/webmanifest.json
 
@@ -1693,7 +1697,6 @@ windows-setup: windows windows-setup-check
 	test -f $(WINDOWS_SETUP)
 
 web:
-	$(MAKE) validate-meditation-audio
 	$(MAKE) sync-web-icons
 	$(MAKE) $(WEB_TARGET)
 	$(MAKE) web-smoke-test
@@ -1719,7 +1722,7 @@ web-smoke-test-firefox: $(WEB_SMOKE_TEST)
 web-smoke-test-librewolf: $(WEB_SMOKE_TEST)
 	WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="librewolf" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
-site: web
+site: package-unpackaged-assets web
 	sh site/build.sh
 
 site-release-assets-check:
@@ -1743,6 +1746,7 @@ $(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB
 	rm -rf $(CHROME_WEB_STORE_DIR)
 	mkdir -p $(CHROME_WEB_STORE_DIR)/icons
 	cp -R $(WEB_DIST_DIR)/. $(CHROME_WEB_STORE_DIR)/
+	rm -rf $(CHROME_WEB_STORE_DIR)/canvas $(CHROME_WEB_STORE_DIR)/web-assets/dl
 	cp $(CHROME_WEB_STORE_EXTENSION_BOOT) $(CHROME_WEB_STORE_DIR)/extension_boot.js
 	cp $(CHROME_WEB_STORE_EXTENSION_APP) $(CHROME_WEB_STORE_DIR)/extension_app.js
 	perl -0pi -e 's#(<script src="index_boot\.js\?v=[^"]+"></script>)#<script src="extension_boot.js"></script>\n    $$1#' $(CHROME_WEB_STORE_DIR)/index.html
@@ -1760,6 +1764,7 @@ $(FIREFOX_ADDONS_ZIP): $(WEB_TARGET) src/web_shell.html $(FIREFOX_ADDONS_MANIFES
 	rm -rf $(FIREFOX_ADDONS_DIR)
 	mkdir -p $(FIREFOX_ADDONS_DIR)/icons
 	cp -R $(WEB_DIST_DIR)/. $(FIREFOX_ADDONS_DIR)/
+	rm -rf $(FIREFOX_ADDONS_DIR)/canvas $(FIREFOX_ADDONS_DIR)/web-assets/dl
 	sed -e 's#__APP_VERSION__#$(APP_VERSION)#g' \
 		$(FIREFOX_ADDONS_MANIFEST) > $(FIREFOX_ADDONS_DIR)/manifest.json
 	cp $(FIREFOX_ADDONS_BACKGROUND) $(FIREFOX_ADDONS_DIR)/background.js

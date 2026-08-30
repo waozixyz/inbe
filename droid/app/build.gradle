@@ -69,13 +69,14 @@ android {
     buildTypes {
         release {
             signingConfig project.hasProperty('fDroidBuild') ? null : signingConfigs.release
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "boolean", "INBE_GPLAY", "false"
         }
         gplay {
             initWith release
             signingConfig signingConfigs.release
-            minifyEnabled false
             matchingFallbacks = ['release']
             buildConfigField "boolean", "INBE_GPLAY", "true"
         }

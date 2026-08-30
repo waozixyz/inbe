@@ -116,7 +116,7 @@ write_web_app_csp_html() {
 	src=$1
 	dst=$2
 	cache_version=$(date +%s)
-	csp="default-src 'self' data: blob:; connect-src 'self' https://api.waozi.xyz wss://api.waozi.xyz; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; worker-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob:; frame-src https:; img-src data: https:; media-src https:; object-src 'none'"
+	csp="default-src 'self' data: blob:; connect-src 'self' https://api.waozi.xyz wss://api.waozi.xyz https://inbe.waozi.xyz; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; worker-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob:; frame-src https:; img-src data: https:; media-src https:; object-src 'none'"
 	meta="<meta http-equiv=\"Content-Security-Policy\" content=\"$csp\">"
 
 	awk -v meta="$meta" -v version="$cache_version" '
@@ -230,6 +230,7 @@ for path in \
 	delete-account/index.html \
 	legacy-converter.html \
 	manifest.json \
+	_headers \
 	robots.txt \
 	sitemap.xml \
 	og.jpg \
