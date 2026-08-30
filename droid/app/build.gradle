@@ -6,6 +6,11 @@ plugins {
 def hasGplayFirebaseConfig = file("src/gplay/google-services.json").exists()
 if (hasGplayFirebaseConfig) {
     apply plugin: 'com.google.gms.google-services'
+    tasks.configureEach { task ->
+        if (task.name == "processDebugGoogleServices" || task.name == "processReleaseGoogleServices") {
+            task.enabled = false
+        }
+    }
 }
 
 android {
