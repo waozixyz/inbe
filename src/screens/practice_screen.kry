@@ -593,7 +593,7 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
     }
     if draw_menu {
         header_result := ToolbarHeader((ToolbarHeaderProps){.toolbar = (ToolbarProps){.id = 300, .draw_menu = 1, .options = exercise_options, .option_count = activity_count, .selected_index = &activity_index}})
-        menu_result := header_result.toolbar
+        menu_result: ToolbarResult = header_result.toolbar
         if !app->modal.active && menu_result.selected_menu_item >= 0 {
             route = app_current_route(app)
             if app->practice_tab == PRACTICE_TAB_CONFIG {

@@ -429,7 +429,7 @@ draw_config :: (app: InbeApp*) #private {
 
 patterns_config_content_height_cb :: (content_w: int, user_data: void*) -> int #private {
     ctx := (PatternsConfigContext*)user_data
-    app := ctx != nil ? ctx->app : nil
+    app: InbeApp* = ctx != nil ? ctx->app : nil
     btn_h := ScaleUIPx(36)
     gap := ScaleUIPx(8)
     height := ScaleUIPx(24)

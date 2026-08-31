@@ -19,7 +19,7 @@ break_overlay_active :: (app: const InbeApp*) -> int {
 }
 
 break_overlay_remaining_s :: (app: const InbeApp*, t: int) -> int {
-    timer: BreakTimer* = &app->breaks.timers[t]
+    timer: const BreakTimer* = &app->breaks.timers[t]
     left := timer->duration_s - timer->idle_s
     if left < 0 {
         left = 0
@@ -131,7 +131,7 @@ break_overlay_draw_practice_chips :: (app: InbeApp*, w: int, h: int) #private {
     chip_fill := DarkenUIColor(GetThemeBackground(), 18)
     chip_border := DarkenUIColor(GetThemeText(), 55)
     for int i = 0; i < chips; i++ {
-        r := rects[i]
+        r: Rectangle = rects[i]
         Rect((int)r.x, (int)r.y, (int)r.width, (int)r.height,
              chip_fill, chip_border)
         label: const char* = ids[i] == BREAK_OVERLAY_HABITS_CHIP_ID

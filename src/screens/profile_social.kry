@@ -647,8 +647,8 @@ append_missing_friend_rows :: (app: InbeApp*, rows: ProfileLeaderboardDrawRow*,
 row_compare :: (left_ptr: const void*, right_ptr: const void*) -> int #private {
     left := (const ProfileLeaderboardDrawRow*)left_ptr
     right := (const ProfileLeaderboardDrawRow*)right_ptr
-    left_name := left->alias[0] != '\0' ? left->alias : left->user_id
-    right_name := right->alias[0] != '\0' ? right->alias : right->user_id
+    left_name: const char* = left->alias[0] != '\0' ? left->alias : left->user_id
+    right_name: const char* = right->alias[0] != '\0' ? right->alias : right->user_id
 
     left_value := g_leaderboard_sort_metric == PROFILE_LEADERBOARD_AVG_HOLD
                       ? left->average_sort : left->streak_sort

@@ -301,7 +301,7 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
     }
 
     for int i = 1; i < point_count; i++ {
-        point := points[i]
+        point: StatisticsGraphPoint = points[i]
         j := i - 1
         while j >= 0 && (points[j].time_key > point.time_key || (points[j].time_key == point.time_key && points[j].round_index > point.round_index)) {
             points[j + 1] = points[j]
@@ -403,7 +403,7 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
 
 statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLinkedContext*, content_x: int, content_w: int, y: int) #private {
     now := time(NULL)
-    today_tm := (struct tm){0}
+    today_tm: struct tm = (struct tm){0}
     now_tm := localtime(&now)
     current_streak := 0
     best_streak := 0
@@ -436,7 +436,7 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
     today_tm.tm_sec = 0
     mktime(&today_tm)
     for int i = 0; i < 365; i++ {
-        day_tm := today_tm
+        day_tm: struct tm = today_tm
         day_index := 0
         count := 0
 
