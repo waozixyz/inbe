@@ -699,10 +699,10 @@ storage_get_setting_text(const char *key)
 }
 
 void
-app_block_pointer_frame(InbeApp *app)
+app_block_current_click(InbeApp *app)
 {
     if(app != NULL)
-        app->input_block_frame = app->inbe.frame;
+        app->blocked_input_frame = app->inbe.frame;
 }
 
 void
@@ -712,7 +712,7 @@ app_open_modal(InbeApp *app, UIModalType type)
         return;
     app->modal.active = 1;
     app->modal.type = type;
-    app_block_pointer_frame(app);
+    app_block_current_click(app);
 }
 
 void
@@ -722,7 +722,7 @@ app_close_modal(InbeApp *app)
         return;
     app->modal.active = 0;
     app->modal.type = UIModalNone;
-    app_block_pointer_frame(app);
+    app_block_current_click(app);
 }
 
 int
@@ -819,7 +819,7 @@ test_same_frame_modal_close_consumes_bottom_nav_click(void)
     InbeApp app = test_app();
 
     reset_state();
-    app.input_block_frame = app.inbe.frame;
+    app.blocked_input_frame = app.inbe.frame;
     mouse_released = 1;
     bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
@@ -839,7 +839,7 @@ test_unblocked_bottom_nav_click_still_routes(void)
     InbeApp app = test_app();
 
     reset_state();
-    app.input_block_frame = app.inbe.frame - 1;
+    app.blocked_input_frame = app.inbe.frame - 1;
     mouse_released = 1;
     bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
@@ -1092,7 +1092,7 @@ test_compact_sidebar_close_footer_closes_to_home(void)
            "sidebar footer close should close sidebar");
     expect(app.inbe.screen == InbeScreenStart,
            "sidebar footer close should return to current home screen");
-    expect(app.input_block_frame == app.inbe.frame,
+    expect(app.blocked_input_frame == app.inbe.frame,
            "sidebar footer close should block same-frame bottom nav clicks");
 }
 
@@ -1114,7 +1114,7 @@ test_overlay_sidebar_outside_release_blocks_bottom_nav(void)
            "outside release should close overlay sidebar");
     expect(pointer_release_consumed == 1,
            "outside release should be consumed");
-    expect(app.input_block_frame == app.inbe.frame,
+    expect(app.blocked_input_frame == app.inbe.frame,
            "outside release close should block same-frame bottom nav clicks");
 }
 
@@ -1131,7 +1131,7 @@ test_stack_toggle_close_blocks_bottom_nav(void)
 
     expect(app.nav_sidebar_open == 0,
            "stack route should close an open sidebar");
-    expect(app.input_block_frame == app.inbe.frame,
+    expect(app.blocked_input_frame == app.inbe.frame,
            "stack route close should block same-frame bottom nav clicks");
 }
 

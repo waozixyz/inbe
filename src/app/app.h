@@ -557,9 +557,8 @@ struct InbeApp {
     double desktop_background_last_time;
     int results_saved;
     InbeSessionResult session_result;
-    int input_block_frame;
+    int blocked_input_frame;
     int close_prompt_open;
-    int close_prompt_input_block_frame;
     AppClosePromptResult close_prompt_result;
     int request_quit;   /* app layer requests exit (update restart, quit shortcut) */
     int desktop_startup_mode;   /* INBE_STARTUP_* (desktop only) */
@@ -661,7 +660,7 @@ const char *app_monero_donation_url(void);
 
 void app_open_modal(InbeApp *app, UIModalType type);
 void app_close_modal(InbeApp *app);
-void app_block_pointer_frame(InbeApp *app);
+void app_block_current_click(InbeApp *app);
 void app_request_desktop_close(InbeApp *app);
 void app_request_desktop_quit(InbeApp *app);
 AppClosePromptResult app_consume_close_prompt_result(InbeApp *app);

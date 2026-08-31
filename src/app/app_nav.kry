@@ -137,7 +137,7 @@ app_close_nav_sidebar :: (app: InbeApp*) {
         }
     }
     if was_open {
-        app_block_pointer_frame(app)
+        app_block_current_click(app)
     }
 }
 
@@ -264,7 +264,7 @@ app_open_profile_tab :: (app: InbeApp*, tab: int) #private {
     app->profile_scroll = 0
     app->sync_server_url_focused = 0
     settings_screen_clear_status()
-    app_block_pointer_frame(app)
+    app_block_current_click(app)
     route = app_current_route(app)
     route.screen = InbeScreenProfile
     route.profile_view = PROFILE_VIEW_MAIN
@@ -442,7 +442,7 @@ app_open_settings_tab :: (app: InbeApp*, tab: int) #private {
     }
     app->settings_scroll = 0
     settings_screen_clear_status()
-    app_block_pointer_frame(app)
+    app_block_current_click(app)
     route = app_current_route(app)
     route.screen = InbeScreenSettings
     route.settings_tab = tab
@@ -592,7 +592,7 @@ app_open_bottom_nav_config :: (app: InbeApp*) #private {
     app->bottom_nav_config_route_count = app->bottom_nav_route_count
     app->nav_sidebar_open = 0
     app->nav_sidebar_return_on_back = return_to_sidebar
-    app_block_pointer_frame(app)
+    app_block_current_click(app)
     app_switch_screen(app, InbeScreenCustomizeNav)
 }
 
@@ -821,7 +821,7 @@ app_customize_nav_scaffold_title :: (title: const char*, height: int,
     app := (InbeApp*)user_data
 
     if app_draw_close_title_bar(app, title, height) {
-        app_block_pointer_frame(app)
+        app_block_current_click(app)
         app_open_main_tab(app, app->main_tab, 0)
         return 1
     }

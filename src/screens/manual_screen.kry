@@ -118,7 +118,7 @@ manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {
                 app->tutorial_step = page - 1
                 app->manual_scroll = 0
             } else if nav.close != NULL {
-                app_block_pointer_frame(app)
+                app_block_current_click(app)
                 nav.close(app, 0)
             }
         }
@@ -137,7 +137,7 @@ manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {
         .icon_padding = button_pad
     }) {
         if page == nav.page_count - 1 {
-            app_block_pointer_frame(app)
+            app_block_current_click(app)
             if nav.close != NULL {
                 nav.close(app, 1)
             } else {
