@@ -120,9 +120,12 @@ app_open_nav_sidebar :: (app: InbeApp*) #private {
 }
 
 app_close_nav_sidebar :: (app: InbeApp*) {
+    was_open: int
+
     if app == NULL {
         return
     }
+    was_open = app->nav_sidebar_open || app_nav_sidebar_screen_active(app)
     app->nav_sidebar_open = 0
     app->nav_sidebar_return_on_back = 0
     if app_nav_sidebar_screen_active(app) {
@@ -132,6 +135,8 @@ app_close_nav_sidebar :: (app: InbeApp*) {
         } else {
             app_switch_screen(app, app_screen_for_main_tab(app->main_tab))
         }
+    }
+    if was_open {
         app_block_pointer_frame(app)
     }
 }
@@ -743,7 +748,6 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
                            ButtonStyleSecondary, app->modal.active,
                            &close_hover) {
         app_close_nav_sidebar(app)
-        app_block_pointer_frame(app)
     }
 }
 

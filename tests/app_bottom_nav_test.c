@@ -1072,6 +1072,47 @@ test_compact_sidebar_close_footer_closes_to_home(void)
            "sidebar footer close should close sidebar");
     expect(app.inbe.screen == InbeScreenStart,
            "sidebar footer close should return to current home screen");
+    expect(app.input_block_frame == app.inbe.frame,
+           "sidebar footer close should block same-frame bottom nav clicks");
+}
+
+static void
+test_overlay_sidebar_outside_release_blocks_bottom_nav(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    view_width = 720;
+    app.nav_sidebar_open = 1;
+    app.nav_sidebar_open_frame = app.inbe.frame - 1;
+    mouse_released = 1;
+    mouse_position = (Vector2){100, 20};
+
+    app_draw_bottom_nav(&app);
+
+    expect(app.nav_sidebar_open == 0,
+           "outside release should close overlay sidebar");
+    expect(pointer_release_consumed == 1,
+           "outside release should be consumed");
+    expect(app.input_block_frame == app.inbe.frame,
+           "outside release close should block same-frame bottom nav clicks");
+}
+
+static void
+test_stack_toggle_close_blocks_bottom_nav(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    view_width = 720;
+    app.nav_sidebar_open = 1;
+
+    app_apply_nav_route(&app, APP_NAV_ROUTE_STACK);
+
+    expect(app.nav_sidebar_open == 0,
+           "stack route should close an open sidebar");
+    expect(app.input_block_frame == app.inbe.frame,
+           "stack route close should block same-frame bottom nav clicks");
 }
 
 static void
@@ -1155,6 +1196,8 @@ main(void)
     test_customize_nav_delete_icon_draws_on_narrow_rows();
     test_open_main_tab_none_returns_blank_start();
     test_compact_sidebar_close_footer_closes_to_home();
+    test_overlay_sidebar_outside_release_blocks_bottom_nav();
+    test_stack_toggle_close_blocks_bottom_nav();
     test_consumed_pfp_release_does_not_close_sidebar();
     test_sidebar_child_back_returns_to_compact_sidebar();
     test_sidebar_screen_becomes_overlay_when_width_expands();
