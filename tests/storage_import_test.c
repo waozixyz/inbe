@@ -2139,6 +2139,10 @@ write_multi_habit_source_database(const char *root, const char *zip_path)
     storage_set_setting_int("sun_salutation_start_seconds", 9);
     storage_set_setting_int("sun_salutation_end_seconds", 4);
     storage_set_setting_int("sun_salutation_figure", 1);
+    storage_set_setting_int("audio_custom_music_count", 1);
+    storage_set_setting_text("audio_custom_music_0_title", "Test track");
+    storage_set_setting_text("audio_custom_music_0_path", "/tmp/test-track.ogg");
+    storage_set_setting_text("audio_custom_music_0_file", "ignore-me");
     storage_set_setting_text("language", "en");
     storage_set_setting_text("future_unknown_key", "ignore-me");
     check_true("export multi habit source", storage_export_zip(zip_path));
@@ -2177,10 +2181,22 @@ assert_multi_habits_imported(const char *root, int want_speed, int expect_settin
                   storage_get_setting_int("sun_salutation_end_seconds", -1), 4);
         check_int("multi import sun figure setting",
                   storage_get_setting_int("sun_salutation_figure", -1), 1);
+        check_int("multi import audio count",
+                  storage_get_setting_int("audio_custom_music_count", -1), 1);
+        check_str("multi import audio title",
+                  storage_get_setting_text("audio_custom_music_0_title"),
+                  "Test track");
+        check_str("multi import audio path",
+                  storage_get_setting_text("audio_custom_music_0_path"),
+                  "/tmp/test-track.ogg");
     } else {
         check_int("multi data-only skips sun figure",
                   storage_get_setting_int("sun_salutation_figure", -1), -1);
+        check_int("multi data-only skips audio count",
+                  storage_get_setting_int("audio_custom_music_count", -1), -1);
     }
+    check_str("multi import malformed audio setting",
+              storage_get_setting_text("audio_custom_music_0_file"), NULL);
     check_str("multi import unknown setting", storage_get_setting_text("future_unknown_key"), NULL);
     storage_close();
 }

@@ -197,7 +197,7 @@ nativeDebugImportMusicForPractice(JNIEnv *env, jobject thiz, jstring path,
         return JNI_FALSE;
     app_audio_ensure_ready(app);
     if(!app_audio_import_custom_music_ex(app, native_path, &error_code)) {
-        TraceLog(LOG_ERROR, "AUDIO_E2E: import failed error=%d path=%s",
+        TraceLog(LOG_ERROR, "ANDROID_DEBUG_MUSIC: import failed error=%d path=%s",
                  error_code, native_path);
         (*env)->ReleaseStringUTFChars(env, path, native_path);
         return JNI_FALSE;
@@ -213,7 +213,7 @@ nativeDebugImportMusicForPractice(JNIEnv *env, jobject thiz, jstring path,
     app->music_volume = 100;
     save_settings(app);
     TraceLog(LOG_INFO,
-             "AUDIO_E2E: imported and selected track=%d practice=%d path=%s",
+             "ANDROID_DEBUG_MUSIC: imported and selected track=%d practice=%d path=%s",
              track, (int)practice_id, app->audio_custom_music[track - INBE_AUDIO_BUILTIN_MUSIC_COUNT].path);
     return JNI_TRUE;
 }

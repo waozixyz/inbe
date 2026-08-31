@@ -1,34 +1,6 @@
 #import "app.h"
 #import "app_nav.h"
 
-bottom_nav_route_label :: (route: int) -> const char* #private {
-    if route == APP_NAV_ROUTE_PROFILE {
-        return GetLocaleText("tab_profile")
-    }
-    if route == APP_NAV_ROUTE_ACCOUNT {
-        return GetLocaleText("sync_configure_account_button")
-    }
-    if route == APP_NAV_ROUTE_DATA {
-        return GetLocaleText("profile_data")
-    }
-    if route == APP_NAV_ROUTE_FRIENDS {
-        return GetLocaleText("profile_friends_title")
-    }
-    if route == APP_NAV_ROUTE_LEADERBOARD {
-        return GetLocaleText("profile_leaderboard_title")
-    }
-    if route == APP_NAV_ROUTE_HABITS {
-        return GetLocaleText("tab_habits")
-    }
-    if route == APP_NAV_ROUTE_PRACTICE {
-        return GetLocaleText("tab_practice")
-    }
-    if route == APP_NAV_ROUTE_STACK {
-        return GetLocaleText("tab_stack")
-    }
-    return ""
-}
-
 bottom_nav_route_icon :: (app: InbeApp*, route: int) -> Texture2D #private {
     if app == NULL {
         return (Texture2D){0}
@@ -55,10 +27,6 @@ bottom_nav_route_icon :: (app: InbeApp*, route: int) -> Texture2D #private {
         return app->icons[UI_ICON_TYPE_STACK]
     }
     return (Texture2D){0}
-}
-
-bottom_nav_sidebar_screen_active :: (app: InbeApp*) -> int #private {
-    return app != NULL && app->inbe.screen == InbeScreenNavSidebar
 }
 
 bottom_nav_practice_fullscreen_subview :: (app: InbeApp*) -> int #private {
@@ -97,7 +65,7 @@ bottom_nav_route_active :: (app: InbeApp*, route: int) -> int #private {
         return app->inbe.screen == InbeScreenHabits || app->inbe.screen == InbeScreenHabitEdit || app->inbe.screen == InbeScreenHabitSessionEdit
     }
     if route == APP_NAV_ROUTE_STACK {
-        return bottom_nav_sidebar_screen_active(app) || app->nav_sidebar_open || (app->modal.active && app->modal.type == UIModalBottomNavConfig)
+        return app_nav_sidebar_screen_active(app) || app->nav_sidebar_open || (app->modal.active && app->modal.type == UIModalBottomNavConfig)
     }
     return 0
 }
@@ -124,7 +92,7 @@ app_draw_bottom_nav :: (app: InbeApp*) {
     items := (BottomNavItem[APP_BOTTOM_NAV_CONTENT_MAX + 1]){0}
     result := (BottomNavResult){0}
 
-    if app != NULL && (app->nav_sidebar_open || bottom_nav_sidebar_screen_active(app)) {
+    if app != NULL && (app->nav_sidebar_open || app_nav_sidebar_screen_active(app)) {
         app_draw_nav_sidebar(app)
         return
     }
@@ -140,7 +108,7 @@ app_draw_bottom_nav :: (app: InbeApp*) {
         if app->blocked_input_frame != app->inbe.frame || !IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
             for int i = 0; i < route_count; i++ {
                 route := routes[i]
-                items[i] = (BottomNavItem){route, bottom_nav_route_label(route), bottom_nav_route_icon(app, route), bottom_nav_route_active(app, route), app->modal.active}
+                items[i] = (BottomNavItem){route, app_nav_route_label(route), bottom_nav_route_icon(app, route), bottom_nav_route_active(app, route), app->modal.active}
             }
             result = BottomNav((BottomNavProps){.view_width = view_width, .view_height = view_height, .bottom_margin = 0, .count = route_count, .items = items})
             if result.clicked_route != APP_NAV_ROUTE_NONE {

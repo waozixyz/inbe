@@ -47,7 +47,6 @@
 #endif
 
 #if ANDROID_BUILD
-#include <android/log.h>
 #include "android_wakelock.h"
 #include "android_device.h"
 #include "android_insets.h"
@@ -1538,6 +1537,20 @@ app_draw_blank_home_easteregg(InbeApp *app)
     DrawTexturePro(logo, src, dst, origin, 0.0f, logo_tint);
 }
 
+static void
+app_apply_initial_screen(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    if(!app->language_selected) {
+        app->inbe.screen = InbeScreenLanguage;
+        app->habits.focus_selected_tab = 0;
+        return;
+    }
+    app->inbe.screen = app_screen_for_main_tab(app->main_tab);
+    app->habits.focus_selected_tab = app->inbe.screen == InbeScreenHabits;
+}
+
 void
 app_init(void *vapp) {
     InbeApp *app = vapp;
@@ -1599,17 +1612,14 @@ app_init(void *vapp) {
         save_settings(app);
         app->language_needs_save = 0;
     }
-    practice_update_circle_bounds(app, app_content_top_reserved(app),
-                                  app_content_bottom_reserved(app));
     habits_init_with_defaults(&app->habits, app->language_selected);
     app_restore_habits_view_settings(app);
     app->habit_detail_index = -1;
     memset(&app->habit_session_edit, 0, sizeof(app->habit_session_edit));
     app->habit_session_edit.round = -1;
-    app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
-                           ? InbeScreenHabits
-                           : InbeScreenStart;
-    app->habits.focus_selected_tab = app->inbe.screen == InbeScreenHabits;
+    app_apply_initial_screen(app);
+    practice_update_circle_bounds(app, app_content_top_reserved(app),
+                                  app_content_bottom_reserved(app));
 #if !defined(PLATFORM_WEB)
     if(!app_running_in_kryon_preview())
         init_audio(app);
@@ -1639,10 +1649,6 @@ app_init(void *vapp) {
 
     SetUIIcons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
-    if(!app->language_selected)
-        app->inbe.screen = InbeScreenLanguage;
-    else
-        app->inbe.screen = InbeScreenStart;
     memset(&app->modal, 0, sizeof(app->modal));
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
@@ -2482,32 +2488,8 @@ updateapp(InbeApp *app)
                 app->main_tab = APP_MAIN_TAB_PRACTICE;
                 app->practice_tab = PRACTICE_TAB_PLAY;
                 practice = practice_get(app->exercise_type);
-                TraceLog(LOG_WARNING,
-                         "AUDIO_E2E: main-thread start practice=%d track=%d mask=%d",
-                         app->exercise_type,
-                         app->meditation.music_practice_tracks[app->exercise_type],
-                         app->meditation.music_practice_mask);
-                __android_log_print(ANDROID_LOG_WARN, "INBE_AUDIO_E2E",
-                                    "main-thread start practice=%d track=%d mask=%d",
-                                    app->exercise_type,
-                                    app->meditation.music_practice_tracks[app->exercise_type],
-                                    app->meditation.music_practice_mask);
                 if(practice != NULL && practice->start != NULL)
                     practice->start(app);
-                TraceLog(LOG_WARNING,
-                         "AUDIO_E2E: music loaded=%d playing=%d test=%d volume=%d",
-                         app->meditation.music_loaded,
-                         app->meditation.music_playing,
-                         app->meditation.music_test_playing,
-                         app->music_volume);
-                __android_log_print(ANDROID_LOG_WARN, "INBE_AUDIO_E2E",
-                                    "music loaded=%d playing=%d test=%d volume=%d valid=%d stream=%d",
-                                    app->meditation.music_loaded,
-                                    app->meditation.music_playing,
-                                    app->meditation.music_test_playing,
-                                    app->music_volume,
-                                    IsMusicValid(app->meditation.music),
-                                    IsMusicStreamPlaying(app->meditation.music));
             }
         }
     }

@@ -61,7 +61,7 @@ app_nav_sidebar_compact :: () -> int #private {
     return view_width <= ScaleUIPx(480)
 }
 
-app_nav_sidebar_screen_active :: (app: const InbeApp*) -> int #private {
+app_nav_sidebar_screen_active :: (app: const InbeApp*) -> int {
     return app != NULL && app->inbe.screen == InbeScreenNavSidebar
 }
 
@@ -102,7 +102,7 @@ app_bottom_nav_has_route :: (app: const InbeApp*, route: int) -> int #private {
     return 0
 }
 
-app_screen_for_main_tab :: (main_tab: int) -> int #private {
+app_screen_for_main_tab :: (main_tab: int) -> int {
     return main_tab == APP_MAIN_TAB_HABITS ? InbeScreenHabits : InbeScreenStart
 }
 
@@ -358,7 +358,7 @@ app_page_height :: (app: const InbeApp*, full_height: int) -> int {
     return full_height
 }
 
-app_nav_route_label :: (route: int) -> const char* #private {
+app_nav_route_label :: (route: int) -> const char* {
     if route == APP_NAV_ROUTE_PROFILE {
         return GetLocaleText("tab_profile")
     }

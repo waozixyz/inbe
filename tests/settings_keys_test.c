@@ -1,16 +1,18 @@
 /*
  * settings_keys_test - guards the settings save/load/import key lists
- * against drift. Scans src/app/app_settings.kry and src/storage/import.kry:
+ * against drift. Scans src/app/app_settings.kry and src/app/app_setting_keys.h:
  * every save_setting_int / storage_set_setting_text literal forms the saved
  * set; every load_bool_setting / load_clamped_setting / settings_cache_get_int
  * / settings_cache_get literal forms the loaded set; the
- * importable_setting_keys declaration forms the import set. Every saved key
+ * INBE_IMPORTABLE_SETTING_KEYS registry forms the import set. Every saved key
  * must be loaded (modulo derived keys) and every importable key must be
  * saved (modulo keys written through helpers).
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "../src/app/app_setting_keys.h"
 
 #define MAX_KEYS 512
 #define MAX_KEY_LEN 96
@@ -50,6 +52,31 @@ keyset_add(KeySet *set, const char *key)
 /* Keys written through helpers whose literals live outside the direct
  * save_setting_int calls. */
 static const char *helper_saved_keys[] = {
+    "audio_cue_breath_in",
+    "audio_cue_breath_out",
+    "audio_cue_bell",
+    "audio_custom_sound_count",
+    "audio_custom_music_count",
+    "break_micro_enabled",
+    "break_micro_limit",
+    "break_micro_duration",
+    "break_micro_postpone",
+    "break_micro_max_prompts",
+    "break_micro_show_skip",
+    "break_micro_show_postpone",
+    "break_rest_enabled",
+    "break_rest_limit",
+    "break_rest_duration",
+    "break_rest_postpone",
+    "break_rest_max_prompts",
+    "break_rest_show_skip",
+    "break_rest_show_postpone",
+    "break_daily_enabled",
+    "break_daily_limit",
+    "break_daily_postpone",
+    "break_daily_max_prompts",
+    "break_daily_show_skip",
+    "break_daily_show_postpone",
     "practice_music_track_wim_hof",
     "practice_music_track_meditation",
     "practice_music_track_sun_salutation",
@@ -118,23 +145,23 @@ scan_first_literal_per_call(KeySet *set, const char *text, const char *fn)
     }
 }
 
-/* Collects every double-quoted literal after the marker, up to '}'. */
 static void
-scan_all_literals_after(KeySet *set, const char *text, const char *marker)
+scan_macro_x_literals(KeySet *set, const char *text, const char *marker)
 {
     const char *cursor = strstr(text, marker);
+    const char *end;
 
     if(cursor == NULL) {
         fprintf(stderr, "FAIL marker [%s] not found\n", marker);
         failures++;
         return;
     }
-    const char *end = strchr(cursor, '}');
-    for(const char *quote = strchr(cursor, '"'); quote != NULL && (end == NULL || quote < end);
-        quote = strchr(quote + 1, '"')) {
+    end = strstr(cursor, "#endif");
+    while((cursor = strstr(cursor, "X(\"")) != NULL &&
+          (end == NULL || cursor < end)) {
         char key[MAX_KEY_LEN];
         size_t n = 0;
-        const char *walk = quote + 1;
+        const char *walk = cursor + 3;
 
         while(*walk != '"' && *walk != '\0' && n + 1 < sizeof(key))
             key[n++] = *walk++;
@@ -142,9 +169,7 @@ scan_all_literals_after(KeySet *set, const char *text, const char *marker)
         if(*walk != '"')
             break;
         keyset_add(set, key);
-        quote = walk;
-        if(end != NULL && walk >= end)
-            break;
+        cursor = walk + 1;
     }
 }
 
@@ -153,10 +178,11 @@ main(void)
 {
     char *settings_src = read_whole_file("src/app/app_settings.kry");
     char *import_src = read_whole_file("src/storage/import.kry");
+    char *setting_keys_src = read_whole_file("src/app/app_setting_keys.h");
     KeySet saved, loaded, imported;
 
-    if(settings_src == NULL || import_src == NULL) {
-        fprintf(stderr, "FAIL cannot read settings/import sources\n");
+    if(settings_src == NULL || import_src == NULL || setting_keys_src == NULL) {
+        fprintf(stderr, "FAIL cannot read settings/import key sources\n");
         return 1;
     }
     memset(&saved, 0, sizeof(saved));
@@ -178,7 +204,25 @@ main(void)
         scan_first_literal_per_call(&loaded, app_src, "storage_get_setting_text(");
         free(app_src);
     }
-    scan_all_literals_after(&imported, import_src, "importable_setting_keys");
+    if(strstr(import_src, "app_setting_key_importable(") == NULL) {
+        fprintf(stderr, "FAIL import path does not use app_setting_key_importable\n");
+        failures++;
+    }
+    scan_macro_x_literals(&imported, setting_keys_src,
+                          "INBE_IMPORTABLE_SETTING_KEYS");
+    if(!app_setting_key_importable("audio_custom_sound_0_title") ||
+       !app_setting_key_importable("audio_custom_sound_0_path") ||
+       !app_setting_key_importable("audio_custom_music_12_title") ||
+       !app_setting_key_importable("audio_custom_music_12_path")) {
+        fprintf(stderr, "FAIL generated custom audio item keys are not importable\n");
+        failures++;
+    }
+    if(app_setting_key_importable("audio_custom_sound_title") ||
+       app_setting_key_importable("audio_custom_sound_0_file") ||
+       app_setting_key_importable("audio_custom_sound_x_path")) {
+        fprintf(stderr, "FAIL malformed custom audio item keys are importable\n");
+        failures++;
+    }
 
     for(int i = 0; i < saved.count; i++) {
         if(!keyset_contains(&loaded, saved.keys[i]) &&
@@ -201,6 +245,7 @@ main(void)
            imported.count);
     free(settings_src);
     free(import_src);
+    free(setting_keys_src);
     if(failures != 0) {
         fprintf(stderr, "%d settings key test failure(s)\n", failures);
         return 1;

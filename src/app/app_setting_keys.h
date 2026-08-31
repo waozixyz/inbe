@@ -1,6 +1,8 @@
 #ifndef INBE_APP_SETTING_KEYS_H
 #define INBE_APP_SETTING_KEYS_H
 
+#include <string.h>
+
 #define INBE_IMPORTABLE_SETTING_KEYS(X) \
     X("speed") \
     X("max_rounds") \
@@ -87,5 +89,46 @@
     X("break_daily_state_day") \
     X("break_daily_state_active") \
     X("break_daily_state_skipped")
+
+static inline int
+app_setting_key_has_custom_audio_suffix(const char *key, const char *prefix)
+{
+    const char *suffix;
+    size_t prefix_len;
+
+    if(key == NULL || prefix == NULL)
+        return 0;
+    prefix_len = strlen(prefix);
+    if(strncmp(key, prefix, prefix_len) != 0)
+        return 0;
+
+    suffix = key + prefix_len;
+    if(*suffix < '0' || *suffix > '9')
+        return 0;
+    while(*suffix >= '0' && *suffix <= '9')
+        suffix++;
+    return strcmp(suffix, "_title") == 0 || strcmp(suffix, "_path") == 0;
+}
+
+static inline int
+app_setting_key_importable(const char *key)
+{
+#define INBE_SETTING_KEY_ENTRY(name) name,
+    static const char *const keys[] = {
+        INBE_IMPORTABLE_SETTING_KEYS(INBE_SETTING_KEY_ENTRY)
+    };
+#undef INBE_SETTING_KEY_ENTRY
+
+    if(key == NULL || key[0] == '\0')
+        return 0;
+    if(app_setting_key_has_custom_audio_suffix(key, "audio_custom_sound_") ||
+       app_setting_key_has_custom_audio_suffix(key, "audio_custom_music_"))
+        return 1;
+    for(size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
+        if(strcmp(key, keys[i]) == 0)
+            return 1;
+    }
+    return 0;
+}
 
 #endif

@@ -781,7 +781,7 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 		-o $@ \
 		tests/locale_keys_test.c
 
-$(SETTINGS_KEYS_TEST): tests/settings_keys_test.c src/app/app_settings.kry src/storage/import.kry | $(TEST_BIN_DIR)
+$(SETTINGS_KEYS_TEST): tests/settings_keys_test.c src/app/app_settings.kry src/app/app_setting_keys.h src/storage/import.kry | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-o $@ \
 		tests/settings_keys_test.c
