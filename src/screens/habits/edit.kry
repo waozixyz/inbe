@@ -384,7 +384,7 @@ color_palette_height :: (content_w: int) -> int #private {
 }
 
 action_delete_width :: (content_w: int) -> int #private {
-    width := TextWidth(GetLocaleText("habit_delete_button"),
+    width: int = TextWidth(GetLocaleText("habit_delete_button"),
                            GetUISmallFontSize()) + ScaleUIPx(20)
     min_w := ScaleUIPx(72)
     max_w := ScaleUIPx(112)

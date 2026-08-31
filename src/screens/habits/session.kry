@@ -350,7 +350,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                 round_edit_x := round_trash_x - icon_w - ScaleUIPx(4)
                 round_text_x := content_x + ScaleUIPx(16)
                 round_text_w := round_edit_x - round_text_x - ScaleUIPx(8)
-                editing_round := app->habit_session_edit.active &&
+                editing_round: int = app->habit_session_edit.active &&
                                  app->habit_session_edit.kind == HABIT_SESSION_EDIT_ROUND &&
                                  app->habit_session_edit.round == r &&
                                  strcmp(app->habit_session_edit.path,
@@ -413,7 +413,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
     if ctx->day_filter > 0 &&
        app->habit_detail_index >= 0 &&
        app->habit_detail_index < app->habits.count {
-        habit := &app->habits.items[app->habit_detail_index]
+        habit: InbeHabit* = &app->habits.items[app->habit_detail_index]
 
         if habit_counting_enabled(habit) {
             minimum_count := ctx->count

@@ -277,7 +277,7 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
 
     DrawRectangle(content_x, y, content_w, graph_h, DarkenUIColor(GetThemeBackground(), 7))
     for int i = 0; linked_ctx != NULL && i < linked_ctx->count; i++ {
-        entry := &linked_ctx->entries[i]
+        entry: const HabitLinkedEntry* = &linked_ctx->entries[i]
         day_index := 0
         day_offset := 0
 

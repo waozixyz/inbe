@@ -261,8 +261,8 @@ draw_json_people :: (json: const char*, array_key: const char*,
     count := 0
     font := GetUIFontSize()
     small := GetUISmallFontSize()
-    with_remove := !with_actions && strcmp(array_key, "friends") == 0
-    with_cancel := !with_actions && strcmp(array_key, "outgoing") == 0
+    with_remove: int = !with_actions && strcmp(array_key, "friends") == 0
+    with_cancel: int = !with_actions && strcmp(array_key, "outgoing") == 0
 
     if snprintf(array_path, sizeof(array_path), "$.%s", array_key) >=
        (int)sizeof(array_path) {
@@ -595,7 +595,7 @@ row_seen :: (rows: const ProfileLeaderboardDrawRow*, count: int,
 
 append_missing_friend_rows :: (app: InbeApp*, rows: ProfileLeaderboardDrawRow*,
                               count: int*) #private {
-    friend_count := 0
+    friend_count: int = 0
 
     if app == nil || rows == nil || count == nil {
         return
@@ -688,7 +688,7 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
                                                app->profile_leaderboard_metric,
                                                self_value,
                                                sizeof(self_value))
-    friend_count := app != nil ? json_array_count(app->profile_friends_json,
+    friend_count: int = app != nil ? json_array_count(app->profile_friends_json,
                                                   "friends") : 0
 
     cache_rows = storage_json_array_count_path(json, "$.rows")
@@ -863,7 +863,7 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
     account: KsyncAccount
     has_account := sync_account_load(&account) && account.public_id[0] != '\0'
     self_seen := 0
-    friend_count := app != nil ? json_array_count(app->profile_friends_json,
+    friend_count: int = app != nil ? json_array_count(app->profile_friends_json,
                                                   "friends") : 0
     columns: [3] const char* = {
         GetLocaleText("profile_friends_title"),
@@ -1052,7 +1052,7 @@ draw_choice_row :: (app: InbeApp*, x: int, w: int, y: int*, value: int*,
     for int i = 0; i < count; i++ {
         bx := x + i * (btn_w + gap)
         bw := i == count - 1 ? x + w - bx : btn_w
-        selected := *value == i
+        selected: int = *value == i
         bg := selected
                   ? DarkenUIColor(GetThemeBackground(), 18)
                   : DarkenUIColor(GetThemeBackground(), 6)

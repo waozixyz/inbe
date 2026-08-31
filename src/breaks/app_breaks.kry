@@ -250,7 +250,7 @@ app_breaks_window_update :: (app: InbeApp*) {
 # break_overlay_draw; TextButton centers each button on its x).
 app_breaks_window_click :: (app: InbeApp*, t: int, x: int, y: int,
                               view_w: int, view_h: int) {
-    timer := &app->breaks.timers[t]
+    timer: BreakTimer* = &app->breaks.timers[t]
     if timer->lock_buttons_s > 0 {
         return
     }
@@ -663,7 +663,7 @@ app_breaks_hud_update :: (app: InbeApp*) {
 
 app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: int) {
     track := DarkenUIColor(GetThemeBackground(), 18)
-    border := DarkenUIColor(GetThemeText(), 62)
+    border: Color = DarkenUIColor(GetThemeText(), 62)
     muted := DarkenUIColor(GetThemeText(), 45)
     fill := (Color){74, 178, 102, 255}
     overdue := (Color){222, 140, 44, 255}
@@ -678,7 +678,7 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
 
     row := 0
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
-        timer := &app->breaks.timers[t]
+        timer: BreakTimer* = &app->breaks.timers[t]
         if !timer->enabled {
             continue
         }
@@ -698,7 +698,7 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
         } else if timer->state == BreakStateBreaking {
             # active break: count down the remaining rest time (this is the
             # wait that resets the timer once it completes)
-            left := timer->duration_s - timer->idle_s
+            left: float = timer->duration_s - timer->idle_s
             if left < 0 {
                 left = 0
             }
@@ -725,7 +725,7 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
             } else {
                 break_format_duration(line, sizeof(line), next)
             }
-            color := next == 0 ? overdue : GetThemeText()
+            color: Color = next == 0 ? overdue : GetThemeText()
             Text(line, time_x - TextWidth(line, Text12), row_y + ScaleUIPx(2),
                  Text12, color)
 

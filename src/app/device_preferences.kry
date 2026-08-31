@@ -15,8 +15,8 @@ DESKTOP :: !ANDROID && !WEB
 
 #if DESKTOP {
     app_desktop_restore_window_size :: () #private {
-        width := config.width > 0 ? config.width : 900
-        height := config.height > 0 ? config.height : 720
+        width: int = config.width > 0 ? config.width : 900
+        height: int = config.height > 0 ? config.height : 720
 
         if width <= 0 {
             width = 900

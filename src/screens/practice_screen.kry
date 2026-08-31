@@ -304,7 +304,7 @@ practice_home_below_card_height :: (app: const InbeApp*, content_w: int) -> int 
     practice := practice_get(app != NULL ? app->exercise_type : 0)
     gap := ScaleUIPx(12)
     btn_h := ScaleUIPx(42)
-    height := practice_card_banner_bottom_padding() +
+    height: int = practice_card_banner_bottom_padding() +
               practice_home_carousel_controls_height(app) +
               ScaleUIPx(10) + btn_h
 
@@ -323,7 +323,7 @@ practice_home_below_card_height :: (app: const InbeApp*, content_w: int) -> int 
 
 practice_home_card_height :: (app: const InbeApp*, y: int, bottom_reserved: int,
                              content_w: int) -> int #private {
-    card_h := view_height - y - bottom_reserved -
+    card_h: int = view_height - y - bottom_reserved -
               practice_home_below_card_height(app, content_w)
 
     if card_h < ScaleUIPx(180) {
@@ -392,7 +392,7 @@ practice_home_metadata :: (app: InbeApp*, out: char*, out_size: size_t) #private
 }
 
 practice_home_title_height :: (app: const InbeApp*) -> int #private {
-    subtitle := app != NULL ? practice_home_subtitle(app->exercise_type) : NULL
+    subtitle: const char* = app != NULL ? practice_home_subtitle(app->exercise_type) : NULL
     return subtitle != NULL ? ScaleUIPx(80) : ScaleUIPx(58)
 }
 
@@ -732,12 +732,12 @@ practice_home_action_guide_anchor :: (manual: Rectangle, config: Rectangle) -> R
         return manual
     }
 
-    left := manual.x < config.x ? manual.x : config.x
-    top := manual.y < config.y ? manual.y : config.y
+    left: float = manual.x < config.x ? manual.x : config.x
+    top: float = manual.y < config.y ? manual.y : config.y
     right := manual.x + manual.width
     bottom := manual.y + manual.height
-    config_right := config.x + config.width
-    config_bottom := config.y + config.height
+    config_right: float = config.x + config.width
+    config_bottom: float = config.y + config.height
 
     if config_right > right {
         right = config_right

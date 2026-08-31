@@ -86,7 +86,7 @@ tick :: (app: InbeApp*) {
     hour = tm->tm_hour
 
     for int i = 0; i < app->reminder_count && i < APP_REMINDER_MAX; i++ {
-        r := &app->reminders[i]
+        r: AppReminder* = &app->reminders[i]
         reminder := (KryNotificationReminder){
             .enabled = r->enabled,
             .hour = r->hour,
@@ -111,7 +111,7 @@ tick :: (app: InbeApp*) {
     }
     today := hb.habits_today_index()
     for int i = 0; i < app->habits.count && i < INBE_HABIT_MAX; i++ {
-        habit := &app->habits.items[i]
+        habit: InbeHabit* = &app->habits.items[i]
         if habit->reminder_hour < 0 || habit->reminder_hour != hour {
             continue
         }

@@ -178,7 +178,7 @@ patterns_phase_remaining_seconds :: (app: const InbeApp*) -> int {
 }
 
 finish_session :: (app: InbeApp*) #private {
-    duration := app->patterns.elapsed_seconds
+    duration: int = app->patterns.elapsed_seconds
     result_path: [FS_PATH_MAX] char = {0}
     ratio_text: [32] char = {0}
 
@@ -218,7 +218,7 @@ handle_exit_modal :: (app: InbeApp*) -> int #private {
     } else if result == SessionExitModalSave ||
               result == SessionExitModalDiscard {
         if result == SessionExitModalSave {
-            duration := app->patterns.elapsed_seconds
+            duration: int = app->patterns.elapsed_seconds
             if duration >= 60 &&
                data_save_session_path_for_activity(&duration, 1, 0,
                                                    EXERCISE_PATTERNS,
@@ -516,7 +516,7 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
                   Text16, DarkenUIColor(GetThemeText(), 30))
 
     if app->patterns.duration_minutes > 0 {
-        remain := app->patterns.duration_minutes * 60 -
+        remain: int = app->patterns.duration_minutes * 60 -
                   app->patterns.elapsed_seconds
         if remain < 0 {
             remain = 0

@@ -55,7 +55,7 @@ remove_reminder :: (app: InbeApp*, index: int) #private {
 }
 
 draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #private {
-    r := &app->reminders[index]
+    r: AppReminder* = &app->reminders[index]
     row_h := ScaleUIPx(36)
     btn := ScaleUIPx(34)
     del := ScaleUIPx(30)
@@ -249,7 +249,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         if StyledButton(x, *y, w, ScaleUIPx(34),
                          GetLocaleText("reminder_add"),
                          ButtonStyleSecondary, 0, &add_hover) {
-            r := &app->reminders[app->reminder_count]
+            r: AppReminder* = &app->reminders[app->reminder_count]
             r->practice = 0
             r->hour = 8
             r->enabled = 1

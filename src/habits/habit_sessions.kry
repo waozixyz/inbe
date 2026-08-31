@@ -153,7 +153,7 @@ habit_apply_count_action :: (app: InbeApp*, index: int, day_index: int,
     if app == nil {
         return
     }
-    habits := &app->habits
+    habits: InbeHabits* = &app->habits
     if habits == nil || index < 0 || index >= habits->count || day_index <= 0 {
         return
     }

@@ -96,7 +96,7 @@ break_engine_init :: (e: BreakEngine*) {
     }
 
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
-        timer := &e->timers[t]
+        timer: BreakTimer* = &e->timers[t]
         timer->enabled = 1
         timer->limit_s = 0
         timer->duration_s = 0
@@ -152,7 +152,7 @@ break_engine_init :: (e: BreakEngine*) {
 }
 
 break_timer_begin :: (e: BreakEngine*, t: int) #private {
-    timer := &e->timers[t]
+    timer: BreakTimer* = &e->timers[t]
 
     # A higher-priority break takes the window over: credit and reset any
     # lower break that is still showing.
@@ -182,7 +182,7 @@ break_timer_begin :: (e: BreakEngine*, t: int) #private {
 }
 
 break_timer_take :: (e: BreakEngine*, t: int, natural: int) {
-    timer := &e->timers[t]
+    timer: BreakTimer* = &e->timers[t]
     timer->state = BreakStateRunning
     timer->active_s = 0
     timer->idle_s = 0
@@ -207,7 +207,7 @@ break_timer_take :: (e: BreakEngine*, t: int, natural: int) {
     # untouched: one continuous idle period must not take the same break
     # twice, and a fresh micro cycle only starts after real input.
     if t == BREAK_REST {
-        micro := &e->timers[BREAK_MICRO]
+        micro: BreakTimer* = &e->timers[BREAK_MICRO]
         if micro->enabled && micro->state != BreakStateBreaking {
             micro->active_s = 0
             micro->idle_s = 0
@@ -221,7 +221,7 @@ break_timer_take :: (e: BreakEngine*, t: int, natural: int) {
     }
 
     if t == BREAK_MICRO && e->micro_counts_as_activity {
-        daily := &e->timers[BREAK_DAILY]
+        daily: BreakTimer* = &e->timers[BREAK_DAILY]
         if daily->enabled && !daily->skipped_today && daily->limit_s > 0 {
             daily->active_s += timer->duration_s
         }
@@ -235,9 +235,9 @@ break_timer_due :: (e: BreakEngine*, t: int) #private {
     }
 
     if t == BREAK_MICRO {
-        rest := &e->timers[BREAK_REST]
+        rest: BreakTimer* = &e->timers[BREAK_REST]
         if rest->enabled && rest->limit_s > 0 && rest->active_s >= rest->limit_s - BreakPromotionWindowS {
-            micro := &e->timers[BREAK_MICRO]
+            micro: BreakTimer* = &e->timers[BREAK_MICRO]
             micro->active_s = 0
             micro->idle_s = 0
             micro->state = BreakStateRunning
@@ -249,7 +249,7 @@ break_timer_due :: (e: BreakEngine*, t: int) #private {
         }
     }
 
-    timer := &e->timers[t]
+    timer: BreakTimer* = &e->timers[t]
     if timer->max_prompts == 0 {
         break_timer_begin(e, t)
         return
@@ -264,7 +264,7 @@ break_timer_due :: (e: BreakEngine*, t: int) #private {
 }
 
 break_timer_step :: (e: BreakEngine*, t: int, is_active: int, owner: int) #private {
-    timer := &e->timers[t]
+    timer: BreakTimer* = &e->timers[t]
     if !timer->enabled {
         return
     }
@@ -419,7 +419,7 @@ break_engine_skip :: (e: BreakEngine*, t: int) {
     if e == nil || t < 0 || t >= BREAK_TYPE_COUNT {
         return
     }
-    timer := &e->timers[t]
+    timer: BreakTimer* = &e->timers[t]
     if timer->state != BreakStateBreaking && timer->state != BreakStatePrompting {
         return
     }
@@ -442,7 +442,7 @@ break_engine_postpone :: (e: BreakEngine*, t: int) {
     if e == nil || t < 0 || t >= BREAK_TYPE_COUNT {
         return
     }
-    timer := &e->timers[t]
+    timer: BreakTimer* = &e->timers[t]
     if timer->state != BreakStateBreaking && timer->state != BreakStatePrompting {
         return
     }
@@ -460,7 +460,7 @@ break_engine_force_break :: (e: BreakEngine*, t: int) {
     if e == nil || t < 0 || t >= BREAK_TYPE_COUNT {
         return
     }
-    timer := &e->timers[t]
+    timer: BreakTimer* = &e->timers[t]
     if !timer->enabled || timer->state == BreakStateBreaking {
         return
     }
@@ -487,7 +487,7 @@ break_engine_set_day :: (e: BreakEngine*, day_key: int) -> int {
     }
     e->day_key = day_key
 
-    daily := &e->timers[BREAK_DAILY]
+    daily: BreakTimer* = &e->timers[BREAK_DAILY]
     daily->active_s = 0
     daily->idle_s = 0
     daily->idle_latched = 0
@@ -580,7 +580,7 @@ break_engine_note_idle :: (e: BreakEngine*, idle_s: int) -> int {
 
     took := 0
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
-        timer := &e->timers[t]
+        timer: BreakTimer* = &e->timers[t]
         if !timer->enabled || timer->duration_s <= 0 || timer->idle_latched {
             continue
         }

@@ -66,7 +66,7 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
     }
 
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
-        timer := &app->breaks.timers[t]
+        timer: BreakTimer* = &app->breaks.timers[t]
         line: [96] char
         next := break_timer_next_due_s(&app->breaks, t)
 
@@ -111,7 +111,7 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
 }
 
 settings_breaks_draw_timer :: (app: InbeApp*, t: int, x: int, w: int, y: int*) #private {
-    timer := &app->breaks.timers[t]
+    timer: BreakTimer* = &app->breaks.timers[t]
     header: const char*
     limit_min := timer->limit_s / 60
     duration := timer->duration_s
@@ -221,7 +221,7 @@ settings_breaks_draw_week :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     muted := DarkenUIColor(GetThemeText(), 40)
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
         line: [128] char
-        name := t == BREAK_REST ? GetLocaleText("break_rest_title") : t == BREAK_DAILY ? GetLocaleText("break_daily_title") : GetLocaleText("break_micro_title")
+        name: const char* = t == BREAK_REST ? GetLocaleText("break_rest_title") : t == BREAK_DAILY ? GetLocaleText("break_daily_title") : GetLocaleText("break_micro_title")
         snprintf(line, sizeof(line), "%s  %d / %d / %d",
                  name, taken[t], skipped[t], postponed[t])
         Text(line, x, *y, Text12, muted)

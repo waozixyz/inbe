@@ -305,7 +305,7 @@ storage_save_session_checkin :: (path_or_id: const char*,
     bind_text(stmt, 7, checkin->tags)
     sqlite3_bind_int64(stmt, 8, now_seconds())
     sqlite3_step(stmt)
-    changed := sqlite3_changes(g_storage.db) > 0
+    changed: int = sqlite3_changes(g_storage.db) > 0
     sqlite3_finalize(stmt)
     if changed {
         storage_enqueue_sync_session(id)

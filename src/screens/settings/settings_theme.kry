@@ -64,7 +64,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
 draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     scale_value := app->ui_scale_tenths
     multiplier := scale_value / 10.0f
-    effective := multiplier * GetUIDPIScale()
+    effective: float = multiplier * GetUIDPIScale()
     scale_text: [16] char
     step_w := ScaleUIPx(28)
     step_gap := ScaleUIPx(8)

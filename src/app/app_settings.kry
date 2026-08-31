@@ -252,7 +252,7 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("reminder_count", app->reminder_count)
     for int i = 0; i < APP_REMINDER_MAX; i++ {
         key: [40] char
-        r := &app->reminders[i]
+        r: AppReminder* = &app->reminders[i]
         if snprintf(key, sizeof(key), "reminder_%d_practice", i) <
            (int)sizeof(key) {
             save_setting_int(key, i < app->reminder_count ? r->practice : 0)
@@ -330,7 +330,7 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("break_micro_counts_as_activity",
                         app->breaks.micro_counts_as_activity ? 1 : 0)
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
-        timer := &app->breaks.timers[t]
+        timer: BreakTimer* = &app->breaks.timers[t]
         key: [48] char
         break_timer_setting_key(t, "enabled", key, sizeof(key))
         save_setting_int(key, timer->enabled ? 1 : 0)
@@ -429,7 +429,7 @@ load_reminders :: (app: InbeApp*, cache: const SettingsLoadCache*) #private {
         settings_cache_get_int(cache, "reminder_count", 1), 0,
         APP_REMINDER_MAX)
     for int i = 0; i < app->reminder_count; i++ {
-        r := &app->reminders[i]
+        r: AppReminder* = &app->reminders[i]
         r->practice = 0
         r->hour = 8
         r->enabled = 1
@@ -584,7 +584,7 @@ app_load_settings :: (app: InbeApp*) -> int {
     load_bool_setting(&settings_cache, &app->breaks.micro_counts_as_activity,
                          "break_micro_counts_as_activity", 0)
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
-        timer := &app->breaks.timers[t]
+        timer: BreakTimer* = &app->breaks.timers[t]
         key: [48] char
         break_timer_setting_key(t, "enabled", key, sizeof(key))
         load_bool_setting(&settings_cache, &timer->enabled, key,

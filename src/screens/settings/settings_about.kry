@@ -129,7 +129,7 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
             *y += ScaleUIPx(26)
             if inbe_update_is_downloading() != 0 {
                 fraction := inbe_update_download_fraction()
-                progress := fraction >= 0.0 ?
+                progress: int = fraction >= 0.0 ?
                     (int)(fraction * 100.0 + 0.5) : -1
                 progress_text: [40] char = {0}
                 if progress >= 0 {

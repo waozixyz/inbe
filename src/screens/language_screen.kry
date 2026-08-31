@@ -17,7 +17,7 @@ language_screen_draw :: (app: InbeApp*) {
     button_x := 0
     button_y := 0
     next_hover := 0
-    selected_index := &app->language_index
+    selected_index: int* = &app->language_index
     language_count := GetLocaleCount()
     selection_changed := 0
 

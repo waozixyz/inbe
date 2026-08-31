@@ -67,7 +67,7 @@ habit_counter_day_action :: (app: InbeApp*, habit_index: int, day_index: int,
                                 disabled: int, allow_left_increment: int) -> int {
     mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
-    inside := !disabled && CheckCollisionPointRec(mouse, bounds)
+    inside: int = !disabled && CheckCollisionPointRec(mouse, bounds)
     same := app->habit_counter_press_index == habit_index &&
             app->habit_counter_press_day == day_index
     captured := UIInputCapturesClick(mouse)

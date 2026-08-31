@@ -572,6 +572,26 @@ $(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS)
 	touch $@
 	find $(KRY_GEN_DIR) -type f \( -name '*.c' -o -name '*.h' \) -exec touch -r $@ {} +
 
+PLAN9_DIR := $(BUILD_DIR)/plan9
+PLAN9_GENERATED := $(PLAN9_DIR)/generated
+PLAN9_FILE_LIST := $(PLAN9_DIR)/generated-c-files.txt
+PLAN9_EMBEDDED_ASSETS_C := $(PLAN9_DIR)/inbe_embedded_assets.c
+
+# Native Plan 9 build inputs: k2c emits 8c-safe C directly, the embedded
+# table carries the locales, images, and subset fonts (audio stays
+# stubbed on Plan 9, so the OGG sounds are not carried), and the file
+# list feeds the mkfile.
+.PHONY: kry-c-plan9
+kry-c-plan9: $(KRY_GEN_STAMP)
+	rm -rf $(PLAN9_GENERATED)
+	$(K2C) --plan9 --root $(abspath .) \
+		--include-dir vendor/kryon/include --include-dir src \
+		--include-dir $(KRY_GEN_DIR) --include-dir vendor-builds/sqlite \
+		-o $(PLAN9_GENERATED) $(KRY_SRCS)
+	find $(PLAN9_GENERATED) -type f -name '*.c' | LC_ALL=C sort > $(PLAN9_FILE_LIST)
+	sh vendor/kryon/scripts/embed-assets.sh $(PLAN9_EMBEDDED_ASSETS_C) \
+		$(LOCALE_FILES) $(IMAGE_FILES) $(FONT_FILES)
+
 $(KRY_GEN_SRCS) $(KRY_GEN_HDRS) $(KRY_PROJECT_HDR) $(KRY_PROJECT_C): $(KRY_GEN_STAMP)
 
 dist:
