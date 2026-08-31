@@ -2246,6 +2246,7 @@ draw_secure_migration_modal(InbeApp *app)
         long long total = status.secure_migration_total;
         long long done = status.secure_migration_done;
         char progress_label[64];
+        ProgressBarProps progress_props;
         int progress_max;
         int progress_value;
 
@@ -2261,18 +2262,18 @@ draw_secure_migration_modal(InbeApp *app)
         progress_value = done > INT_MAX ? INT_MAX : (int)done;
         snprintf(progress_label, sizeof(progress_label), "%lld / %lld",
                  done, total);
-        Progress((ProgressBarProps){
-            .bounds = {
-                (float)frame.content_x,
-                (float)y,
-                (float)frame.content_w,
-                (float)ScaleUIPx(24)
-            },
-            .min = 0,
-            .max = progress_max > 0 ? progress_max : 1,
-            .value = progress_value,
-            .label = progress_label
-        });
+        memset(&progress_props, 0, sizeof(progress_props));
+        progress_props.bounds = (Rectangle){
+            (float)frame.content_x,
+            (float)y,
+            (float)frame.content_w,
+            (float)ScaleUIPx(24)
+        };
+        progress_props.min = 0;
+        progress_props.max = progress_max > 0 ? progress_max : 1;
+        progress_props.value = progress_value;
+        progress_props.label = progress_label;
+        Progress(progress_props);
         return;
     }
 
