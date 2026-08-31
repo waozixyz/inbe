@@ -359,7 +359,7 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
                                       leaderboard_json, sizeof(leaderboard_json))
             snprintf(leaderboard_avg_json, sizeof(leaderboard_avg_json), "{\"rows\":[]}")
             if result == KSYNC_SYNC_OK && strcmp(args->practice, "whm") == 0 {
-                avg_metric := strcmp(args->practice, "meditation") == 0 ? "avg_time" : "avg_hold"
+                avg_metric: const char* = strcmp(args->practice, "meditation") == 0 ? "avg_time" : "avg_hold"
                 leaderboard_avg_result = sync_client_get_friend_stats(
                     args->url, "inbe", args->practice, avg_metric,
                     leaderboard_avg_json, sizeof(leaderboard_avg_json))
