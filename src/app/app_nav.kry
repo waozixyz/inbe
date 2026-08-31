@@ -612,7 +612,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     y: int
     hover := 0
     close_hover := 0
-    scrim := BLACK
+    scrim: Color = BLACK
     area: UIScrollArea
     view: UIScrollView
     account: KsyncAccount
