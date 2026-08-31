@@ -173,6 +173,19 @@ p:last-child { margin-bottom: 0; }
 	border-radius: 5px;
 }
 
+.site-return {
+	display: inline-flex;
+	align-items: center;
+	color: var(--accent);
+	font-size: 13px;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.site-return:hover {
+	color: var(--ink-strong);
+}
+
 .header-nav {
 	display: flex;
 	align-items: center;
@@ -186,8 +199,7 @@ p:last-child { margin-bottom: 0; }
 	font-size: 13px;
 }
 
-.header-nav a:hover,
-.header-nav .is-external {
+.header-nav a:hover {
 	color: var(--accent);
 }
 
@@ -317,6 +329,10 @@ input[type="text"] {
 
 	.header-nav {
 		margin-left: 0;
+	}
+
+	.site-return {
+		margin-bottom: 2px;
 	}
 
 	section,
