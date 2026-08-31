@@ -58,6 +58,7 @@ check:V:
 		echo 'missing '^$list^'; run scripts/prepare-plan9-generated-c.py on the host first' >[1=2]
 		exit missing
 	}
+	exit 0
 
 all:V: check $OUT
 
