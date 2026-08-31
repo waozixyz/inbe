@@ -56,8 +56,8 @@ break_fallback_input_seen :: () -> int #private {
     if wheel != 0 {
         return 1
     }
-    dx := GetMouseDelta().x
-    dy := GetMouseDelta().y
+    dx: float = GetMouseDelta().x
+    dy: float = GetMouseDelta().y
     if dx != 0.0f || dy != 0.0f {
         return 1
     }
