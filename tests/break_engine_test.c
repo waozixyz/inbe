@@ -469,7 +469,6 @@ static void
 test_rest_completion_resets_micro(void)
 {
     BreakEngine e;
-    int brk = -1;
 
     break_engine_init(&e);
     e.timers[BREAK_DAILY].enabled = 0;

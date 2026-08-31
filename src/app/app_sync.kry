@@ -71,7 +71,7 @@ static g_sync_events_url: [256] char
 #if !WEB {
     static g_sync_mutex: KryMutex = KRY_MUTEX_INIT
     static g_sync_result: InbeSyncWorkerResult = {0, KSYNC_SYNC_OK, 0}
-    static g_social_result: InbeSocialWorkerResult = {0, KSYNC_SYNC_OK, "", "", "", ""}
+    static g_social_result: InbeSocialWorkerResult = {0, KSYNC_SYNC_OK, "", "", "", "", "", ""}
     static g_sync_events_running: int = 0
 } #else {
     static g_sync_events_retry_at: double = 0.0

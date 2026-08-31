@@ -623,7 +623,7 @@ session_step_forward :: (app: InbeApp*) #private {
 }
 
 draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
-    text: [CountSize] char
+    text: [16] char
     count: int
     font: int = Text24
     text_color: Color = text_color_for_background(GetThemeCircle())

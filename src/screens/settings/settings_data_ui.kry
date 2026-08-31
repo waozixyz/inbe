@@ -28,6 +28,7 @@ NATIVE_FILE_DIALOG :: #defined(INBE_HAS_KRYON_FILE_DIALOG)
 #if WEB {
     #import <emscripten.h>
     web_download_file :: (path: const char*, filename: const char*, mime: const char*) -> int #intrinsic "web"
+    static web_export_path: const char* = "/tmp/inbe-web-export.zip"
     static web_file_dialog: FileDialog = {0}
     static web_file_dialog_ready: int = 0
 }
@@ -45,21 +46,25 @@ static sync_server_url_key: const char* = "sync_server_url"
 static sync_server_url_default: const char* = "https://api.waozi.xyz"
 static data_import_filter: const char* = ".db,.zip"
 static sync_key_import_filter: const char* = ".key"
-static android_data_import_mime_types: const char* = "application/zip,application/x-zip-compressed,application/vnd.sqlite3,application/x-sqlite,application/x-sqlite3,application/octet-stream"
-static android_sync_key_import_mime_types: const char* = "*/*"
-static web_export_path: const char* = "/tmp/inbe-web-export.zip"
 
-SettingsFileDialogOrigin :: struct {
-    active: int
-    screen: int
-    settings_tab: int
-    settings_scroll: int
-    profile_view: int
-    profile_scroll: int
+#if ANDROID {
+    static android_data_import_mime_types: const char* = "application/zip,application/x-zip-compressed,application/vnd.sqlite3,application/x-sqlite,application/x-sqlite3,application/octet-stream"
+    static android_sync_key_import_mime_types: const char* = "*/*"
 }
 
-static data_file_dialog_action: int = SETTINGS_DATA_ACTION_NONE
-static file_dialog_origin: SettingsFileDialogOrigin = {0}
+#if ANDROID || WEB {
+    SettingsFileDialogOrigin :: struct {
+        active: int
+        screen: int
+        settings_tab: int
+        settings_scroll: int
+        profile_view: int
+        profile_scroll: int
+    }
+
+    static data_file_dialog_action: int = SETTINGS_DATA_ACTION_NONE
+    static file_dialog_origin: SettingsFileDialogOrigin = {0}
+}
 static pending_import_path: [FS_PATH_MAX] char = ""
 static pending_import_info: DataImportInfo = {0}
 static sync_review_diff_scroll: int = 0
@@ -292,6 +297,7 @@ start_sync_key_import_dialog :: (app: InbeApp*) -> int #private {
         return 0
     } #else_if NATIVE_FILE_DIALOG {
         dlg: FileDialog = {0}
+        unused app
         InitFileDialog(&dlg)
         if LoadFilteredFileDialog(&dlg, GetLocaleText("sync_import_key_dialog_title"),
                                   sync_key_import_filter) {
@@ -568,6 +574,7 @@ import_data :: (app: InbeApp*) #private {
         settings_screen_set_status_success(GetLocaleText("import_data_dialog_title"), nil)
     } #else_if NATIVE_FILE_DIALOG {
         dlg: FileDialog = {0}
+        unused app
         InitFileDialog(&dlg)
         if LoadFilteredFileDialog(&dlg, GetLocaleText("import_data_dialog_title"),
                                   data_import_filter) {
@@ -675,6 +682,7 @@ export_csv :: (app: InbeApp*) #private {
         }
     } #else_if NATIVE_FILE_DIALOG {
         dlg: FileDialog = {0}
+        unused app
         InitFileDialog(&dlg)
         if SaveFileDialog(&dlg, GetLocaleText("export_csv_dialog_title"),
                           "inbe-sessions.csv") {

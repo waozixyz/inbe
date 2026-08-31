@@ -18,6 +18,7 @@ settings_breaks_timer_row_h :: (label: const char*, w: int) -> int #private {
 }
 
 settings_breaks_content_height :: (app: InbeApp*, content_w: int) -> int {
+    unused app
     label_w := content_w > 0 ? content_w : ScaleUIPx(240)
     height := ScaleUIPx(120)
 
@@ -190,6 +191,8 @@ settings_breaks_draw_timer :: (app: InbeApp*, t: int, x: int, w: int, y: int*) #
 }
 
 settings_breaks_draw_week :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+    unused app
+    unused w
     rows: [42] BreakDayRow
     count := storage_break_history(7, rows, 42)
 

@@ -15,6 +15,7 @@ ANDROID :: ANDROID_BUILD
     #import "android_wakelock.h"
 #private
     set_global_inbe_app :: (app: InbeApp*) #extern
+    static android_background_session_started: int = 0
 }
 
 PracticeId :: enum {
@@ -54,8 +55,6 @@ PracticeDefinition :: struct {
     background_stop: PracticeVoidFn
     advance_elapsed: PracticeAdvanceElapsedFn
 }
-
-static android_background_session_started: int = 0
 
 static practices: [PRACTICE_COUNT] const PracticeDefinition = {
     {

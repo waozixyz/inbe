@@ -363,7 +363,6 @@ draw_config :: (app: InbeApp*) #private {
             GetLocaleText("patterns_phase_hold_out")
         }
         for int i = 0; i < 4; i++ {
-            value := app->patterns.custom[i]
             Text(step_labels[i], x, y, GetUIFontSize(), GetThemeText())
             minus_w := ScaleUIPx(46)
             if StyledButton(x + w - minus_w * 2 - gap, y,
@@ -459,7 +458,9 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     ratio: [4] int
     time_text: [32] char
     hover := 0
-    title_h := UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
+    title_h := UIGetNodeHeight(UINodeTabBar((TabBarProps){
+        .bounds = (Rectangle){0, 0, 0, 0}
+    }))
     circle_text := pattern_text_color_for_background(GetThemeCircle())
     top_y := 0
 

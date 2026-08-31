@@ -132,6 +132,7 @@ settings_audio_dialog_begin :: (app: InbeApp*, action: int, practice: int) #priv
     } #else {
         unused app
         unused action
+        unused practice
     }
 }
 
@@ -648,7 +649,6 @@ settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
 
 draw_import_button :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, action: int, practice: int) #private {
     hover := 0
-    button_id := 880 + action + (practice >= 0 ? (practice + 1) * 16 : 0)
     if StyledButton(x, *y, w, ScaleUIPx(36), label,
                            ButtonStyleSecondary, 0, &hover) {
         settings_audio_start_import(app, action, practice)

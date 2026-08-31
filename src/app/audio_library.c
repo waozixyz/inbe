@@ -405,7 +405,7 @@ app_audio_music_path(const InbeApp *app, int index, char *out, size_t out_size)
         return 0;
     out[0] = '\0';
     if(index >= 0 && index < INBE_AUDIO_BUILTIN_MUSIC_COUNT) {
-        char candidate[FS_PATH_MAX];
+        char candidate[FS_PATH_MAX * 2];
 #if defined(DEBUG_LOCAL_ASSETS) || defined(KRYON_PLATFORM_PLAN9)
         snprintf(candidate, sizeof(candidate), "unpackaged_assets/audio/%s",
                  audio_builtin_music_files[index]);

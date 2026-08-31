@@ -340,6 +340,7 @@ practice_home_action_gap :: (content_w: int) -> int #private {
 }
 
 practice_home_subtitle :: (exercise: int) -> const char* #private {
+    unused exercise
     return NULL
 }
 
@@ -563,7 +564,7 @@ practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private 
     if tab_count <= 0 {
         return -1
     }
-    clicked = TabBar((TabBarProps){.bounds = {0, (float)y, (float)view_width, (float)UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))}, .tabs = tabs, .count = tab_count, .selected_index = selected_index, .min_tab_width = ScaleUIPx(120), .max_tab_width = ScaleUIPx(180)})
+    clicked = TabBar((TabBarProps){.bounds = (Rectangle){0, (float)y, (float)view_width, (float)UIGetNodeHeight(UINodeTabBar((TabBarProps){.bounds = (Rectangle){0, 0, 0, 0}}))}, .tabs = tabs, .count = tab_count, .selected_index = selected_index, .min_tab_width = ScaleUIPx(120), .max_tab_width = ScaleUIPx(180)})
     return clicked >= 0 && clicked < tab_count ? values[clicked] : -1
 }
 
@@ -630,7 +631,7 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
             app_switch_route(app, route)
         }
     } else {
-        ToolbarHeader((ToolbarHeaderProps){.leading_icon = (Texture2D){0}, .toolbar = (ToolbarProps){.id = 300, .height = UIGetNodeHeight(UINodeTabBar((TabBarProps){0})), .options = app->modal.active ? NULL : exercise_options, .option_count = app->modal.active ? 0 : activity_count, .selected_index = &activity_index, .dropdown_min_width = ScaleUIPx(160), .dropdown_height = ScaleUIPx(36), .side_padding = -1}})
+        ToolbarHeader((ToolbarHeaderProps){.leading_icon = (Texture2D){0}, .toolbar = (ToolbarProps){.id = 300, .height = UIGetNodeHeight(UINodeTabBar((TabBarProps){.bounds = (Rectangle){0, 0, 0, 0}})), .options = app->modal.active ? NULL : exercise_options, .option_count = app->modal.active ? 0 : activity_count, .selected_index = &activity_index, .dropdown_min_width = ScaleUIPx(160), .dropdown_height = ScaleUIPx(36), .side_padding = -1}})
     }
     if !app->modal.active {
         app->practice_tab = PRACTICE_TAB_PLAY
@@ -794,7 +795,6 @@ start :: (app: InbeApp*) #ui {
     card_h := 0
     gap := ScaleUIPx(12)
     btn_h := ScaleUIPx(42)
-    hover := 0
     carousel_count := 0
     row_gap := 0
     manual_w := 0

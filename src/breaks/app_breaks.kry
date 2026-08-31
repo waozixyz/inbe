@@ -95,6 +95,9 @@ break_play_cue :: (app: InbeApp*, scale: float) #private {
 }
 
 break_engine_open_window :: (app: InbeApp*, t: int) #private {
+    #if !WIN32 {
+        unused t
+    }
     #if WIN32 {
         title: const char* = GetLocaleText("break_micro_title")
         if t == BREAK_REST {

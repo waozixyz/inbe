@@ -147,7 +147,9 @@ habits_screen_selector_height :: (app: InbeApp*) -> int {
 habits_screen_top_reserved :: (app: InbeApp*) -> int {
     if app != nil && app->habits.screen_mode == HABITS_SCREEN_DETAIL {
         return habits_screen_selector_height(app) +
-               UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
+               UIGetNodeHeight(UINodeTabBar((TabBarProps){
+                   .bounds = (Rectangle){0, 0, 0, 0}
+               }))
     }
     return habits_screen_selector_height(app)
 }
@@ -385,11 +387,13 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
             .disabled = app->modal.active
         }
         clicked_tab = TabBar((TabBarProps){
-            .bounds = {
+            .bounds = (Rectangle){
                 0,
                 (float)habits_screen_selector_height(app),
                 (float)view_width,
-                (float)UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
+                (float)UIGetNodeHeight(UINodeTabBar((TabBarProps){
+                    .bounds = (Rectangle){0, 0, 0, 0}
+                }))
             },
             .tabs = tabs,
             .count = HABIT_TAB_COUNT,
@@ -625,7 +629,9 @@ habits_screen_tab_anchor :: (app: InbeApp*, first_tab: int,
     bar_x: int = 0
     bar_y: int = habits_screen_selector_height(app)
     bar_w: int = view_width
-    tab_h: int = UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
+    tab_h: int = UIGetNodeHeight(UINodeTabBar((TabBarProps){
+        .bounds = (Rectangle){0, 0, 0, 0}
+    }))
     tab_w: int = bar_w / HABIT_TAB_COUNT
     x: int
     w: int = tab_count * tab_w

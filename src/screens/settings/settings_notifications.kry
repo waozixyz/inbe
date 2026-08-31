@@ -60,7 +60,6 @@ draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #priva
     btn := ScaleUIPx(34)
     del := ScaleUIPx(30)
     gap := ScaleUIPx(10)
-    hover := 0
     options: [APP_REMINDER_PRACTICE_COUNT] const char* = {0}
 
     for int p = 0; p < APP_REMINDER_PRACTICE_COUNT; p++ {
@@ -175,11 +174,12 @@ handle_overlays :: (app: InbeApp*) {
         } else if picked < 0 {
             close_picker(app)
         }
+    } #else {
+        unused app
     }
 }
 
 draw :: (app: InbeApp*, x: int, w: int, y: int*) {
-    push_hover := 0
     test_hover := 0
     add_hover := 0
     friend_toggle := 0
@@ -190,6 +190,8 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
 
     #if ANDROID {
+        push_hover := 0
+
         Text(GetLocaleText("notifications_push_section"), x, *y,
              GetUIFontSize(), GetThemeText())
         *y += ScaleUIPx(30)

@@ -1080,10 +1080,8 @@ draw_choice_row :: (app: InbeApp*, x: int, w: int, y: int*, value: int*,
 
 draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
     practice_options: [EXERCISE_COUNT] const char* = {0}
-    metric_options: [PROFILE_LEADERBOARD_METRIC_COUNT] const char* = {0}
     current_metric_count := 0
     before_practice := 0
-    before_metric := 0
 
     if app == nil {
         return
@@ -1110,13 +1108,6 @@ draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
         load_leaderboard_cache(app)
     }
 
-    metric_options[PROFILE_LEADERBOARD_STREAK] =
-        metric_label(app->profile_leaderboard_practice,
-                     PROFILE_LEADERBOARD_STREAK)
-    metric_options[PROFILE_LEADERBOARD_AVG_HOLD] =
-        metric_label(app->profile_leaderboard_practice,
-                     PROFILE_LEADERBOARD_AVG_HOLD)
-
     *y += ScaleUIPx(16)
     Text(GetLocaleText("profile_practice_label"), x, *y,
                   GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
@@ -1139,12 +1130,6 @@ draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
         if app->profile_leaderboard_metric >= current_metric_count {
             app->profile_leaderboard_metric = PROFILE_LEADERBOARD_STREAK
         }
-        metric_options[PROFILE_LEADERBOARD_STREAK] =
-            metric_label(app->profile_leaderboard_practice,
-                         PROFILE_LEADERBOARD_STREAK)
-        metric_options[PROFILE_LEADERBOARD_AVG_HOLD] =
-            metric_label(app->profile_leaderboard_practice,
-                         PROFILE_LEADERBOARD_AVG_HOLD)
         refresh_leaderboard(app)
     }
 
