@@ -8,10 +8,13 @@
 #
 # which rewrites the k2c output for 8c and generates
 # build/plan9/{generated, generated-c-files.txt, include,
-# inbe_embedded_assets.c, sqlite3_plan9.c}. This mkfile compiles those
-# together with the native entry point, the Plan 9 sqlite VFS (real
-# sqlite instead of the old test stub), and links against
-# /$objtype/lib/libkryon.a.
+# inbe_embedded_assets.c}. This mkfile compiles those together with the
+# native entry point and links against /$objtype/lib/libkryon.a.
+#
+# sqlite stays stubbed here: 8c panics the kernel compiling the
+# amalgamation, so habit data is not persisted on Plan 9 (the VFS and
+# the amalgamation rewrite in the prepare script remain for when the
+# compiler can take them).
 
 TARG=inbe
 ROOT=/sys/src/inbe
@@ -35,7 +38,7 @@ CFLAGS=-FTVw
 
 gensrc=`{cat $list}
 appsrc=src/platform/plan9/inbe_plan9_main.c \
-	src/platform/plan9/sqlite_plan9_vfs.c \
+	src/platform/plan9/sqlite3_stub.c \
 	src/platform/plan9/storage_import_stub.c \
 	src/platform/plan9/meditation_music_stub.c \
 	src/app/app.c \
@@ -47,8 +50,12 @@ appsrc=src/platform/plan9/inbe_plan9_main.c \
 	src/app/app_web_bridge.c \
 	src/platform/inbe_activity_monitor.c \
 	src/storage/storage.c \
+	src/storage/storage_habits.c \
+	src/storage/storage_habit_materialize.c \
+	src/storage/storage_habit_sync.c \
+	src/storage/storage_json_builder.c \
 	src/storage/sync_client.c
-hostsrc=build/plan9/inbe_embedded_assets.c build/plan9/sqlite3_plan9.c
+hostsrc=build/plan9/inbe_embedded_assets.c
 
 allsrc=`{echo $gensrc $appsrc $hostsrc | tr ' ' '\12' | grep -v '^$' | grep -v 'storage/import.c$' | grep -v 'meditation/meditation_music.c$'}
 OFILES=`{echo $allsrc | tr ' ' '\12' | sed -e 's@\.c$@.8@' -e 's@^@'$obj'/@'}
