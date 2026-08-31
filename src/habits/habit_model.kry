@@ -397,7 +397,7 @@ habits_add_custom :: (habits: InbeHabits*, name: const char*, color: Color,
                          sync_mode: int, sync_activity: int) -> int {
     habit: InbeHabit*
     unique_name: [INBE_HABIT_NAME_SIZE] char
-    final_name := name != nil && name[0] != '\0' ? name : "Habit"
+    final_name: const char* = name != nil && name[0] != '\0' ? name : "Habit"
 
     if habits == nil || habits->count >= INBE_HABIT_MAX {
         return -1
