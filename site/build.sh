@@ -233,7 +233,7 @@ for path in \
 	_headers \
 	robots.txt \
 	sitemap.xml \
-	og.jpg \
+	og.png \
 	web-assets/dl/inbe-meditation-audio-v1.zip \
 	web-assets/icons/inbe.png \
 	web-assets/icons/github.png \
