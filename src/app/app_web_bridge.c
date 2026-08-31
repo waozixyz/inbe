@@ -401,6 +401,7 @@ web_test_rect_valid(Rectangle rect)
 static Rectangle
 web_test_first_run_guide_action_anchor(InbeApp *app)
 {
+    static const Rectangle zero_rect;
     Rectangle manual;
     Rectangle config;
     Rectangle anchor;
@@ -412,7 +413,7 @@ web_test_first_run_guide_action_anchor(InbeApp *app)
     float config_bottom;
 
     if(app == NULL)
-        return (Rectangle){0};
+        return zero_rect;
 
     manual = app->practice_home_bounds_manual;
     config = app->practice_home_bounds_config;
@@ -420,7 +421,7 @@ web_test_first_run_guide_action_anchor(InbeApp *app)
     config_valid = web_test_rect_valid(config);
 
     if(!manual_valid)
-        return config_valid ? config : (Rectangle){0};
+        return config_valid ? config : zero_rect;
     if(!config_valid)
         return manual;
 

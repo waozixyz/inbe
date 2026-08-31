@@ -2187,6 +2187,7 @@ draw_donation_reminder_modal(InbeApp *app)
 static void
 draw_secure_migration_modal(InbeApp *app)
 {
+    static const Texture2D no_texture;
     InbeStorageSyncStatus status;
     UIPanelFrame frame;
     ParagraphSpec message;
@@ -2236,7 +2237,7 @@ draw_secure_migration_modal(InbeApp *app)
 
     frame = ModalFrame(ScaleUIPx(380), modal_h,
                        GetLocaleText("sync_secure_migration_title"),
-                       (Texture2D){0}, (Texture2D){0});
+                       no_texture, no_texture);
     y = frame.content_y;
     message.width = frame.content_w;
     Paragraph(message, frame.content_x, &y);
