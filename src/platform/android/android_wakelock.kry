@@ -7,7 +7,7 @@ ANDROID :: ANDROID_BUILD
     #import <android/log.h>
     #import <jni.h>
 
-    LOG_TAG :: #define "INBE_WAKE"
+    static wakelock_log_tag: const char* = "INBE_WAKE"
 
     g_jvm :: JavaVM* = nil #global
     g_activity :: jobject = nil #global
@@ -73,7 +73,7 @@ ANDROID :: ANDROID_BUILD
 
         pthread_mutex_lock(&wakelock_mutex)
         if !wakelock_get_env(&env) {
-            __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+            __android_log_write(ANDROID_LOG_ERROR, wakelock_log_tag,
                                 "ACQUIRE: JNI not initialized - skipping wake lock")
             pthread_mutex_unlock(&wakelock_mutex)
             return
@@ -114,7 +114,7 @@ ANDROID :: ANDROID_BUILD
 
         pthread_mutex_lock(&wakelock_mutex)
         if !wakelock_get_env(&env) {
-            __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+            __android_log_write(ANDROID_LOG_ERROR, wakelock_log_tag,
                                 "RELEASE: JNI not initialized - skipping wake lock")
             pthread_mutex_unlock(&wakelock_mutex)
             return
@@ -130,7 +130,7 @@ ANDROID :: ANDROID_BUILD
 
         pthread_mutex_lock(&wakelock_mutex)
         if !wakelock_get_env(&env) {
-            __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+            __android_log_write(ANDROID_LOG_ERROR, wakelock_log_tag,
                                 "KEEP_SCREEN_ON: JNI not initialized - skipping")
             pthread_mutex_unlock(&wakelock_mutex)
             return
@@ -146,7 +146,7 @@ ANDROID :: ANDROID_BUILD
 
         pthread_mutex_lock(&wakelock_mutex)
         if !wakelock_get_env(&env) {
-            __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+            __android_log_write(ANDROID_LOG_ERROR, wakelock_log_tag,
                                 "ALLOW_SCREEN_OFF: JNI not initialized - skipping")
             pthread_mutex_unlock(&wakelock_mutex)
             return

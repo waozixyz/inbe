@@ -208,6 +208,7 @@ update_retention_marker :: (app: InbeApp*, phase_changed: int) #private {
 session_update_notification :: (app: InbeApp*) #private {
     text: [96] char = ""
     count: int
+    notification_pause: int
 
     if app == nil {
         return
@@ -228,7 +229,7 @@ session_update_notification :: (app: InbeApp*) #private {
             FormatLocaleText(text, sizeof(text), "notification_breath_in_seconds", count)
             break
         case InbePhaseStarting:
-            notification_pause: int = inbe_effective_pause_seconds(&app->inbe)
+            notification_pause = inbe_effective_pause_seconds(&app->inbe)
             FormatLocaleText(text, sizeof(text), "notification_starting_seconds",
                           notification_pause > 0
                               ? notification_pause - app->inbe.sectick / 60

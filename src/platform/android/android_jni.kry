@@ -30,7 +30,7 @@ ANDROID :: ANDROID_BUILD
         session.jvm = app->activity->vm
         session.activity = app->activity->clazz
 
-        if (*session.jvm)->GetEnv(session.jvm, &session.env, JNI_VERSION_1_6) != JNI_OK {
+        if (*session.jvm)->GetEnv(session.jvm, (void**)&session.env, JNI_VERSION_1_6) != JNI_OK {
             if (*session.jvm)->AttachCurrentThread(session.jvm, &session.env, nil) != JNI_OK ||
                session.env == nil {
                 session.jvm = nil

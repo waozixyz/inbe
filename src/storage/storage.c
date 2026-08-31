@@ -1,12 +1,12 @@
 #include "storage.h"
 
 #include "db.h"
+#include "storage_json_builder.h"
 
 #include "ksync_account.h"
 #include "ksync_crypto.h"
 #include "kryon.h"
 #include <sqlite3.h>
-#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,148 +126,6 @@ storage_make_uuid(char out[37])
     if(out == NULL)
         return;
     make_client_uuid(out);
-}
-
-typedef struct JsonBuilder {
-    char *data;
-    size_t len;
-    size_t cap;
-    int ok;
-} JsonBuilder;
-
-static int
-json_reserve(JsonBuilder *json, size_t extra)
-{
-    char *next;
-    size_t next_cap;
-
-    if(json == NULL || !json->ok)
-        return 0;
-    if(extra <= json->cap - json->len)
-        return 1;
-    next_cap = json->cap > 0 ? json->cap : 1024;
-    while(extra > next_cap - json->len)
-        next_cap *= 2;
-    next = (char *)realloc(json->data, next_cap);
-    if(next == NULL) {
-        json->ok = 0;
-        return 0;
-    }
-    json->data = next;
-    json->cap = next_cap;
-    return 1;
-}
-
-static void
-json_append_len(JsonBuilder *json, const char *text, size_t len)
-{
-    if(text == NULL || len == 0)
-        return;
-    if(!json_reserve(json, len + 1))
-        return;
-    memcpy(json->data + json->len, text, len);
-    json->len += len;
-    json->data[json->len] = '\0';
-}
-
-static void
-json_append(JsonBuilder *json, const char *text)
-{
-    if(text != NULL)
-        json_append_len(json, text, strlen(text));
-}
-
-static void
-json_appendf(JsonBuilder *json, const char *fmt, ...)
-{
-    va_list args;
-    va_list copy;
-    int needed;
-
-    if(json == NULL || fmt == NULL || !json->ok)
-        return;
-    va_start(args, fmt);
-    va_copy(copy, args);
-    needed = vsnprintf(NULL, 0, fmt, copy);
-    va_end(copy);
-    if(needed < 0) {
-        json->ok = 0;
-        va_end(args);
-        return;
-    }
-    if(json_reserve(json, (size_t)needed + 1)) {
-        vsnprintf(json->data + json->len, json->cap - json->len, fmt, args);
-        json->len += (size_t)needed;
-    }
-    va_end(args);
-}
-
-static void
-json_append_string(JsonBuilder *json, const char *text)
-{
-    const unsigned char *p = (const unsigned char *)(text != NULL ? text : "");
-
-    json_append(json, "\"");
-    while(*p != '\0') {
-        char escaped[8];
-        if(*p == '"' || *p == '\\') {
-            escaped[0] = '\\';
-            escaped[1] = (char)*p;
-            json_append_len(json, escaped, 2);
-        } else if(*p == '\b') {
-            json_append(json, "\\b");
-        } else if(*p == '\f') {
-            json_append(json, "\\f");
-        } else if(*p == '\n') {
-            json_append(json, "\\n");
-        } else if(*p == '\r') {
-            json_append(json, "\\r");
-        } else if(*p == '\t') {
-            json_append(json, "\\t");
-        } else if(*p < 0x20) {
-            snprintf(escaped, sizeof(escaped), "\\u%04x", *p);
-            json_append(json, escaped);
-        } else {
-            json_append_len(json, (const char *)p, 1);
-        }
-        p++;
-    }
-    json_append(json, "\"");
-}
-
-static void
-json_append_key_string(JsonBuilder *json, const char *key, const char *value)
-{
-    json_append_string(json, key);
-    json_append(json, ":");
-    json_append_string(json, value);
-}
-
-static void
-json_free(JsonBuilder *json)
-{
-    if(json == NULL)
-        return;
-    free(json->data);
-    memset(json, 0, sizeof(*json));
-}
-
-static void
-json_append_epoch(JsonBuilder *json, long long seconds)
-{
-    char formatted[32];
-    struct tm tm_value;
-    time_t value = (time_t)seconds;
-
-    if(seconds <= 0)
-        value = time(NULL);
-#if defined(_WIN32)
-    gmtime_s(&tm_value, &value);
-#else
-    gmtime_r(&value, &tm_value);
-#endif
-    strftime(formatted, sizeof(formatted), "%Y-%m-%dT%H:%M:%SZ", &tm_value);
-    json_append_string(json, formatted);
 }
 
 void
@@ -736,48 +594,48 @@ storage_set_sync_server_connected(int connected)
 }
 
 static void
-storage_append_habit_row_json(JsonBuilder *json, sqlite3_stmt *stmt)
+storage_append_habit_row_json(StorageJsonBuilder *json, sqlite3_stmt *stmt)
 {
-    json_append(json, "{");
-    json_append_key_string(json, "id", (const char *)sqlite3_column_text(stmt, 0));
-    json_append(json, ",");
-    json_append_key_string(json, "name", (const char *)sqlite3_column_text(stmt, 1));
-    json_appendf(json, ",\"color_r\":%d,\"color_g\":%d,\"color_b\":%d",
+    storage_json_builder_append(json, "{");
+    storage_json_builder_append_key_string(json, "id", (const char *)sqlite3_column_text(stmt, 0));
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "name", (const char *)sqlite3_column_text(stmt, 1));
+    storage_json_builder_appendf(json, ",\"color_r\":%d,\"color_g\":%d,\"color_b\":%d",
                  sqlite3_column_int(stmt, 2), sqlite3_column_int(stmt, 3),
                  sqlite3_column_int(stmt, 4));
-    json_appendf(json,
+    storage_json_builder_appendf(json,
                  ",\"sync_mode\":%d,\"sync_activity\":%d,\"counter_enabled\":"
                  "%d,\"sort_order\":%d,\"deleted_at\":%lld",
                  sqlite3_column_int(stmt, 5), sqlite3_column_int(stmt, 6),
                  sqlite3_column_int(stmt, 7) != 0 ? 1 : 0, sqlite3_column_int(stmt, 8),
                  sqlite3_column_int64(stmt, 9));
-    json_append(json, ",\"updated_at\":");
-    json_append_epoch(json, sqlite3_column_int64(stmt, 10));
-    json_appendf(json, ",\"weekdays\":%d,\"reminder_hour\":%d",
+    storage_json_builder_append(json, ",\"updated_at\":");
+    storage_json_builder_append_epoch(json, sqlite3_column_int64(stmt, 10));
+    storage_json_builder_appendf(json, ",\"weekdays\":%d,\"reminder_hour\":%d",
                  sqlite3_column_int(stmt, 11), sqlite3_column_int(stmt, 12));
-    json_append(json, "}");
+    storage_json_builder_append(json, "}");
 }
 
 static void
-storage_append_habit_day_row_json(JsonBuilder *json, sqlite3_stmt *stmt)
+storage_append_habit_day_row_json(StorageJsonBuilder *json, sqlite3_stmt *stmt)
 {
-    json_append(json, "{");
-    json_append_key_string(json, "habit_id", (const char *)sqlite3_column_text(stmt, 0));
-    json_appendf(json, ",\"local_date\":%d,\"completed\":%s,\"count\":%d,\"updated_at\":",
+    storage_json_builder_append(json, "{");
+    storage_json_builder_append_key_string(json, "habit_id", (const char *)sqlite3_column_text(stmt, 0));
+    storage_json_builder_appendf(json, ",\"local_date\":%d,\"completed\":%s,\"count\":%d,\"updated_at\":",
                  sqlite3_column_int(stmt, 1),
                  sqlite3_column_int(stmt, 2) != 0 ? "true" : "false",
                  sqlite3_column_int(stmt, 3));
-    json_append_epoch(json, sqlite3_column_int64(stmt, 4));
-    json_append(json, "}");
+    storage_json_builder_append_epoch(json, sqlite3_column_int64(stmt, 4));
+    storage_json_builder_append(json, "}");
 }
 
 static void
-storage_append_session_rounds_json(JsonBuilder *json, const char *session_id)
+storage_append_session_rounds_json(StorageJsonBuilder *json, const char *session_id)
 {
     sqlite3_stmt *stmt = NULL;
     int first = 1;
 
-    json_append(json, "\"rounds\":[");
+    storage_json_builder_append(json, "\"rounds\":[");
     if(g_storage.db != NULL && session_id != NULL &&
        sqlite3_prepare_v2(g_storage.db,
                           "SELECT round_index,seconds FROM session_rounds "
@@ -787,53 +645,53 @@ storage_append_session_rounds_json(JsonBuilder *json, const char *session_id)
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             int seconds = sqlite3_column_int(stmt, 1);
             if(!first)
-                json_append(json, ",");
+                storage_json_builder_append(json, ",");
             first = 0;
-            json_appendf(json, "{\"round_index\":%d,\"breaths\":0,\"hold_seconds\":%d}",
+            storage_json_builder_appendf(json, "{\"round_index\":%d,\"breaths\":0,\"hold_seconds\":%d}",
                          sqlite3_column_int(stmt, 0), seconds);
         }
     }
     if(stmt != NULL)
         sqlite3_finalize(stmt);
-    json_append(json, "]");
+    storage_json_builder_append(json, "]");
 }
 
 static void
-storage_append_session_row_json(JsonBuilder *json, sqlite3_stmt *stmt)
+storage_append_session_row_json(StorageJsonBuilder *json, sqlite3_stmt *stmt)
 {
     const char *id = (const char *)sqlite3_column_text(stmt, 0);
     long long started_at = sqlite3_column_int64(stmt, 1);
     long long updated_at = sqlite3_column_int64(stmt, 14);
 
-    json_append(json, "{");
-    json_append_key_string(json, "id", id);
-    json_append(json, ",\"started_at\":");
-    json_append_epoch(json, started_at);
-    json_appendf(json, ",\"local_date\":%d,\"topic\":\"%d\",\"activity\":%d,",
+    storage_json_builder_append(json, "{");
+    storage_json_builder_append_key_string(json, "id", id);
+    storage_json_builder_append(json, ",\"started_at\":");
+    storage_json_builder_append_epoch(json, started_at);
+    storage_json_builder_appendf(json, ",\"local_date\":%d,\"topic\":\"%d\",\"activity\":%d,",
                  sqlite3_column_int(stmt, 2), sqlite3_column_int(stmt, 3),
                  sqlite3_column_int(stmt, 4));
-    json_append_key_string(json, "source", (const char *)sqlite3_column_text(stmt, 5));
-    json_append(json, ",");
-    json_append_key_string(json, "rounds_hash", (const char *)sqlite3_column_text(stmt, 6));
-    json_appendf(json,
+    storage_json_builder_append_key_string(json, "source", (const char *)sqlite3_column_text(stmt, 5));
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "rounds_hash", (const char *)sqlite3_column_text(stmt, 6));
+    storage_json_builder_appendf(json,
                  ",\"mood_before\":%d,\"mood_after\":%d,\"energy\":%d,"
                  "\"stress\":%d,",
                  sqlite3_column_int(stmt, 7), sqlite3_column_int(stmt, 8),
                  sqlite3_column_int(stmt, 9), sqlite3_column_int(stmt, 10));
-    json_append_key_string(json, "note", (const char *)sqlite3_column_text(stmt, 11));
-    json_append(json, ",");
-    json_append_key_string(json, "tags", (const char *)sqlite3_column_text(stmt, 12));
-    json_appendf(json, ",\"deleted_at\":%lld,\"updated_at\":", sqlite3_column_int64(stmt, 13));
-    json_append_epoch(json, updated_at > 0 ? updated_at : started_at);
-    json_append(json, ",");
+    storage_json_builder_append_key_string(json, "note", (const char *)sqlite3_column_text(stmt, 11));
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "tags", (const char *)sqlite3_column_text(stmt, 12));
+    storage_json_builder_appendf(json, ",\"deleted_at\":%lld,\"updated_at\":", sqlite3_column_int64(stmt, 13));
+    storage_json_builder_append_epoch(json, updated_at > 0 ? updated_at : started_at);
+    storage_json_builder_append(json, ",");
     storage_append_session_rounds_json(json, id);
-    json_append(json, "}");
+    storage_json_builder_append(json, "}");
 }
 
-typedef void (*StorageJsonRowFn)(JsonBuilder *json, sqlite3_stmt *stmt);
+typedef void (*StorageJsonRowFn)(StorageJsonBuilder *json, sqlite3_stmt *stmt);
 
 static int
-storage_append_id_payload_json(JsonBuilder *json, const char *sql,
+storage_append_id_payload_json(StorageJsonBuilder *json, const char *sql,
                                const char *id, StorageJsonRowFn append_row)
 {
     sqlite3_stmt *stmt = NULL;
@@ -854,7 +712,7 @@ storage_append_id_payload_json(JsonBuilder *json, const char *sql,
 }
 
 static int
-storage_append_dated_payload_json(JsonBuilder *json, const char *sql,
+storage_append_dated_payload_json(StorageJsonBuilder *json, const char *sql,
                                   const char *id, int local_date,
                                   StorageJsonRowFn append_row)
 {
@@ -877,7 +735,7 @@ storage_append_dated_payload_json(JsonBuilder *json, const char *sql,
 }
 
 static int
-storage_append_habit_payload_json(JsonBuilder *json, const char *habit_id)
+storage_append_habit_payload_json(StorageJsonBuilder *json, const char *habit_id)
 {
     return storage_append_id_payload_json(
         json,
@@ -889,7 +747,7 @@ storage_append_habit_payload_json(JsonBuilder *json, const char *habit_id)
 }
 
 static int
-storage_append_habit_day_payload_json(JsonBuilder *json, const char *habit_id, int local_date)
+storage_append_habit_day_payload_json(StorageJsonBuilder *json, const char *habit_id, int local_date)
 {
     return storage_append_dated_payload_json(
         json,
@@ -901,7 +759,7 @@ storage_append_habit_day_payload_json(JsonBuilder *json, const char *habit_id, i
 }
 
 static int
-storage_append_session_payload_json(JsonBuilder *json, const char *session_id)
+storage_append_session_payload_json(StorageJsonBuilder *json, const char *session_id)
 {
     return storage_append_id_payload_json(
         json,
@@ -959,7 +817,7 @@ storage_sync_op_is_delete(const char *entity_type, const char *entity_id, int lo
 }
 
 static void
-storage_append_sync_op_payload(JsonBuilder *json, const char *entity_type, const char *entity_id,
+storage_append_sync_op_payload(StorageJsonBuilder *json, const char *entity_type, const char *entity_id,
                                int local_date)
 {
     int found = 0;
@@ -971,17 +829,17 @@ storage_append_sync_op_payload(JsonBuilder *json, const char *entity_type, const
     else if(strcmp(entity_type, "session") == 0)
         found = storage_append_session_payload_json(json, entity_id);
     if(!found)
-        json_append(json, "{}");
+        storage_json_builder_append(json, "{}");
 }
 
 static void
-storage_append_sync_ops_json(JsonBuilder *json, long long through_seq)
+storage_append_sync_ops_json(StorageJsonBuilder *json, long long through_seq)
 {
     sqlite3_stmt *stmt = NULL;
     const char *client_id = storage_sync_client_id();
     int first = 1;
 
-    json_append(json, "\"ops\":[");
+    storage_json_builder_append(json, "\"ops\":[");
     if(g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
                           "SELECT seq,entity_type,entity_id,local_date,queued_at "
@@ -1001,32 +859,32 @@ storage_append_sync_ops_json(JsonBuilder *json, long long through_seq)
                 continue;
             snprintf(op_id, sizeof(op_id), "%s:%lld", client_id, seq);
             if(!first)
-                json_append(json, ",");
+                storage_json_builder_append(json, ",");
             first = 0;
-            json_append(json, "{");
-            json_append(json, "\"op_id\":");
-            json_append_string(json, op_id);
-            json_append(json, ",\"client_id\":");
-            json_append_string(json, client_id);
-            json_appendf(json, ",\"seq\":%lld", seq);
-            json_append(json, ",\"entity_type\":");
-            json_append_string(json, entity_type);
-            json_append(json, ",\"entity_id\":");
-            json_append_string(json, entity_id);
+            storage_json_builder_append(json, "{");
+            storage_json_builder_append(json, "\"op_id\":");
+            storage_json_builder_append_string(json, op_id);
+            storage_json_builder_append(json, ",\"client_id\":");
+            storage_json_builder_append_string(json, client_id);
+            storage_json_builder_appendf(json, ",\"seq\":%lld", seq);
+            storage_json_builder_append(json, ",\"entity_type\":");
+            storage_json_builder_append_string(json, entity_type);
+            storage_json_builder_append(json, ",\"entity_id\":");
+            storage_json_builder_append_string(json, entity_id);
             if(local_date > 0)
-                json_appendf(json, ",\"local_date\":%d", local_date);
-            json_append(json, ",\"op_type\":");
-            json_append_string(json, is_delete ? "delete" : "upsert");
-            json_append(json, ",\"payload\":");
+                storage_json_builder_appendf(json, ",\"local_date\":%d", local_date);
+            storage_json_builder_append(json, ",\"op_type\":");
+            storage_json_builder_append_string(json, is_delete ? "delete" : "upsert");
+            storage_json_builder_append(json, ",\"payload\":");
             storage_append_sync_op_payload(json, entity_type, entity_id, local_date);
-            json_append(json, ",\"created_at\":");
-            json_append_epoch(json, queued_at);
-            json_append(json, "}");
+            storage_json_builder_append(json, ",\"created_at\":");
+            storage_json_builder_append_epoch(json, queued_at);
+            storage_json_builder_append(json, "}");
         }
     }
     if(stmt != NULL)
         sqlite3_finalize(stmt);
-    json_append(json, "]");
+    storage_json_builder_append(json, "]");
 }
 
 static const char *
@@ -1080,13 +938,13 @@ storage_private_record_key(uint8_t out[32])
 }
 
 static int
-storage_append_encrypted_record_json(JsonBuilder *json, const uint8_t key[32],
+storage_append_encrypted_record_json(StorageJsonBuilder *json, const uint8_t key[32],
                                      const char *collection, const char *record_id,
                                      const char *entity_type, const char *entity_id,
                                      int local_date, long long queued_at, int deleted)
 {
-    JsonBuilder plain = {0};
-    JsonBuilder aad = {0};
+    StorageJsonBuilder plain = {0};
+    StorageJsonBuilder aad = {0};
     uint8_t nonce[12];
     uint8_t *sealed = NULL;
     char *sealed_hex = NULL;
@@ -1108,11 +966,11 @@ storage_append_encrypted_record_json(JsonBuilder *json, const uint8_t key[32],
         goto done;
 
     aad.ok = 1;
-    json_append(&aad, collection);
-    json_append(&aad, "\n");
-    json_append(&aad, record_id);
-    json_append(&aad, "\n");
-    json_append(&aad, STORAGE_SYNC_RECORD_KEY_ID);
+    storage_json_builder_append(&aad, collection);
+    storage_json_builder_append(&aad, "\n");
+    storage_json_builder_append(&aad, record_id);
+    storage_json_builder_append(&aad, "\n");
+    storage_json_builder_append(&aad, STORAGE_SYNC_RECORD_KEY_ID);
     if(!aad.ok || aad.data == NULL)
         goto done;
 
@@ -1125,40 +983,40 @@ storage_append_encrypted_record_json(JsonBuilder *json, const uint8_t key[32],
        !KsyncCryptoBytesToHex(sealed, sealed_len, sealed_hex, sealed_len * 2 + 1))
         goto done;
 
-    json_append(json, "{");
-    json_append_key_string(json, "collection", collection);
-    json_append(json, ",");
-    json_append_key_string(json, "id", record_id);
-    json_append(json, ",");
-    json_append_key_string(json, "key_id", STORAGE_SYNC_RECORD_KEY_ID);
-    json_append(json, ",");
-    json_append_key_string(json, "nonce", nonce_hex);
-    json_append(json, ",");
-    json_append_key_string(json, "ciphertext", sealed_hex);
-    json_append(json, ",\"updated_at\":");
-    json_append_epoch(json, queued_at);
+    storage_json_builder_append(json, "{");
+    storage_json_builder_append_key_string(json, "collection", collection);
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "id", record_id);
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "key_id", STORAGE_SYNC_RECORD_KEY_ID);
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "nonce", nonce_hex);
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "ciphertext", sealed_hex);
+    storage_json_builder_append(json, ",\"updated_at\":");
+    storage_json_builder_append_epoch(json, queued_at);
     if(deleted)
-        json_appendf(json, ",\"deleted_at\":%lld", queued_at > 0 ? queued_at : now_seconds());
-    json_append(json, "}");
+        storage_json_builder_appendf(json, ",\"deleted_at\":%lld", queued_at > 0 ? queued_at : now_seconds());
+    storage_json_builder_append(json, "}");
     ok = json->ok;
 
 done:
-    json_free(&plain);
-    json_free(&aad);
+    storage_json_builder_free(&plain);
+    storage_json_builder_free(&aad);
     free(sealed);
     free(sealed_hex);
     return ok;
 }
 
 static void
-storage_append_encrypted_records_json(JsonBuilder *json, long long through_seq)
+storage_append_encrypted_records_json(StorageJsonBuilder *json, long long through_seq)
 {
     sqlite3_stmt *stmt = NULL;
     uint8_t key[32];
     int has_key;
     int first = 1;
 
-    json_append(json, "\"encrypted_records\":[");
+    storage_json_builder_append(json, "\"encrypted_records\":[");
     has_key = storage_private_record_key(key);
     if(has_key && g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
@@ -1180,7 +1038,7 @@ storage_append_encrypted_records_json(JsonBuilder *json, long long through_seq)
                                             record_id, sizeof(record_id)))
                 continue;
             if(!first)
-                json_append(json, ",");
+                storage_json_builder_append(json, ",");
             first = 0;
             if(!storage_append_encrypted_record_json(json, key, collection, record_id,
                                                      entity_type, entity_id, local_date,
@@ -1193,13 +1051,13 @@ storage_append_encrypted_records_json(JsonBuilder *json, long long through_seq)
     if(stmt != NULL)
         sqlite3_finalize(stmt);
     memset(key, 0, sizeof(key));
-    json_append(json, "]");
+    storage_json_builder_append(json, "]");
 }
 
 char *
 storage_build_sync_payload_json(const char *user_id_hash, const char *public_key_hex)
 {
-    JsonBuilder json = {0};
+    StorageJsonBuilder json = {0};
     long long since_server_version;
     long long through_seq;
     int full_upload_done;
@@ -1230,42 +1088,42 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     through_seq = storage_sync_outbox_batch_seq(STORAGE_SYNC_OP_BATCH_LIMIT);
     g_storage.pending_sync_outbox_seq = through_seq;
     json.ok = 1;
-    json_append(&json, "{");
-    json_appendf(&json, "\"protocol_version\":%d,", INBE_SYNC_PROTOCOL_VERSION);
-    json_append(&json, "\"app_id\":\"inbe\",");
-    json_append(&json, "\"client_capabilities\":[\"v4-encrypted-records\","
+    storage_json_builder_append(&json, "{");
+    storage_json_builder_appendf(&json, "\"protocol_version\":%d,", INBE_SYNC_PROTOCOL_VERSION);
+    storage_json_builder_append(&json, "\"app_id\":\"inbe\",");
+    storage_json_builder_append(&json, "\"client_capabilities\":[\"v4-encrypted-records\","
                        "\"v4-dual-write-transition\","
                        "\"v5-dual-read\","
                        "\"v5-legacy-encrypted-collections\"],");
-    json_append(&json, "\"include_legacy_data\":true,");
-    json_append_key_string(&json, "user_id_hash", user_id_hash);
-    json_append(&json, ",");
-    json_append_key_string(&json, "client_id", storage_sync_client_id());
-    json_appendf(&json, ",\"since_server_version\":%lld", since_server_version);
-    json_appendf(&json, ",\"client_clock\":%lld", get_meta_int64(STORAGE_SYNC_SERVER_CLOCK_KEY, 0));
+    storage_json_builder_append(&json, "\"include_legacy_data\":true,");
+    storage_json_builder_append_key_string(&json, "user_id_hash", user_id_hash);
+    storage_json_builder_append(&json, ",");
+    storage_json_builder_append_key_string(&json, "client_id", storage_sync_client_id());
+    storage_json_builder_appendf(&json, ",\"since_server_version\":%lld", since_server_version);
+    storage_json_builder_appendf(&json, ",\"client_clock\":%lld", get_meta_int64(STORAGE_SYNC_SERVER_CLOCK_KEY, 0));
     if(get_meta_int64(STORAGE_SYNC_FULL_REPLACE_KEY, 0) != 0)
-        json_append(&json, ",\"full_sync_requested\":true");
+        storage_json_builder_append(&json, ",\"full_sync_requested\":true");
     {
         const char *last_server_hash = get_meta_text(STORAGE_SYNC_LAST_SERVER_HASH_KEY);
         if(!force_zero_day_repair && last_server_hash != NULL && last_server_hash[0] != '\0') {
-            json_append(&json, ",");
-            json_append_key_string(&json, "last_server_state_hash", last_server_hash);
+            storage_json_builder_append(&json, ",");
+            storage_json_builder_append_key_string(&json, "last_server_state_hash", last_server_hash);
         }
     }
     if(since_server_version <= 0 || !full_upload_done)
-        json_append(&json, ",\"bootstrap\":true");
+        storage_json_builder_append(&json, ",\"bootstrap\":true");
     if(public_key_hex != NULL && public_key_hex[0] != '\0') {
-        json_append(&json, ",");
-        json_append_key_string(&json, "public_key", public_key_hex);
+        storage_json_builder_append(&json, ",");
+        storage_json_builder_append_key_string(&json, "public_key", public_key_hex);
     }
-    json_append(&json, ",\"habits\":[]");
-    json_append(&json, ",\"habit_days\":[]");
-    json_append(&json, ",\"sessions\":[]");
-    json_append(&json, ",");
+    storage_json_builder_append(&json, ",\"habits\":[]");
+    storage_json_builder_append(&json, ",\"habit_days\":[]");
+    storage_json_builder_append(&json, ",\"sessions\":[]");
+    storage_json_builder_append(&json, ",");
     storage_append_sync_ops_json(&json, through_seq);
-    json_append(&json, ",");
+    storage_json_builder_append(&json, ",");
     storage_append_encrypted_records_json(&json, through_seq);
-    json_append(&json, "}");
+    storage_json_builder_append(&json, "}");
 
     if(!json.ok || json.data == NULL) {
         free(json.data);

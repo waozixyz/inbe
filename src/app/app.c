@@ -778,20 +778,13 @@ app_toolbar_height(void)
 int
 app_content_top_reserved(const InbeApp *app)
 {
-    int system_top = 0;
     TabBarProps tabs;
-
-#if ANDROID_BUILD
-    // Include system status bar and camera cutout on Android
-    extern int android_get_system_top_reserved(void);
-    system_top = android_get_system_top_reserved();
-#endif
 
     if(app != NULL && app->inbe.screen == InbeScreenStart) {
         memset(&tabs, 0, sizeof(tabs));
-        return system_top + UIGetNodeHeight(UINodeTabBar(tabs));
+        return UIGetNodeHeight(UINodeTabBar(tabs));
     }
-    return system_top + app_toolbar_height();
+    return app_toolbar_height();
 }
 
 void

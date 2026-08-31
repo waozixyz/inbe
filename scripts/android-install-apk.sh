@@ -45,6 +45,10 @@ ABI=$(adb_run shell getprop ro.product.cpu.abi 2>&1 | tr -d '\r' | head -n 1) ||
 
 APK=""
 for candidate in \
+    "$APK_DIR"/"$VARIANT"/app-*-"$ABI"-"$VARIANT".apk \
+    "$APK_DIR"/"$VARIANT"/app-"$ABI"-"$VARIANT".apk \
+    "$APK_DIR"/"$VARIANT"/app-*-"$VARIANT".apk \
+    "$APK_DIR"/"$VARIANT"/app-"$VARIANT".apk \
     "$APK_DIR"/*/"$VARIANT"/app-*-"$ABI"-"$VARIANT".apk \
     "$APK_DIR"/app-*-"$ABI"-"$VARIANT".apk \
     "$APK_DIR"/*/"$VARIANT"/app-"$ABI"-"$VARIANT".apk \
@@ -57,7 +61,9 @@ for candidate in \
     fi
 done
 if [ ! -f "$APK" ]; then
+    echo "Expected ABI APK below: $APK_DIR/$VARIANT/app-*-$ABI-$VARIANT.apk" >&2
     echo "Expected ABI APK below: $APK_DIR/*/$VARIANT/app-*-$ABI-$VARIANT.apk" >&2
+    echo "Expected fallback below: $APK_DIR/$VARIANT/app-*-$VARIANT.apk" >&2
     echo "Expected fallback below: $APK_DIR/*/$VARIANT/app-*-$VARIANT.apk" >&2
     echo "Available APKs:" >&2
     find "$APK_DIR" -type f -name '*.apk' -print >&2 2>/dev/null || true

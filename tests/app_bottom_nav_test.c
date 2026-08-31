@@ -55,7 +55,6 @@ reset_state(void)
     mouse_position = (Vector2){0};
     view_width = 320;
     view_height = 560;
-    app_set_android_bottom_nav_height(0);
 }
 
 bool
@@ -852,18 +851,8 @@ test_edge_bottom_nav_routes_are_applied(void)
     expect(app.inbe.screen == InbeScreenHabits,
            "habits edge route should switch to habits");
 
-    app = test_app();
-    reset_state();
-    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
-    app_set_android_bottom_nav_height(24);
-    app_draw_bottom_nav(&app);
-
-    expect(bottom_nav_draw_count == 1,
-           "habits edge route should draw bottom nav with system margin");
-    expect(app.inbe.screen == InbeScreenHabits,
-           "habits edge route should switch to habits with system margin");
-    expect(bottom_nav_last.bottom_margin == 24,
-           "bottom nav should preserve Android system nav margin");
+    expect(bottom_nav_last.bottom_margin == 0,
+           "bottom nav should not apply Android system nav margin inside the safe viewport");
 }
 
 static void

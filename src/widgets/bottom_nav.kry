@@ -124,11 +124,6 @@ app_draw_bottom_nav :: (app: InbeApp*) {
     items := (BottomNavItem[APP_BOTTOM_NAV_CONTENT_MAX + 1]){0}
     result := (BottomNavResult){0}
 
-    if app_android_bottom_nav_height() > 0 {
-        DrawRectangle(0, view_height - app_android_bottom_nav_height(), view_width,
-                      app_android_bottom_nav_height(), GetThemeBackground())
-    }
-
     if app != NULL && (app->nav_sidebar_open || bottom_nav_sidebar_screen_active(app)) {
         app_draw_nav_sidebar(app)
         return
@@ -147,7 +142,7 @@ app_draw_bottom_nav :: (app: InbeApp*) {
                 route := routes[i]
                 items[i] = (BottomNavItem){route, bottom_nav_route_label(route), bottom_nav_route_icon(app, route), bottom_nav_route_active(app, route), app->modal.active}
             }
-            result = BottomNav((BottomNavProps){.view_width = view_width, .view_height = view_height, .bottom_margin = app_android_bottom_nav_height(), .count = route_count, .items = items})
+            result = BottomNav((BottomNavProps){.view_width = view_width, .view_height = view_height, .bottom_margin = 0, .count = route_count, .items = items})
             if result.clicked_route != APP_NAV_ROUTE_NONE {
                 app_apply_nav_route(app, result.clicked_route)
             }

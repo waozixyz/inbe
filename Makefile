@@ -326,7 +326,7 @@ SETTINGS_KEYS_TEST := $(TEST_BIN_DIR)/settings_keys_test
 TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(APP_BOTTOM_NAV_TEST) $(HABIT_MODEL_TEST) $(HABIT_SESSIONS_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST) $(SETTINGS_KEYS_TEST)
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
-STORAGE_CORE_SRCS := src/storage/storage.c src/storage/storage_habits.c src/storage/storage_habit_materialize.c src/storage/storage_habit_sync.c
+STORAGE_CORE_SRCS := src/storage/storage.c src/storage/storage_json_builder.c src/storage/storage_habits.c src/storage/storage_habit_materialize.c src/storage/storage_habit_sync.c
 
 APP_SRCS := \
 	src/main.c \
@@ -1600,7 +1600,17 @@ android-copy-bundle: | $(ANDROID_BUILD_DIR)
 		cp "$(ANDROID_BUILD_DIR)/$(APP_NAME)-$(APP_VERSION)-gplay.apk" "$(ANDROID_BUILD_DIR)/$(APP_NAME)-latest.apk"; \
 	fi
 
-android-install: android-debug
+android-install: android-copy-assets android-local-properties
+	@set -eu; \
+	adb_cmd='$(ADB)'; \
+	abi=$$($$adb_cmd shell getprop ro.product.cpu.abi 2>/dev/null | tr -d '\r' | head -n 1); \
+	if [ -z "$$abi" ]; then \
+		echo "Could not read Android device ABI. Connect one device, or run with ADB='adb -s SERIAL'."; \
+		exit 1; \
+	fi; \
+	echo "Android target ABI: $$abi"; \
+	$(ANDROID_GRADLE_ENV) $(GRADLE) -p droid assembleDebug -Pinbe.onlyAbi="$$abi" $(ANDROID_GRADLE_ARGS)
+	$(MAKE) android-copy-debug-apks
 	ADB='$(ADB)' sh scripts/android-install-apk.sh \
 		"$(ANDROID_APP_ID)" "$(ANDROID_ACTIVITY)" \
 		droid/app/build/outputs/apk debug

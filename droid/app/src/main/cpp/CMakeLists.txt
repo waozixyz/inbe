@@ -221,6 +221,7 @@ add_library(main SHARED
     "${SRC_DIR}/main.c"
     ${APP_C_SOURCES}
     "${SRC_DIR}/storage/storage.c"
+    "${SRC_DIR}/storage/storage_json_builder.c"
     "${SRC_DIR}/storage/storage_habits.c"
     "${SRC_DIR}/storage/storage_habit_materialize.c"
     "${SRC_DIR}/storage/storage_habit_sync.c"

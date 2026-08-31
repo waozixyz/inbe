@@ -302,15 +302,3 @@ void android_insets_init(void) {
     pending_donation_reminder = 0;
     pthread_mutex_unlock(&insets_mutex);
 }
-
-void android_insets_get(AndroidInsets *out) {
-    GetAndroidWindowInsets(out);
-}
-
-int android_insets_is_initialized(void) {
-    return GetAndroidWindowInsets(NULL);
-}
-
-int android_get_system_top_reserved(void) {
-    return GetAndroidSafeArea().top;
-}

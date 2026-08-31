@@ -11,7 +11,7 @@ ANDROID :: ANDROID_BUILD
     #import "kryon.h" #private
     #import <android/log.h>
 
-    LOG_TAG :: #define "INBE_HEALTH"
+    static health_log_tag: const char* = "INBE_HEALTH"
 
     # Writes the session list (start,end,activity per line) and asks the
     # activity to run the Health Connect permission flow and insert the
@@ -22,7 +22,7 @@ ANDROID :: ANDROID_BUILD
         snprintf(path, sizeof(path), "%s/health-connect-export.csv",
                  data_root())
         if !storage_export_health_connect_csv(path) {
-            __android_log_write(ANDROID_LOG_WARN, LOG_TAG,
+            __android_log_write(ANDROID_LOG_WARN, health_log_tag,
                                 "nothing to export")
             return 0
         }

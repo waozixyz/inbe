@@ -10,7 +10,7 @@ ANDROID :: ANDROID_BUILD
     #import <android/log.h>
     #import <unistd.h>
 
-    LOG_TAG :: #define "INBE_TIMER"
+    static timer_log_tag: const char* = "INBE_TIMER"
     TARGET_FPS :: #define 60
     FRAME_TIME_US :: #define (1000000 / TARGET_FPS)
 
@@ -53,7 +53,7 @@ ANDROID :: ANDROID_BUILD
 
             if !timer_running {
                 pthread_mutex_unlock(&timer_mutex)
-                __android_log_write(ANDROID_LOG_INFO, LOG_TAG,
+                __android_log_write(ANDROID_LOG_INFO, timer_log_tag,
                                     "Timer thread: stopping")
                 break
             }
@@ -73,7 +73,7 @@ ANDROID :: ANDROID_BUILD
                 usleep(FRAME_TIME_US)
             } else {
                 if frame_count > 0 {
-                    __android_log_write(ANDROID_LOG_INFO, LOG_TAG,
+                    __android_log_write(ANDROID_LOG_INFO, timer_log_tag,
                                         "Timer: Paused (inactive)")
                     frame_count = 0
                 }
@@ -82,7 +82,7 @@ ANDROID :: ANDROID_BUILD
             }
         }
 
-        __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Timer thread stopped")
+        __android_log_write(ANDROID_LOG_INFO, timer_log_tag, "Timer thread stopped")
         return nil
     }
 
@@ -111,7 +111,7 @@ ANDROID :: ANDROID_BUILD
 
         result := pthread_create(&timer_thread, nil, timer_thread_func, nil)
         if result != 0 {
-            __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+            __android_log_write(ANDROID_LOG_ERROR, timer_log_tag,
                                 "Failed to create timer thread")
         }
     }

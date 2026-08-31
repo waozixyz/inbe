@@ -12,6 +12,7 @@ if (hasGplayFirebaseConfig) {
         }
     }
 }
+def inbeOnlyAbi = (project.findProperty('inbe.onlyAbi') ?: '').toString()
 
 android {
     namespace 'xyz.waozi.inbe'
@@ -96,8 +97,13 @@ android {
         abi {
             enable true
             reset()
-            include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
-            universalApk true
+            if (inbeOnlyAbi) {
+                include inbeOnlyAbi
+                universalApk false
+            } else {
+                include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+                universalApk true
+            }
         }
     }
 

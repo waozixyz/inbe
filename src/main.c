@@ -350,70 +350,31 @@ windows_close_logger(void)
 #endif
 
 #if ANDROID_BUILD
-static AndroidInsets insets;
-
-typedef struct AndroidViewport {
-    int x;
-    int y;
-    int width;
-    int height;
-    int top;
-    int bottom;
-    int left;
-    int right;
-} AndroidViewport;
-
 static int
-android_clamp_content_size(int size, int leading_inset, int trailing_inset)
+android_viewport_equal(AndroidViewport a, AndroidViewport b)
 {
-    int content_size = size - leading_inset - trailing_inset;
-
-    if(content_size <= 0)
-        return size;
-
-    return content_size;
+    return a.x == b.x && a.y == b.y &&
+           a.width == b.width && a.height == b.height &&
+           a.insets.left == b.insets.left &&
+           a.insets.top == b.insets.top &&
+           a.insets.right == b.insets.right &&
+           a.insets.bottom == b.insets.bottom &&
+           a.ready == b.ready;
 }
 
-static AndroidViewport
-android_resolve_viewport(int width, int height, AndroidInsets value)
+static void
+android_log_viewport_if_changed(int width, int height, AndroidViewport viewport)
 {
-    static AndroidViewport last_logged = {-1, -1, -1, -1, -1, -1, -1, -1};
-    AndroidViewport viewport;
-    KrySafeArea safe_area = GetAndroidSafeArea();
+    static AndroidViewport last_logged = {-1, -1, -1, -1, {-1, -1, -1, -1}, -1};
 
-    (void)value;
-    viewport.left = safe_area.left;
-    viewport.top = safe_area.top;
-    viewport.right = safe_area.right;
-    viewport.bottom = safe_area.bottom;
-
-    viewport.x = viewport.left;
-    viewport.y = viewport.top;
-    viewport.width = android_clamp_content_size(width, viewport.left, viewport.right);
-    viewport.height = android_clamp_content_size(height, viewport.top, viewport.bottom);
-
-    if(viewport.width <= 0) {
-        viewport.x = 0;
-        viewport.width = width;
-    }
-    if(viewport.height <= 0) {
-        viewport.y = 0;
-        viewport.height = height;
-    }
-
-    if(viewport.x != last_logged.x || viewport.y != last_logged.y ||
-       viewport.width != last_logged.width || viewport.height != last_logged.height ||
-       viewport.top != last_logged.top || viewport.bottom != last_logged.bottom ||
-       viewport.left != last_logged.left || viewport.right != last_logged.right) {
-        TraceLog(LOG_INFO,
-                 "ANDROID_VIEWPORT: surface=%dx%d viewport=%d,%d %dx%d insets l=%d t=%d r=%d b=%d",
-                 width, height,
-                 viewport.x, viewport.y, viewport.width, viewport.height,
-                 viewport.left, viewport.top, viewport.right, viewport.bottom);
-        last_logged = viewport;
-    }
-
-    return viewport;
+    if(android_viewport_equal(viewport, last_logged))
+        return;
+    TraceLog(LOG_INFO,
+             "ANDROID_VIEWPORT: surface=%dx%d viewport=%d,%d %dx%d insets l=%d t=%d r=%d b=%d",
+             width, height, viewport.x, viewport.y, viewport.width,
+             viewport.height, viewport.insets.left, viewport.insets.top,
+             viewport.insets.right, viewport.insets.bottom);
+    last_logged = viewport;
 }
 #endif
 
@@ -461,22 +422,12 @@ frame(void)
 
 #if ANDROID_BUILD
     AndroidViewport viewport;
-    static AndroidViewport previous_viewport = {-1, -1, -1, -1, -1, -1, -1, -1};
 
-    android_insets_get(&insets);
-    if (!android_insets_is_initialized()) {
+    if(!SyncAndroidViewport(&viewport)) {
         return;
     }
-
-    viewport = android_resolve_viewport(width, height, insets);
-    app_set_android_bottom_nav_height(viewport.bottom);
-    if(viewport.x != previous_viewport.x || viewport.y != previous_viewport.y ||
-       viewport.width != previous_viewport.width || viewport.height != previous_viewport.height ||
-       viewport.top != previous_viewport.top || viewport.bottom != previous_viewport.bottom ||
-       viewport.left != previous_viewport.left || viewport.right != previous_viewport.right) {
-        InvalidateUIDPI();
-        previous_viewport = viewport;
-    }
+    GetAndroidSurfaceSize(&width, &height);
+    android_log_viewport_if_changed(width, height, viewport);
 
     BeginDrawing();
     ClearBackground(BLACK);

@@ -31,8 +31,6 @@ AppSidebarSettingsItem :: struct {
     tab: int
 }
 
-static android_bottom_nav_height: int = 0
-
 app_nav_sidebar_separator :: () -> Color #private {
     return DarkenUIColor(GetThemeSurface(), 16)
 }
@@ -210,14 +208,6 @@ app_reconcile_bottom_nav_selection :: (app: InbeApp*) #private {
     if !app_bottom_nav_has_route(app, selected_route) {
         app->main_tab = app_main_tab_for_route(app->bottom_nav_routes[0])
     }
-}
-
-app_set_android_bottom_nav_height :: (height: int) {
-    android_bottom_nav_height = height > 0 ? height : 0
-}
-
-app_android_bottom_nav_height :: () -> int {
-    return android_bottom_nav_height
 }
 
 app_open_main_tab :: (app: InbeApp*, main_tab: int, persist: int) #private {
@@ -414,10 +404,8 @@ app_current_nav_route :: (app: const InbeApp*) -> int {
 }
 
 app_fullscreen_bottom_reserved :: (app: const InbeApp*) -> int {
-    if app == NULL {
-        return 0
-    }
-    return app_android_bottom_nav_height()
+    unused app
+    return 0
 }
 
 app_sidebar_button :: (app: InbeApp*, x: int, y: int*, w: int,
