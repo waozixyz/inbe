@@ -1,4 +1,4 @@
-name: Netlify
+name: Cloudflare Pages
 
 on:
   workflow_run:
@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: netlify-${{ github.event.workflow_run.head_branch || github.ref }}
+  group: pages-${{ github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -83,24 +83,12 @@ jobs:
           name: inbe-site
           path: build/site
 
-      - name: Install Netlify CLI
-        run: npm install --global netlify-cli
-
-      - name: Deploy Preview To Netlify
-        run: |
-          set -euo pipefail
-          auth_token="$(printf '%s' "$NETLIFY_AUTH_TOKEN" | tr -d '\r\n')"
-          site_id="$(printf '%s' "$NETLIFY_SITE_ID" | tr -d '\r\n')"
-          netlify deploy \
-            --dir build/site \
-            --no-build \
-            --alias "pr-${{ github.event.pull_request.number }}" \
-            --message "Preview ${{ github.event.pull_request.number }}" \
-            --auth "$auth_token" \
-            --site "$site_id"
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      - name: Deploy Preview To Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build/site --project-name=inbe --branch=${{ github.head_ref || github.ref_name }}
 
   deploy-production:
     name: Deploy Production
@@ -119,59 +107,9 @@ jobs:
           name: inbe-site
           path: build/site
 
-      - name: Package Site
-        run: |
-          set -euo pipefail
-          test -f build/site/index.html
-          cd build/site
-          python3 -m zipfile -c ../inbe-site.zip .
-          test -s ../inbe-site.zip
-
-      - name: Deploy Production To Netlify
-        run: |
-          set -euo pipefail
-          auth_token="$(printf '%s' "$NETLIFY_AUTH_TOKEN" | tr -d '\r\n')"
-          site_id="$(printf '%s' "$NETLIFY_SITE_ID" | tr -d '\r\n')"
-          test -n "$auth_token" || { echo "::error::NETLIFY_AUTH_TOKEN is empty or missing"; exit 1; }
-          test -n "$site_id" || { echo "::error::NETLIFY_SITE_ID is empty or missing"; exit 1; }
-
-          response="$(curl --fail-with-body --silent --show-error \
-            -X POST \
-            -H "Authorization: Bearer $auth_token" \
-            -H "Content-Type: application/zip" \
-            --data-binary "@build/inbe-site.zip" \
-            "https://api.netlify.com/api/v1/sites/$site_id/deploys?production=true")"
-
-          python3 - "$response" "$auth_token" <<'PY'
-          import json
-          import sys
-          import time
-          import urllib.request
-
-          deploy = json.loads(sys.argv[1])
-          token = sys.argv[2]
-          deploy_id = deploy.get("id", "")
-          if not deploy_id:
-              print("Netlify deploy response did not include an id", file=sys.stderr)
-              raise SystemExit(1)
-
-          headers = {"Authorization": f"Bearer {token}"}
-          for _ in range(90):
-              state = deploy.get("state", "")
-              url = deploy.get("ssl_url") or deploy.get("url") or deploy.get("deploy_ssl_url") or deploy.get("deploy_url") or deploy_id
-              print(f"Netlify deploy {state}: {url}")
-              if state == "ready":
-                  raise SystemExit(0)
-              if state in ("error", "failed", "rejected"):
-                  raise SystemExit(1)
-              request = urllib.request.Request(f"https://api.netlify.com/api/v1/deploys/{deploy_id}", headers=headers)
-              with urllib.request.urlopen(request, timeout=20) as response:
-                  deploy = json.loads(response.read().decode("utf-8"))
-              time.sleep(2)
-
-          print("Netlify deploy did not become ready within 180 seconds", file=sys.stderr)
-          raise SystemExit(1)
-          PY
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      - name: Deploy Production To Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build/site --project-name=inbe --branch=master
