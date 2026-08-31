@@ -91,6 +91,7 @@ data_root :: () -> const char* {
         override_root: const char* = getenv("INBE_DATA_ROOT")
         xdg: const char* = getenv("XDG_DATA_HOME")
         home: const char* = getenv("HOME")
+        plan9_home: const char* = getenv("home")
 
         if override_root != nil && override_root[0] != '\0' {
             snprintf(g_data_root, sizeof(g_data_root), "%s", override_root)
@@ -98,6 +99,8 @@ data_root :: () -> const char* {
             snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", xdg)
         } else if home != nil && home[0] != '\0' {
             snprintf(g_data_root, sizeof(g_data_root), "%s/.local/share/inbe", home)
+        } else if plan9_home != nil && plan9_home[0] != '\0' {
+            snprintf(g_data_root, sizeof(g_data_root), "%s/.local/share/inbe", plan9_home)
         } else {
             snprintf(g_data_root, sizeof(g_data_root), ".local/inbe")
         }

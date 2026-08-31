@@ -54,7 +54,8 @@ EMBEDDED_ASSET_PATTERNS = [
     "assets/practices/sunsalutation/poses_woman_sheet.png",
     "assets/practices/sunsalutation/transition_01_01_to_02_man_sheet.png",
     "assets/practices/sunsalutation/transition_02_02_to_03_man_sheet.png",
-    "assets/sounds/*.ogg",
+    # OGG sounds are left out: the libdraw audio backend decodes WAV only and
+    # meditation music is stubbed on Plan 9, so the bytes would be dead weight.
     "assets/fonts/subset/NotoSans-Inbe-Regular.ttf",
     "assets/fonts/subset/NotoSansSC-Inbe-Regular.otf",
     "assets/fonts/subset/NotoSansJP-Inbe-Regular.otf",
