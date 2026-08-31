@@ -32,7 +32,7 @@ appsrc=src/platform/plan9/inbe_plan9_main.c \
 	src/storage/storage_json_builder.c \
 	src/storage/sync_client.c
 hostsrc=build/plan9/inbe_embedded_assets.c
-APPCPPFLAGS=-I$ROOT/build/plan9/generated \
+APPCPPFLAGS=-I$ROOT/build/plan9/generated -I$ROOT/build/plan9/generated/src \
 	-I$ROOT/src -I$ROOT/src/app -I$ROOT/src/core -I$ROOT/src/screens \
 	-I$ROOT/src/screens/settings -I$ROOT/src/practices -I$ROOT/src/practices/whm \
 	-I$ROOT/src/practices/meditation -I$ROOT/src/practices/sun_salutation \
