@@ -578,6 +578,26 @@ UIConsumeRelease(void)
     pointer_release_consumed = 1;
 }
 
+DismissibleOverlayResult
+DismissibleOverlay(DismissibleOverlayProps overlay)
+{
+    DismissibleOverlayResult result = {0};
+    Vector2 mouse = GetMousePosition();
+
+    if(mouse_released && !pointer_release_consumed &&
+       !overlay.dismiss_disabled &&
+       !CheckCollisionPointRec(mouse, overlay.bounds)) {
+        pointer_release_consumed = 1;
+        result.closed = 1;
+        result.outside_released = 1;
+        result.release_consumed = 1;
+    } else {
+        result.release_consumed = pointer_release_consumed;
+    }
+
+    return result;
+}
+
 const char *
 GetLocaleText(const char *key)
 {

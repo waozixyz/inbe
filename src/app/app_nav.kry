@@ -618,6 +618,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     account: KsyncAccount
     has_account: int
     account_label: [96] char
+    overlay: DismissibleOverlayResult
     profile_items: [1] const AppSidebarRouteItem = {
         {"tab_profile", APP_NAV_ROUTE_PROFILE}
     }
@@ -671,7 +672,14 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     }
 
     scrim.a = 92
-    DrawRectangle(0, 0, view_width, view_height, scrim)
+    overlay = DismissibleOverlay((DismissibleOverlayProps){
+        .bounds = {(float)sidebar_x, 0.0f, (float)sidebar_w,
+                   (float)view_height},
+        .view_width = view_width,
+        .view_height = view_height,
+        .scrim = scrim,
+        .dismiss_disabled = app->modal.active
+    })
     DrawRectangle(sidebar_x, 0, sidebar_w, view_height, GetThemeSurface())
     if sidebar_x > 0 {
         DrawLine(sidebar_x, 0, sidebar_x, view_height,
@@ -682,11 +690,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
         return
     }
 
-    if app->nav_sidebar_open_frame != app->inbe.frame &&
-       UIPointerReleaseOutside((Rectangle){(float)sidebar_x, 0.0f,
-                                           (float)sidebar_w,
-                                           (float)view_height}) {
-        UIConsumeRelease()
+    if app->nav_sidebar_open_frame != app->inbe.frame && overlay.closed {
         app_close_nav_sidebar(app)
         return
     }
