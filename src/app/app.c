@@ -2076,20 +2076,19 @@ draw_about_donation_modal(InbeApp *app)
     scroll_h = frame.content_h - button_h - ScaleUIPx(14);
     if(scroll_h < ScaleUIPx(120))
         scroll_h = ScaleUIPx(120);
-    scroll_area = (UIScrollArea){
-        .bounds = {
-            (float)frame.content_x,
-            (float)frame.content_y,
-            (float)frame.content_w,
-            (float)scroll_h
-        },
-        .content_height = content_h,
-        .content_x = frame.content_x,
-        .content_width = frame.content_w,
-        .scroll_offset = &app_donation_modal_scroll,
-        .wheel_step = ScaleUIPx(34),
-        .scrollbar_x = frame.content_x + frame.content_w - ScaleUIPx(8)
+    memset(&scroll_area, 0, sizeof(scroll_area));
+    scroll_area.bounds = (Rectangle){
+        (float)frame.content_x,
+        (float)frame.content_y,
+        (float)frame.content_w,
+        (float)scroll_h
     };
+    scroll_area.content_height = content_h;
+    scroll_area.content_x = frame.content_x;
+    scroll_area.content_width = frame.content_w;
+    scroll_area.scroll_offset = &app_donation_modal_scroll;
+    scroll_area.wheel_step = ScaleUIPx(34);
+    scroll_area.scrollbar_x = frame.content_x + frame.content_w - ScaleUIPx(8);
 
     scroll_view = BeginUIScrollContainer(scroll_area);
     scroll_content_w = scroll_view.content_w;
