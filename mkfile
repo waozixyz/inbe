@@ -32,12 +32,12 @@ appsrc=src/platform/plan9/inbe_plan9_main.c \
 	src/storage/storage_json_builder.c \
 	src/storage/sync_client.c
 hostsrc=build/plan9/inbe_embedded_assets.c
-APPCPPFLAGS=-I$ROOT/build/plan9/generated -I$ROOT/build/plan9/generated/src \
-	-I$ROOT/src -I$ROOT/src/app -I$ROOT/src/core -I$ROOT/src/screens \
+APPCPPFLAGS=-I$ROOT/src -I$ROOT/src/app -I$ROOT/src/core -I$ROOT/src/screens \
 	-I$ROOT/src/screens/settings -I$ROOT/src/practices -I$ROOT/src/practices/whm \
 	-I$ROOT/src/practices/meditation -I$ROOT/src/practices/sun_salutation \
 	-I$ROOT/src/storage -I$ROOT/src/platform -I$ROOT/src/platform/android \
 	-I$ROOT/src/third_party -I$ROOT/vendor-builds/sqlite \
+	-I$ROOT/build/plan9/generated -I$ROOT/build/plan9/generated/src \
 	-DANDROID_BUILD=0 -DPLATFORM_DESKTOP=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES=1 \
 	-DINBE_DISABLE_KRYON_FILE_DIALOG=1 -DSQLITE_OS_OTHER=1 -DSQLITE_THREADSAFE=0 \
 	-DSQLITE_OMIT_LOAD_EXTENSION=1 -DSQLITE_OMIT_WAL=1 -DSQLITE_TEMP_STORE=3
