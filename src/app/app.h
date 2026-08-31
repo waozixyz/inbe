@@ -11,6 +11,10 @@
 #include "screens/settings/settings_types.h"
 #include "storage/sync_account.h"
 
+/* Shared UI viewport extents, updated by the app frame loop. */
+extern int view_width;
+extern int view_height;
+
 int TextButton(int id, int x, int y, const char *label, int *hover);
 int LocaleDropdown(int id, int x, int y, int w, int h, int *selected_index);
 void ReadonlyTextBox(ReadonlyTextBoxProps props);
