@@ -75,6 +75,7 @@ int storage_get_setting_int(const char *key, int fallback);
 int storage_list_settings(void (*callback)(const char *key, const char *value, void *user), void *user);
 const char *storage_get_setting_text(const char *key);
 int storage_setting_text_equals(const char *key, const char *value);
+int storage_has_sync_account(void);
 void storage_set_setting_int(const char *key, int value);
 void storage_set_setting_text(const char *key, const char *value);
 void storage_settings_begin_write(void);

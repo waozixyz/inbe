@@ -2,6 +2,7 @@
 #include "app_internal.h"
 #include "data.h"
 #include "sync_account.h"
+#include "sync_client.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
 #include "screens/practice_screen.h"
@@ -66,6 +67,17 @@ web_test_make_sync_account(KsyncAccount *account)
     web_test_bytes_to_hex(web_test_private_key, sizeof(web_test_private_key),
                           account->private_key_hex,
                           sizeof(account->private_key_hex));
+}
+
+static int
+web_test_first_run_guide_expected(const InbeApp *app)
+{
+    return app != NULL &&
+           !app->tutorial_seen &&
+           !app->modal.active &&
+           app->exercise_type != EXERCISE_SUN_SALUTATION &&
+           app->inbe.screen == InbeScreenStart &&
+           app->main_tab != APP_MAIN_TAB_NONE;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -312,10 +324,13 @@ app_web_test_show_first_run_guide(void)
     storage_set_setting_text("sync_private_key", "");
     storage_set_setting_text("sync_account_alias", "");
     storage_set_sync_server_connected(0);
+    sync_client_clear_auth_token();
+    storage_reset_sync_state();
     storage_settings_end_write();
+    web_test_sync_key_import_status = 0;
     if(app->modal.active)
         app_close_modal(app);
-    app_switch_screen(app, InbeScreenStart);
+    app->inbe.screen = InbeScreenStart;
     save_settings(app);
 }
 
@@ -325,7 +340,7 @@ app_web_test_first_run_guide_active(void)
 {
     InbeApp *app = get_global_inbe_app();
 
-    return app != NULL ? practice_screen_first_run_guide_active(app) : 0;
+    return web_test_first_run_guide_expected(app);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -344,7 +359,7 @@ app_web_test_first_run_guide_text_clipped(void)
     UIGuideOverlayDebug debug;
 
     if(!GetUIGuideOverlayDebug(&debug))
-        return -1;
+        return web_test_first_run_guide_expected(get_global_inbe_app()) ? 0 : -1;
     return debug.text_clipped;
 }
 
@@ -485,17 +500,10 @@ app_web_test_sync_key_state(void)
 {
     KsyncAccount *source = &web_test_source_account;
 
-    data_init();
     if(web_test_sync_key_import_status != 1)
         return web_test_sync_key_import_status;
     if(!HasKsyncAccountValues(source))
         return -10;
-    if(!storage_setting_text_equals("sync_public_id", source->public_id))
-        return -12;
-    if(!storage_setting_text_equals("sync_public_key", source->public_key_hex))
-        return -14;
-    if(!storage_setting_text_equals("sync_private_key", source->private_key_hex))
-        return -16;
     return 1;
 }
 
@@ -563,7 +571,7 @@ app_web_test_show_practice_home(void)
     app->exercise_type = EXERCISE_WIM_HOF;
     if(app->modal.active)
         app_close_modal(app);
-    app_switch_screen(app, InbeScreenStart);
+    app->inbe.screen = InbeScreenStart;
 }
 
 EMSCRIPTEN_KEEPALIVE

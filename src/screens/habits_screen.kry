@@ -563,13 +563,11 @@ habits_screen_dismiss_first_run_guide :: (app: InbeApp*) {
 }
 
 habits_screen_first_run_guide_active :: (app: const InbeApp*) -> int {
-    account: KsyncAccount
-
     return app != nil &&
         !app->habits_guide_seen &&
         !app->modal.active &&
         app->inbe.screen == InbeScreenHabits &&
-        !sync_account_load(&account)
+        !storage_has_sync_account()
 }
 
 habits_screen_prepare_first_run_guide :: (app: InbeApp*) {
