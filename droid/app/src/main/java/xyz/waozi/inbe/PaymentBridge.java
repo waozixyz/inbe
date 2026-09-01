@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 import org.json.JSONObject;
 
 final class PaymentBridge {
-    private static final String KSYNC_BASE_URL = "https://api.waozi.xyz";
+    private static final String DAOCHI_BASE_URL = "https://api.waozi.xyz";
 
     private PaymentBridge() {}
 
@@ -28,7 +28,7 @@ final class PaymentBridge {
                 try {
                     String body = "{\"app_id\":\"inbe\",\"product_id\":\"" + jsonEscape(productId) + "\"}";
                     String response = SyncNetwork.httpRequest("INBE_PAYMENTS", "POST",
-                            KSYNC_BASE_URL + "/api/v1/tokens/purchases/monero/invoices",
+                            DAOCHI_BASE_URL + "/api/v1/tokens/purchases/monero/invoices",
                             body, authHeaders(authToken));
                     final Invoice invoice = parseInvoice(response);
                     activity.runOnUiThread(new Runnable() {

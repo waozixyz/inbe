@@ -21,8 +21,9 @@
     <application
         android:hasCode="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Inner Breeze"
-        android:roundIcon="@mipmap/ic_launcher_round">
+        android:label="${inbeAppLabel}"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:usesCleartextTraffic="${inbeUsesCleartextTraffic}">
         <activity
             android:name="xyz.waozi.inbe.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|uiMode"
@@ -60,7 +61,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="xyz.waozi.inbe.fileprovider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

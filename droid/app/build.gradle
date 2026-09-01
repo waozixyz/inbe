@@ -53,6 +53,10 @@ android {
         targetSdk 36
         versionCode 119
         versionName "1.9.17"
+        manifestPlaceholders = [
+            inbeAppLabel: "Inner Breeze",
+            inbeUsesCleartextTraffic: "false"
+        ]
         externalNativeBuild {
             cmake {
                 if (System.getProperty('os.name').toLowerCase().contains('freebsd')) {
@@ -82,8 +86,11 @@ android {
             buildConfigField "boolean", "INBE_GPLAY", "true"
         }
         debug {
+            applicationIdSuffix ".debug"
             signingConfig signingConfigs.debug
             buildConfigField "boolean", "INBE_GPLAY", "false"
+            manifestPlaceholders.inbeAppLabel = "Inner Breeze Debug"
+            manifestPlaceholders.inbeUsesCleartextTraffic = "true"
         }
     }
 

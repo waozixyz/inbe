@@ -100,11 +100,17 @@ main(void)
     check_valid("127.0.0.1:8080", "http://127.0.0.1:8080");
     check_valid("127.0.0.1:49152", "http://127.0.0.1:49152");
     check_valid("10.0.2.2:8080", "http://10.0.2.2:8080");
+    check_valid("192.168.100.97:18080", "http://192.168.100.97:18080");
+    check_valid("http://10.1.2.3:18080", "http://10.1.2.3:18080");
+    check_valid("http://172.16.0.1:18080", "http://172.16.0.1:18080");
+    check_valid("http://172.31.255.254:18080", "http://172.31.255.254:18080");
 
     check_invalid("");
     check_invalid("localhost.evil.test:8080");
     check_invalid("http://localhost.evil.test");
     check_invalid("http://example.com");
+    check_invalid("http://192.168.100.97.evil.test");
+    check_invalid("http://172.32.0.1:18080");
 
     check_response_buffer();
     check_friend_helpers();

@@ -3,6 +3,7 @@
 APP_NAME := inbe
 APP_TITLE := Inner Breeze
 ANDROID_APP_ID := xyz.waozi.inbe
+ANDROID_DEBUG_APP_ID := $(ANDROID_APP_ID).debug
 ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
 
 CC ?= cc
@@ -502,7 +503,7 @@ WEB_APP_SCRIPT := <script>window.__inbeRenderer="canvas";window.__inbeLoadApp("i
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
 WEB_BOOT_JS := src/web_boot.js
 # Canvas-only web build: Kryon's HTML5 Canvas2D Tier A backend. The app and
-# support libraries are still Emscripten/WASM, including ksync/liboqs for
+# support libraries are still Emscripten/WASM, including sync/liboqs for
 # sync-account parity.
 WEB_CANVAS_DIR := $(BUILD_DIST_DIR)/web-canvas
 WEB_CANVAS_TARGET := $(WEB_CANVAS_DIR)/index.html
@@ -1632,7 +1633,7 @@ android-install: android-copy-assets android-local-properties
 	$(ANDROID_GRADLE_ENV) $(GRADLE) -p droid assembleDebug -Pinbe.onlyAbi="$$abi" $(ANDROID_GRADLE_ARGS)
 	$(MAKE) android-copy-debug-apks
 	ADB='$(ADB)' sh scripts/android-install-apk.sh \
-		"$(ANDROID_APP_ID)" "$(ANDROID_ACTIVITY)" \
+		"$(ANDROID_DEBUG_APP_ID)" "$(ANDROID_ACTIVITY)" \
 		droid/app/build/outputs/apk debug
 
 android-install-release: android-release
