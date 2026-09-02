@@ -1,320 +1,149 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-	<meta charset="utf-8" />
+	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Inner Breeze - Breathing, Meditation, and Habits</title>
-	<meta name="description" content="Inner Breeze is a free, open-source breathing and meditation app with Wim Hof breathing, meditation timers, optional background music, habit tracking, themes, and local-first history.">
+	<title>Inner Breeze — breathing, meditation, and habits</title>
+	<meta name="description" content="Inner Breeze is a calm, local-first app for guided breathing, meditation, and habit tracking on the web, Android, and desktop.">
 	<link rel="canonical" href="https://inbe.waozi.xyz/">
-	<link href="/css/base.css?v=${asset_version}" rel="stylesheet">
-	<link href="/css/components.css?v=${asset_version}" rel="stylesheet">
-	<link href="/theme.css?v=${asset_version}" rel="stylesheet">
+	<link rel="stylesheet" href="/css/landing.css?v=${asset_version}">
 	<link rel="manifest" href="/manifest.json">
 	<link rel="icon" type="image/png" sizes="32x32" href="/site-icons/favicon-32x32.png">
 	<link rel="apple-touch-icon" href="/site-icons/apple-touch-icon.png">
-	<meta name="theme-color" content="#f7ede2">
+	<meta name="theme-color" content="#07111f">
 	<meta property="og:type" content="website">
 	<meta property="og:url" content="https://inbe.waozi.xyz/">
 	<meta property="og:title" content="Inner Breeze">
-	<meta property="og:description" content="Breathing, meditation sessions, habit tracking, themes, and local-first progress history.">
+	<meta property="og:description" content="A quieter place for breathing, meditation, and habits.">
 	<meta property="og:image" content="https://inbe.waozi.xyz/og.png">
+	<meta property="og:image:type" content="image/png">
+	<meta property="og:image:width" content="1200">
+	<meta property="og:image:height" content="630">
+	<meta property="og:image:alt" content="Inner Breeze, breathing, meditation, and habits">
 	<meta property="og:site_name" content="Inner Breeze">
 	<meta name="twitter:card" content="summary_large_image">
 	<meta name="twitter:title" content="Inner Breeze">
-	<meta name="twitter:description" content="Breathing, meditation sessions, habit tracking, themes, and local-first progress history.">
+	<meta name="twitter:description" content="A quieter place for breathing, meditation, and habits.">
 	<meta name="twitter:image" content="https://inbe.waozi.xyz/og.png">
+	<meta name="twitter:image:alt" content="Inner Breeze, breathing, meditation, and habits">
 </head>
 <body>
-	<header class="site-header">
-		<div class="site-header-inner">
-			<a class="site-return" href="https://waozi.xyz" aria-label="Return to waozi.xyz">← waozi</a>
-			<a class="brand" href="#main-content">
-				<img src="/web-assets/icons/inbe.png" width="22" height="22" alt="Inner Breeze">
-				<span>INNER BREEZE</span>
-			</a>
-			<nav class="header-nav" aria-label="Primary">
-				<a href="#downloads">Download</a>
-				<a href="#features">Features</a>
-				<a href="#safety">Safety</a>
-			</nav>
-		</div>
+	<header class="topbar">
+		<a class="site-return" href="https://waozi.xyz" aria-label="Back to Waozi">← waozi</a>
+		<nav aria-label="Main navigation">
+			<a href="#practices">Practices</a>
+			<a href="#download">Download</a>
+			<a href="#safety">Safety</a>
+		</nav>
 	</header>
-	<div class="content">
-		<main id="main-content">
-			<section class="hero" aria-label="App introduction and download options">
-				<div class="hero-copy">
-					<span class="hero-eyebrow"><span class="dot"></span>Breathing &middot; meditation &middot; habits</span>
-					<img class="tk-img" src="/web-assets/icons/inbe.png" width="96" alt="Inner Breeze app logo">
-					<h1>Inner Breeze</h1>
-					<p class="hero-sub">calm breathing, meditation sessions, habit tracking, themes, and local-first progress history</p>
-					<p class="version">${version}</p>
-					<div class="hero-cta">
-						<a class="btn btn-primary" href="#downloads">Download</a>
-						<a class="btn" href="https://github.com/waozixyz/inbe" target="_blank" rel="noopener">View source</a>
+
+	<main id="top">
+		<section class="hero" aria-labelledby="hero-title">
+			<div class="hero-copy">
+				<p class="eyebrow"><span></span> breathing · meditation · habits</p>
+				<h1 id="hero-title">Make room<br>to <em>breathe.</em></h1>
+				<p class="hero-lede">A calm place for guided breathing, quiet meditation, and the small habits that help you return to yourself.</p>
+				<div class="hero-actions">
+					<a class="button button-primary" href="/build/web/index.html">Start in your browser</a>
+					<a class="button" href="#download">Download the app</a>
+				</div>
+				<p class="hero-note">Version ${version} · No account required · Your history stays on your device</p>
+			</div>
+
+			<div class="breath-card" aria-label="A breathing session preview">
+				<div class="card-bar"><span></span><span></span><span></span><b>quiet session</b></div>
+				<div class="breath-scene">
+					<div class="stars" aria-hidden="true"></div>
+					<div class="breath-orbit orbit-outer" aria-hidden="true"></div>
+					<div class="breath-orbit orbit-inner" aria-hidden="true"></div>
+					<div class="breath-orb" aria-hidden="true"><i></i></div>
+					<p class="breath-label">breathe in</p>
+					<p class="breath-time">04:00</p>
+				</div>
+				<div class="card-footer"><span>sound: rain</span><span>pace: gentle</span><span>history: local</span></div>
+			</div>
+		</section>
+
+		<section class="intro" aria-label="Inner Breeze introduction">
+			<p>Practice without noise or pressure. Inner Breeze keeps the controls simple, the atmosphere soft, and your progress close to you.</p>
+		</section>
+
+		<section class="practices" id="practices" aria-labelledby="practices-title">
+			<div class="section-heading">
+				<p class="eyebrow"><span></span> three ways to slow down</p>
+				<h2 id="practices-title">One quiet space.<br>Whatever you need today.</h2>
+			</div>
+			<div class="practice-grid">
+				<article>
+					<p class="number">01</p>
+					<div class="practice-symbol rings" aria-hidden="true"></div>
+					<h3>Guided breathing</h3>
+					<p>Follow clear breath cues through gentle patterns or more intense Wim Hof–style rounds.</p>
+				</article>
+				<article class="featured">
+					<p class="number">02</p>
+					<div class="practice-symbol moon" aria-hidden="true"></div>
+					<h3>Meditation</h3>
+					<p>Set a session from five minutes to two hours, add a soft background sound, and begin.</p>
+				</article>
+				<article>
+					<p class="number">03</p>
+					<div class="practice-symbol steps" aria-hidden="true"></div>
+					<h3>Daily habits</h3>
+					<p>Choose one practice, mark the days you return, and build a rhythm without turning it into a contest.</p>
+				</article>
+			</div>
+		</section>
+
+		<section class="privacy-band" aria-labelledby="privacy-title">
+			<div>
+				<p class="eyebrow"><span></span> local first</p>
+				<h2 id="privacy-title">Your practice belongs to you.</h2>
+			</div>
+			<p>Session history, habits, and preferences stay on your device. There are no ads or analytics, and optional sync is always your choice.</p>
+		</section>
+
+		<section class="download" id="download" aria-labelledby="download-title">
+			<div class="section-heading">
+				<p class="eyebrow"><span></span> available wherever you pause</p>
+				<h2 id="download-title">Choose where to begin.</h2>
+				<p class="section-copy">Use Inner Breeze immediately on the web or install version ${version} on your usual device.</p>
+			</div>
+			<div class="download-grid">
+				<article>
+					<img src="/web-assets/icons/wasm.png" alt="">
+					<div><h3>Web</h3><p>Open a full session without installing anything.</p></div>
+					<a class="text-link" href="/build/web/index.html">Run Inner Breeze →</a>
+				</article>
+				<article>
+					<img src="/web-assets/icons/droid.png" alt="">
+					<div><h3>Android</h3><p>Install from your preferred store.</p></div>
+					<div class="link-row">
+						<a href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" target="_blank" rel="noopener">Play Store</a>
+						<a href="https://f-droid.org/packages/xyz.waozi.inbe/" target="_blank" rel="noopener">F-Droid</a>
 					</div>
-				</div>
-				<div class="hero-panel">
-					<div class="hero-panel-bar">
-						<span class="tl"></span><span class="tl"></span><span class="tl"></span>
-						<span class="title">quick start</span>
-					</div>
-					<div class="hero-panel-body">
-						<div class="quick-start-panel">
-							<div>
-								<h2>Start a session now.</h2>
-								<p>Run Inner Breeze in the browser, install from a store, or jump to every package format below.</p>
-							</div>
-						</div>
-						<nav aria-label="Quick download options" class="quick-start-actions">
-							<a class="quick-store-link is-primary" href="/build/web/index.html">
-								<img src="/web-assets/icons/wasm.png" alt="">
-								<span>Run Web</span>
-							</a>
-							<a class="quick-store-link" href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" target="_blank" rel="noopener">
-								<img src="/web-assets/icons/playstore.png" alt="">
-								<span>Play Store</span>
-							</a>
-							<a class="quick-store-link" href="https://f-droid.org/packages/xyz.waozi.inbe/" target="_blank" rel="noopener">
-								<img src="/web-assets/icons/fdroid.png" alt="">
-								<span>F-Droid</span>
-							</a>
-							<a class="quick-store-link" href="https://chromewebstore.google.com/detail/inner-breeze/lballhghblaenelehneigekpofgcaifa?pli=1" target="_blank" rel="noopener">
-								<img src="/web-assets/icons/chromewebstore.png" alt="">
-								<span>Chrome Web Store</span>
-							</a>
-							<a class="quick-store-link" href="https://waozi.itch.io/inbe" target="_blank" rel="noopener">
-								<img src="/web-assets/icons/itch.png" alt="">
-								<span>itch.io</span>
-							</a>
-							<a class="quick-store-link" href="#downloads">
-								<img src="/web-assets/icons/download.png" alt="">
-								<span>All downloads</span>
-							</a>
-						</nav>
-					</div>
-				</div>
-			</section>
+				</article>
+				<article>
+					<img src="/web-assets/icons/tux.png" alt="">
+					<div><h3>Desktop & more</h3><p>Windows, Linux, FreeBSD, browser extensions, and portable builds.</p></div>
+					<a class="text-link" href="https://github.com/waozixyz/inbe/releases/tag/v${version}" target="_blank" rel="noopener">See all downloads →</a>
+				</article>
+			</div>
+		</section>
 
-			<section class="downloads-section" id="downloads" aria-labelledby="downloads-title">
-				<div class="downloads-heading">
-					<p class="section-eyebrow">Download</p>
-					<h2 id="downloads-title">Choose your Inner Breeze build.</h2>
-					<p>Version ${version}. Pick the package for your system. Source code and release notes are on <a href="https://github.com/waozixyz/inbe" target="_blank" rel="noopener">GitHub</a>.</p>
-				</div>
-				<div class="downloads-board">
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/wasm.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>Web</h3>
-							<p>Launch in the browser, or download the web bundle.</p>
-							<nav aria-label="Web downloads" class="download-pills">
-								<a class="is-primary" href="/build/web/index.html">Hosted app</a>
-								<a data-release-asset="inbe-web.zip" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-web.zip" target="_blank" rel="noopener">Web bundle</a>
-								<a data-release-asset="inbe-chrome-web-store.zip" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-chrome-web-store.zip" target="_blank" rel="noopener">Chrome package</a>
-								<a data-release-asset="inbe-firefox-addons.zip" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-firefox-addons.zip" target="_blank" rel="noopener">Firefox Add-on</a>
-							</nav>
-						</div>
-					</article>
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/droid.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>Android</h3>
-							<p>Direct Android release files.</p>
-							<nav aria-label="Android downloads" class="download-pills">
-								<a class="is-primary" href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" target="_blank" rel="noopener">Play Store</a>
-								<a href="https://f-droid.org/packages/xyz.waozi.inbe/" target="_blank" rel="noopener">F-Droid</a>
-								<a data-release-asset="inbe-${version}.apk" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}.apk" target="_blank" rel="noopener">APK</a>
-								<a data-release-asset="inbe-${version}-gplay.apk" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-gplay.apk" target="_blank" rel="noopener">Play APK</a>
-								<a data-release-asset="inbe-${version}-gplay.aab" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-gplay.aab" target="_blank" rel="noopener">Play AAB</a>
-							</nav>
-						</div>
-					</article>
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/win.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>Windows</h3>
-							<p>Installer and portable desktop build.</p>
-							<nav aria-label="Windows downloads" class="download-pills">
-								<a class="is-primary" data-release-asset="inbe-windows-setup-${version}.exe" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-windows-setup-${version}.exe" target="_blank" rel="noopener">.exe x64</a>
-								<a data-release-asset="inbe-windows.zip" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-windows.zip" target="_blank" rel="noopener">.zip x64</a>
-							</nav>
-						</div>
-					</article>
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/debian.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>Debian / Ubuntu</h3>
-							<p>Native Debian package.</p>
-							<nav aria-label="Debian and Ubuntu downloads" class="download-pills">
-								<a class="is-primary" data-release-asset="inbe_${version}_amd64.deb" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_amd64.deb" target="_blank" rel="noopener">.deb amd64</a>
-								<a hidden data-release-asset="inbe_${version}_arm64.deb" target="_blank" rel="noopener">.deb arm64</a>
-							</nav>
-						</div>
-					</article>
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/fedora.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>Fedora / Red Hat</h3>
-							<p>Native RPM package.</p>
-							<nav aria-label="Fedora and Red Hat downloads" class="download-pills">
-								<a class="is-primary" data-release-asset="inbe-${version}-1.x86_64.rpm" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-1.x86_64.rpm" target="_blank" rel="noopener">.rpm x86_64</a>
-								<a hidden data-release-asset="inbe-${version}-1.aarch64.rpm" target="_blank" rel="noopener">.rpm aarch64</a>
-							</nav>
-						</div>
-					</article>
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/appimage.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>AppImage</h3>
-							<p>Portable Linux app bundle.</p>
-							<nav aria-label="AppImage downloads" class="download-pills">
-								<a class="is-primary" data-release-asset="inbe-linux-x86_64.AppImage" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-x86_64.AppImage" target="_blank" rel="noopener">AppImage x86_64</a>
-								<a hidden data-release-asset="inbe-linux-aarch64.AppImage" target="_blank" rel="noopener">AppImage aarch64</a>
-							</nav>
-						</div>
-					</article>
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/flatpak.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>Flatpak</h3>
-							<p>Sandboxed Linux package.</p>
-							<nav aria-label="Flatpak downloads" class="download-pills">
-								<a class="is-primary" data-release-asset="inbe-${version}-x86_64.flatpak" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-x86_64.flatpak" target="_blank" rel="noopener">Flatpak x86_64</a>
-								<a hidden data-release-asset="inbe-${version}-aarch64.flatpak" target="_blank" rel="noopener">Flatpak aarch64</a>
-							</nav>
-						</div>
-					</article>
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/snap.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>Snap</h3>
-							<p>Snap package.</p>
-							<nav aria-label="Snap downloads" class="download-pills">
-								<a class="is-primary" data-release-asset="inbe_${version}_x86_64.snap" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_x86_64.snap" target="_blank" rel="noopener">Snap x86_64</a>
-								<a hidden data-release-asset="inbe_${version}_aarch64.snap" target="_blank" rel="noopener">Snap aarch64</a>
-							</nav>
-						</div>
-					</article>
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/freebsd.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>FreeBSD</h3>
-							<p>Native FreeBSD package.</p>
-							<nav aria-label="FreeBSD downloads" class="download-pills">
-								<a class="is-primary" data-release-asset="inbe-${version}-freebsd-x86_64.pkg" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-freebsd-x86_64.pkg" target="_blank" rel="noopener">.pkg x86_64</a>
-							</nav>
-						</div>
-					</article>
-					<article class="download-platform">
-						<div class="download-platform-icon">
-							<img src="/web-assets/icons/github.png" alt="">
-						</div>
-						<div class="download-platform-body">
-							<h3>Source</h3>
-							<p>Code, release notes, and every release asset.</p>
-							<nav aria-label="Source links" class="download-pills">
-								<a class="is-primary" href="https://github.com/waozixyz/inbe" target="_blank" rel="noopener">Repository</a>
-								<a href="https://github.com/waozixyz/inbe/releases/tag/v${version}" target="_blank" rel="noopener">Release ${version}</a>
-							</nav>
-						</div>
-					</article>
-				</div>
-			</section>
+		<section class="safety" id="safety" aria-labelledby="safety-title">
+			<div class="safety-orb" aria-hidden="true"></div>
+			<p class="eyebrow"><span></span> practice safely</p>
+			<h2 id="safety-title">Stay seated. Stay gentle.</h2>
+			<p>Intense breathing can cause light-headedness. Never practice while driving, swimming, in water, or anywhere losing consciousness could be dangerous.</p>
+			<a href="/privacy.html">Read the privacy policy</a>
+		</section>
+	</main>
 
-			<section class="features-section" id="features">
-				<p class="section-eyebrow">Features</p>
-				<h2>Features</h2>
-				<div class="features-grid">
-					<div class="feature-item"><h3>Guided Breathing</h3><p>Wim Hof style rounds with clear breath cues, retention timing, and session flow.</p></div>
-					<div class="feature-item"><h3>Meditation Timer</h3><p>Simple 5 minute to 2 hour meditation sessions with a gong and optional background music.</p></div>
-					<div class="feature-item"><h3>Habit Tracking</h3><p>A focused calendar view helps you keep one practice selected and mark completed days.</p></div>
-					<div class="feature-item"><h3>Local History</h3><p>Session data stays on your device, with import and export tools for your own backups.</p></div>
-					<div class="feature-item"><h3>Touch Friendly</h3><p>Designed for phones, tablets, desktop, and the web with consistent controls.</p></div>
-					<div class="feature-item"><h3>Free and Open Source</h3><p>No accounts, no ads, no tracking, and source code available under the BSD 3-Clause license.</p></div>
-				</div>
-			</section>
-
-			<section class="migration-section">
-				<h2>Migrating from inbe-legacy?</h2>
-				<p>Use the web converter to turn an inbe-legacy JSON export into the ZIP format used by current Inner Breeze imports.</p>
-				<p><a href="/legacy-converter.html">Open legacy data converter</a></p>
-			</section>
-
-			<section class="about-section" id="safety">
-				<p class="section-eyebrow">Safety</p>
-				<h2>Practice Safely</h2>
-				<p>Inner Breeze includes intense breathing exercises and calmer meditation sessions. Choose the practice that fits the moment, stay seated or lying down, and keep the session gentle when you need rest.</p>
-				<ul class="benefits-list">
-					<li>Reduced stress and anxiety</li>
-					<li>Improved focus and mental clarity</li>
-					<li>Better sleep quality</li>
-					<li>Enhanced cold tolerance</li>
-					<li>Increased energy levels</li>
-				</ul>
-				<p class="safety-note"><em>Always practice breathing exercises in a safe environment. Never practice while driving, swimming, or in situations where loss of consciousness could be dangerous.</em></p>
-			</section>
-
-			<section class="info-section">
-				<nav aria-label="Source code" class="platform-buttons">
-					<a href="https://github.com/waozixyz/inbe" class="platform-btn web" target="_blank" rel="noopener">
-						<img src="/web-assets/icons/github.png" alt="">
-						<span>GitHub</span>
-					</a>
-				</nav>
-				<details class="dropdown">
-					<summary>Privacy & Donations</summary>
-					<div class="dropdown-content">
-						<p><strong>Privacy:</strong> Inner Breeze is local-first. Session history, habits, and preferences stay on your device unless you choose to connect optional sync. Sync uses a public-key account identifier and sends only the app data needed to mirror your account on the selected server. No analytics, no tracking, and no sale of personal data.</p>
-						<p><strong>Remote account deletion:</strong> Default sync-server accounts can be deleted at <a href="/delete-account">Delete Sync Account</a> using the exported <code>inbe-sync.key</code>, which includes the sync public ID. The exported key is used only to prove ownership and complete deletion.</p>
-						<p><strong>Free & Open Source:</strong> This app is completely free with no ads, in-app purchases, or premium features. Development is supported by voluntary donations. Donations are processed outside the sync account system and are not app data.</p>
-						<nav aria-label="Donation options" class="dropdown-links"><a href="https://trocador.app/en/anonpay/?ticker_to=xmr&amp;network_to=Mainnet&amp;address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&amp;donation=True&amp;simple_mode=True&amp;amount=0.1&amp;name=Inner+Breeze&amp;email=waotzi@proton.me&amp;ticker_from=xmr&amp;network_from=Mainnet&amp;buttonbgcolor=445588&amp;textcolor=ffffff&amp;bgcolor=eaeaffff" target="_blank" rel="noopener">Donate via Crypto</a></nav>
-					</div>
-				</details>
-			</section>
-		</main>
-		<footer><p>&copy; 2026 <a href="https://waozi.xyz">Waozi</a> | <a href="/privacy.html">Privacy Policy</a></p></footer>
-	</div>
-	<script>
-		(function() {
-			var releaseLinks = Array.prototype.slice.call(document.querySelectorAll("[data-release-asset]"));
-			if (!releaseLinks.length || !window.fetch) return;
-			fetch("https://api.github.com/repos/waozixyz/inbe/releases/tags/v${version}", { headers: { "Accept": "application/vnd.github+json" } })
-				.then(function(response) {
-					if (!response.ok) throw new Error("release lookup failed");
-					return response.json();
-				})
-				.then(function(release) {
-					var assets = {};
-					(release.assets || []).forEach(function(asset) {
-						assets[asset.name] = asset.browser_download_url;
-					});
-					releaseLinks.forEach(function(link) {
-						var assetName = link.getAttribute("data-release-asset");
-						var url = assets[assetName];
-						link.hidden = !url;
-						if (url) link.href = url;
-					});
-				})
-				.catch(function() {});
-		})();
-	</script>
+	<footer>
+		<a class="brand" href="#top"><img src="/web-assets/icons/inbe.png" width="24" height="24" alt=""><span>Inner Breeze</span></a>
+		<p>Made by <a href="https://waozi.xyz">Waozi</a>.</p>
+		<div><a href="https://github.com/waozixyz/inbe">Source</a><a href="/legacy-converter.html">Legacy converter</a><a href="/delete-account">Delete sync account</a></div>
+	</footer>
 </body>
 </html>
