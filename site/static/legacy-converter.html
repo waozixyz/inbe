@@ -3,34 +3,65 @@
 <meta charset="utf-8" />
 <head>
 	<title>Inner Breeze Legacy Data Converter</title>
-	<link href="/style.css?v=${asset_version}" rel="stylesheet" />
+	<link href="/css/landing.css?v=${asset_version}" rel="stylesheet" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="description" content="Convert inbe-legacy JSON exports into the current Inner Breeze import ZIP format.">
-	<link rel="canonical" href="https://inbe.waozi.xyz/legacy-converter.html">
+	<meta name="theme-color" content="#07111f">
+	<meta property="og:title" content="Inner Breeze Legacy Data Converter">
+	<meta property="og:description" content="Move your original Inner Breeze sessions into the current app—privately, in your browser.">
+	<meta property="og:image" content="https://inbe.waozi.xyz/og.png">
+	<link rel="canonical" href="https://inbe.waozi.xyz/legacy-converter/">
+	<link rel="icon" href="/site-icons/favicon-32x32.png" sizes="32x32">
+	<link rel="apple-touch-icon" href="/site-icons/apple-touch-icon.png">
 </head>
 
-<body>
-	<div class="content">
-		<main id="main-content">
-			<section class="tool-section">
-				<h1>Legacy Data Converter</h1>
-				<p>Coming from inbe-legacy? Convert the old JSON export into the SQLite ZIP file used by the current Inner Breeze import tool.</p>
-				<p class="safety-note"><em>This runs entirely in your browser. Your file is not uploaded.</em></p>
+<body class="converter-page">
+	<header class="topbar">
+		<a class="brand" href="/"><img src="/site-icons/icon-192.png" width="30" height="30" alt="">Inner Breeze</a>
+		<nav aria-label="Converter navigation"><a href="/">Overview</a><a href="/#download">Downloads</a><a href="/privacy.html">Privacy</a></nav>
+	</header>
+	<main id="main-content" class="converter-main">
+		<section class="converter-intro">
+			<div>
+				<p class="eyebrow"><span></span>Private migration</p>
+				<h1>Bring your history <em>with you.</em></h1>
+				<p class="converter-lede">Turn an original Inner Breeze JSON export into the current import format. Your breathing history stays yours throughout the move.</p>
+			</div>
+			<img src="/icons/migrate.png" width="144" height="144" alt="" class="converter-mark">
+		</section>
 
-				<div class="converter-panel">
-					<label for="legacy-file">inbe-legacy JSON export</label>
+		<section class="converter-workspace" aria-labelledby="converter-title">
+			<div class="converter-steps" aria-label="Migration steps">
+				<div><b>01</b><span>Choose your legacy JSON export</span></div>
+				<div><b>02</b><span>Convert it privately on this device</span></div>
+				<div><b>03</b><span>Import the ZIP in Inner Breeze</span></div>
+			</div>
+
+			<div class="converter-panel">
+				<div class="converter-panel-copy">
+					<p class="eyebrow"><span></span>Local converter</p>
+					<h2 id="converter-title">Choose your export.</h2>
+					<p>Nothing is uploaded. The conversion happens entirely inside this browser tab.</p>
+				</div>
+				<div class="converter-controls">
+					<label for="legacy-file">Original Inner Breeze JSON file</label>
 					<input id="legacy-file" type="file" accept=".json,application/json">
-					<button id="convert-button" type="button">Convert to Inbe SQLite ZIP</button>
+					<button id="convert-button" class="button button-primary" type="button">Convert to Inner Breeze ZIP</button>
 					<p id="converter-status" class="converter-status" role="status">Choose an inbe-legacy JSON export.</p>
 				</div>
+			</div>
+		</section>
 
-				<p><a href="/">Back to downloads</a></p>
-			</section>
-		</main>
-		<footer>
-			<p>&copy; 2026 <a href="https://waozi.xyz">Waozi</a> | <a href="/privacy.html">Privacy Policy</a></p>
-		</footer>
-	</div>
+		<section class="converter-help">
+			<div><p class="eyebrow"><span></span>After conversion</p><h2>One small final step.</h2></div>
+			<p>Open Inner Breeze, go to data import, and select the downloaded ZIP. Your converted sessions will appear in the current app.</p>
+			<a class="button" href="/">Back to Inner Breeze</a>
+		</section>
+	</main>
+	<footer>
+		<p>Inner Breeze · Version ${version}</p>
+		<div><a href="/">Home</a><a href="/privacy.html">Privacy</a><a href="/delete-account">Delete sync account</a></div>
+	</footer>
 
 	<script src="/assets/sqljs-1.12.0/sql-wasm.js"></script>
 	<script>
