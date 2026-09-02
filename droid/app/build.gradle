@@ -13,6 +13,7 @@ if (hasGplayFirebaseConfig) {
     }
 }
 def inbeOnlyAbi = (project.findProperty('inbe.onlyAbi') ?: '').toString()
+def buildingAndroidBundle = gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
 
 android {
     namespace 'xyz.waozi.inbe'
@@ -81,7 +82,7 @@ android {
         }
         gplay {
             initWith release
-            signingConfig signingConfigs.release
+            signingConfig project.hasProperty('fDroidBuild') ? null : signingConfigs.release
             matchingFallbacks = ['release']
             buildConfigField "boolean", "INBE_GPLAY", "true"
         }
@@ -102,12 +103,12 @@ android {
 
     splits {
         abi {
-            enable true
+            enable !buildingAndroidBundle
             reset()
-            if (inbeOnlyAbi) {
+            if (!buildingAndroidBundle && inbeOnlyAbi) {
                 include inbeOnlyAbi
                 universalApk false
-            } else {
+            } else if (!buildingAndroidBundle) {
                 include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
                 universalApk true
             }
