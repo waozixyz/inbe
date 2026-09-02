@@ -210,6 +210,8 @@ copy_path "$script_dir/themes/inbe.css" "$out_dir/theme.css"
 write_site_imports "$asset_version"
 copy_template_dir "$script_dir/static" "$out_dir" "$version" "$asset_version"
 expand_template_file "$script_dir/index.html" "$out_dir/index.html" "$version" "$asset_version"
+mkdir -p "$out_dir/legacy-converter"
+cp "$out_dir/legacy-converter.html" "$out_dir/legacy-converter/index.html"
 
 sync_shared_web_icons
 copy_dir_contents "$root_dir/web-assets" "$out_dir/web-assets"
@@ -229,6 +231,7 @@ for path in \
 	delete-account.html \
 	delete-account/index.html \
 	legacy-converter.html \
+	legacy-converter/index.html \
 	manifest.json \
 	_headers \
 	robots.txt \
