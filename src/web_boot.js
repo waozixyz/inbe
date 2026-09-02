@@ -135,6 +135,16 @@ function startExtensionBridge() {
 function markRuntimeReady() {
   if (!Module.__inbeAppReady) return;
   if (Module.__inbeRuntimeReady) return;
+  if (Module.Asyncify && Module.Asyncify.state !== 0) {
+    if (!Module.__inbeRuntimeReadyPending) {
+      Module.__inbeRuntimeReadyPending = true;
+      setTimeout(function() {
+        Module.__inbeRuntimeReadyPending = false;
+        markRuntimeReady();
+      }, 16);
+    }
+    return;
+  }
   Module.__inbeRuntimeReady = true;
   hideLoadingScreen();
   runLaunchCommand();

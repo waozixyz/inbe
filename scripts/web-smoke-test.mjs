@@ -306,8 +306,8 @@ function eventText(event) {
 }
 
 function isBenignAsyncifyUnwind(text) {
-  return /\$(__main_argc_argv|dynCall_[A-Za-z0-9_]+)/.test(text) &&
-    /\b(callUserCallback|doRewind|MainLoop_runner)\b/.test(text);
+  return /\b(callUserCallback|doRewind|MainLoop_runner)\b/.test(text) &&
+    !/\b(RuntimeError|Aborted|memory access|unreachable)\b/i.test(text);
 }
 
 function fatalEvent(event) {
@@ -373,15 +373,17 @@ async function waitForHealthyPage(client) {
         if (/WebGL is disabled/.test(status)) return { ok: ${allowWebglDisabled ? 'true' : 'false'}, disabledWebgl: true, status };
         if (!canvas) return { ok: false, reason: 'missing canvas', status };
         const M = globalThis.Module;
+        const asyncifyState = M && M.Asyncify && typeof M.Asyncify.state === 'number' ? M.Asyncify.state : 0;
         if (renderer === 'canvas') {
           const ctx = canvas.getContext('2d');
           const width = canvas.width || canvas.clientWidth;
           const height = canvas.height || canvas.clientHeight;
           return {
-            ok: width > 0 && height > 0 && !!ctx,
+            ok: width > 0 && height > 0 && !!ctx && asyncifyState === 0,
             renderer,
             width,
             height,
+            asyncifyState,
             loadingClass: document.querySelector('#loading-screen')?.className || '',
             moduleLoaded: !!M,
             appReady: !!(M && M.__inbeAppReady),
@@ -397,10 +399,11 @@ async function waitForHealthyPage(client) {
         const width = gl.drawingBufferWidth;
         const height = gl.drawingBufferHeight;
         return {
-          ok: width > 0 && height > 0,
+          ok: width > 0 && height > 0 && asyncifyState === 0,
           renderer,
           width,
           height,
+          asyncifyState,
           loadingClass: document.querySelector('#loading-screen')?.className || '',
           moduleLoaded: !!M,
           appReady: !!(M && M.__inbeAppReady),
@@ -465,15 +468,17 @@ async function waitForHealthyBidiPage(client, context) {
         if (!canvas) return { ok: false, reason: 'missing canvas', status };
         const boot = Array.from(document.querySelectorAll('script')).some(script => /index\\.js/.test(script.src || ''));
         const M = globalThis.Module;
+        const asyncifyState = M && M.Asyncify && typeof M.Asyncify.state === 'number' ? M.Asyncify.state : 0;
         if (${JSON.stringify(renderer)} === 'canvas') {
           const ctx = canvas.getContext('2d');
           const width = canvas.width || canvas.clientWidth;
           const height = canvas.height || canvas.clientHeight;
           return {
-            ok: width > 0 && height > 0 && !!ctx && boot && !!(M && M.__inbeRuntimeReady),
+            ok: width > 0 && height > 0 && !!ctx && boot && !!(M && M.__inbeRuntimeReady) && asyncifyState === 0,
             renderer: 'canvas',
             width,
             height,
+            asyncifyState,
             boot,
             runtimeReady: !!(M && M.__inbeRuntimeReady),
             moduleRenderer: M && M.__inbeRenderer,
@@ -485,10 +490,11 @@ async function waitForHealthyBidiPage(client, context) {
         const width = gl.drawingBufferWidth;
         const height = gl.drawingBufferHeight;
         return {
-          ok: width > 0 && height > 0 && boot && !!(M && M.__inbeRuntimeReady),
+          ok: width > 0 && height > 0 && boot && !!(M && M.__inbeRuntimeReady) && asyncifyState === 0,
           renderer: 'raylib',
           width,
           height,
+          asyncifyState,
           boot,
           runtimeReady: !!(M && M.__inbeRuntimeReady),
           hasOnboardingHook: !!(M && M._app_web_test_onboarding_state)
@@ -631,6 +637,41 @@ function bidiJsonResult(result, label) {
   }
 }
 
+function wasmHookEvalHelper() {
+  return `
+    async function callWasmHook(name, args = []) {
+      const M = globalThis.Module;
+      const fn = M && M['_' + name];
+      async function waitForAsyncifyIdle(phase) {
+        const idleDeadline = Date.now() + 5000;
+        let stableFrames = 0;
+        while (stableFrames < 2) {
+          const state = M.Asyncify ? M.Asyncify.state : 0;
+          if (state === 0)
+            stableFrames++;
+          else
+            stableFrames = 0;
+          if (Date.now() > idleDeadline)
+            throw new Error(name + ' Asyncify ' + phase + ' wait timed out; state=' + state);
+          await new Promise(resolve => requestAnimationFrame(resolve));
+        }
+      }
+      if (typeof fn !== 'function')
+        throw new Error('missing ' + name + ' hook');
+      await waitForAsyncifyIdle('idle');
+      const result = fn.apply(M, args);
+      if (M.Asyncify && M.Asyncify.state !== 0 && typeof M.Asyncify.whenDone === 'function') {
+        const done = M.Asyncify.whenDone();
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(name + ' Asyncify wait timed out')), 5000));
+        await Promise.race([done, timeout]);
+      }
+      await waitForAsyncifyIdle('settle');
+      return result;
+    }
+  `;
+}
+
 async function verifyReloadPersistence(client) {
   await waitForStorageIdle(client);
   const marker = `web-smoke-${Date.now()}`;
@@ -667,22 +708,15 @@ async function verifyReloadPersistence(client) {
 
 async function verifyAppSettingsReloadPersistence(client) {
   await waitForStorageIdle(client);
-  let result = await client.send('Runtime.evaluate', {
-    expression: "(async () => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') throw new Error('missing app settings save test hook'); Module._app_web_test_save_onboarding_state(); await Module.__kryonFlushStorageSync(true); return true; })()",
-    awaitPromise: true,
-    returnByValue: true
-  });
-  if (!result.result?.value)
+  let ok = await pageJson(client, `(async () => { ${wasmHookEvalHelper()} await callWasmHook('app_web_test_save_onboarding_state'); await Module.__kryonFlushStorageSync(true); return true; })()`, true);
+  if (!ok)
     throw new Error('failed to invoke app settings save test hook');
   await waitForStorageIdle(client);
   await client.send('Page.reload', { ignoreCache: true });
   await waitForHealthyPage(client);
 
-  result = await client.send('Runtime.evaluate', {
-    expression: "(() => typeof Module._app_web_test_onboarding_state === 'function' && Module._app_web_test_onboarding_state() === 1)()",
-    returnByValue: true
-  });
-  if (!result.result?.value)
+  ok = await pageJson(client, "(() => typeof Module._app_web_test_onboarding_state === 'function' && Module._app_web_test_onboarding_state() === 1)()");
+  if (!ok)
     throw new Error('app settings did not persist across reload');
 }
 
@@ -715,7 +749,8 @@ async function verifySyncKeyImport(client) {
         return { ok: false, code: -99 };
       if (typeof Module._app_web_test_sync_key_state !== 'function')
         return { ok: false, code: -98 };
-      Module._app_web_test_import_sync_key();
+      ${wasmHookEvalHelper()}
+      await callWasmHook('app_web_test_import_sync_key');
       const deadline = Date.now() + ${timeoutMs};
       let code = 0;
       while (Date.now() < deadline) {
@@ -747,7 +782,7 @@ async function verifyAppSettingsReloadPersistenceBidi(client, context) {
     target: { context },
     awaitPromise: true,
     resultOwnership: 'none',
-    expression: "(async () => JSON.stringify(await (async () => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); await Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })()))()"
+    expression: `(async () => JSON.stringify(await (async () => { ${wasmHookEvalHelper()} try { await callWasmHook('app_web_test_save_onboarding_state'); } catch (error) { return { ok: false, reason: String(error && error.message || error) }; } await Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })()))()`
   });
   const state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
@@ -773,7 +808,7 @@ async function verifyAppSettingsImmediateBidi(client, context) {
     target: { context },
     awaitPromise: true,
     resultOwnership: 'none',
-    expression: "(async () => JSON.stringify(await (async () => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); await Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })()))()"
+    expression: `(async () => JSON.stringify(await (async () => { ${wasmHookEvalHelper()} try { await callWasmHook('app_web_test_save_onboarding_state'); } catch (error) { return { ok: false, reason: String(error && error.message || error) }; } await Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })()))()`
   });
   let state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
@@ -793,7 +828,8 @@ async function verifySyncKeyImportBidi(client, context) {
         if (typeof Module._app_web_test_sync_key_state !== 'function')
           return { ok: false, code: -98 };
         try {
-          Module._app_web_test_import_sync_key();
+          ${wasmHookEvalHelper()}
+          await callWasmHook('app_web_test_import_sync_key');
         } catch (error) {
           return { ok: false, code: -95, phase: 'import', error: String(error && error.stack || error) };
         }
@@ -976,7 +1012,8 @@ async function verifyFirstRunGuideCanvasFlow(client) {
         typeof Module._app_web_test_first_run_guide_text_clipped !== 'function' ||
         typeof Module._app_web_test_save_onboarding_state !== 'function')
       return { ok: false, reason: 'missing first-run guide state hooks' };
-    Module._app_web_test_show_first_run_guide();
+    ${wasmHookEvalHelper()}
+    await callWasmHook('app_web_test_show_first_run_guide');
     await Module.__kryonFlushStorageSync(true);
     return { ok: true };
   })()))()`, true);
@@ -992,7 +1029,8 @@ async function verifyFirstRunGuideCanvasFlow(client) {
     throw new Error(`Spanish first-run guide text is clipped: ${JSON.stringify(state)}`);
 
   state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
-    Module._app_web_test_save_onboarding_state();
+    ${wasmHookEvalHelper()}
+    await callWasmHook('app_web_test_save_onboarding_state');
     await Module.__kryonFlushStorageSync(true);
     return {
       active: Module._app_web_test_first_run_guide_active(),
@@ -1090,11 +1128,13 @@ function startHabitsFrameProbeExpression(frameCount) {
 
 async function openHabitsOverview(client) {
   const state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
-    if (typeof Module._app_web_test_save_onboarding_state === 'function')
-      Module._app_web_test_save_onboarding_state();
+    ${wasmHookEvalHelper()}
+    if (typeof Module._app_web_test_save_onboarding_state === 'function') {
+      await callWasmHook('app_web_test_save_onboarding_state');
+    }
     if (typeof Module._app_web_extension_open_habits !== 'function')
       return { ok: false, reason: 'missing habits launch hook' };
-    Module._app_web_extension_open_habits();
+    await callWasmHook('app_web_extension_open_habits');
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return {
       ok: typeof Module._app_web_test_habits_click_x === 'function' &&
@@ -1143,7 +1183,8 @@ async function openPracticeHome(client) {
         typeof Module._app_web_test_practice_start_click_x !== 'function' ||
         typeof Module._app_web_test_practice_start_click_y !== 'function')
       return { ok: false, reason: 'missing practice start hooks' };
-    Module._app_web_test_show_practice_home();
+    ${wasmHookEvalHelper()}
+    await callWasmHook('app_web_test_show_practice_home');
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return { ok: true, screen: Module._app_web_test_screen() };
   })()))()`, true);

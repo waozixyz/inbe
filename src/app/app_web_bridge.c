@@ -80,6 +80,28 @@ web_test_first_run_guide_expected(const InbeApp *app)
            app->main_tab != APP_MAIN_TAB_NONE;
 }
 
+static void
+web_test_save_onboarding_settings(const InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    storage_settings_begin_write();
+    storage_set_setting_text("language",
+                             app->language_selected && !app->language_system &&
+                                     app->language[0] != '\0'
+                                 ? app->language
+                                 : "");
+    storage_set_setting_int("language_setup_done",
+                            app->language_selected ? 1 : 0);
+    storage_set_setting_int("tutorial_seen", app->tutorial_seen ? 1 : 0);
+    storage_set_setting_int("tutorial_step", app->tutorial_step);
+    storage_set_setting_int("habits_guide_seen",
+                            app->habits_guide_seen ? 1 : 0);
+    storage_set_setting_int("main_tab", app->main_tab);
+    storage_settings_end_write();
+}
+
 EMSCRIPTEN_KEEPALIVE
 int
 app_web_get_play_in_background(void)
@@ -284,7 +306,7 @@ app_web_test_save_onboarding_state(void)
     app->language_selected = 1;
     app->tutorial_seen = 1;
     app->habits_guide_seen = 1;
-    save_settings(app);
+    web_test_save_onboarding_settings(app);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -323,15 +345,15 @@ app_web_test_show_first_run_guide(void)
     storage_set_setting_text("sync_public_key", "");
     storage_set_setting_text("sync_private_key", "");
     storage_set_setting_text("sync_account_alias", "");
-    storage_set_sync_server_connected(0);
-    sync_client_clear_auth_token();
-    storage_reset_sync_state();
+    storage_set_setting_text("sync_auth_token", "");
+    storage_set_setting_text("sync_auth_token_expires_at", "");
+    storage_set_setting_int("sync_server_connected", 0);
     storage_settings_end_write();
     web_test_sync_key_import_status = 0;
     if(app->modal.active)
         app_close_modal(app);
     app->inbe.screen = InbeScreenStart;
-    save_settings(app);
+    web_test_save_onboarding_settings(app);
 }
 
 EMSCRIPTEN_KEEPALIVE

@@ -12,6 +12,7 @@
 
 WIN32 :: #defined(_WIN32)
 EMSCRIPTEN :: #defined(__EMSCRIPTEN__)
+WEB :: #defined(PLATFORM_WEB)
 
 g_storage :: StorageState #global #export
 
@@ -211,11 +212,20 @@ schema_exec :: (sql: const char*) -> int {
 }
 
 schema_create :: () -> int #export {
-    if !schema_exec(
-        "PRAGMA journal_mode=WAL;"
-        "PRAGMA synchronous=NORMAL;"
-        "PRAGMA foreign_keys=ON;") {
-        return 0
+    #if WEB {
+        if !schema_exec(
+            "PRAGMA journal_mode=WAL;"
+            "PRAGMA synchronous=OFF;"
+            "PRAGMA foreign_keys=ON;") {
+            return 0
+        }
+    } #else {
+        if !schema_exec(
+            "PRAGMA journal_mode=WAL;"
+            "PRAGMA synchronous=NORMAL;"
+            "PRAGMA foreign_keys=ON;") {
+            return 0
+        }
     }
     if !schema_exec(
         "CREATE TABLE IF NOT EXISTS meta("
