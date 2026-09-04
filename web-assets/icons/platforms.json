@@ -1,0 +1,200 @@
+{
+  "version": 1,
+  "sheet": "platforms",
+  "icon_count": 23,
+  "image": "platforms.png",
+  "cell_size": 64,
+  "content_size": 52,
+  "columns": 6,
+  "rows": 4,
+  "width": 384,
+  "height": 256,
+  "icons": [
+    {
+      "index": 0,
+      "name": "platforms/appimage",
+      "x": 0,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 1,
+      "name": "platforms/browser",
+      "x": 64,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 2,
+      "name": "platforms/chromewebstore",
+      "x": 128,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 3,
+      "name": "platforms/debian",
+      "x": 192,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 4,
+      "name": "platforms/discord",
+      "x": 256,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 5,
+      "name": "platforms/droid",
+      "x": 320,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 6,
+      "name": "platforms/esp32",
+      "x": 0,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 7,
+      "name": "platforms/fdroid",
+      "x": 64,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 8,
+      "name": "platforms/fedora",
+      "x": 128,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 9,
+      "name": "platforms/flatpak",
+      "x": 192,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 10,
+      "name": "platforms/freebsd",
+      "x": 256,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 11,
+      "name": "platforms/github",
+      "x": 320,
+      "y": 64,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 12,
+      "name": "platforms/glenda",
+      "x": 0,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 13,
+      "name": "platforms/ios",
+      "x": 64,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 14,
+      "name": "platforms/itch",
+      "x": 128,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 15,
+      "name": "platforms/macos",
+      "x": 192,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 16,
+      "name": "platforms/microcontroller",
+      "x": 256,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 17,
+      "name": "platforms/playstore",
+      "x": 320,
+      "y": 128,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 18,
+      "name": "platforms/snap",
+      "x": 0,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 19,
+      "name": "platforms/srht",
+      "x": 64,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 20,
+      "name": "platforms/telegram",
+      "x": 128,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 21,
+      "name": "platforms/tux",
+      "x": 192,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 22,
+      "name": "platforms/win",
+      "x": 256,
+      "y": 192,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "style": "full-color",
+  "tintable": false
+}

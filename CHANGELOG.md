@@ -1,4 +1,17 @@
 # Changelog
+## [1.9.19] - 2026-09-04
+### Added
+- Replaced the legacy pixel UI icons with a cohesive MingCute-based icon set, packed into efficient embedded spritesheets with separate full-color assets for profiles, platforms, payments, languages, and logos.
+
+### Changed
+- Navigation and practice controls now use larger, clearer icons.
+- Volume controls now show distinct muted, low, medium, and maximum-volume states.
+- Updated the bundled Kryon runtime with smoother antialiasing, tear-free presentation, improved text editing, and more reliable desktop menus.
+
+### Fixed
+- Pressing Escape now closes stack/sidebar navigation before applying the normal screen-level Escape action.
+- Fixed a Windows build collision between Kryon and the Win32 `DrawIcon` API.
+
 ## [1.9.18] - 2026-09-04
 ### Added
 - Every practice now includes a guided How-to with clear steps, swipe navigation, and labeled controls.

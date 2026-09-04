@@ -49,12 +49,7 @@ copy_dir_contents() {
 sync_shared_web_icons() {
 	sync_script="$kryon_dir/scripts/sync-icons.sh"
 	require_path "$sync_script"
-	sh "$sync_script" --group platforms --flat "$root_dir/web-assets/icons" \
-		appimage chromewebstore debian droid fdroid fedora flatpak freebsd \
-		github itch playstore snap tux win
-	sh "$sync_script" --group language --flat "$root_dir/web-assets/icons" \
-		ray uxn wasm wasm4
-	sh "$sync_script" --group tiles --flat "$root_dir/web-assets/icons" tile2
+	sh "$sync_script" "$root_dir/web-assets/icons" platforms language tiles
 }
 
 expand_template_file() {

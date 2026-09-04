@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "sheet": "language",
+  "icon_count": 5,
+  "image": "language.png",
+  "cell_size": 64,
+  "content_size": 52,
+  "columns": 5,
+  "rows": 1,
+  "width": 320,
+  "height": 64,
+  "icons": [
+    {
+      "index": 0,
+      "name": "language/ray",
+      "x": 0,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 1,
+      "name": "language/tcl",
+      "x": 64,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 2,
+      "name": "language/uxn",
+      "x": 128,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 3,
+      "name": "language/wasm",
+      "x": 192,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 4,
+      "name": "language/wasm4",
+      "x": 256,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "style": "full-color",
+  "tintable": false
+}

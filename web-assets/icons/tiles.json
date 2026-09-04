@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "sheet": "tiles",
+  "icon_count": 4,
+  "image": "tiles.png",
+  "cell_size": 64,
+  "content_size": 52,
+  "columns": 4,
+  "rows": 1,
+  "width": 256,
+  "height": 64,
+  "icons": [
+    {
+      "index": 0,
+      "name": "tiles/tile",
+      "x": 0,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 1,
+      "name": "tiles/tile2",
+      "x": 64,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 2,
+      "name": "tiles/tile3",
+      "x": 128,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "index": 3,
+      "name": "tiles/tile4",
+      "x": 192,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "style": "full-color",
+  "tintable": false
+}
