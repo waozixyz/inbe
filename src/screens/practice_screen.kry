@@ -197,11 +197,11 @@ practice_ordered_index :: (app: const InbeApp*, exercise: int) -> int {
 }
 
 practice_home_dots_height :: (app: const InbeApp*) -> int #private {
-    return practice_home_count(app) > 1 ? ScaleUIPx(28) : 0
+    return practice_home_count(app) > 1 ? ScaleUIPx(32) : 0
 }
 
 practice_home_carousel_controls_height :: (app: const InbeApp*) -> int #private {
-    return practice_home_count(app) > 1 ? ScaleUIPx(52) : 0
+    return practice_home_count(app) > 1 ? ScaleUIPx(48) : 0
 }
 
 practice_select_home_card :: (app: InbeApp*, exercise: int) #private {
@@ -228,8 +228,8 @@ practice_select_home_card :: (app: InbeApp*, exercise: int) #private {
 practice_draw_home_dots :: (app: InbeApp*, x: int, y: int, w: int) #private {
     count := practice_home_count(app)
     active_index := 0
-    radius := ScaleUIPx(4)
-    active_radius := ScaleUIPx(5)
+    radius := ScaleUIPx(5)
+    active_radius := ScaleUIPx(7)
     hit := ScaleUIPx(24)
     gap := ScaleUIPx(14)
     total_w := 0
@@ -245,7 +245,7 @@ practice_draw_home_dots :: (app: InbeApp*, x: int, y: int, w: int) #private {
     active_index = practice_ordered_index(app, app->exercise_type)
     total_w = count * hit + (count - 1) * gap
     start_x = x + (w - total_w) / 2 + hit / 2
-    center_y = y + ScaleUIPx(14)
+    center_y = y + ScaleUIPx(16)
     mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera)
 
     for int i = 0; i < practice_count(); i++ {
@@ -255,8 +255,8 @@ practice_draw_home_dots :: (app: InbeApp*, x: int, y: int, w: int) #private {
         hit_bounds := (Rectangle){(float)(center_x - hit / 2), (float)(center_y - hit / 2), (float)hit, (float)hit}
         active := CheckCollisionPointRec(mouse_world, hit_bounds) && !UIInputCapturesClick(mouse_world)
         hovered := active && UIHoverEffectsEnabled()
-        fill := dot_index == active_index ? GetThemeText() : GetThemeBackground()
-        stroke := GetThemeText()
+        fill := dot_index == active_index ? GetThemeButton() : Fade(GetThemeText(), 0.14f)
+        stroke := dot_index == active_index ? GetThemeText() : Fade(GetThemeText(), 0.72f)
 
         if hovered {
             fill = dot_index == active_index ? LightenUIColor(fill, 18) : DarkenUIColor(GetThemeBackground(), 16)
@@ -273,7 +273,7 @@ practice_draw_home_dots :: (app: InbeApp*, x: int, y: int, w: int) #private {
 }
 
 practice_draw_home_carousel_controls :: (app: InbeApp*, x: int, y: int, w: int) #private {
-    arrow := ScaleUIPx(44)
+    arrow := ScaleUIPx(38)
     row_h := practice_home_carousel_controls_height(app)
     arrow_y := y + (row_h - arrow) / 2
     gap := ScaleUIPx(8)
@@ -329,14 +329,27 @@ practice_home_card_height :: (app: const InbeApp*, y: int, bottom_reserved: int,
     if card_h < ScaleUIPx(180) {
         card_h = ScaleUIPx(180)
     }
-    if card_h > ScaleUIPx(300) {
-        card_h = ScaleUIPx(300)
+    if card_h > ScaleUIPx(264) {
+        card_h = ScaleUIPx(264)
     }
     return card_h
 }
 
 practice_home_action_gap :: (content_w: int) -> int #private {
     return content_w < ScaleUIPx(340) ? ScaleUIPx(6) : ScaleUIPx(8)
+}
+
+practice_home_quiet_action_button :: (bounds: Rectangle, label: const char*) -> int #private {
+    return ButtonNode((ButtonSpec){
+        .bounds = bounds,
+        .label = label,
+        .font = GetUIFontSize(),
+        .background = GetThemeBackground(),
+        .hover_background = GetThemeSurface(),
+        .text = GetThemeText(),
+        .border = Fade(GetThemeText(), 0.38f),
+        .radius = 0.50f,
+    })
 }
 
 practice_home_subtitle :: (exercise: int) -> const char* #private {
@@ -880,23 +893,15 @@ start :: (app: InbeApp*) #ui {
         practice_home_action_row_widths(content_w, &manual_w, &config_w)
         app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
                                                        (float)manual_w, (float)btn_h}
-        if Button((ButtonProps){
-            .bounds = app->practice_home_bounds_manual,
-            .label = GetLocaleText("practice_manual_button"),
-            .font = GetUIFontSize(),
-            .style = ButtonStyleSecondary,
-        }) {
+        if practice_home_quiet_action_button(app->practice_home_bounds_manual,
+                                              GetLocaleText("practice_manual_button")) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
 
         app->practice_home_bounds_config = (Rectangle){(float)(x + manual_w + row_gap), (float)y,
                                                        (float)config_w, (float)btn_h}
-        if Button((ButtonProps){
-            .bounds = app->practice_home_bounds_config,
-            .label = GetLocaleText("practice_configure_button"),
-            .font = GetUIFontSize(),
-            .style = ButtonStyleSecondary,
-        }) {
+        if practice_home_quiet_action_button(app->practice_home_bounds_config,
+                                              GetLocaleText("practice_configure_button")) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
         y += btn_h + gap
@@ -904,12 +909,8 @@ start :: (app: InbeApp*) #ui {
         if practice->draw_manual != NULL {
             app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
                                                            (float)content_w, (float)btn_h}
-            if Button((ButtonProps){
-                .bounds = app->practice_home_bounds_manual,
-                .label = GetLocaleText("practice_manual_button"),
-                .font = GetUIFontSize(),
-                .style = ButtonStyleSecondary,
-            }) {
+            if practice_home_quiet_action_button(app->practice_home_bounds_manual,
+                                                  GetLocaleText("practice_manual_button")) {
                 practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
             }
             y += btn_h + gap
@@ -917,12 +918,8 @@ start :: (app: InbeApp*) #ui {
         if practice->draw_config != NULL {
             app->practice_home_bounds_config = (Rectangle){(float)x, (float)y,
                                                            (float)content_w, (float)btn_h}
-            if Button((ButtonProps){
-                .bounds = app->practice_home_bounds_config,
-                .label = GetLocaleText("practice_configure_button"),
-                .font = GetUIFontSize(),
-                .style = ButtonStyleSecondary,
-            }) {
+            if practice_home_quiet_action_button(app->practice_home_bounds_config,
+                                                  GetLocaleText("practice_configure_button")) {
                 practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
             }
             y += btn_h + gap
