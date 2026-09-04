@@ -58,7 +58,7 @@ sun_manual_content_height :: (content_w: int, user_data: void*) -> int #private 
     ctx := (SunManualPageContext*)user_data
 
     return ScaleUIPx(66 + 178 + 18) +
-           UIGetNodeHeight(UINodeParagraph(
+           GetNodeHeight(NodeParagraph(
                sun_manual_paragraph(ctx->page, content_w), 0, 0))
 }
 

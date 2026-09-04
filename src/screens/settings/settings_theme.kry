@@ -57,7 +57,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
             app->settings_save_delay_ticks = 18
         }
     }
-    *y += UIGetNodeHeight(UINodeThemeSettings(settings))
+    *y += GetNodeHeight(NodeThemeSettings(settings))
     *y += ScaleUIPx(18)
 }
 
@@ -122,7 +122,7 @@ settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
     }
 
     draw_w = frame.content_w
-    picker_h = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
+    picker_h = GetNodeHeight(NodeThemePicker(0, 0, draw_w))
     scroll_area = (UIScrollArea){
         .bounds = {
             (float)frame.content_x,
@@ -144,10 +144,10 @@ settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
             break
         }
         draw_w = measured.content_w
-        scroll_area.content_height = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
+        scroll_area.content_height = GetNodeHeight(NodeThemePicker(0, 0, draw_w))
     }
 
-    picker_h = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
+    picker_h = GetNodeHeight(NodeThemePicker(0, 0, draw_w))
     scroll_area.content_height = picker_h
     scroll_view = BeginUIScrollContainer(scroll_area)
     if ThemePicker(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {

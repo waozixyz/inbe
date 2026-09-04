@@ -342,7 +342,7 @@ app_content_bottom_reserved :: (app: const InbeApp*) -> int {
        !app_is_blank_home(app) {
         return 0
     }
-    return UIGetNodeHeight(UINodeBottomNav((BottomNavProps){0}))
+    return GetNodeHeight(NodeBottomNav((BottomNavProps){0}))
 }
 
 app_page_height :: (app: const InbeApp*, full_height: int) -> int {
@@ -972,9 +972,8 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
                                 dropdown_w, button_h, options,
                                 APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i])
         app_nav_mark_int_used(trash_hover)
-        IconTexture(0, trash_x + ScaleUIPx(8), dropdown_y + ScaleUIPx(6),
-                             ScaleUIPx(20), app->icons[UI_ICON_TYPE_TRASH],
-                             GetThemeIcon())
+        Icon(0, trash_x + ScaleUIPx(8), dropdown_y + ScaleUIPx(6),
+             ScaleUIPx(20), UI_ICON_TYPE_TRASH, GetThemeIcon())
     }
 
     y += row_h * draw_count

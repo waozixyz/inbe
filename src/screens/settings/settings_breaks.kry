@@ -35,7 +35,7 @@ settings_breaks_content_height :: (app: InbeApp*, content_w: int) -> int {
     }
     for int t = 0; t < 3; t++ {
         header := GetLocaleText(timer_keys[t])
-        height += ScaleUIPx(44) + UIGetNodeHeight(UINodeParagraph((ParagraphSpec){.text = header, .width = label_w}, 0, 0))
+        height += ScaleUIPx(44) + GetNodeHeight(NodeParagraph((ParagraphSpec){.text = header, .width = label_w}, 0, 0))
         height += settings_breaks_timer_row_h(GetLocaleText("settings_breaks_timer_enabled"), label_w)
         height += settings_breaks_slider_h()
         height += settings_breaks_slider_h()

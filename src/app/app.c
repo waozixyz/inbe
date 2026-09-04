@@ -781,7 +781,7 @@ app_content_top_reserved(const InbeApp *app)
 
     if(app != NULL && app->inbe.screen == InbeScreenStart) {
         memset(&tabs, 0, sizeof(tabs));
-        return UIGetNodeHeight(UINodeTabBar(tabs));
+        return GetNodeHeight(NodeTabBar(tabs));
     }
     return app_toolbar_height();
 }
@@ -1837,7 +1837,7 @@ app_donation_address_box_height(const char *address, int w, int font,
     props.font = font;
     props.style = style;
     props.line_gap = ScaleUIPx(2);
-    return UIGetNodeHeight(UINodeReadonlyTextBox(props));
+    return GetNodeHeight(NodeReadonlyTextBox(props));
 }
 
 static int app_donation_button_stack(int w);
@@ -2044,7 +2044,7 @@ draw_about_donation_modal(InbeApp *app)
     message.font = GetUISmallFontSize();
     message.line_gap = ScaleUIPx(4);
     message.color = DarkenUIColor(GetThemeText(), 28);
-    message_h = UIGetNodeHeight(UINodeParagraph(message, 0, 0));
+    message_h = GetNodeHeight(NodeParagraph(message, 0, 0));
     bitcoin_h = app_donation_coin_section_height(app_bitcoin_donation_address(),
                                                  coin_w);
     monero_h = app_donation_coin_section_height(app_monero_donation_address(),
@@ -2225,7 +2225,7 @@ draw_secure_migration_modal(InbeApp *app)
     message.font = GetUIFontSize();
     message.line_gap = ScaleUIPx(4);
     message.color = GetThemeText();
-    message_h = UIGetNodeHeight(UINodeParagraph(message, 0, 0));
+    message_h = GetNodeHeight(NodeParagraph(message, 0, 0));
     button_h = ScaleUIPx(36);
     gap = ScaleUIPx(10);
     modal_h = ScaleUIPx(74) + message_h + ScaleUIPx(24) + button_h +
@@ -2570,12 +2570,16 @@ updateapp(InbeApp *app)
     }
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
-    /* Ctrl+Q quits from any screen. Esc quits only when idle on the home
-     * screen (Play tab, nothing open); deeper screens already bind Esc to
-     * their own back/cancel handlers. */
+    /* Ctrl+Q quits from any screen. Esc closes the navigation sidebar first,
+     * then quits only when idle on the home screen; deeper screens bind Esc
+     * to their own back/cancel handlers. */
     if(IsKeyPressed(KEY_Q) &&
        (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL))) {
         app_request_desktop_quit(app);
+    } else if(IsKeyPressed(KEY_ESCAPE) &&
+              (app->nav_sidebar_open ||
+               app->inbe.screen == InbeScreenNavSidebar)) {
+        app_close_nav_sidebar(app);
     } else if(IsKeyPressed(KEY_ESCAPE) &&
               app->inbe.screen == InbeScreenStart &&
               app->practice_tab == PRACTICE_TAB_PLAY &&
@@ -2597,7 +2601,7 @@ updateapp(InbeApp *app)
         practice_update_circle_bounds(app, app_content_top_reserved(app),
                                       app_content_bottom_reserved(app));
     } else if(app->inbe.screen == InbeScreenSession) {
-        practice_update_circle_bounds(app, UIGetNodeHeight(UINodeTitleBar(0)), 84);
+        practice_update_circle_bounds(app, GetNodeHeight(NodeTitleBar(0)), 84);
     }
 
     if(app->inbe.screen == InbeScreenSession)

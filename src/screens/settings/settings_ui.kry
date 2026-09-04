@@ -34,7 +34,7 @@ toggle_row_height :: (label: const char*, w: int) -> int {
         label_w = w
     }
 
-    label_h := UIGetNodeHeight(UINodeParagraph(label_paragraph(label, label_w), 0, 0))
+    label_h := GetNodeHeight(NodeParagraph(label_paragraph(label, label_w), 0, 0))
     if label_w < w {
         row_h := label_h
         if row_h < toggle_h {

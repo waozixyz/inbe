@@ -48,10 +48,10 @@ meditation_manual_content_height :: (content_w: int, user_data: void*) -> int #p
 
     if ctx->page == 0 {
         return ScaleUIPx(66 + 145 + 18) +
-               UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0))
+               GetNodeHeight(NodeParagraph(paragraph, 0, 0))
     }
     return ScaleUIPx(66 + 160 + 20) +
-           UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0))
+           GetNodeHeight(NodeParagraph(paragraph, 0, 0))
 }
 
 meditation_manual_draw_page :: (app: InbeApp*, page: UIScrollPage,

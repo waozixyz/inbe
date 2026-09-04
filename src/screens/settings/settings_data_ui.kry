@@ -839,7 +839,7 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
         .line_gap = ScaleUIPx(2),
         .color = GetThemeText()
     }
-    intro_h = UIGetNodeHeight(UINodeParagraph(intro, 0, 0))
+    intro_h = GetNodeHeight(NodeParagraph(intro, 0, 0))
     intro_y = frame.content_y
     Paragraph(intro, frame.content_x, &intro_y)
 

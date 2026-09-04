@@ -467,8 +467,8 @@ profile_screen_draw :: (app: InbeApp*) -> int {
         return 0
     }
 
-    header_h := UIGetNodeHeight(UINodeTitleBar(0))
-    tab_h := UIGetNodeHeight(UINodeTabBar((TabBarProps){
+    header_h := GetNodeHeight(NodeTitleBar(0))
+    tab_h := GetNodeHeight(NodeTabBar((TabBarProps){
         .bounds = (Rectangle){0, 0, 0, 0}
     }))
     content_y := header_h + (app->profile_view == PROFILE_VIEW_MAIN ? tab_h : 0) +

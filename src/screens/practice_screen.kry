@@ -52,7 +52,7 @@ practice_screen_subscreen_integrated :: (app: const InbeApp*, modal_type: int) -
 
 practice_screen_config_layout :: (app: InbeApp*, modal_type: int, content_top_gap: int, layout: PracticeSubscreenLayout*) {
     integrated := practice_screen_subscreen_integrated(app, modal_type)
-    title_h := integrated ? app_content_top_reserved(app) : UIGetNodeHeight(UINodeTitleBar(0))
+    title_h := integrated ? app_content_top_reserved(app) : GetNodeHeight(NodeTitleBar(0))
     scroll_y := title_h + content_top_gap
     bottom_reserved := integrated ? app_content_bottom_reserved(app) : 0
     scroll_h := view_height - scroll_y - bottom_reserved - (integrated ? ScaleUIPx(8) : 0)
@@ -68,7 +68,7 @@ practice_screen_config_layout :: (app: InbeApp*, modal_type: int, content_top_ga
 
 practice_screen_manual_layout :: (app: InbeApp*, modal_type: int, page_count: int, content_top_gap: int, content_bottom_gap: int, min_content_h: int, layout: PracticeManualLayout*) {
     integrated := practice_screen_subscreen_integrated(app, modal_type)
-    title_h := integrated ? app_content_top_reserved(app) : UIGetNodeHeight(UINodeTitleBar(0))
+    title_h := integrated ? app_content_top_reserved(app) : GetNodeHeight(NodeTitleBar(0))
     nav_h := page_count > 1 ? manual_screen_guide_nav_height() : 0
     bottom_reserved := integrated ? app_content_bottom_reserved(app) : 0
     content_y := title_h + content_top_gap
@@ -90,7 +90,7 @@ practice_screen_handle_config_title :: (app: InbeApp*, title: const char*, modal
     if app == NULL {
         return 0
     }
-    title_h = practice_screen_subscreen_integrated(app, modal_type) ? app_content_top_reserved(app) : UIGetNodeHeight(UINodeTitleBar(0))
+    title_h = practice_screen_subscreen_integrated(app, modal_type) ? app_content_top_reserved(app) : GetNodeHeight(NodeTitleBar(0))
     if !app_draw_close_title_bar(app, title, title_h) {
         return 0
     }
@@ -570,7 +570,7 @@ practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private 
     if tab_count <= 0 {
         return -1
     }
-    clicked = TabBar((TabBarProps){.bounds = (Rectangle){0, (float)y, (float)view_width, (float)UIGetNodeHeight(UINodeTabBar((TabBarProps){.bounds = (Rectangle){0, 0, 0, 0}}))}, .tabs = tabs, .count = tab_count, .selected_index = selected_index, .min_tab_width = ScaleUIPx(120), .max_tab_width = ScaleUIPx(180)})
+    clicked = TabBar((TabBarProps){.bounds = (Rectangle){0, (float)y, (float)view_width, (float)GetNodeHeight(NodeTabBar((TabBarProps){.bounds = (Rectangle){0, 0, 0, 0}}))}, .tabs = tabs, .count = tab_count, .selected_index = selected_index, .min_tab_width = ScaleUIPx(120), .max_tab_width = ScaleUIPx(180)})
     return clicked >= 0 && clicked < tab_count ? values[clicked] : -1
 }
 
@@ -637,7 +637,7 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
             app_switch_route(app, route)
         }
     } else {
-        ToolbarHeader((ToolbarHeaderProps){.leading_icon = (Texture2D){0}, .toolbar = (ToolbarProps){.id = 300, .height = UIGetNodeHeight(UINodeTabBar((TabBarProps){.bounds = (Rectangle){0, 0, 0, 0}})), .options = app->modal.active ? NULL : exercise_options, .option_count = app->modal.active ? 0 : activity_count, .selected_index = &activity_index, .dropdown_min_width = ScaleUIPx(160), .dropdown_height = ScaleUIPx(36), .side_padding = -1}})
+        ToolbarHeader((ToolbarHeaderProps){.leading_icon = (Texture2D){0}, .toolbar = (ToolbarProps){.id = 300, .height = GetNodeHeight(NodeTabBar((TabBarProps){.bounds = (Rectangle){0, 0, 0, 0}})), .options = app->modal.active ? NULL : exercise_options, .option_count = app->modal.active ? 0 : activity_count, .selected_index = &activity_index, .dropdown_min_width = ScaleUIPx(160), .dropdown_height = ScaleUIPx(36), .side_padding = -1}})
     }
     if !app->modal.active {
         app->practice_tab = PRACTICE_TAB_PLAY

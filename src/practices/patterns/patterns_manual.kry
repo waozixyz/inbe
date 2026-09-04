@@ -58,7 +58,7 @@ patterns_manual_content_height :: (content_w: int, user_data: void*) -> int #pri
     ctx := (PatternsManualPageContext*)user_data
 
     return ScaleUIPx(66 + 184 + 18) +
-           UIGetNodeHeight(UINodeParagraph(
+           GetNodeHeight(NodeParagraph(
                patterns_manual_paragraph(ctx->page, content_w), 0, 0))
 }
 

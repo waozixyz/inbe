@@ -348,7 +348,7 @@ session_start :: (app: InbeApp*) {
     app->inbe.progressive_start_speed = progressive_start_speed
     app->inbe.play_in_background = play_in_background
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
-    session_update_circle_bounds_for_view(&app->inbe, UIGetNodeHeight(UINodeTitleBar(0)), ScaleUIPx(56) + 80)
+    session_update_circle_bounds_for_view(&app->inbe, GetNodeHeight(NodeTitleBar(0)), ScaleUIPx(56) + 80)
     app_switch_screen(app, InbeScreenSession)
     app->session_paused = 0
     app->results_saved = 0
@@ -1007,7 +1007,7 @@ session_handle_exit_modal :: (app: InbeApp*) -> int #private {
 
 session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
     breath_max_y: int = view_height - ScaleUIPx(44)
-    title_h: int = UIGetNodeHeight(UINodeTitleBar(0))
+    title_h: int = GetNodeHeight(NodeTitleBar(0))
     title: [32] char
 
     session_round_label(app, title, sizeof(title))

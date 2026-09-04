@@ -130,7 +130,7 @@ info_modal :: (title: const char*, message: const char*) -> int #private {
         .font = GetUIFontSize(),
         .line_gap = ScaleUIPx(4)
     }
-    modal_h = UIGetNodeHeight(UINodeParagraphModal((ParagraphModalMeasureProps){
+    modal_h = GetNodeHeight(NodeParagraphModal((ParagraphModalMeasureProps){
         .message = message,
         .width = modal_w,
         .button_h = button_h,
@@ -141,7 +141,7 @@ info_modal :: (title: const char*, message: const char*) -> int #private {
     frame = ModalFrame(modal_w, modal_h, title,
                              (Texture2D){0}, (Texture2D){0})
     paragraph.width = frame.content_w
-    paragraph_h = UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0))
+    paragraph_h = GetNodeHeight(NodeParagraph(paragraph, 0, 0))
     button_y = frame.y + frame.h - button_h - ScaleUIPx(16)
     text_h = button_y - frame.content_y - ScaleUIPx(16)
     if text_h < ScaleUIPx(32) {
@@ -327,6 +327,7 @@ text_area :: (text: char*, text_size: size_t, cursor: int*,
         .max_codepoints = max_codepoints,
         .font = font,
         .line_gap = ScaleUIPx(4),
+        .wrap = 1,
         .style = style
     }
 }
@@ -420,22 +421,22 @@ scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
     app := (InbeApp*)user_data
     height := ScaleUIPx(18)
 
-    height += UIGetNodeHeight(UINodeLabelTextField((LabelTextFieldProps){
+    height += GetNodeHeight(NodeLabelTextField((LabelTextFieldProps){
         .label = GetLocaleText("habit_name_label"),
         .field_h = ScaleUIPx(40)
     }, 0, 0, content_w))
     height += ScaleUIPx(22) + ScaleUIPx(120) + ScaleUIPx(24)
     height += ScaleUIPx(32) + color_palette_height(content_w)
-    height += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    height += GetNodeHeight(NodeSectionLabel((SectionLabelProps){0}, 0, 0))
     for int i = 0; i < EXERCISE_COUNT; i++ {
-        height += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+        height += GetNodeHeight(NodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     }
     height += ScaleUIPx(4)
-    height += ScaleUIPx(6) + UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    height += ScaleUIPx(6) + GetNodeHeight(NodeSectionLabel((SectionLabelProps){0}, 0, 0))
     height += ScaleUIPx(34) + ScaleUIPx(10)
     height += ScaleUIPx(76)
-    height += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
-    height += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+    height += GetNodeHeight(NodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    height += GetNodeHeight(NodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     height += ScaleUIPx(10)
 
     height += action_row_height(content_w,
@@ -585,7 +586,7 @@ draw :: (app: InbeApp*) {
         .label_color = DarkenUIColor(GetThemeText(), 34)
     }, content_x, y, content_w)
     clamp_cursor(app->habit_edit.text, &app->habit_edit.cursor)
-    y += UIGetNodeHeight(UINodeLabelTextField((LabelTextFieldProps){.field_h = field_h}, 0, 0, content_w))
+    y += GetNodeHeight(NodeLabelTextField((LabelTextFieldProps){.field_h = field_h}, 0, 0, content_w))
 
     desc_label_h := ScaleUIPx(22)
     desc_label_gap := 0
@@ -652,7 +653,7 @@ draw :: (app: InbeApp*) {
     }, content_x, y) {
         app_open_modal(app, UIModalHabitPracticeListInfo)
     }
-    y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    y += GetNodeHeight(NodeSectionLabel((SectionLabelProps){0}, 0, 0))
 
     for int i = 0; i < EXERCISE_COUNT; i++ {
         id := practice_ordered_id(i)
@@ -672,7 +673,7 @@ draw :: (app: InbeApp*) {
             }
             app->habit_edit.sync_mode = app->habit_edit.sync_activity != 0 ? INBE_HABIT_SYNC_ACTIVITIES : INBE_HABIT_SYNC_NONE
         }
-        y += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+        y += GetNodeHeight(NodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     }
 
     y += ScaleUIPx(4)
@@ -683,14 +684,14 @@ draw :: (app: InbeApp*) {
     }, content_x, y) {
         app_open_modal(app, UIModalHabitCountingInfo)
     }
-    y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    y += GetNodeHeight(NodeSectionLabel((SectionLabelProps){0}, 0, 0))
     if CheckboxRow((CheckboxRowProps){
         .label = GetLocaleText("habit_multiple_counts_label"),
         .value = &app->habit_edit.counter_enabled
     }, content_x, y) {
         app->habit_edit.counter_enabled = app->habit_edit.counter_enabled != 0
     }
-    y += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+    y += GetNodeHeight(NodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
 
     # schedule: weekday chips (all on = every day)
     y += ScaleUIPx(6)
@@ -699,7 +700,7 @@ draw :: (app: InbeApp*) {
         .color = DarkenUIColor(GetThemeText(), 34)
     }, content_x, y) {
     }
-    y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    y += GetNodeHeight(NodeSectionLabel((SectionLabelProps){0}, 0, 0))
     day_letters: [7] const char* = {
         GetLocaleText("habit_day_mon"),
         GetLocaleText("habit_day_tue"),

@@ -78,7 +78,7 @@ draw_tutorial_header :: (step: int, content_x: int, y: int*, content_w: int) #pr
 }
 
 tutorial_paragraph_height :: (app: InbeApp*, step: int, content_w: int) -> int #private {
-    return UIGetNodeHeight(UINodeParagraph(tutorial_paragraph(app, step, content_w), 0, 0))
+    return GetNodeHeight(NodeParagraph(tutorial_paragraph(app, step, content_w), 0, 0))
 }
 
 tutorial_safety_warning :: (content_w: int) -> ParagraphSpec #private {
@@ -90,7 +90,7 @@ tutorial_safety_warning :: (content_w: int) -> ParagraphSpec #private {
 }
 
 tutorial_safety_warning_height :: (content_w: int) -> int #private {
-    return UIGetNodeHeight(UINodeParagraph(
+    return GetNodeHeight(NodeParagraph(
                tutorial_safety_warning(content_w), 0, 0)) + ScaleUIPx(24)
 }
 

@@ -458,7 +458,7 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     ratio: [4] int
     time_text: [32] char
     hover := 0
-    title_h := UIGetNodeHeight(UINodeTabBar((TabBarProps){
+    title_h := GetNodeHeight(NodeTabBar((TabBarProps){
         .bounds = (Rectangle){0, 0, 0, 0}
     }))
     circle_text := pattern_text_color_for_background(GetThemeCircle())

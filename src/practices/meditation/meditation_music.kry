@@ -257,7 +257,7 @@ attribution_height :: (content_w: int) -> int #private {
     if content_w <= 0 {
         return 0
     }
-    return UIGetNodeHeight(UINodeParagraph(attribution_paragraph(content_w), 0, 0))
+    return GetNodeHeight(NodeParagraph(attribution_paragraph(content_w), 0, 0))
 }
 
 draw_attribution :: (content_x: int, content_w: int, y: int*) #private {

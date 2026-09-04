@@ -362,7 +362,7 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     current_step_seconds: int
     ticks_per_step: int
     pause_icon: Texture2D
-    title_h := UIGetNodeHeight(UINodeTitleBar(0))
+    title_h := GetNodeHeight(NodeTitleBar(0))
     content_top := title_h + ScaleUIPx(8)
     image_bottom: int
     min_view_dim := view_width < view_height ? view_width : view_height

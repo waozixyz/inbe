@@ -173,7 +173,7 @@ ScaleUIPx(int px)
 }
 
 UIWidgetNode
-UINodeTabBar(TabBarProps bar)
+NodeTabBar(TabBarProps bar)
 {
     UIWidgetNode node = {0};
     node.bounds.height = 44;
@@ -182,7 +182,7 @@ UINodeTabBar(TabBarProps bar)
 }
 
 UIWidgetNode
-UINodeTitleBar(int height)
+NodeTitleBar(int height)
 {
     UIWidgetNode node = {0};
     node.bounds.height = height > 0 ? height : 52;
@@ -209,7 +209,7 @@ End(void)
 }
 
 int
-UIGetNodeHeight(UIWidgetNode node)
+GetNodeHeight(UIWidgetNode node)
 {
     return (int)node.bounds.height;
 }
@@ -313,7 +313,7 @@ BottomNav(BottomNavProps nav)
 }
 
 UIWidgetNode
-UINodeBottomNav(BottomNavProps nav)
+NodeBottomNav(BottomNavProps nav)
 {
     UIWidgetNode node = {0};
     node.bounds.height = 52;
@@ -422,7 +422,7 @@ BeginUIScreenScaffold(UIScreenScaffoldSpec spec)
     UIScreenScaffold scaffold = {0};
     int title_h = spec.title_height > 0
                       ? spec.title_height
-                      : UIGetNodeHeight(UINodeTitleBar(0));
+                      : GetNodeHeight(NodeTitleBar(0));
     int top_gap = spec.top_gap > 0 ? spec.top_gap : 0;
 
     scaffold.title_height = title_h;
@@ -547,7 +547,7 @@ PaddedIconBtn(int id, int x, int y, int size, int padding,
 }
 
 void
-IconTexture(int id, int x, int y, int size, Texture2D icon, Color tint)
+Icon(int id, int x, int y, int size, UIIconType icon, Color tint)
 {
     (void)id;
     (void)x;

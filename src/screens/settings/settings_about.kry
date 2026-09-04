@@ -44,7 +44,7 @@ settings_about_content_height :: (content_w: int) -> int {
     update_row := inbe_update_available() != 0 ? ScaleUIPx(72) : 0
 
     return ScaleUIPx(248) + update_row +
-           UIGetNodeHeight(UINodeParagraph(description, 0, 0)) +
+           GetNodeHeight(NodeParagraph(description, 0, 0)) +
            about_link_icons_height(content_w)
 }
 
@@ -107,8 +107,8 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     description := (ParagraphSpec){0}
 
     *y += ScaleUIPx(16)
-    IconTexture(0, x + (w - logo_size) / 2, *y, logo_size,
-                         app->icons[UI_ICON_TYPE_PROJ_WAO], WHITE)
+    Icon(0, x + (w - logo_size) / 2, *y, logo_size,
+         UI_ICON_TYPE_PROJ_WAO, WHITE)
     *y += logo_size + ScaleUIPx(12)
 
     text_w = TextWidth(GetLocaleText("app_title"), title_font)

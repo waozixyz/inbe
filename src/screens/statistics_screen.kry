@@ -114,7 +114,7 @@ statistics_draw_metric :: (x: int, y: int, w: int, h: int, label: const char*, v
 statistics_draw_section_title :: (title: const char*, x: int, y: int, w: int) -> int #private {
     paragraph := (ParagraphSpec){.text = title, .width = w, .font = Text16, .line_gap = ScaleUIPx(3), .color = GetThemeText()}
     title_y := y
-    height := UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0))
+    height := GetNodeHeight(NodeParagraph(paragraph, 0, 0))
 
     Paragraph(paragraph, x, &title_y)
     return height

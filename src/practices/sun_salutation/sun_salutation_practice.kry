@@ -376,7 +376,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
     app->practice_config_tab = 0
 
     if app->modal.active && app->modal.type == UIModalPracticeConfig {
-        title_h = UIGetNodeHeight(UINodeTitleBar(0))
+        title_h = GetNodeHeight(NodeTitleBar(0))
         if app_draw_close_title_bar(app,
                                     GetLocaleText("practice_config_title"),
                                     title_h) {

@@ -33,7 +33,7 @@ practice_audio_music_icon :: (app: InbeApp*) -> Texture2D #private {
 }
 
 practice_draw_audio_controls :: (app: InbeApp*) {
-    title_h := UIGetNodeHeight(UINodeTitleBar(0))
+    title_h := GetNodeHeight(NodeTitleBar(0))
     icon_size := ScaleUIPx(18)
     icon_padding := ScaleUIPx(5)
     control_y := (title_h - (icon_size + icon_padding * 2)) / 2

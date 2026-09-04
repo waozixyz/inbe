@@ -605,7 +605,7 @@ config_content_height :: (content_w: int) -> int {
     }
 
     h += ScaleUIPx(18)
-    h += UIGetNodeHeight(UINodeReadonlyTextBox((ReadonlyTextBoxProps){.bounds = {0, 0, (float)content_w, 0}, .text = display, .font = GetUISmallFontSize(), .style = text_style()}))
+    h += GetNodeHeight(NodeReadonlyTextBox((ReadonlyTextBoxProps){.bounds = {0, 0, (float)content_w, 0}, .text = display, .font = GetUISmallFontSize(), .style = text_style()}))
     h += ScaleUIPx(8)
     h += ScaleUIPx(18) + btn_h + ScaleUIPx(12)
     h += btn_h + ScaleUIPx(12)
@@ -854,7 +854,7 @@ draw_backup_modal :: (app: InbeApp*) -> int {
         .width = ScaleUIPx(336) - ScaleUIPx(36),
     }
     modal_h = ScaleUIPx(58) +
-              UIGetNodeHeight(UINodeParagraph(warning, 0, 0)) +
+              GetNodeHeight(NodeParagraph(warning, 0, 0)) +
               text_button_gap +
               btn_h * 2 + gap +
               pad_bottom

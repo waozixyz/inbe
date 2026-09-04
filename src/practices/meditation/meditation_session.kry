@@ -470,7 +470,7 @@ meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     font := Text24
     max_w: int
     text_w: int
-    title_h := UIGetNodeHeight(UINodeTitleBar(0))
+    title_h := GetNodeHeight(NodeTitleBar(0))
 
     if app_draw_close_title_bar(app, GetLocaleText("meditation_title"), title_h) {
         meditation_request_exit(app)
