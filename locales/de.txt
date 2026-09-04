@@ -1719,3 +1719,33 @@ Nicht gespeichert (unter einer Minute)
 [results_mood_title]
 Wie hast du dich gefühlt?
 ---
+[tutorial_title_before_begin]
+Vor dem Beginn
+---
+[tutorial_title_breathe]
+Atmen
+---
+[tutorial_title_exhale_hold]
+Ausatmen und halten
+---
+[tutorial_title_recovery_breath]
+Erholungsatemzug
+---
+[tutorial_step_progress]
+Schritt %d von %d
+---
+[tutorial_safety_warning]
+Übe niemals beim Fahren, im Stehen oder im Wasser.
+---
+[tutorial_current_speed]
+Aktuelle Geschwindigkeit: %d
+---
+[tutorial_change_in_customize]
+Ändere sie unter Anpassen.
+---
+[tutorial_during_practice]
+Während der Übung
+---
+[back_button]
+Zurück
+---

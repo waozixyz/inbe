@@ -1717,3 +1717,33 @@ Skip this time
 [donation_reminder_dismiss_button]
 Dismiss forever
 ---
+[tutorial_title_before_begin]
+Before You Begin
+---
+[tutorial_title_breathe]
+Breathe
+---
+[tutorial_title_exhale_hold]
+Exhale & Hold
+---
+[tutorial_title_recovery_breath]
+Recovery Breath
+---
+[tutorial_step_progress]
+Step %d of %d
+---
+[tutorial_safety_warning]
+Never practice while driving, standing, or in water.
+---
+[tutorial_current_speed]
+Current speed: %d
+---
+[tutorial_change_in_customize]
+Change this from Customize.
+---
+[tutorial_during_practice]
+During practice
+---
+[back_button]
+Back
+---

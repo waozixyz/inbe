@@ -5,12 +5,18 @@
 #import "screens/manual_screen.h"
 #import "screens/practice_screen.h"
 
-static tutorial_keys: [5] const char* = {
+static tutorial_keys: [4] const char* = {
     "tutorial_step_intro",
-    "tutorial_step_method",
     "tutorial_step_breathe",
     "tutorial_step_exhale_hold",
     "tutorial_step_inhale_hold"
+}
+
+static tutorial_title_keys: [4] const char* = {
+    "tutorial_title_before_begin",
+    "tutorial_title_breathe",
+    "tutorial_title_exhale_hold",
+    "tutorial_title_recovery_breath"
 }
 
 WhmManualScrollPageContext :: struct {
@@ -19,7 +25,7 @@ WhmManualScrollPageContext :: struct {
 }
 
 tutorial_steps_count :: () -> int #private {
-    return 5
+    return 4
 }
 
 manual_text_color_for_background :: (background: Color) -> Color #private {
@@ -34,18 +40,19 @@ draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radi
     previous_sectick := app->inbe.sectick
     previous_r := app->inbe.r
     text_color := manual_text_color_for_background(GetThemeCircle())
-    seconds := (app->inbe.frame / 60) % 60
     text: [CountSize] char = {0}
+    display_text: [8] char = {0}
 
     cpcount(previous_count, app->inbe.count)
-    count_from_int(text, seconds)
+    snprintf(text, sizeof(text), "0")
+    snprintf(display_text, sizeof(display_text), "0:00")
 
     app->inbe.phase = InbePhaseHold
     cpcount(app->inbe.count, text)
     app->inbe.sectick = app->inbe.frame % 60
     app->inbe.r = (float)radius
     draw_session_progress_circle(app, center_x, center_y, (float)radius)
-    DrawCenteredUIControlText(text, center_x, center_y, Text16, text_color)
+    DrawCenteredUIControlText(display_text, center_x, center_y, Text16, text_color)
 
     app->inbe.phase = previous_phase
     cpcount(app->inbe.count, previous_count)
@@ -54,18 +61,51 @@ draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radi
 }
 
 tutorial_paragraph :: (app: InbeApp*, step: int, content_w: int) -> ParagraphSpec #private {
-    has_icon := step == 1
     paragraph := manual_screen_tutorial_paragraph(
         GetLocaleText(tutorial_keys[step]), content_w)
 
-    paragraph.icon = has_icon ? app->icons[UI_ICON_TYPE_WRENCH] : (Texture2D){0}
-    paragraph.icon_type = has_icon ? UI_ICON_TYPE_WRENCH : UI_ICON_TYPE_NONE
-    paragraph.icon_size = has_icon ? ScaleUIPx(14) : 0
     return paragraph
+}
+
+tutorial_header_height :: () -> int #private {
+    return ScaleUIPx(66)
+}
+
+draw_tutorial_header :: (step: int, content_x: int, y: int*, content_w: int) #private {
+    progress: [48] char = {0}
+    dot_gap := ScaleUIPx(14)
+    dots_w := (tutorial_steps_count() - 1) * dot_gap
+    dots_x := content_x + content_w - dots_w
+
+    Text(GetLocaleText(tutorial_title_keys[step]), content_x, *y,
+         Text20, GetThemeText())
+    *y += ScaleUIPx(30)
+    snprintf(progress, sizeof(progress), GetLocaleText("tutorial_step_progress"),
+             step + 1, tutorial_steps_count())
+    Text(progress, content_x, *y, Text14, GetThemeMutedText())
+    for int i = 0; i < tutorial_steps_count(); i++ {
+        DrawCircle(dots_x + i * dot_gap, *y + ScaleUIPx(7),
+                   ScaleUIPx(i == step ? 4 : 3),
+                   i == step ? GetThemeButton() : GetThemeBorder())
+    }
+    *y += ScaleUIPx(36)
 }
 
 tutorial_paragraph_height :: (app: InbeApp*, step: int, content_w: int) -> int #private {
     return UIGetNodeHeight(UINodeParagraph(tutorial_paragraph(app, step, content_w), 0, 0))
+}
+
+tutorial_safety_warning :: (content_w: int) -> ParagraphSpec #private {
+    warning := manual_screen_tutorial_paragraph(
+        GetLocaleText("tutorial_safety_warning"), content_w - ScaleUIPx(24))
+
+    warning.color = GetThemeText()
+    return warning
+}
+
+tutorial_safety_warning_height :: (content_w: int) -> int #private {
+    return UIGetNodeHeight(UINodeParagraph(
+               tutorial_safety_warning(content_w), 0, 0)) + ScaleUIPx(24)
 }
 
 draw_tutorial_paragraph :: (app: InbeApp*, step: int, content_x: int, y: int*, content_w: int) #private {
@@ -73,19 +113,18 @@ draw_tutorial_paragraph :: (app: InbeApp*, step: int, content_x: int, y: int*, c
 }
 
 manual_tutorial_content_height :: (app: InbeApp*, step: int, content_w: int) -> int #private {
-    actual_content_h := 0
+    actual_content_h := tutorial_header_height()
 
     if step == 0 {
-        actual_content_h += ScaleUIPx(170) + ScaleUIPx(22) +
-                            tutorial_paragraph_height(app, 0, content_w)
+        actual_content_h += ScaleUIPx(100) + ScaleUIPx(18) +
+                            tutorial_paragraph_height(app, 0, content_w) +
+                            ScaleUIPx(12) +
+                            tutorial_safety_warning_height(content_w)
     } else if step == 1 {
-        actual_content_h += tutorial_paragraph_height(app, 1, content_w)
-    } else if step == 2 {
         preview_span := content_w < ScaleUIPx(132) ? content_w : ScaleUIPx(132)
         preview_rmax := preview_span / 2
-        slider_h := ScaleUIPx(40)
 
-        actual_content_h += tutorial_paragraph_height(app, 2, content_w) +
+        actual_content_h += tutorial_paragraph_height(app, 1, content_w) +
                             ScaleUIPx(20)
         if preview_rmax < ScaleUIPx(60) {
             preview_rmax = ScaleUIPx(60)
@@ -96,17 +135,17 @@ manual_tutorial_content_height :: (app: InbeApp*, step: int, content_w: int) -> 
         actual_content_h += ScaleUIPx(40) +
                             (int)((float)preview_rmax * 0.72f) +
                             ScaleUIPx(14)
-        actual_content_h += slider_h + ScaleUIPx(8)
-    } else if step == 3 {
+        actual_content_h += ScaleUIPx(72)
+    } else if step == 2 {
         hold_preview_radius := ScaleUIPx(54)
         hold_preview_extent := hold_preview_radius + ScaleUIPx(8) + ScaleUIPx(5)
 
-        actual_content_h += hold_preview_extent * 2 + ScaleUIPx(24) +
-                            ScaleUIPx(42) + ScaleUIPx(18)
-        actual_content_h += tutorial_paragraph_height(app, 3, content_w)
+        actual_content_h += hold_preview_extent * 2 + ScaleUIPx(18) +
+                            ScaleUIPx(78)
+        actual_content_h += tutorial_paragraph_height(app, 2, content_w)
     } else {
-        actual_content_h += ScaleUIPx(170) + ScaleUIPx(22) +
-                            tutorial_paragraph_height(app, 4, content_w)
+        actual_content_h += ScaleUIPx(150) + ScaleUIPx(18) +
+                            tutorial_paragraph_height(app, 3, content_w)
     }
 
     return actual_content_h
@@ -141,8 +180,10 @@ manual_screen_start_exercise :: (app: InbeApp*) #private {
 
 whm_manual_draw_breath_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #private {
     speed := app->inbe.speed_level
+    speed_text: [96] char = {0}
+    card_h := ScaleUIPx(64)
 
-    draw_tutorial_paragraph(app, 2, page.content_x, y, page.content_w)
+    draw_tutorial_paragraph(app, 1, page.content_x, y, page.content_w)
     *y += ScaleUIPx(20)
 
     update_preview_bounds(&app->settings_preview, page.content_w, ScaleUIPx(132))
@@ -164,67 +205,83 @@ whm_manual_draw_breath_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #
                          *y + ScaleUIPx(40))
     *y += (int)(app->settings_preview.rmax * 0.72f) + ScaleUIPx(54)
 
-    if Slider(10, page.content_x, *y, page.content_w,
-                    GetLocaleText("speed_label"), SETTINGS_SPEED_MIN,
-                    SETTINGS_SPEED_MAX, &speed, "", nil) {
-        apply_settings(&app->inbe, speed, app->inbe.max_rounds,
-                          int_from_count(app->inbe.maxbreaths),
-                          app->inbe.pause_seconds)
-        apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
-                          int_from_count(app->inbe.maxbreaths),
-                          app->inbe.pause_seconds)
-        app->settings_preview.progressive_speed = 0
-        app->settings_dirty = 1
-    }
+    DrawRectangleRounded((Rectangle){(float)page.content_x, (float)*y,
+                                     (float)page.content_w, (float)card_h},
+                         0.18f, 10, GetThemeSurface())
+    snprintf(speed_text, sizeof(speed_text),
+             GetLocaleText("tutorial_current_speed"), speed)
+    Text(speed_text, page.content_x + ScaleUIPx(14),
+         *y + ScaleUIPx(10), Text14, GetThemeText())
+    Text(GetLocaleText("tutorial_change_in_customize"),
+         page.content_x + ScaleUIPx(14), *y + ScaleUIPx(34),
+         Text14, GetThemeMutedText())
+    *y += card_h + ScaleUIPx(8)
 }
 
 whm_manual_draw_hold_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #private {
     hold_preview_radius := ScaleUIPx(54)
     hold_preview_extent := hold_preview_radius + ScaleUIPx(8) + ScaleUIPx(5)
-    breath_button_hover := 0
     center_x := page.content_x + page.content_w / 2
+    example_w := page.content_w < ScaleUIPx(220) ? page.content_w : ScaleUIPx(220)
+    example_x := center_x - example_w / 2
 
     *y += hold_preview_extent
     draw_tutorial_hold_preview(app, center_x, *y, hold_preview_radius)
-    *y += hold_preview_extent + ScaleUIPx(24)
-    TextButton(0, center_x, *y, GetLocaleText("breath_button"),
-                        &breath_button_hover)
-    *y += ScaleUIPx(42) + ScaleUIPx(18)
-    draw_tutorial_paragraph(app, 3, page.content_x, y, page.content_w)
+    *y += hold_preview_extent + ScaleUIPx(18)
+    DrawCenteredUIControlText(GetLocaleText("tutorial_during_practice"),
+                              center_x, *y + ScaleUIPx(7), Text14,
+                              GetThemeMutedText())
+    *y += ScaleUIPx(22)
+    DrawRectangleRounded((Rectangle){(float)example_x, (float)*y,
+                                     (float)example_w, (float)ScaleUIPx(42)},
+                         0.22f, 10, GetThemeButton())
+    DrawCenteredUIControlText(GetLocaleText("breath_button"), center_x,
+                              *y + ScaleUIPx(21), Text16,
+                              GetThemeButtonText())
+    *y += ScaleUIPx(56)
+    draw_tutorial_paragraph(app, 2, page.content_x, y, page.content_w)
 }
 
 whm_manual_draw_page :: (app: InbeApp*, page: UIScrollPage, step: int, y: int*) #private {
+    draw_tutorial_header(step, page.content_x, y, page.content_w)
+
     if step == 0 {
-        img_h := ScaleUIPx(170)
+        img_h := ScaleUIPx(100)
+        warning_h := tutorial_safety_warning_height(page.content_w)
+        warning_y := 0
 
         TutorialImage(app->whm.image_1, "practices/whm/1.png",
                                page.content_x, *y, page.content_w, img_h)
-        *y += img_h + ScaleUIPx(22)
+        *y += img_h + ScaleUIPx(18)
         draw_tutorial_paragraph(app, 0, page.content_x, y, page.content_w)
+        *y += ScaleUIPx(12)
+        DrawRectangleRounded((Rectangle){(float)page.content_x, (float)*y,
+                                         (float)page.content_w, (float)warning_h},
+                             0.16f, 10, Fade(GetThemeButton(), 0.16f))
+        warning_y = *y + ScaleUIPx(12)
+        Paragraph(tutorial_safety_warning(page.content_w),
+                  page.content_x + ScaleUIPx(12), &warning_y)
+        *y += warning_h + ScaleUIPx(6)
     } else if step == 1 {
-        draw_tutorial_paragraph(app, 1, page.content_x, y, page.content_w)
-    } else if step == 2 {
         whm_manual_draw_breath_preview(app, page, y)
-    } else if step == 3 {
+    } else if step == 2 {
         whm_manual_draw_hold_preview(app, page, y)
     } else {
-        img_h := ScaleUIPx(170)
+        img_h := ScaleUIPx(150)
 
         TutorialImage(app->whm.image_2, "practices/whm/2.png",
                                page.content_x, *y, page.content_w, img_h)
-        *y += img_h + ScaleUIPx(22)
-        draw_tutorial_paragraph(app, 4, page.content_x, y, page.content_w)
+        *y += img_h + ScaleUIPx(18)
+        draw_tutorial_paragraph(app, 3, page.content_x, y, page.content_w)
     }
 }
 
 whm_manual_draw :: (app: InbeApp*) {
     layout := (PracticeManualLayout){0}
-    footer_content_pad := GetUIFontSize() / 2
-    step := app->tutorial_step
+    footer_content_pad := 0
+    step := clampi(app->tutorial_step, 0, tutorial_steps_count() - 1)
 
-    step = manual_screen_guide_update_page(app, tutorial_steps_count(),
-                                           manual_screen_start_exercise,
-                                           whm_manual_close)
+    app->tutorial_step = step
 
     practice_screen_manual_layout(app, UIModalPracticeManual,
                                      tutorial_steps_count(),
@@ -262,25 +319,27 @@ whm_manual_draw :: (app: InbeApp*) {
     whm_manual_draw_page(app, page, step, &y)
     EndUIScrollPage(page)
 
-    manual_screen_guide_update_swipe(app, tutorial_steps_count(),
-                                     (Rectangle){0.0f, (float)layout.content_y,
-                                                 (float)view_width,
-                                                 (float)layout.content_h})
-
-    manual_screen_guide_draw_nav(app, (ManualGuideNav){
+    pager := DrawUIGuidePager((UIGuidePagerProps){
+        .content_bounds = {0.0f, (float)layout.content_y,
+                           (float)view_width, (float)layout.content_h},
+        .footer_bounds = {0.0f, (float)layout.nav_y,
+                          (float)view_width, (float)layout.nav_h},
+        .swipe = &app->manual_swipe,
         .page = step,
         .page_count = tutorial_steps_count(),
-        .y = layout.nav_y,
-        .h = layout.nav_h,
-        .show_left_on_first = 1,
-        .start = manual_screen_start_exercise,
-        .close = whm_manual_close
+        .focus_id = 400,
+        .close_label = GetLocaleText("close_button"),
+        .back_label = GetLocaleText("back_button"),
+        .next_label = GetLocaleText("next_button"),
+        .finish_label = GetLocaleText("practice_start_button")
     })
-
-    if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
-        app->settings_drag_slider = 0
-        if app->settings_dirty {
-            save_settings(app)
-        }
+    if pager.changed {
+        app->tutorial_step = pager.page
+        app->manual_scroll = 0
+    }
+    if pager.closed {
+        whm_manual_close(app, 0)
+    } else if pager.finished {
+        manual_screen_start_exercise(app)
     }
 }

@@ -1719,3 +1719,33 @@ Não salvo (menos de um minuto)
 [results_mood_title]
 Como você se sentiu?
 ---
+[tutorial_title_before_begin]
+Antes de começar
+---
+[tutorial_title_breathe]
+Respire
+---
+[tutorial_title_exhale_hold]
+Expire e segure
+---
+[tutorial_title_recovery_breath]
+Respiração de recuperação
+---
+[tutorial_step_progress]
+Etapa %d de %d
+---
+[tutorial_safety_warning]
+Nunca pratique dirigindo, em pé ou na água.
+---
+[tutorial_current_speed]
+Velocidade atual: %d
+---
+[tutorial_change_in_customize]
+Altere em Personalizar.
+---
+[tutorial_during_practice]
+Durante a prática
+---
+[back_button]
+Voltar
+---

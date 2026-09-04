@@ -1719,3 +1719,33 @@ Neuloženo (méně než jedna minuta)
 [results_mood_title]
 Jak jste se cítili?
 ---
+[tutorial_title_before_begin]
+Než začnete
+---
+[tutorial_title_breathe]
+Dýchání
+---
+[tutorial_title_exhale_hold]
+Výdech a zádrž
+---
+[tutorial_title_recovery_breath]
+Regenerační nádech
+---
+[tutorial_step_progress]
+Krok %d ze %d
+---
+[tutorial_safety_warning]
+Nikdy necvičte při řízení, ve stoje ani ve vodě.
+---
+[tutorial_current_speed]
+Aktuální rychlost: %d
+---
+[tutorial_change_in_customize]
+Změňte ji v Přizpůsobení.
+---
+[tutorial_during_practice]
+Během cvičení
+---
+[back_button]
+Zpět
+---

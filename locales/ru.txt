@@ -1719,3 +1719,33 @@ Dismiss forever
 [results_mood_title]
 Как вы себя чувствовали?
 ---
+[tutorial_title_before_begin]
+Перед началом
+---
+[tutorial_title_breathe]
+Дыхание
+---
+[tutorial_title_exhale_hold]
+Выдох и задержка
+---
+[tutorial_title_recovery_breath]
+Восстановительный вдох
+---
+[tutorial_step_progress]
+Шаг %d из %d
+---
+[tutorial_safety_warning]
+Никогда не практикуйте за рулём, стоя или в воде.
+---
+[tutorial_current_speed]
+Текущая скорость: %d
+---
+[tutorial_change_in_customize]
+Измените её в разделе Настроить.
+---
+[tutorial_during_practice]
+Во время практики
+---
+[back_button]
+Назад
+---

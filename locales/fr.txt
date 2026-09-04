@@ -1718,3 +1718,33 @@ Non enregistré (moins d'une minute)
 [results_mood_title]
 Comment vous sentiez-vous ?
 ---
+[tutorial_title_before_begin]
+Avant de commencer
+---
+[tutorial_title_breathe]
+Respirez
+---
+[tutorial_title_exhale_hold]
+Expirez et retenez
+---
+[tutorial_title_recovery_breath]
+Respiration de récupération
+---
+[tutorial_step_progress]
+Étape %d sur %d
+---
+[tutorial_safety_warning]
+Ne pratiquez jamais en conduisant, debout ou dans l’eau.
+---
+[tutorial_current_speed]
+Vitesse actuelle : %d
+---
+[tutorial_change_in_customize]
+Modifiez-la dans Personnaliser.
+---
+[tutorial_during_practice]
+Pendant la pratique
+---
+[back_button]
+Retour
+---

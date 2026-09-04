@@ -103,7 +103,7 @@ manual_screen_guide_update_swipe :: (app: InbeApp*, page_count: int, bounds: Rec
 }
 
 manual_screen_guide_nav_height :: () -> int {
-    return ScaleUIPx(34)
+    return ScaleUIPx(68)
 }
 
 manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {

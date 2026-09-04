@@ -1719,3 +1719,33 @@ Tidak disimpan (kurang dari satu menit)
 [results_mood_title]
 Bagaimana perasaan Anda?
 ---
+[tutorial_title_before_begin]
+Sebelum Memulai
+---
+[tutorial_title_breathe]
+Bernapas
+---
+[tutorial_title_exhale_hold]
+Buang Napas & Tahan
+---
+[tutorial_title_recovery_breath]
+Napas Pemulihan
+---
+[tutorial_step_progress]
+Langkah %d dari %d
+---
+[tutorial_safety_warning]
+Jangan pernah berlatih saat mengemudi, berdiri, atau di dalam air.
+---
+[tutorial_current_speed]
+Kecepatan saat ini: %d
+---
+[tutorial_change_in_customize]
+Ubah di Sesuaikan.
+---
+[tutorial_during_practice]
+Selama latihan
+---
+[back_button]
+Kembali
+---

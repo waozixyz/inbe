@@ -71,9 +71,9 @@ practice_screen_manual_layout :: (app: InbeApp*, modal_type: int, page_count: in
     title_h := integrated ? app_content_top_reserved(app) : UIGetNodeHeight(UINodeTitleBar(0))
     nav_h := page_count > 1 ? manual_screen_guide_nav_height() : 0
     bottom_reserved := integrated ? app_content_bottom_reserved(app) : 0
-    nav_y := title_h
-    content_y := title_h + nav_h + content_top_gap
-    content_h := view_height - bottom_reserved - content_y - content_bottom_gap
+    content_y := title_h + content_top_gap
+    nav_y := view_height - bottom_reserved - nav_h
+    content_h := nav_y - content_y - content_bottom_gap
 
     if layout == NULL {
         return

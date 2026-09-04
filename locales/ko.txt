@@ -1718,3 +1718,33 @@ Dismiss forever
 [results_mood_title]
 기분이 어땠나요?
 ---
+[tutorial_title_before_begin]
+시작하기 전에
+---
+[tutorial_title_breathe]
+호흡
+---
+[tutorial_title_exhale_hold]
+내쉬고 참기
+---
+[tutorial_title_recovery_breath]
+회복 호흡
+---
+[tutorial_step_progress]
+%d / %d단계
+---
+[tutorial_safety_warning]
+운전 중이거나 서 있을 때 또는 물속에서는 절대 하지 마세요.
+---
+[tutorial_current_speed]
+현재 속도: %d
+---
+[tutorial_change_in_customize]
+사용자 지정에서 변경하세요.
+---
+[tutorial_during_practice]
+연습 중
+---
+[back_button]
+뒤로
+---
