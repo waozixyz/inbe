@@ -1,4 +1,15 @@
 # Changelog
+## [1.9.18] - 2026-09-04
+### Added
+- Every practice now includes a guided How-to with clear steps, swipe navigation, and labeled controls.
+
+### Changed
+- The Wim Hof guide now uses four focused pages with a prominent safety warning, breathing previews, progress indicators, and direct access to practice settings.
+- How-to controls now provide consistent hover, focus, keyboard, and touch feedback across supported devices.
+
+### Fixed
+- Exiting a practice started from How-to now returns to the normal Practice screen instead of reopening the guide.
+
 ## [1.9.17] - 2026-08-30
 ### Changed
 - Web habit check-ins now update more smoothly, reducing the visible flash when changing a habit.

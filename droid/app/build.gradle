@@ -52,8 +52,8 @@ android {
         applicationId "xyz.waozi.inbe"
         minSdk 21
         targetSdk 36
-        versionCode 119
-        versionName "1.9.17"
+        versionCode 120
+        versionName "1.9.18"
         manifestPlaceholders = [
             inbeAppLabel: "Inner Breeze",
             inbeUsesCleartextTraffic: "false"
