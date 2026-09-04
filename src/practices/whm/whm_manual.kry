@@ -262,6 +262,11 @@ whm_manual_draw :: (app: InbeApp*) {
     whm_manual_draw_page(app, page, step, &y)
     EndUIScrollPage(page)
 
+    manual_screen_guide_update_swipe(app, tutorial_steps_count(),
+                                     (Rectangle){0.0f, (float)layout.content_y,
+                                                 (float)view_width,
+                                                 (float)layout.content_h})
+
     manual_screen_guide_draw_nav(app, (ManualGuideNav){
         .page = step,
         .page_count = tutorial_steps_count(),

@@ -497,6 +497,7 @@ struct InbeApp {
     int manual_drag_scrollbar;
     int manual_drag_content;
     int manual_drag_content_y;
+    UISwipeGesture manual_swipe;
     int tutorial_step;
     int tutorial_seen;
     int habits_guide_step;

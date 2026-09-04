@@ -79,6 +79,29 @@ manual_screen_guide_update_page :: (app: InbeApp*, page_count: int, start: Manua
     return page
 }
 
+manual_screen_guide_update_swipe :: (app: InbeApp*, page_count: int, bounds: Rectangle) {
+    if app == NULL || page_count <= 1 {
+        return
+    }
+
+    swipe := UpdateUISwipe(&app->manual_swipe, (UISwipeSpec){
+        .bounds = bounds,
+        .directions = UI_SWIPE_HORIZONTAL,
+        .min_distance = (float)ScaleUIPx(48),
+        .axis_bias = 1.25f,
+        .max_duration = 0.8f
+    })
+    page := clampi(app->tutorial_step, 0, page_count - 1)
+
+    if swipe.direction == UI_SWIPE_LEFT && page < page_count - 1 {
+        app->tutorial_step = page + 1
+        app->manual_scroll = 0
+    } else if swipe.direction == UI_SWIPE_RIGHT && page > 0 {
+        app->tutorial_step = page - 1
+        app->manual_scroll = 0
+    }
+}
+
 manual_screen_guide_nav_height :: () -> int {
     return ScaleUIPx(34)
 }
