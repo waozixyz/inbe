@@ -340,16 +340,9 @@ practice_home_action_gap :: (content_w: int) -> int #private {
 }
 
 practice_home_quiet_action_button :: (bounds: Rectangle, label: const char*) -> int #private {
-    return ButtonNode((ButtonSpec){
-        .bounds = bounds,
-        .label = label,
-        .font = GetUIFontSize(),
-        .background = GetThemeBackground(),
-        .hover_background = GetThemeSurface(),
-        .text = GetThemeText(),
-        .border = Fade(GetThemeText(), 0.38f),
-        .radius = 0.50f,
-    })
+    return StyledButton((int)bounds.x, (int)bounds.y,
+                        (int)bounds.width, (int)bounds.height,
+                        label, ButtonStyleOutline, 0, NULL)
 }
 
 practice_home_subtitle :: (exercise: int) -> const char* #private {
