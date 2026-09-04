@@ -47,6 +47,31 @@ manual_screen_tutorial_paragraph :: (text: const char*, content_w: int) -> Parag
     return (ParagraphSpec){.text = text, .width = content_w, .font = manual_screen_tutorial_body_font(), .line_gap = manual_screen_tutorial_line_gap()}
 }
 
+manual_screen_draw_guide_header :: (title: const char*, page: int,
+                                    page_count: int, content_x: int,
+                                    y: int*, content_w: int) {
+    progress: [48] char = {0}
+    dot_gap := ScaleUIPx(14)
+    dots_w := (page_count - 1) * dot_gap
+    dots_x := content_x + content_w - dots_w
+
+    if title == NULL || y == NULL || page_count <= 0 {
+        return
+    }
+    page = clampi(page, 0, page_count - 1)
+    Text(title, content_x, *y, Text20, GetThemeText())
+    *y += ScaleUIPx(30)
+    snprintf(progress, sizeof(progress), GetLocaleText("tutorial_step_progress"),
+             page + 1, page_count)
+    Text(progress, content_x, *y, Text14, GetThemeMutedText())
+    for int i = 0; i < page_count; i++ {
+        DrawCircle(dots_x + i * dot_gap, *y + ScaleUIPx(7),
+                   ScaleUIPx(i == page ? 4 : 3),
+                   i == page ? GetThemeButton() : GetThemeBorder())
+    }
+    *y += ScaleUIPx(36)
+}
+
 manual_screen_guide_update_page :: (app: InbeApp*, page_count: int, start: ManualGuideStartFn, close: ManualGuideCloseFn) -> int {
     if app == NULL || page_count <= 0 {
         return 0

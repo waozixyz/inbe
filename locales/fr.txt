@@ -1748,3 +1748,24 @@ Pendant la pratique
 [back_button]
 Retour
 ---
+[meditation_manual_customize_text]
+Choisissez la durée, une cloche d’intervalle facultative et la musique dans Personnaliser. Asseyez-vous confortablement, détendez le regard et commencez quand vous êtes prêt.
+---
+[sun_manual_move_text]
+Enchaînez les 12 postures dans une séquence fluide. Bougez avec votre souffle et seulement jusqu’où cela reste confortable.
+---
+[sun_manual_guide_text]
+Le guide met chaque posture en évidence et vous laisse le temps de vous installer. Continuez à respirer; la précision n’est pas le but.
+---
+[sun_manual_customize_text]
+Réglez les répétitions et le rythme initial et final dans Personnaliser. Commencez lentement pendant l’apprentissage.
+---
+[patterns_manual_choose_text]
+Choisissez un modèle dont le rythme correspond à votre objectif. Carré est équilibré, 4-7-8 apaise, Cohérent est doux et Expiration prolongée allonge le relâchement.
+---
+[patterns_manual_phases_text]
+Suivez Inspirer, Retenir, Expirer et Retenir lorsqu’ils s’allument. Une phase de durée nulle est ignorée automatiquement.
+---
+[patterns_manual_customize_text]
+Réglez la durée des phases et de la séance dans Personnaliser. Respirez sans effort; arrêtez en cas de vertige ou d’inconfort.
+---

@@ -1749,3 +1749,24 @@ Durante la pratica
 [back_button]
 Indietro
 ---
+[meditation_manual_customize_text]
+Scegli durata, campana intervallo facoltativa e musica in Personalizza. Siediti comodamente, rilassa lo sguardo e inizia quando sei pronto.
+---
+[sun_manual_move_text]
+Segui le 12 posizioni come una sequenza fluida. Muoviti con il respiro e solo fin dove ti senti a tuo agio.
+---
+[sun_manual_guide_text]
+La guida evidenzia ogni posizione e ti lascia il tempo di assestarla. Continua a respirare; la precisione non è l’obiettivo.
+---
+[sun_manual_customize_text]
+Imposta ripetizioni e ritmo iniziale e finale in Personalizza. Inizia lentamente mentre impari la sequenza.
+---
+[patterns_manual_choose_text]
+Scegli uno schema con un ritmo adatto al tuo obiettivo. Quadrato è bilanciato, 4-7-8 rilassa, Coerente è dolce ed Espirazione estesa prolunga il rilascio.
+---
+[patterns_manual_phases_text]
+Segui Inspira, Trattieni, Espira e Trattieni quando si illuminano. Una fase di durata zero viene saltata automaticamente.
+---
+[patterns_manual_customize_text]
+Regola durata delle fasi e della sessione in Personalizza. Respira senza sforzo; fermati se avverti vertigini o disagio.
+---

@@ -1749,3 +1749,24 @@ Durante a prática
 [back_button]
 Voltar
 ---
+[meditation_manual_customize_text]
+Escolha a duração, um sino de intervalo opcional e música em Personalizar. Sente-se confortavelmente, relaxe o olhar e comece quando estiver pronto.
+---
+[sun_manual_move_text]
+Siga as 12 posturas como uma sequência contínua. Mova-se com a respiração e apenas até onde se sentir confortável.
+---
+[sun_manual_guide_text]
+O guia destaca cada postura e dá tempo para se acomodar antes de avançar. Continue respirando; precisão não é o objetivo.
+---
+[sun_manual_customize_text]
+Defina repetições e o ritmo inicial e final em Personalizar. Comece devagar enquanto aprende a sequência.
+---
+[patterns_manual_choose_text]
+Escolha um padrão cujo ritmo combine com seu objetivo. Caixa é equilibrado, 4-7-8 acalma, Coerente é suave e Expiração prolongada prolonga a liberação.
+---
+[patterns_manual_phases_text]
+Siga Inspirar, Segurar, Expirar e Segurar quando acenderem. Uma fase com duração zero é ignorada automaticamente.
+---
+[patterns_manual_customize_text]
+Ajuste as durações das fases e da sessão em Personalizar. Respire sem esforço; pare se sentir tontura ou desconforto.
+---

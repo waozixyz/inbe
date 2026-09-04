@@ -1749,3 +1749,24 @@ Während der Übung
 [back_button]
 Zurück
 ---
+[meditation_manual_customize_text]
+Wähle unter Anpassen Dauer, optionalen Intervallton und Musik. Sitze bequem, entspanne den Blick und beginne, wenn du bereit bist.
+---
+[sun_manual_move_text]
+Folge den 12 Posen als fließender Folge. Bewege dich mit dem Atem und nur so weit, wie es angenehm ist.
+---
+[sun_manual_guide_text]
+Die Anleitung hebt jede Pose hervor und gibt dir Zeit, sie einzunehmen. Atme weiter; Perfektion ist nicht das Ziel.
+---
+[sun_manual_customize_text]
+Lege unter Anpassen Wiederholungen sowie Anfangs- und Endtempo fest. Beginne langsam, während du die Folge lernst.
+---
+[patterns_manual_choose_text]
+Wähle ein Muster, dessen Rhythmus zu deinem Ziel passt. Box ist ausgeglichen, 4-7-8 beruhigt, Kohärent ist sanft und Langes Ausatmen verlängert die Abgabe.
+---
+[patterns_manual_phases_text]
+Folge Einatmen, Halten, Ausatmen und Halten, wenn sie aufleuchten. Eine Phase mit Länge null wird automatisch übersprungen.
+---
+[patterns_manual_customize_text]
+Passe Phasenlängen und Sitzungsdauer unter Anpassen an. Atme leicht; höre bei Schwindel oder Unwohlsein auf.
+---

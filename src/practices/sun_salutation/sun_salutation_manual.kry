@@ -1,0 +1,192 @@
+#import "app.h"
+#import "practices/sun_salutation/sun_salutation_practice.h"
+#import "screens/manual_screen.h"
+#import "screens/practice_screen.h"
+#import "stdio.h"
+
+#enum {
+    SUN_MANUAL_PAGES = 3
+}
+
+SunManualPageContext :: struct {
+    page: int
+}
+
+static sun_manual_body_keys: [SUN_MANUAL_PAGES] const char* = {
+    "sun_manual_move_text",
+    "sun_manual_guide_text",
+    "sun_manual_customize_text"
+}
+
+static sun_manual_title_keys: [SUN_MANUAL_PAGES] const char* = {
+    "exercise_sun_salutation",
+    "sun_salutation_tempo_preview_label",
+    "practice_configure_button"
+}
+
+sun_manual_close :: (app: InbeApp*, mark_seen: int) {
+    if app == NULL {
+        return
+    }
+    if mark_seen {
+        mark_exercise_manual_seen(app, EXERCISE_SUN_SALUTATION)
+    }
+    if app->modal.active && app->modal.type == UIModalPracticeManual {
+        app_close_modal(app)
+        return
+    }
+    app->tutorial_step = 0
+    app->manual_scroll = 0
+    app->practice_tab = PRACTICE_TAB_PLAY
+    app_switch_screen(app, InbeScreenStart)
+}
+
+sun_manual_start :: (app: InbeApp*) #private {
+    mark_exercise_manual_seen(app, EXERCISE_SUN_SALUTATION)
+    app->tutorial_step = 0
+    app->manual_scroll = 0
+    app->practice_tab = PRACTICE_TAB_PLAY
+    sun_salutation_practice_start(app)
+}
+
+sun_manual_paragraph :: (step: int, content_w: int) -> ParagraphSpec #private {
+    return manual_screen_tutorial_paragraph(
+        GetLocaleText(sun_manual_body_keys[step]), content_w)
+}
+
+sun_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
+    ctx := (SunManualPageContext*)user_data
+
+    return ScaleUIPx(66 + 178 + 18) +
+           UIGetNodeHeight(UINodeParagraph(
+               sun_manual_paragraph(ctx->page, content_w), 0, 0))
+}
+
+sun_manual_draw_pose :: (Texture2D sheet, int pose, Rectangle bounds) #private {
+    src := (Rectangle){
+        (float)((pose % SUN_SALUTATION_POSE_SHEET_COLS) *
+                SUN_SALUTATION_POSE_FRAME_W),
+        (float)((pose / SUN_SALUTATION_POSE_SHEET_COLS) *
+                SUN_SALUTATION_POSE_FRAME_H),
+        (float)SUN_SALUTATION_POSE_FRAME_W,
+        (float)SUN_SALUTATION_POSE_FRAME_H
+    }
+
+    if sheet.id != 0 {
+        DrawTexturePro(sheet, src, bounds, (Vector2){0}, 0.0f, WHITE)
+    }
+}
+
+sun_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
+                           step: int, y: int*) #private {
+    visual_h := ScaleUIPx(178)
+    visual := (Rectangle){(float)page.content_x, (float)*y,
+                          (float)page.content_w, (float)visual_h}
+
+    DrawRectangleRounded(visual, 0.12f, 10, GetThemeSurface())
+    if step < 2 {
+        pose_w := (page.content_w - ScaleUIPx(36)) / 3
+        poses: [3] int = {0, step == 0 ? 5 : 3, step == 0 ? 11 : 7}
+
+        for int i = 0; i < 3; i++ {
+            pose_bounds := (Rectangle){
+                (float)(page.content_x + ScaleUIPx(10) +
+                        i * (pose_w + ScaleUIPx(8))),
+                (float)(*y + ScaleUIPx(24)),
+                (float)pose_w,
+                (float)ScaleUIPx(112)
+            }
+            sun_manual_draw_pose(
+                app->sun_salutation.pose_sheets[app->sun_salutation.figure],
+                poses[i], pose_bounds)
+            DrawCircle((int)(pose_bounds.x + pose_bounds.width / 2),
+                       *y + ScaleUIPx(151), ScaleUIPx(4),
+                       i == 1 ? GetThemeButton() : GetThemeBorder())
+        }
+    } else {
+        value: [32] char = {0}
+        line_y := *y + ScaleUIPx(24)
+
+        snprintf(value, sizeof(value), "%dx", app->sun_salutation.repetitions)
+        Text(GetLocaleText("sun_salutation_repetitions_label"),
+             page.content_x + ScaleUIPx(18), line_y, Text14, GetThemeText())
+        Text(value, page.content_x + page.content_w - ScaleUIPx(54),
+             line_y, Text14, GetThemeMutedText())
+        line_y += ScaleUIPx(45)
+        snprintf(value, sizeof(value), "%d s", app->sun_salutation.start_seconds)
+        Text(GetLocaleText("sun_salutation_start_speed_label"),
+             page.content_x + ScaleUIPx(18), line_y, Text14, GetThemeText())
+        Text(value, page.content_x + page.content_w - ScaleUIPx(54),
+             line_y, Text14, GetThemeMutedText())
+        line_y += ScaleUIPx(45)
+        snprintf(value, sizeof(value), "%d s", app->sun_salutation.end_seconds)
+        Text(GetLocaleText("sun_salutation_end_speed_label"),
+             page.content_x + ScaleUIPx(18), line_y, Text14, GetThemeText())
+        Text(value, page.content_x + page.content_w - ScaleUIPx(54),
+             line_y, Text14, GetThemeMutedText())
+    }
+    *y += visual_h + ScaleUIPx(18)
+}
+
+sun_manual_draw :: (app: InbeApp*) {
+    layout := (PracticeManualLayout){0}
+    responsive_max_w := (int)(view_width * 0.96f)
+    step := clampi(app->tutorial_step, 0, SUN_MANUAL_PAGES - 1)
+
+    app->tutorial_step = step
+    if responsive_max_w > manual_screen_tutorial_max_width() {
+        responsive_max_w = manual_screen_tutorial_max_width()
+    }
+    practice_screen_manual_layout(app, UIModalPracticeManual,
+                                  SUN_MANUAL_PAGES,
+                                  manual_screen_tutorial_top_gap(), 0,
+                                  ScaleUIPx(120), &layout)
+    if app_draw_close_title_bar(app, GetLocaleText("exercise_sun_salutation"),
+                                layout.title_h) {
+        sun_manual_close(app, 0)
+    }
+
+    page_ctx := (SunManualPageContext){step}
+    page := BeginUIScrollPage((UIScrollPageSpec){
+        .y = layout.content_y,
+        .height = layout.content_h,
+        .max_content_width = responsive_max_w,
+        .min_content_width = ScaleUIPx(200),
+        .side_padding = manual_screen_tutorial_side_padding(),
+        .scroll_offset = &app->manual_scroll,
+        .content_height = sun_manual_content_height,
+        .user_data = &page_ctx
+    })
+    y := page.content_y
+
+    manual_screen_draw_guide_header(GetLocaleText(sun_manual_title_keys[step]),
+                                    step, SUN_MANUAL_PAGES,
+                                    page.content_x, &y, page.content_w)
+    sun_manual_draw_visual(app, page, step, &y)
+    Paragraph(sun_manual_paragraph(step, page.content_w), page.content_x, &y)
+    EndUIScrollPage(page)
+
+    pager := DrawUIGuidePager((UIGuidePagerProps){
+        .content_bounds = {0.0f, (float)layout.content_y,
+                           (float)view_width, (float)layout.content_h},
+        .footer_bounds = {0.0f, (float)layout.nav_y,
+                          (float)view_width, (float)layout.nav_h},
+        .swipe = &app->manual_swipe,
+        .page = step,
+        .page_count = SUN_MANUAL_PAGES,
+        .focus_id = 440,
+        .close_label = GetLocaleText("close_button"),
+        .back_label = GetLocaleText("back_button"),
+        .next_label = GetLocaleText("next_button"),
+        .finish_label = GetLocaleText("practice_start_button")
+    })
+    if pager.changed {
+        app->tutorial_step = pager.page
+        app->manual_scroll = 0
+    }
+    if pager.closed {
+        sun_manual_close(app, 0)
+    } else if pager.finished {
+        sun_manual_start(app)
+    }
+}

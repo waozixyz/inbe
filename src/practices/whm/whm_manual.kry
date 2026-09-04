@@ -72,23 +72,9 @@ tutorial_header_height :: () -> int #private {
 }
 
 draw_tutorial_header :: (step: int, content_x: int, y: int*, content_w: int) #private {
-    progress: [48] char = {0}
-    dot_gap := ScaleUIPx(14)
-    dots_w := (tutorial_steps_count() - 1) * dot_gap
-    dots_x := content_x + content_w - dots_w
-
-    Text(GetLocaleText(tutorial_title_keys[step]), content_x, *y,
-         Text20, GetThemeText())
-    *y += ScaleUIPx(30)
-    snprintf(progress, sizeof(progress), GetLocaleText("tutorial_step_progress"),
-             step + 1, tutorial_steps_count())
-    Text(progress, content_x, *y, Text14, GetThemeMutedText())
-    for int i = 0; i < tutorial_steps_count(); i++ {
-        DrawCircle(dots_x + i * dot_gap, *y + ScaleUIPx(7),
-                   ScaleUIPx(i == step ? 4 : 3),
-                   i == step ? GetThemeButton() : GetThemeBorder())
-    }
-    *y += ScaleUIPx(36)
+    manual_screen_draw_guide_header(GetLocaleText(tutorial_title_keys[step]),
+                                    step, tutorial_steps_count(),
+                                    content_x, y, content_w)
 }
 
 tutorial_paragraph_height :: (app: InbeApp*, step: int, content_w: int) -> int #private {
@@ -175,6 +161,7 @@ manual_screen_start_exercise :: (app: InbeApp*) #private {
     mark_exercise_manual_seen(app, EXERCISE_WIM_HOF)
     app->tutorial_step = 0
     app->manual_scroll = 0
+    app->practice_tab = PRACTICE_TAB_PLAY
     session_start(app)
 }
 

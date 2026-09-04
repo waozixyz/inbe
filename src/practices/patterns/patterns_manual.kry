@@ -1,0 +1,207 @@
+#import "app.h"
+#import "practices/patterns/patterns_practice.h"
+#import "screens/manual_screen.h"
+#import "screens/practice_screen.h"
+#import "stdio.h"
+
+#enum {
+    PATTERNS_MANUAL_PAGES = 3
+}
+
+PatternsManualPageContext :: struct {
+    page: int
+}
+
+static patterns_manual_body_keys: [PATTERNS_MANUAL_PAGES] const char* = {
+    "patterns_manual_choose_text",
+    "patterns_manual_phases_text",
+    "patterns_manual_customize_text"
+}
+
+static patterns_manual_title_keys: [PATTERNS_MANUAL_PAGES] const char* = {
+    "patterns_preset_label",
+    "patterns_cycle_label",
+    "practice_configure_button"
+}
+
+patterns_manual_close :: (app: InbeApp*, mark_seen: int) {
+    if app == NULL {
+        return
+    }
+    if mark_seen {
+        mark_exercise_manual_seen(app, EXERCISE_PATTERNS)
+    }
+    if app->modal.active && app->modal.type == UIModalPracticeManual {
+        app_close_modal(app)
+        return
+    }
+    app->tutorial_step = 0
+    app->manual_scroll = 0
+    app->practice_tab = PRACTICE_TAB_PLAY
+    app_switch_screen(app, InbeScreenStart)
+}
+
+patterns_manual_start :: (app: InbeApp*) #private {
+    mark_exercise_manual_seen(app, EXERCISE_PATTERNS)
+    app->tutorial_step = 0
+    app->manual_scroll = 0
+    app->practice_tab = PRACTICE_TAB_PLAY
+    patterns_practice_start(app)
+}
+
+patterns_manual_paragraph :: (step: int, content_w: int) -> ParagraphSpec #private {
+    return manual_screen_tutorial_paragraph(
+        GetLocaleText(patterns_manual_body_keys[step]), content_w)
+}
+
+patterns_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
+    ctx := (PatternsManualPageContext*)user_data
+
+    return ScaleUIPx(66 + 184 + 18) +
+           UIGetNodeHeight(UINodeParagraph(
+               patterns_manual_paragraph(ctx->page, content_w), 0, 0))
+}
+
+patterns_manual_phase_card :: (label: const char*, x: int, y: int,
+                               w: int, h: int, active: int) #private {
+    fill := active ? GetThemeButton() : GetThemeSurface()
+    text_color := active ? GetThemeButtonText() : GetThemeText()
+    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
+
+    DrawRectangleRounded(bounds, 0.2f, 8, fill)
+    DrawRectangleRoundedLinesEx(bounds, 0.2f, 8, 1.0f, GetThemeBorder())
+    DrawFittedTextInRect(label, bounds, Text14, 10, text_color)
+}
+
+patterns_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
+                                step: int, y: int*) #private {
+    visual_h := ScaleUIPx(184)
+    bounds := (Rectangle){(float)page.content_x, (float)*y,
+                          (float)page.content_w, (float)visual_h}
+
+    DrawRectangleRounded(bounds, 0.12f, 10, GetThemeSurfaceAlt())
+    if step == 0 {
+        labels: [4] const char* = {
+            GetLocaleText("patterns_preset_box"),
+            GetLocaleText("patterns_preset_478"),
+            GetLocaleText("patterns_preset_coherent"),
+            GetLocaleText("patterns_preset_extended_exhale")
+        }
+        gap := ScaleUIPx(10)
+        card_w := (page.content_w - ScaleUIPx(30)) / 2
+
+        for int i = 0; i < 4; i++ {
+            patterns_manual_phase_card(labels[i],
+                page.content_x + ScaleUIPx(10) + (i % 2) * (card_w + gap),
+                *y + ScaleUIPx(20) + (i / 2) * ScaleUIPx(72),
+                card_w, ScaleUIPx(54), i == app->patterns.preset)
+        }
+    } else if step == 1 {
+        labels: [4] const char* = {
+            GetLocaleText("patterns_phase_inhale"),
+            GetLocaleText("patterns_phase_hold_in"),
+            GetLocaleText("patterns_phase_exhale"),
+            GetLocaleText("patterns_phase_hold_out")
+        }
+        gap := ScaleUIPx(5)
+        card_w := (page.content_w - ScaleUIPx(35)) / 4
+        center_x := page.content_x + page.content_w / 2
+
+        DrawCircle(center_x, *y + ScaleUIPx(67), ScaleUIPx(48),
+                   Fade(GetThemeCircle(), 0.24f))
+        DrawCircle(center_x, *y + ScaleUIPx(67), ScaleUIPx(32),
+                   GetThemeCircle())
+        for int i = 0; i < 4; i++ {
+            patterns_manual_phase_card(labels[i],
+                page.content_x + ScaleUIPx(10) + i * (card_w + gap),
+                *y + ScaleUIPx(125), card_w, ScaleUIPx(42), i == 0)
+        }
+    } else {
+        ratio: [32] char = {0}
+        duration: [32] char = {0}
+
+        patterns_ratio_text(app, ratio, sizeof(ratio))
+        if app->patterns.duration_minutes == 0 {
+            snprintf(duration, sizeof(duration), "%s",
+                     GetLocaleText("patterns_duration_open"))
+        } else {
+            snprintf(duration, sizeof(duration), "%d min",
+                     app->patterns.duration_minutes)
+        }
+        Text(GetLocaleText("patterns_preset_label"),
+             page.content_x + ScaleUIPx(18), *y + ScaleUIPx(34),
+             Text14, GetThemeText())
+        Text(ratio, page.content_x + page.content_w - ScaleUIPx(90),
+             *y + ScaleUIPx(34), Text14, GetThemeMutedText())
+        Text(GetLocaleText("patterns_duration_label"),
+             page.content_x + ScaleUIPx(18), *y + ScaleUIPx(92),
+             Text14, GetThemeText())
+        Text(duration, page.content_x + page.content_w - ScaleUIPx(90),
+             *y + ScaleUIPx(92), Text14, GetThemeMutedText())
+    }
+    *y += visual_h + ScaleUIPx(18)
+}
+
+patterns_manual_draw :: (app: InbeApp*) {
+    layout := (PracticeManualLayout){0}
+    responsive_max_w := (int)(view_width * 0.96f)
+    step := clampi(app->tutorial_step, 0, PATTERNS_MANUAL_PAGES - 1)
+
+    app->tutorial_step = step
+    if responsive_max_w > manual_screen_tutorial_max_width() {
+        responsive_max_w = manual_screen_tutorial_max_width()
+    }
+    practice_screen_manual_layout(app, UIModalPracticeManual,
+                                  PATTERNS_MANUAL_PAGES,
+                                  manual_screen_tutorial_top_gap(), 0,
+                                  ScaleUIPx(120), &layout)
+    if app_draw_close_title_bar(app, GetLocaleText("patterns_title"),
+                                layout.title_h) {
+        patterns_manual_close(app, 0)
+    }
+
+    page_ctx := (PatternsManualPageContext){step}
+    page := BeginUIScrollPage((UIScrollPageSpec){
+        .y = layout.content_y,
+        .height = layout.content_h,
+        .max_content_width = responsive_max_w,
+        .min_content_width = ScaleUIPx(200),
+        .side_padding = manual_screen_tutorial_side_padding(),
+        .scroll_offset = &app->manual_scroll,
+        .content_height = patterns_manual_content_height,
+        .user_data = &page_ctx
+    })
+    y := page.content_y
+
+    manual_screen_draw_guide_header(
+        GetLocaleText(patterns_manual_title_keys[step]), step,
+        PATTERNS_MANUAL_PAGES, page.content_x, &y, page.content_w)
+    patterns_manual_draw_visual(app, page, step, &y)
+    Paragraph(patterns_manual_paragraph(step, page.content_w),
+              page.content_x, &y)
+    EndUIScrollPage(page)
+
+    pager := DrawUIGuidePager((UIGuidePagerProps){
+        .content_bounds = {0.0f, (float)layout.content_y,
+                           (float)view_width, (float)layout.content_h},
+        .footer_bounds = {0.0f, (float)layout.nav_y,
+                          (float)view_width, (float)layout.nav_h},
+        .swipe = &app->manual_swipe,
+        .page = step,
+        .page_count = PATTERNS_MANUAL_PAGES,
+        .focus_id = 460,
+        .close_label = GetLocaleText("close_button"),
+        .back_label = GetLocaleText("back_button"),
+        .next_label = GetLocaleText("next_button"),
+        .finish_label = GetLocaleText("practice_start_button")
+    })
+    if pager.changed {
+        app->tutorial_step = pager.page
+        app->manual_scroll = 0
+    }
+    if pager.closed {
+        patterns_manual_close(app, 0)
+    } else if pager.finished {
+        patterns_manual_start(app)
+    }
+}

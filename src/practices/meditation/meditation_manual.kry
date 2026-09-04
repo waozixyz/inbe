@@ -3,10 +3,19 @@
 #import "screens/manual_screen.h"
 #import "screens/practice_screen.h"
 
+#enum {
+    MEDITATION_MANUAL_PAGES = 2
+}
+
+MeditationManualPageContext :: struct {
+    page: int
+}
+
 meditation_manual_start :: (app: InbeApp*) #private {
     mark_exercise_manual_seen(app, EXERCISE_MEDITATION)
     app->tutorial_step = 0
     app->manual_scroll = 0
+    app->practice_tab = PRACTICE_TAB_PLAY
     meditation_practice_start(app)
 }
 
@@ -27,83 +36,109 @@ meditation_manual_close :: (app: InbeApp*, mark_seen: int) {
     app_switch_screen(app, InbeScreenStart)
 }
 
-draw_intro_page :: (app: InbeApp*, content_x: int, content_w: int, y: int*) #private {
-    img_h := ScaleUIPx(190)
-    paragraph := (ParagraphSpec){0}
-
-    TutorialImage(app->meditation.image_1,
-                           "practices/meditation/1.png",
-                           content_x, *y, content_w, img_h)
-    *y += img_h + ScaleUIPx(22)
-
-    paragraph = manual_screen_tutorial_paragraph(
-        GetLocaleText("meditation_manual_intro_text"), content_w)
-    Paragraph(paragraph, content_x, y)
+meditation_manual_paragraph :: (key: const char*, content_w: int) -> ParagraphSpec #private {
+    return manual_screen_tutorial_paragraph(GetLocaleText(key), content_w)
 }
 
-intro_page_height :: (content_w: int) -> int #private {
-    paragraph := manual_screen_tutorial_paragraph(
-        GetLocaleText("meditation_manual_intro_text"), content_w)
+meditation_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
+    ctx := (MeditationManualPageContext*)user_data
+    paragraph := meditation_manual_paragraph(
+        ctx->page == 0 ? "meditation_manual_intro_text" :
+                         "meditation_manual_customize_text", content_w)
 
-    return ScaleUIPx(190) + ScaleUIPx(22) +
-           UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0)) + ScaleUIPx(20)
+    if ctx->page == 0 {
+        return ScaleUIPx(66 + 145 + 18) +
+               UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0))
+    }
+    return ScaleUIPx(66 + 160 + 20) +
+           UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0))
 }
 
-meditation_manual_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
-    unused user_data
-    return intro_page_height(content_w)
+meditation_manual_draw_page :: (app: InbeApp*, page: UIScrollPage,
+                                step: int, y: int*) #private {
+    title_key := step == 0 ? "meditation_title" : "practice_configure_button"
+    paragraph_key := step == 0 ? "meditation_manual_intro_text" :
+                                 "meditation_manual_customize_text"
+
+    manual_screen_draw_guide_header(GetLocaleText(title_key), step,
+                                    MEDITATION_MANUAL_PAGES,
+                                    page.content_x, y, page.content_w)
+    if step == 0 {
+        TutorialImage(app->meditation.image_1,
+                      "practices/meditation/1.png",
+                      page.content_x, *y, page.content_w, ScaleUIPx(145))
+        *y += ScaleUIPx(163)
+    } else {
+        center_x := page.content_x + page.content_w / 2
+        center_y := *y + ScaleUIPx(72)
+
+        DrawCircle(center_x, center_y, ScaleUIPx(68),
+                   Fade(GetThemeCircle(), 0.24f))
+        DrawCircle(center_x, center_y, ScaleUIPx(48), GetThemeCircle())
+        DrawCenteredUIControlText(GetLocaleText("meditation_title"),
+                                  center_x, center_y, Text16,
+                                  GetThemeReadableText(GetThemeCircle()))
+        *y += ScaleUIPx(160)
+    }
+    Paragraph(meditation_manual_paragraph(paragraph_key, page.content_w),
+              page.content_x, y)
 }
 
 meditation_manual_draw :: (app: InbeApp*) {
-    manual_pages := 1
     layout := (PracticeManualLayout){0}
     responsive_max_w := (int)(view_width * 0.96f)
-    max_content_w := manual_screen_tutorial_max_width()
-    page := clampi(app->tutorial_step, 0, manual_pages - 1)
+    step := clampi(app->tutorial_step, 0, MEDITATION_MANUAL_PAGES - 1)
 
-    if responsive_max_w > max_content_w {
-        responsive_max_w = max_content_w
+    app->tutorial_step = step
+    if responsive_max_w > manual_screen_tutorial_max_width() {
+        responsive_max_w = manual_screen_tutorial_max_width()
     }
-    if responsive_max_w < ScaleUIPx(280) {
-        responsive_max_w = ScaleUIPx(280)
-    }
-
-    page = manual_screen_guide_update_page(app, manual_pages,
-                                           meditation_manual_start,
-                                           meditation_manual_close)
-    practice_screen_manual_layout(app, UIModalPracticeManual, manual_pages,
-                                     manual_screen_tutorial_top_gap(),
-                                     ScaleUIPx(8), ScaleUIPx(120), &layout)
-    if app_draw_close_title_bar(app, GetLocaleText("meditation_manual_title"), layout.title_h) {
+    practice_screen_manual_layout(app, UIModalPracticeManual,
+                                  MEDITATION_MANUAL_PAGES,
+                                  manual_screen_tutorial_top_gap(), 0,
+                                  ScaleUIPx(120), &layout)
+    if app_draw_close_title_bar(app, GetLocaleText("meditation_manual_title"),
+                                layout.title_h) {
         meditation_manual_close(app, 0)
     }
 
-    scroll_page := BeginUIScrollPage((UIScrollPageSpec){
+    page_ctx := (MeditationManualPageContext){step}
+    page := BeginUIScrollPage((UIScrollPageSpec){
         .y = layout.content_y,
         .height = layout.content_h,
         .max_content_width = responsive_max_w,
         .min_content_width = ScaleUIPx(200),
         .side_padding = manual_screen_tutorial_side_padding(),
         .scroll_offset = &app->manual_scroll,
-        .content_height = meditation_manual_scroll_page_content_height,
-        .user_data = NULL
+        .content_height = meditation_manual_content_height,
+        .user_data = &page_ctx
     })
-    y := scroll_page.content_y
+    y := page.content_y
 
-    draw_intro_page(app, scroll_page.content_x, scroll_page.content_w, &y)
-    EndUIScrollPage(scroll_page)
+    meditation_manual_draw_page(app, page, step, &y)
+    EndUIScrollPage(page)
 
-    manual_screen_guide_draw_nav(app, (ManualGuideNav){
-        .page = page,
-        .page_count = manual_pages,
-        .y = layout.nav_y,
-        .h = layout.nav_h,
-        .show_left_on_first = exercise_manual_seen(app, EXERCISE_MEDITATION),
-        .start = meditation_manual_start,
-        .close = meditation_manual_close
+    pager := DrawUIGuidePager((UIGuidePagerProps){
+        .content_bounds = {0.0f, (float)layout.content_y,
+                           (float)view_width, (float)layout.content_h},
+        .footer_bounds = {0.0f, (float)layout.nav_y,
+                          (float)view_width, (float)layout.nav_h},
+        .swipe = &app->manual_swipe,
+        .page = step,
+        .page_count = MEDITATION_MANUAL_PAGES,
+        .focus_id = 420,
+        .close_label = GetLocaleText("close_button"),
+        .back_label = GetLocaleText("back_button"),
+        .next_label = GetLocaleText("next_button"),
+        .finish_label = GetLocaleText("practice_start_button")
     })
-
-    if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && app->settings_dirty {
-        save_settings(app)
+    if pager.changed {
+        app->tutorial_step = pager.page
+        app->manual_scroll = 0
+    }
+    if pager.closed {
+        meditation_manual_close(app, 0)
+    } else if pager.finished {
+        meditation_manual_start(app)
     }
 }

@@ -1747,3 +1747,24 @@ During practice
 [back_button]
 Back
 ---
+[meditation_manual_customize_text]
+Choose a duration, optional interval bell, and music in Customize. Sit comfortably, soften your gaze, and start when ready.
+---
+[sun_manual_move_text]
+Follow the 12 poses as one continuous sequence. Move with your breath and only as far as feels comfortable.
+---
+[sun_manual_guide_text]
+The guide highlights each pose and gives you time to settle before moving on. Keep breathing; precision is not the goal.
+---
+[sun_manual_customize_text]
+Set repetitions and a starting and ending tempo in Customize. Begin slowly while you learn the sequence.
+---
+[patterns_manual_choose_text]
+Choose a preset whose rhythm matches your goal. Box is balanced, 4-7-8 is calming, Coherent is gentle, and Extended exhale lengthens the release.
+---
+[patterns_manual_phases_text]
+Follow Inhale, Hold, Exhale, and Hold as they light up. A zero-length phase is skipped automatically.
+---
+[patterns_manual_customize_text]
+Adjust phase lengths and session duration in Customize. Keep the breath easy; stop if you feel dizzy or uncomfortable.
+---

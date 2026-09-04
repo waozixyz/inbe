@@ -1749,3 +1749,24 @@ Selama latihan
 [back_button]
 Kembali
 ---
+[meditation_manual_customize_text]
+Pilih durasi, lonceng interval opsional, dan musik di Sesuaikan. Duduklah dengan nyaman, rilekskan pandangan, lalu mulai saat siap.
+---
+[sun_manual_move_text]
+Ikuti 12 pose sebagai satu rangkaian yang mengalir. Bergeraklah bersama napas dan hanya sejauh yang terasa nyaman.
+---
+[sun_manual_guide_text]
+Panduan menyorot setiap pose dan memberi waktu untuk menyesuaikan diri. Terus bernapas; ketepatan bukan tujuan utama.
+---
+[sun_manual_customize_text]
+Atur pengulangan serta tempo awal dan akhir di Sesuaikan. Mulailah perlahan saat mempelajari rangkaian.
+---
+[patterns_manual_choose_text]
+Pilih pola dengan ritme yang sesuai tujuan Anda. Kotak seimbang, 4-7-8 menenangkan, Koheren lembut, dan Hembusan panjang memperpanjang pelepasan.
+---
+[patterns_manual_phases_text]
+Ikuti Tarik napas, Tahan, Buang napas, dan Tahan saat menyala. Fase berdurasi nol dilewati otomatis.
+---
+[patterns_manual_customize_text]
+Atur panjang fase dan durasi sesi di Sesuaikan. Bernapaslah dengan ringan; berhenti jika pusing atau tidak nyaman.
+---

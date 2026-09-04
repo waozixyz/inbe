@@ -8,6 +8,8 @@ int patterns_preset_count(void);
 void patterns_practice_init(InbeApp *app);
 void patterns_practice_destroy(InbeApp *app);
 void patterns_practice_start(InbeApp *app);
+void patterns_manual_draw(InbeApp *app);
+void patterns_manual_close(InbeApp *app, int mark_seen);
 void patterns_config_screen_draw(InbeApp *app);
 void patterns_practice_leave_config(InbeApp *app);
 void patterns_draw_screen(InbeApp *app, int center_x, int center_y);

@@ -1749,3 +1749,24 @@ Během cvičení
 [back_button]
 Zpět
 ---
+[meditation_manual_customize_text]
+V Přizpůsobení zvolte délku, volitelný intervalový zvonek a hudbu. Pohodlně se posaďte, uvolněte pohled a začněte, až budete připraveni.
+---
+[sun_manual_move_text]
+Projděte 12 pozic jako jednu plynulou sestavu. Pohybujte se s dechem a jen tak daleko, jak je vám příjemné.
+---
+[sun_manual_guide_text]
+Průvodce zvýrazní každou pozici a dá vám čas se ustálit. Dýchejte dál; cílem není dokonalost.
+---
+[sun_manual_customize_text]
+V Přizpůsobení nastavte opakování a počáteční i konečné tempo. Při učení sestavy začněte pomalu.
+---
+[patterns_manual_choose_text]
+Zvolte vzor, jehož rytmus odpovídá vašemu cíli. Čtverec je vyvážený, 4-7-8 uklidňuje, Koherentní je jemný a Prodloužený výdech prodlužuje uvolnění.
+---
+[patterns_manual_phases_text]
+Sledujte Nádech, Zádrž, Výdech a Zádrž, jak se rozsvěcují. Fáze s nulovou délkou se automaticky přeskočí.
+---
+[patterns_manual_customize_text]
+V Přizpůsobení upravte délky fází a relace. Dýchejte lehce; při závrati nebo nepohodlí přestaňte.
+---
