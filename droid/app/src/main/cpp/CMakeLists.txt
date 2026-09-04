@@ -46,6 +46,8 @@ list(FILTER KRYON_SOURCES EXCLUDE REGEX "${KRYON_DIR}/src/backend/.*")
 list(FILTER KRYON_SOURCES EXCLUDE REGEX "${KRYON_DIR}/src/platform/plan9/.*")
 list(APPEND KRYON_SOURCES
     "${KRYON_DIR}/src/backend/kry_event_wait.c"
+    "${KRYON_DIR}/src/backend/kry_image.c"
+    "${KRYON_DIR}/src/backend/kry_image_decode.c"
     "${KRYON_DIR}/src/backend/kry_input.c"
     "${KRYON_DIR}/src/backend/kry_instance.c"
     "${KRYON_DIR}/src/backend/kry_screenshot.c"
