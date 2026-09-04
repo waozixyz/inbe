@@ -8,3 +8,4 @@ Changed
 Fixed
 ---
 - Exiting a practice started from How-to now returns to the normal Practice screen instead of reopening the guide.
+- On Windows, the title-bar close button and Alt+F4 now honor the selected close behavior, including showing the Keep running or Quit prompt.
