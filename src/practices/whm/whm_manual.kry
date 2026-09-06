@@ -52,7 +52,15 @@ draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radi
     app->inbe.sectick = app->inbe.frame % 60
     app->inbe.r = (float)radius
     draw_session_progress_circle(app, center_x, center_y, (float)radius)
-    DrawCenteredUIControlText(display_text, center_x, center_y, Text16, text_color)
+    Text((TextProps){
+        .bounds = {(float)(center_x - radius), (float)(center_y - radius),
+                   (float)(radius * 2), (float)(radius * 2)},
+        .text = display_text,
+        .color = text_color,
+        .wrap = TextWrapNone,
+        .align = TextAlignCenter,
+        .vertical_align = TextAlignCenter
+    })
 
     app->inbe.phase = previous_phase
     cpcount(app->inbe.count, previous_count)
@@ -68,7 +76,7 @@ tutorial_paragraph :: (app: InbeApp*, step: int, content_w: int) -> ParagraphSpe
 }
 
 tutorial_header_height :: () -> int #private {
-    return ScaleUIPx(66)
+    return ScaleUIPx(54)
 }
 
 draw_tutorial_header :: (step: int, content_x: int, y: int*, content_w: int) #private {
@@ -83,7 +91,7 @@ tutorial_paragraph_height :: (app: InbeApp*, step: int, content_w: int) -> int #
 
 tutorial_safety_warning :: (content_w: int) -> ParagraphSpec #private {
     warning := manual_screen_tutorial_paragraph(
-        GetLocaleText("tutorial_safety_warning"), content_w - ScaleUIPx(24))
+        GetLocaleText("tutorial_safety_warning"), content_w - ScaleUIPx(68))
 
     warning.color = GetThemeText()
     return warning
@@ -102,7 +110,7 @@ manual_tutorial_content_height :: (app: InbeApp*, step: int, content_w: int) -> 
     actual_content_h := tutorial_header_height()
 
     if step == 0 {
-        actual_content_h += ScaleUIPx(100) + ScaleUIPx(18) +
+        actual_content_h += ScaleUIPx(230) + ScaleUIPx(12) +
                             tutorial_paragraph_height(app, 0, content_w) +
                             ScaleUIPx(12) +
                             tutorial_safety_warning_height(content_w)
@@ -130,7 +138,7 @@ manual_tutorial_content_height :: (app: InbeApp*, step: int, content_w: int) -> 
                             ScaleUIPx(78)
         actual_content_h += tutorial_paragraph_height(app, 2, content_w)
     } else {
-        actual_content_h += ScaleUIPx(150) + ScaleUIPx(18) +
+        actual_content_h += ScaleUIPx(230) + ScaleUIPx(12) +
                             tutorial_paragraph_height(app, 3, content_w)
     }
 
@@ -170,9 +178,6 @@ whm_manual_draw_breath_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #
     speed_text: [96] char = {0}
     card_h := ScaleUIPx(64)
 
-    draw_tutorial_paragraph(app, 1, page.content_x, y, page.content_w)
-    *y += ScaleUIPx(20)
-
     update_preview_bounds(&app->settings_preview, page.content_w, ScaleUIPx(132))
     apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                       int_from_count(app->inbe.maxbreaths),
@@ -197,11 +202,18 @@ whm_manual_draw_breath_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #
                          0.18f, 10, GetThemeSurface())
     snprintf(speed_text, sizeof(speed_text),
              GetLocaleText("tutorial_current_speed"), speed)
-    Text(speed_text, page.content_x + ScaleUIPx(14),
-         *y + ScaleUIPx(10), Text14, GetThemeText())
-    Text(GetLocaleText("tutorial_change_in_customize"),
-         page.content_x + ScaleUIPx(14), *y + ScaleUIPx(34),
-         Text14, GetThemeMutedText())
+    Text((TextProps){
+        .bounds={(page.content_x + ScaleUIPx(14)), (*y + ScaleUIPx(10)), 0, 0},
+        .text=(speed_text),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    Text((TextProps){
+        .bounds={(page.content_x + ScaleUIPx(14)), (*y + ScaleUIPx(34)), 0, 0},
+        .text=(GetLocaleText("tutorial_change_in_customize")),
+        .color=(GetThemeMutedText()),
+        .wrap=TextWrapNone
+    })
     *y += card_h + ScaleUIPx(8)
 }
 
@@ -215,50 +227,97 @@ whm_manual_draw_hold_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #pr
     *y += hold_preview_extent
     draw_tutorial_hold_preview(app, center_x, *y, hold_preview_radius)
     *y += hold_preview_extent + ScaleUIPx(18)
-    DrawCenteredUIControlText(GetLocaleText("tutorial_during_practice"),
-                              center_x, *y + ScaleUIPx(7), Text14,
-                              GetThemeMutedText())
+    Text((TextProps){
+        .bounds = {(float)example_x, (float)*y, (float)example_w,
+                   (float)ScaleUIPx(22)},
+        .text = GetLocaleText("tutorial_during_practice"),
+        .color = GetThemeMutedText(),
+        .wrap = TextWrapNone,
+        .align = TextAlignCenter,
+        .vertical_align = TextAlignCenter
+    })
     *y += ScaleUIPx(22)
     DrawRectangleRounded((Rectangle){(float)example_x, (float)*y,
                                      (float)example_w, (float)ScaleUIPx(42)},
                          0.22f, 10, GetThemeButton())
-    DrawCenteredUIControlText(GetLocaleText("breath_button"), center_x,
-                              *y + ScaleUIPx(21), Text16,
-                              GetThemeButtonText())
+    Text((TextProps){
+        .bounds = {(float)example_x, (float)*y, (float)example_w,
+                   (float)ScaleUIPx(42)},
+        .text = GetLocaleText("breath_button"),
+        .color = GetThemeButtonText(),
+        .wrap = TextWrapNone,
+        .align = TextAlignCenter,
+        .vertical_align = TextAlignCenter
+    })
     *y += ScaleUIPx(56)
-    draw_tutorial_paragraph(app, 2, page.content_x, y, page.content_w)
 }
 
 whm_manual_draw_page :: (app: InbeApp*, page: UIScrollPage, step: int, y: int*) #private {
-    draw_tutorial_header(step, page.content_x, y, page.content_w)
-
     if step == 0 {
-        img_h := ScaleUIPx(100)
+        img_h := ScaleUIPx(230)
         warning_h := tutorial_safety_warning_height(page.content_w)
         warning_y := 0
+        hero := manual_screen_hero_bounds(page.content_x, page.content_w,
+                                          *y, img_h)
 
         TutorialImage(app->whm.image_1, "practices/whm/1.png",
-                               page.content_x, *y, page.content_w, img_h)
-        *y += img_h + ScaleUIPx(18)
+                               (int)hero.x, *y, (int)hero.width, img_h)
+        manual_screen_draw_hero_progress(hero, step, tutorial_steps_count())
+        *y += img_h + ScaleUIPx(12)
+        draw_tutorial_header(step, page.content_x, y, page.content_w)
         draw_tutorial_paragraph(app, 0, page.content_x, y, page.content_w)
         *y += ScaleUIPx(12)
+        warning_bounds := (Rectangle){(float)page.content_x, (float)*y,
+                                      (float)page.content_w, (float)warning_h}
+        warning_color := GetThemeLink()
+        icon_center_x := page.content_x + ScaleUIPx(27)
+        icon_center_y := *y + warning_h / 2
+        icon_size := ScaleUIPx(24)
+
         DrawRectangleRounded((Rectangle){(float)page.content_x, (float)*y,
                                          (float)page.content_w, (float)warning_h},
-                             0.16f, 10, Fade(GetThemeButton(), 0.16f))
+                             0.16f, 10, Fade(warning_color, 0.14f))
+        DrawRectangleRoundedLinesEx(
+            warning_bounds, 0.16f, 10, (float)ScaleUIPx(1),
+            Fade(warning_color, 0.64f))
+        Icon(0, icon_center_x - icon_size / 2, icon_center_y - icon_size / 2,
+             icon_size, UI_ICON_TYPE_WARNING, warning_color)
         warning_y = *y + ScaleUIPx(12)
         Paragraph(tutorial_safety_warning(page.content_w),
-                  page.content_x + ScaleUIPx(12), &warning_y)
+                  page.content_x + ScaleUIPx(52), &warning_y)
         *y += warning_h + ScaleUIPx(6)
     } else if step == 1 {
+        hero_y := *y
+
         whm_manual_draw_breath_preview(app, page, y)
+        manual_screen_draw_hero_progress(
+            (Rectangle){(float)page.content_x, (float)hero_y,
+                        (float)page.content_w, (float)(*y - hero_y)},
+            step, tutorial_steps_count())
+        *y += ScaleUIPx(12)
+        draw_tutorial_header(step, page.content_x, y, page.content_w)
+        draw_tutorial_paragraph(app, 1, page.content_x, y, page.content_w)
     } else if step == 2 {
+        hero_y := *y
+
         whm_manual_draw_hold_preview(app, page, y)
+        manual_screen_draw_hero_progress(
+            (Rectangle){(float)page.content_x, (float)hero_y,
+                        (float)page.content_w, (float)(*y - hero_y)},
+            step, tutorial_steps_count())
+        *y += ScaleUIPx(12)
+        draw_tutorial_header(step, page.content_x, y, page.content_w)
+        draw_tutorial_paragraph(app, 2, page.content_x, y, page.content_w)
     } else {
-        img_h := ScaleUIPx(150)
+        img_h := ScaleUIPx(230)
+        hero := manual_screen_hero_bounds(page.content_x, page.content_w,
+                                          *y, img_h)
 
         TutorialImage(app->whm.image_2, "practices/whm/2.png",
-                               page.content_x, *y, page.content_w, img_h)
-        *y += img_h + ScaleUIPx(18)
+                               (int)hero.x, *y, (int)hero.width, img_h)
+        manual_screen_draw_hero_progress(hero, step, tutorial_steps_count())
+        *y += img_h + ScaleUIPx(12)
+        draw_tutorial_header(step, page.content_x, y, page.content_w)
         draw_tutorial_paragraph(app, 3, page.content_x, y, page.content_w)
     }
 }
@@ -274,10 +333,8 @@ whm_manual_draw :: (app: InbeApp*) {
                                      tutorial_steps_count(),
                                      manual_screen_tutorial_top_gap(),
                                      footer_content_pad, 0, &layout)
-    if app_draw_close_title_bar(app, GetLocaleText("practice_manual_button"),
-                                layout.title_h) {
-        whm_manual_close(app, 0)
-    }
+    manual_screen_draw_title_bar(app, GetLocaleText("practice_manual_button"),
+                                 layout.title_h, whm_manual_close)
 
     responsive_max_w := (int)(view_width * 0.96f)
     max_content_w := manual_screen_tutorial_max_width()
@@ -306,27 +363,15 @@ whm_manual_draw :: (app: InbeApp*) {
     whm_manual_draw_page(app, page, step, &y)
     EndUIScrollPage(page)
 
-    pager := DrawUIGuidePager((UIGuidePagerProps){
-        .content_bounds = {0.0f, (float)layout.content_y,
-                           (float)view_width, (float)layout.content_h},
-        .footer_bounds = {0.0f, (float)layout.nav_y,
-                          (float)view_width, (float)layout.nav_h},
-        .swipe = &app->manual_swipe,
+    manual_screen_guide_controls(app, (ManualGuideNav){
         .page = step,
         .page_count = tutorial_steps_count(),
+        .y = layout.nav_y,
+        .h = layout.nav_h,
+        .content_y = layout.content_y,
+        .content_h = layout.content_h,
         .focus_id = 400,
-        .close_label = GetLocaleText("close_button"),
-        .back_label = GetLocaleText("back_button"),
-        .next_label = GetLocaleText("next_button"),
-        .finish_label = GetLocaleText("practice_start_button")
+        .start = manual_screen_start_exercise,
+        .close = whm_manual_close
     })
-    if pager.changed {
-        app->tutorial_step = pager.page
-        app->manual_scroll = 0
-    }
-    if pager.closed {
-        whm_manual_close(app, 0)
-    } else if pager.finished {
-        manual_screen_start_exercise(app)
-    }
 }

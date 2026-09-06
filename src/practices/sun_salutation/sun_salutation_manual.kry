@@ -57,7 +57,7 @@ sun_manual_paragraph :: (step: int, content_w: int) -> ParagraphSpec #private {
 sun_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
     ctx := (SunManualPageContext*)user_data
 
-    return ScaleUIPx(66 + 178 + 18) +
+    return ScaleUIPx(178 + 18 + 68) +
            GetNodeHeight(NodeParagraph(
                sun_manual_paragraph(ctx->page, content_w), 0, 0))
 }
@@ -108,22 +108,46 @@ sun_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
         line_y := *y + ScaleUIPx(24)
 
         snprintf(value, sizeof(value), "%dx", app->sun_salutation.repetitions)
-        Text(GetLocaleText("sun_salutation_repetitions_label"),
-             page.content_x + ScaleUIPx(18), line_y, Text14, GetThemeText())
-        Text(value, page.content_x + page.content_w - ScaleUIPx(54),
-             line_y, Text14, GetThemeMutedText())
+        Text((TextProps){
+            .bounds={(page.content_x + ScaleUIPx(18)), (line_y), 0, 0},
+            .text=(GetLocaleText("sun_salutation_repetitions_label")),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
+        Text((TextProps){
+            .bounds={(page.content_x + page.content_w - ScaleUIPx(54)), (line_y), 0, 0},
+            .text=(value),
+            .color=(GetThemeMutedText()),
+            .wrap=TextWrapNone
+        })
         line_y += ScaleUIPx(45)
         snprintf(value, sizeof(value), "%d s", app->sun_salutation.start_seconds)
-        Text(GetLocaleText("sun_salutation_start_speed_label"),
-             page.content_x + ScaleUIPx(18), line_y, Text14, GetThemeText())
-        Text(value, page.content_x + page.content_w - ScaleUIPx(54),
-             line_y, Text14, GetThemeMutedText())
+        Text((TextProps){
+            .bounds={(page.content_x + ScaleUIPx(18)), (line_y), 0, 0},
+            .text=(GetLocaleText("sun_salutation_start_speed_label")),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
+        Text((TextProps){
+            .bounds={(page.content_x + page.content_w - ScaleUIPx(54)), (line_y), 0, 0},
+            .text=(value),
+            .color=(GetThemeMutedText()),
+            .wrap=TextWrapNone
+        })
         line_y += ScaleUIPx(45)
         snprintf(value, sizeof(value), "%d s", app->sun_salutation.end_seconds)
-        Text(GetLocaleText("sun_salutation_end_speed_label"),
-             page.content_x + ScaleUIPx(18), line_y, Text14, GetThemeText())
-        Text(value, page.content_x + page.content_w - ScaleUIPx(54),
-             line_y, Text14, GetThemeMutedText())
+        Text((TextProps){
+            .bounds={(page.content_x + ScaleUIPx(18)), (line_y), 0, 0},
+            .text=(GetLocaleText("sun_salutation_end_speed_label")),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
+        Text((TextProps){
+            .bounds={(page.content_x + page.content_w - ScaleUIPx(54)), (line_y), 0, 0},
+            .text=(value),
+            .color=(GetThemeMutedText()),
+            .wrap=TextWrapNone
+        })
     }
     *y += visual_h + ScaleUIPx(18)
 }
@@ -141,10 +165,8 @@ sun_manual_draw :: (app: InbeApp*) {
                                   SUN_MANUAL_PAGES,
                                   manual_screen_tutorial_top_gap(), 0,
                                   ScaleUIPx(120), &layout)
-    if app_draw_close_title_bar(app, GetLocaleText("exercise_sun_salutation"),
-                                layout.title_h) {
-        sun_manual_close(app, 0)
-    }
+    manual_screen_draw_title_bar(app, GetLocaleText("exercise_sun_salutation"),
+                                 layout.title_h, sun_manual_close)
 
     page_ctx := (SunManualPageContext){step}
     page := BeginUIScrollPage((UIScrollPageSpec){
@@ -159,34 +181,31 @@ sun_manual_draw :: (app: InbeApp*) {
     })
     y := page.content_y
 
+    hero_page := page
+    hero_y := y
+    hero := manual_screen_hero_bounds(page.content_x, page.content_w,
+                                      hero_y, ScaleUIPx(178))
+
+    hero_page.content_x = (int)hero.x
+    hero_page.content_w = (int)hero.width
+    sun_manual_draw_visual(app, hero_page, step, &y)
+    manual_screen_draw_hero_progress(
+        hero, step, SUN_MANUAL_PAGES)
     manual_screen_draw_guide_header(GetLocaleText(sun_manual_title_keys[step]),
                                     step, SUN_MANUAL_PAGES,
                                     page.content_x, &y, page.content_w)
-    sun_manual_draw_visual(app, page, step, &y)
     Paragraph(sun_manual_paragraph(step, page.content_w), page.content_x, &y)
     EndUIScrollPage(page)
 
-    pager := DrawUIGuidePager((UIGuidePagerProps){
-        .content_bounds = {0.0f, (float)layout.content_y,
-                           (float)view_width, (float)layout.content_h},
-        .footer_bounds = {0.0f, (float)layout.nav_y,
-                          (float)view_width, (float)layout.nav_h},
-        .swipe = &app->manual_swipe,
+    manual_screen_guide_controls(app, (ManualGuideNav){
         .page = step,
         .page_count = SUN_MANUAL_PAGES,
+        .y = layout.nav_y,
+        .h = layout.nav_h,
+        .content_y = layout.content_y,
+        .content_h = layout.content_h,
         .focus_id = 440,
-        .close_label = GetLocaleText("close_button"),
-        .back_label = GetLocaleText("back_button"),
-        .next_label = GetLocaleText("next_button"),
-        .finish_label = GetLocaleText("practice_start_button")
+        .start = sun_manual_start,
+        .close = sun_manual_close
     })
-    if pager.changed {
-        app->tutorial_step = pager.page
-        app->manual_scroll = 0
-    }
-    if pager.closed {
-        sun_manual_close(app, 0)
-    } else if pager.finished {
-        sun_manual_start(app)
-    }
 }

@@ -57,7 +57,7 @@ patterns_manual_paragraph :: (step: int, content_w: int) -> ParagraphSpec #priva
 patterns_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
     ctx := (PatternsManualPageContext*)user_data
 
-    return ScaleUIPx(66 + 184 + 18) +
+    return ScaleUIPx(184 + 18 + 68) +
            GetNodeHeight(NodeParagraph(
                patterns_manual_paragraph(ctx->page, content_w), 0, 0))
 }
@@ -70,7 +70,7 @@ patterns_manual_phase_card :: (label: const char*, x: int, y: int,
 
     DrawRectangleRounded(bounds, 0.2f, 8, fill)
     DrawRectangleRoundedLinesEx(bounds, 0.2f, 8, 1.0f, GetThemeBorder())
-    DrawFittedTextInRect(label, bounds, Text14, 10, text_color)
+    DrawFittedTextInRect(label, bounds, GetFontSize(), 10, text_color)
 }
 
 patterns_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
@@ -128,16 +128,30 @@ patterns_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
             snprintf(duration, sizeof(duration), "%d min",
                      app->patterns.duration_minutes)
         }
-        Text(GetLocaleText("patterns_preset_label"),
-             page.content_x + ScaleUIPx(18), *y + ScaleUIPx(34),
-             Text14, GetThemeText())
-        Text(ratio, page.content_x + page.content_w - ScaleUIPx(90),
-             *y + ScaleUIPx(34), Text14, GetThemeMutedText())
-        Text(GetLocaleText("patterns_duration_label"),
-             page.content_x + ScaleUIPx(18), *y + ScaleUIPx(92),
-             Text14, GetThemeText())
-        Text(duration, page.content_x + page.content_w - ScaleUIPx(90),
-             *y + ScaleUIPx(92), Text14, GetThemeMutedText())
+        Text((TextProps){
+            .bounds={(page.content_x + ScaleUIPx(18)), (*y + ScaleUIPx(34)), 0, 0},
+            .text=(GetLocaleText("patterns_preset_label")),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
+        Text((TextProps){
+            .bounds={(page.content_x + page.content_w - ScaleUIPx(90)), (*y + ScaleUIPx(34)), 0, 0},
+            .text=(ratio),
+            .color=(GetThemeMutedText()),
+            .wrap=TextWrapNone
+        })
+        Text((TextProps){
+            .bounds={(page.content_x + ScaleUIPx(18)), (*y + ScaleUIPx(92)), 0, 0},
+            .text=(GetLocaleText("patterns_duration_label")),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
+        Text((TextProps){
+            .bounds={(page.content_x + page.content_w - ScaleUIPx(90)), (*y + ScaleUIPx(92)), 0, 0},
+            .text=(duration),
+            .color=(GetThemeMutedText()),
+            .wrap=TextWrapNone
+        })
     }
     *y += visual_h + ScaleUIPx(18)
 }
@@ -155,10 +169,8 @@ patterns_manual_draw :: (app: InbeApp*) {
                                   PATTERNS_MANUAL_PAGES,
                                   manual_screen_tutorial_top_gap(), 0,
                                   ScaleUIPx(120), &layout)
-    if app_draw_close_title_bar(app, GetLocaleText("patterns_title"),
-                                layout.title_h) {
-        patterns_manual_close(app, 0)
-    }
+    manual_screen_draw_title_bar(app, GetLocaleText("patterns_title"),
+                                 layout.title_h, patterns_manual_close)
 
     page_ctx := (PatternsManualPageContext){step}
     page := BeginUIScrollPage((UIScrollPageSpec){
@@ -173,35 +185,32 @@ patterns_manual_draw :: (app: InbeApp*) {
     })
     y := page.content_y
 
+    hero_page := page
+    hero_y := y
+    hero := manual_screen_hero_bounds(page.content_x, page.content_w,
+                                      hero_y, ScaleUIPx(184))
+
+    hero_page.content_x = (int)hero.x
+    hero_page.content_w = (int)hero.width
+    patterns_manual_draw_visual(app, hero_page, step, &y)
+    manual_screen_draw_hero_progress(
+        hero, step, PATTERNS_MANUAL_PAGES)
     manual_screen_draw_guide_header(
         GetLocaleText(patterns_manual_title_keys[step]), step,
         PATTERNS_MANUAL_PAGES, page.content_x, &y, page.content_w)
-    patterns_manual_draw_visual(app, page, step, &y)
     Paragraph(patterns_manual_paragraph(step, page.content_w),
               page.content_x, &y)
     EndUIScrollPage(page)
 
-    pager := DrawUIGuidePager((UIGuidePagerProps){
-        .content_bounds = {0.0f, (float)layout.content_y,
-                           (float)view_width, (float)layout.content_h},
-        .footer_bounds = {0.0f, (float)layout.nav_y,
-                          (float)view_width, (float)layout.nav_h},
-        .swipe = &app->manual_swipe,
+    manual_screen_guide_controls(app, (ManualGuideNav){
         .page = step,
         .page_count = PATTERNS_MANUAL_PAGES,
+        .y = layout.nav_y,
+        .h = layout.nav_h,
+        .content_y = layout.content_y,
+        .content_h = layout.content_h,
         .focus_id = 460,
-        .close_label = GetLocaleText("close_button"),
-        .back_label = GetLocaleText("back_button"),
-        .next_label = GetLocaleText("next_button"),
-        .finish_label = GetLocaleText("practice_start_button")
+        .start = patterns_manual_start,
+        .close = patterns_manual_close
     })
-    if pager.changed {
-        app->tutorial_step = pager.page
-        app->manual_scroll = 0
-    }
-    if pager.closed {
-        patterns_manual_close(app, 0)
-    } else if pager.finished {
-        patterns_manual_start(app)
-    }
 }
