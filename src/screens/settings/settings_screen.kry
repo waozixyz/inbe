@@ -250,10 +250,10 @@ settings_desktop_category_button :: (app: InbeApp*, tab: int, x: int, y: int,
     mouse := GetMousePosition()
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
     hover := CheckCollisionPointRec(mouse, bounds) && !UIInputCapturesClick(mouse)
-    fill := active ? Fade(GetThemeButton(), 0.34f) :
-            (hover ? Fade(GetThemeSurface(), 0.72f) : Fade(GetThemeSurface(), 0.24f))
-    border := active ? Fade(GetThemeButtonHover(), 0.88f) :
-              Fade(GetThemeText(), hover ? 0.18f : 0.08f)
+    fill := active ? Fade(GetThemeButton(), 0.38f) :
+            (hover ? Fade(GetThemeSurface(), 0.58f) : Fade(GetThemeSurface(), 0.10f))
+    border := active ? Fade(GetThemeButtonHover(), 0.52f) :
+              Fade(GetThemeText(), hover ? 0.12f : 0.04f)
     text_color := active ? WHITE : GetThemeText()
     icon_color := active ? LightenUIColor(GetThemeButtonHover(), 64) : GetThemeText()
     subtitle_color := active ? Fade(WHITE, 0.72f) : Fade(GetThemeText(), 0.62f)
@@ -263,8 +263,8 @@ settings_desktop_category_button :: (app: InbeApp*, tab: int, x: int, y: int,
     title_y := y + Scale(16)
     subtitle_y := y + Scale(40)
 
-    DrawRectangleRounded(bounds, 0.08f, 10, fill)
-    DrawRectangleRoundedLinesEx(bounds, 0.08f, 10, active ? 2.0f : 1.0f, border)
+    DrawRectangleRounded(bounds, 0.055f, 10, fill)
+    DrawRectangleRoundedLinesEx(bounds, 0.055f, 10, 1.0f, border)
     Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
          tab == SETTINGS_TAB_ABOUT ? UI_ICON_TYPE_TEXT :
          tab == SETTINGS_TAB_AUDIO ? UI_ICON_TYPE_SOUND :
@@ -320,7 +320,7 @@ settings_screen_draw_desktop :: (app: InbeApp*) -> int #private {
     panel_y := list_y
     panel_w := content_w - list_w - gap
     panel_h := list_h
-    panel_pad := Scale(24)
+    panel_pad := Scale(26)
     y := panel_y + panel_pad
     title := settings_screen_tab_label(app->settings_tab)
     subtitle := settings_tab_subtitle(app->settings_tab)
@@ -353,23 +353,22 @@ settings_screen_draw_desktop :: (app: InbeApp*) -> int #private {
 
     DrawRectangleRounded((Rectangle){(float)list_x, (float)list_y,
                          (float)list_w, (float)list_h},
-                         0.04f, 10, DarkenUIColor(GetThemeBackground(), 6))
+                         0.025f, 10, DarkenUIColor(GetThemeBackground(), 4))
     DrawRectangleRoundedLinesEx((Rectangle){(float)list_x, (float)list_y,
                                 (float)list_w, (float)list_h},
-                                0.04f, 10, 1.0f, Fade(GetThemeText(), 0.12f))
+                                0.025f, 10, 1.0f, Fade(GetThemeText(), 0.07f))
     for int i = 0; i < settings_desktop_tab_count(); i++ {
         tab := settings_desktop_tab_at(i)
         settings_desktop_category_button(app, tab,
             list_x + Scale(10), list_y + Scale(10) + i * (row_h + row_gap),
             list_w - Scale(20), row_h, 7400 + i)
     }
-
     DrawRectangleRounded((Rectangle){(float)panel_x, (float)panel_y,
                          (float)panel_w, (float)panel_h},
-                         0.025f, 10, DarkenUIColor(GetThemeBackground(), 5))
+                         0.018f, 10, DarkenUIColor(GetThemeBackground(), 3))
     DrawRectangleRoundedLinesEx((Rectangle){(float)panel_x, (float)panel_y,
                                 (float)panel_w, (float)panel_h},
-                                0.025f, 10, 1.0f, Fade(GetThemeText(), 0.12f))
+                                0.018f, 10, 1.0f, Fade(GetThemeText(), 0.07f))
     Text((TextProps){
         .bounds={(float)(panel_x + panel_pad), (float)y,
                  (float)(panel_w - panel_pad * 2), (float)Scale(30)},

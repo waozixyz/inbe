@@ -22,11 +22,6 @@ DESKTOP :: !ANDROID && !WEB
     APP_NAV_CONFIG_ACTION_SET
 }
 
-AppSidebarRouteItem :: struct {
-    label_key: const char*
-    route: int
-}
-
 AppSidebarSettingsItem :: struct {
     tab: int
 }
@@ -130,6 +125,10 @@ app_nav_sidebar_screen_active :: (app: const InbeApp*) -> int {
 
 app_nav_desktop_rail_width :: () -> int {
     return Scale(132)
+}
+
+app_nav_desktop_content_offset :: () -> int {
+    return app_nav_desktop_rail_width()
 }
 
 app_nav_desktop_rail_enabled :: (app: const InbeApp*) -> int {
@@ -242,6 +241,13 @@ app_close_nav_sidebar :: (app: InbeApp*) {
 
 app_update_nav_sidebar_mode :: (app: InbeApp*) {
     if app == NULL {
+        return
+    }
+    if app_nav_desktop_rail_enabled(app) &&
+       app->inbe.screen == InbeScreenSettings {
+        app->nav_sidebar_open = 0
+        app->nav_sidebar_return_on_back = 0
+        app->nav_sidebar_prior_screen = 0
         return
     }
     if app_nav_sidebar_screen_active(app) && !app_nav_sidebar_compact() {
@@ -369,8 +375,9 @@ app_open_profile_tab :: (app: InbeApp*, tab: int) #private {
     if app == NULL {
         return
     }
-    return_to_sidebar = app_nav_sidebar_screen_active(app)
+    return_to_sidebar = app_nav_sidebar_screen_active(app) && app_nav_sidebar_compact()
     app->nav_sidebar_open = 0
+    app->nav_sidebar_prior_screen = 0
     if app->practice_tab == PRACTICE_TAB_CONFIG {
         app_leave_practice_config(app)
     }
@@ -546,21 +553,6 @@ app_fullscreen_bottom_reserved :: (app: const InbeApp*) -> int {
     return 0
 }
 
-app_sidebar_button :: (app: InbeApp*, x: int, y: int*, w: int,
-                      label: const char*, route: int) -> int #private {
-    hover := 0
-    h := Scale(38)
-    disabled := app != NULL && app->modal.active
-
-    if StyledButton(x, *y, w, h, label, ButtonStyleSecondary,
-                           disabled || route == APP_NAV_ROUTE_NONE, &hover) {
-        app_apply_nav_route(app, route)
-        return 1
-    }
-    *y += h + Scale(8)
-    return 0
-}
-
 app_open_settings_tab :: (app: InbeApp*, tab: int) #private {
     route: AppRoute
     return_to_sidebar: int
@@ -568,8 +560,9 @@ app_open_settings_tab :: (app: InbeApp*, tab: int) #private {
     if app == NULL {
         return
     }
-    return_to_sidebar = app_nav_sidebar_screen_active(app)
+    return_to_sidebar = app_nav_sidebar_screen_active(app) && app_nav_sidebar_compact()
     app->nav_sidebar_open = 0
+    app->nav_sidebar_prior_screen = 0
     if app->practice_tab == PRACTICE_TAB_CONFIG {
         app_leave_practice_config(app)
     }
@@ -583,30 +576,48 @@ app_open_settings_tab :: (app: InbeApp*, tab: int) #private {
     app_switch_route(app, route)
 }
 
+app_sidebar_clean_button :: (x: int, y: int, w: int, h: int,
+                             label: const char*, id: int, disabled: int) -> int #private {
+    mouse := GetMousePosition()
+    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
+    hover := !disabled && CheckCollisionPointRec(mouse, bounds) &&
+             !UIInputCapturesClick(mouse)
+    fill := hover ? Fade(GetThemeSurface(), 0.48f) :
+            Fade(GetThemeSurface(), 0.16f)
+    border := Fade(GetThemeText(), hover ? 0.14f : 0.07f)
+    label_w := TextWidth(label, Text16)
+
+    DrawRectangleRounded(bounds, 0.08f, 10, fill)
+    DrawRectangleRoundedLinesEx(bounds, 0.08f, 10, 1.0f, border)
+    Text((TextProps){
+        .bounds = {
+            (float)(x + (w - label_w) / 2),
+            (float)GetUIControlTextY(label, y, h, Text16),
+            0.0f,
+            0.0f
+        },
+        .text = label,
+        .font = Text16,
+        .color = disabled ? Fade(GetThemeText(), 0.42f) : GetThemeText(),
+        .wrap = TextWrapNone
+    })
+    if disabled {
+        return 0
+    }
+    return InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = id})
+}
+
 app_sidebar_settings_button :: (app: InbeApp*, x: int, y: int*, w: int,
                                tab: int) -> int #private {
-    hover := 0
     h := Scale(38)
     disabled := app != NULL && app->modal.active
 
-    if StyledButton(x, *y, w, h, settings_screen_tab_label(tab),
-                           ButtonStyleSecondary, disabled, &hover) {
+    if app_sidebar_clean_button(x, *y, w, h, settings_screen_tab_label(tab),
+                                9100 + tab, disabled) {
         app_open_settings_tab(app, tab)
         return 1
     }
     *y += h + Scale(8)
-    return 0
-}
-
-app_draw_sidebar_route_items :: (app: InbeApp*, x: int, y: int*, w: int,
-                                items: const AppSidebarRouteItem*,
-                                count: int) -> int #private {
-    for int i = 0; i < count; i++ {
-        if app_sidebar_button(app, x, y, w, GetLocaleText(items[i].label_key),
-                              items[i].route) {
-            return 1
-        }
-    }
     return 0
 }
 
@@ -639,28 +650,63 @@ app_compact_public_id :: (public_id: const char*, out: char*, out_size: size_t) 
     snprintf(out, out_size, "%.*s...%.*s", 4, public_id, 4, public_id + len - 4)
 }
 
-app_sidebar_account_label :: (out: char*, out_size: size_t) #private {
+app_alias_display_name :: (alias: const char*, out: char*, out_size: size_t) #private {
+    if out == NULL || out_size == 0 {
+        return
+    }
+    out[0] = '\0'
+    if alias == NULL || alias[0] == '\0' {
+        return
+    }
+    snprintf(out, out_size, "%s", alias)
+    if out[0] >= 'a' && out[0] <= 'z' {
+        out[0] = out[0] - 'a' + 'A'
+    }
+}
+
+app_nav_profile_identity :: (app: InbeApp*, out: char*, out_size: size_t,
+                             subtitle: char*, subtitle_size: size_t) {
     account: SyncAccount
     alias: const char*
 
     if out == NULL || out_size == 0 {
         return
     }
-    if !sync_account_load(&account) {
-        snprintf(out, out_size, "%s", GetLocaleText("sync_configure_account_button"))
-        return
+    if subtitle != NULL && subtitle_size > 0 {
+        subtitle[0] = '\0'
     }
     alias = storage_get_setting_text("sync_account_alias")
+    if app != NULL && app->profile_display_name[0] != '\0' {
+        snprintf(out, out_size, "%s", app->profile_display_name)
+        if alias != NULL && alias[0] != '\0' && subtitle != NULL && subtitle_size > 0 {
+            snprintf(subtitle, subtitle_size, "@%s", alias)
+        }
+        return
+    }
     if alias != NULL && alias[0] != '\0' {
-        snprintf(out, out_size, "@%s", alias)
-    } else {
-        app_compact_public_id(account.public_id, out, out_size)
+        app_alias_display_name(alias, out, out_size)
+        if subtitle != NULL && subtitle_size > 0 {
+            snprintf(subtitle, subtitle_size, "@%s", alias)
+        }
+        return
+    }
+    if !sync_account_load(&account) {
+        snprintf(out, out_size, "%s", GetLocaleText("tab_profile"))
+        if subtitle != NULL && subtitle_size > 0 {
+            snprintf(subtitle, subtitle_size, "%s", GetLocaleText("profile_no_account"))
+        }
+        return
+    }
+    app_compact_public_id(account.public_id, out, out_size)
+    if subtitle != NULL && subtitle_size > 0 {
+        snprintf(subtitle, subtitle_size, "%s", GetLocaleText("tab_profile"))
     }
 }
 
 app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
                                    has_account: int,
-                                   account_label: const char*) -> int #private {
+                                   account_label: const char*,
+                                   account_subtitle: const char*) -> int #private {
     header_h := Scale(138)
     friends_count := has_account ? profile_social_friends_count(app) : 0
     pending_count := has_account ? profile_social_pending_count(app) : 0
@@ -680,7 +726,7 @@ app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
         .width = w,
         .height = header_h,
         .username = account_label,
-        .subtitle = has_account ? NULL : GetLocaleText("profile_no_account"),
+        .subtitle = account_subtitle,
         .friends_text = friends_text,
         .icons = app != NULL ? app->icons : NULL,
         .pfp_icon_type = app != NULL ? app->profile_picture_icon : UI_ICON_TYPE_NONE,
@@ -702,7 +748,7 @@ app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
         return 1
     }
     if header.username_clicked {
-        app_apply_nav_route(app, APP_NAV_ROUTE_ACCOUNT)
+        app_apply_nav_route(app, APP_NAV_ROUTE_PROFILE)
         *y += header.height + Scale(12)
         return 1
     }
@@ -711,19 +757,20 @@ app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
     return 0
 }
 
-app_open_bottom_nav_config :: (app: InbeApp*) #private {
+app_open_customize_nav :: (app: InbeApp*) {
     return_to_sidebar: int
 
     if app == NULL {
         return
     }
-    return_to_sidebar = app_nav_sidebar_screen_active(app)
+    return_to_sidebar = app_nav_sidebar_screen_active(app) && app_nav_sidebar_compact()
     app_sanitize_bottom_nav_routes(app)
     for int i = 0; i < app->bottom_nav_route_count; i++ {
         app->bottom_nav_config_routes[i] = app->bottom_nav_routes[i]
     }
     app->bottom_nav_config_route_count = app->bottom_nav_route_count
     app->nav_sidebar_open = 0
+    app->nav_sidebar_prior_screen = 0
     app->nav_sidebar_return_on_back = return_to_sidebar
     app_block_current_click(app)
     app_switch_screen(app, InbeScreenCustomizeNav)
@@ -743,18 +790,14 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     scroll_y: int
     scroll_h: int
     y: int
-    hover := 0
-    close_hover := 0
     scrim: Color = BLACK
     area: UIScrollArea
     view: UIScrollView
     account: SyncAccount
     has_account: int
     account_label: [96] char
+    account_subtitle: [96] char
     overlay: DismissibleOverlayResult
-    profile_items: [1] const AppSidebarRouteItem = {
-        {"tab_profile", APP_NAV_ROUTE_PROFILE}
-    }
     settings_count := 6
     #if DESKTOP {
         settings_items: [6] const AppSidebarSettingsItem = {
@@ -835,10 +878,12 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     }
 
     has_account = sync_account_load(&account)
-    app_sidebar_account_label(account_label, sizeof(account_label))
+    app_nav_profile_identity(app, account_label, sizeof(account_label),
+                             account_subtitle, sizeof(account_subtitle))
     header_y = 0
     if app_draw_sidebar_profile_header(app, sidebar_x, &header_y, sidebar_w,
-                                       has_account, account_label) {
+                                       has_account, account_label,
+                                       account_subtitle) {
         return
     }
 
@@ -852,8 +897,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     area = (UIScrollArea){
         .bounds = {(float)sidebar_x, (float)scroll_y, (float)sidebar_w,
                    (float)scroll_h},
-        .content_height = (1 + settings_count) * (Scale(38) + Scale(8)) +
-                          Scale(10) + Scale(40),
+        .content_height = settings_count * (Scale(38) + Scale(8)),
         .content_x = sidebar_x + pad,
         .content_width = sidebar_w - pad * 2,
         .scroll_offset = &app->nav_sidebar_scroll,
@@ -862,34 +906,19 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     }
     view = BeginUIScrollContainer(area)
     y = view.content_y
-    if app_draw_sidebar_route_items(app, area.content_x, &y, area.content_width,
-                                    profile_items, 1) {
-        EndUIScrollContainer(area, view)
-        return
-    }
     if app_draw_sidebar_settings_items(app, area.content_x, &y,
                                        area.content_width, settings_items,
                                        settings_count) {
         EndUIScrollContainer(area, view)
         return
     }
-    y += Scale(10)
-    if StyledButton(area.content_x, y, area.content_width, Scale(40),
-                           GetLocaleText("customize_nav_button"),
-                           ButtonStylePrimary, app->modal.active, &hover) {
-        app_open_bottom_nav_config(app)
-        EndUIScrollContainer(area, view)
-        return
-    }
-
     EndUIScrollContainer(area, view)
 
     DrawRectangle(sidebar_x, footer_y, sidebar_w, view_height - footer_y,
                   DarkenUIColor(GetThemeBackground(), 10))
-    if StyledButton(sidebar_x + pad, close_y, sidebar_w - pad * 2,
-                           close_h, GetLocaleText("close_button"),
-                           ButtonStyleSecondary, app->modal.active,
-                           &close_hover) {
+    if app_sidebar_clean_button(sidebar_x + pad, close_y, sidebar_w - pad * 2,
+                                close_h, GetLocaleText("close_button"),
+                                9199, app->modal.active) {
         app_close_nav_sidebar(app)
     }
 }

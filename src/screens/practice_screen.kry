@@ -254,6 +254,49 @@ practice_home_action_gap :: (content_w: int) -> int #private {
     return content_w < Scale(340) ? Scale(8) : Scale(12)
 }
 
+practice_home_action_button :: (app: InbeApp*, bounds: Rectangle,
+                                label: const char*, primary: int) -> int #private {
+    mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
+    disabled := app != NULL && app->modal.active
+    hover := !disabled && CheckCollisionPointRec(mouse, bounds) &&
+             !UIInputCapturesClick(mouse)
+    fill := primary ? Fade(GetThemeButton(), 0.72f)
+                    : Fade(GetThemeSurface(), 0.66f)
+    text_color := primary ? WHITE : Fade(GetThemeText(), 0.88f)
+    font := GetFontSize()
+    label_w := TextWidth(label, font)
+    shadow := bounds
+
+    shadow.y += Scale(3)
+
+    if hover {
+        fill = primary ? Fade(GetThemeButtonHover(), 0.78f)
+                       : Fade(GetThemeSurface(), 0.82f)
+    }
+
+    DrawRectangleRounded(shadow, 0.10f, 12, Fade(BLACK, 0.22f))
+    DrawRectangleRounded(bounds, 0.10f, 12, fill)
+    Text((TextProps){
+        .bounds = {(float)(bounds.x + (bounds.width - label_w) / 2),
+                   (float)GetUIControlTextY(label, (int)bounds.y,
+                                            (int)bounds.height, font),
+                   0, 0},
+        .text = label,
+        .font = font,
+        .color = text_color,
+        .wrap = TextWrapNone
+    })
+
+    if hover {
+        MarkUIClickable()
+        if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+            UIConsumeRelease()
+            return 1
+        }
+    }
+    return 0
+}
+
 practice_home_quiet_action_button :: (bounds: Rectangle, label: const char*) -> int #private {
     return Button((ButtonProps){
         .bounds = bounds,
@@ -470,29 +513,31 @@ practice_screen_draw_desktop_home :: (app: InbeApp*) -> int #private {
         hero_h = Scale(340)
     }
     hero := (Rectangle){(float)content_view_x, 0, (float)content_view_w, (float)hero_h}
-    title_y := hero_h - Scale(212)
-    dots_y := hero_h - Scale(124)
-    button_y := hero_h - Scale(86)
+    title_y := hero_h - Scale(226)
+    dots_y := hero_h - Scale(140)
+    button_y := hero_h - Scale(102)
     button_h := Scale(tokens.touch_target_min + 14)
-    action_gap := Scale(18)
-    primary_w := content_w / 2
-    if primary_w > Scale(360) {
-        primary_w = Scale(360)
+    action_gap := Scale(14)
+    total_w := content_w
+    if total_w > Scale(700) {
+        total_w = Scale(700)
     }
-    if primary_w < Scale(280) {
-        primary_w = Scale(280)
+    if total_w > content_view_w - Scale(32) {
+        total_w = content_view_w - Scale(32)
     }
-    secondary_w := (content_w - primary_w - action_gap * 2) / 2
-    if secondary_w < Scale(150) {
-        secondary_w = Scale(150)
+    if total_w < Scale(360) {
+        total_w = content_view_w - Scale(24)
     }
-    total_w := primary_w
+    secondary_count := 0
     if practice != NULL && practice->draw_manual != NULL {
-        total_w += action_gap + secondary_w
+        secondary_count += 1
     }
     if practice != NULL && practice->draw_config != NULL {
-        total_w += action_gap + secondary_w
+        secondary_count += 1
     }
+    button_count := 1 + secondary_count
+    primary_w := (total_w - action_gap * (button_count - 1)) / button_count
+    secondary_w := primary_w
     action_x := content_view_x + (content_view_w - total_w) / 2
 
     app->practice_home_bounds_valid = 1
@@ -546,12 +591,8 @@ practice_screen_draw_desktop_home :: (app: InbeApp*) -> int #private {
 
     app->practice_home_bounds_start = (Rectangle){(float)action_x, (float)button_y,
                                                  (float)primary_w, (float)button_h}
-    if Button((ButtonProps){
-        .bounds = app->practice_home_bounds_start,
-        .label = GetLocaleText("practice_start_button"),
-        .font = GetFontSize(),
-        .style = ButtonStylePrimary,
-    }) {
+    if practice_home_action_button(app, app->practice_home_bounds_start,
+                                   GetLocaleText("practice_start_button"), 1) {
         if practice != NULL && practice->start != NULL {
             practice->start(app)
         }
@@ -561,12 +602,8 @@ practice_screen_draw_desktop_home :: (app: InbeApp*) -> int #private {
     if practice != NULL && practice->draw_manual != NULL {
         app->practice_home_bounds_manual = (Rectangle){(float)action_x, (float)button_y,
                                                        (float)secondary_w, (float)button_h}
-        if Button((ButtonProps){
-            .bounds = app->practice_home_bounds_manual,
-            .label = GetLocaleText("practice_manual_button"),
-            .font = GetFontSize(),
-            .style = ButtonStyleSecondary,
-        }) {
+        if practice_home_action_button(app, app->practice_home_bounds_manual,
+                                       GetLocaleText("practice_manual_button"), 0) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
         action_x += secondary_w + action_gap
@@ -575,12 +612,8 @@ practice_screen_draw_desktop_home :: (app: InbeApp*) -> int #private {
     if practice != NULL && practice->draw_config != NULL {
         app->practice_home_bounds_config = (Rectangle){(float)action_x, (float)button_y,
                                                        (float)secondary_w, (float)button_h}
-        if Button((ButtonProps){
-            .bounds = app->practice_home_bounds_config,
-            .label = GetLocaleText("practice_configure_button"),
-            .font = GetFontSize(),
-            .style = ButtonStyleSecondary,
-        }) {
+        if practice_home_action_button(app, app->practice_home_bounds_config,
+                                       GetLocaleText("practice_configure_button"), 0) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
     }

@@ -792,6 +792,14 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_NOTIFICATIONS;
         app->inbe.screen = InbeScreenSettings;
+    } else if(strcmp(request->scene, "nav_sidebar") == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->inbe.screen = InbeScreenStart;
+        snprintf(app->profile_display_name, sizeof(app->profile_display_name),
+                 "%s", "Waozi");
+        storage_set_setting_text("sync_account_alias", "waozi");
+        app->nav_sidebar_open = 1;
+        app->nav_sidebar_open_frame = -1;
     } else if(strcmp(request->scene, "data") == 0 ||
               strcmp(request->scene, "profile_data") == 0) {
         app->profile_view = PROFILE_VIEW_MAIN;

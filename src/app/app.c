@@ -2744,7 +2744,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
         InitUIDPI();
         UpdateUIDPI(view_width, view_height);
     }
-    content_x = app_nav_desktop_rail_enabled(app) ? app_nav_desktop_rail_width() : 0;
+    content_x = app_nav_desktop_rail_enabled(app) ? app_nav_desktop_content_offset() : 0;
     if(content_x >= full_width)
         content_x = 0;
     layout_width = GetLayoutWidth();

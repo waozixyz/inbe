@@ -9,14 +9,16 @@
 ui :: #import "src/screens/settings/settings_ui"
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
+static scale_drag_active: int = 0
+static scale_drag_value: int = 0
 
 content_height :: (content_w: int) -> int {
     unused content_w
 
     #if WEB {
-        return Scale(314) + Scale(66)
+        return Scale(314) + Scale(124)
     } #else {
-        return Scale(298) + Scale(66)
+        return Scale(298) + Scale(124)
     }
 }
 
@@ -58,11 +60,18 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         }
     }
     *y += GetNodeHeight(NodeThemeSettings(settings))
-    *y += Scale(18)
+    *y += Scale(24)
+
+    hover := 0
+    if StyledButton(x, *y, w, Scale(44), GetLocaleText("customize_nav_button"),
+                    ButtonStylePrimary, app->modal.active, &hover) {
+        app_open_customize_nav(app)
+    }
+    *y += Scale(58)
 }
 
 draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
-    scale_value := app->ui_scale_tenths
+    scale_value := scale_drag_active ? scale_drag_value : app->ui_scale_tenths
     multiplier := scale_value / 10.0f
     effective: float = multiplier * GetUIDPIScale()
     scale_text: [16] char
@@ -73,31 +82,48 @@ draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     slider_w := w - (step_w + step_gap) * 2
     minus_hover := 0
     plus_hover := 0
+    step_changed := 0
+    slider_changed := 0
     snprintf(scale_text, sizeof(scale_text), "%.1fx", effective)
     if TextButton(141, x + step_w / 2, step_y, "-", &minus_hover) {
         if scale_value > 5 {
             scale_value = scale_value - 1
+            step_changed = 1
         }
     }
     if slider_w < Scale(100) {
         slider_x = x
         slider_w = w
     }
-    if Slider(140, slider_x, *y,
-              slider_w, GetLocaleText("appearance_scale_label"),
-              5, 25, &scale_value, "", scale_text) {
-        app->ui_scale_tenths = scale_value
-        app->settings_dirty = 1
-        save_settings(app)
+    slider_changed = Slider(140, slider_x, *y,
+                            slider_w, GetLocaleText("appearance_scale_label"),
+                            5, 25, &scale_value, "", scale_text)
+    if slider_changed {
+        if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+            scale_drag_active = 0
+            app->ui_scale_tenths = scale_value
+            app->settings_dirty = 1
+            save_settings(app)
+        } else {
+            scale_drag_active = 1
+            scale_drag_value = scale_value
+        }
     }
     if slider_w < w {
         if TextButton(142, x + w - step_w / 2, step_y, "+", &plus_hover) {
             if scale_value < 25 {
                 scale_value = scale_value + 1
+                step_changed = 1
             }
         }
     }
-    if scale_value != app->ui_scale_tenths {
+    if scale_drag_active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+        scale_drag_active = 0
+        app->ui_scale_tenths = scale_drag_value
+        app->settings_dirty = 1
+        save_settings(app)
+    } else if step_changed && scale_value != app->ui_scale_tenths {
+        scale_drag_active = 0
         app->ui_scale_tenths = scale_value
         app->settings_dirty = 1
         save_settings(app)
