@@ -67,13 +67,25 @@ settings_draw_status :: (x: int, y: int*) #private {
     if unified_status[0] == '\0' {
         return
     }
-    status_font = GetUISmallFontSize()
+    status_font = GetSmallFontSize()
     status_color = unified_status_type == 2 ? RED : GetThemeText()
-    Text(unified_status, x, *y, status_font, status_color)
-    *y += ScaleUIPx(18)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(unified_status),
+        .font=(status_font),
+        .color=(status_color),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(18)
     if unified_detail[0] != '\0' {
-        Text(unified_detail, x, *y, status_font, DarkenUIColor(GetThemeText(), 40))
-        *y += ScaleUIPx(18)
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(unified_detail),
+            .font=(status_font),
+            .color=(DarkenUIColor(GetThemeText(), 40)),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(18)
     }
 }
 
@@ -107,9 +119,9 @@ settings_tab_content_height :: (app: InbeApp*, tab: int, content_w: int) -> int 
 
 settings_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
     ctx := (SettingsScrollPageContext*)user_data
-    planned_content_w := content_w - ScaleUIPx(16)
+    planned_content_w := content_w - Scale(16)
 
-    if planned_content_w < ScaleUIPx(160) {
+    if planned_content_w < Scale(160) {
         planned_content_w = content_w
     }
     return settings_tab_content_height(ctx->app, ctx->tab, planned_content_w)
@@ -196,10 +208,10 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     page_ctx = (SettingsScrollPageContext){app, app->settings_tab}
     scaffold = BeginUIScreenScaffold((UIScreenScaffoldSpec){
         .title = title,
-        .top_gap = ScaleUIPx(8),
+        .top_gap = Scale(8),
         .bottom_reserved = app_content_bottom_reserved(app),
-        .max_content_width = ScaleUIPx(CONTENT_MAX_W),
-        .min_content_width = ScaleUIPx(320),
+        .max_content_width = Scale(CONTENT_MAX_W),
+        .min_content_width = Scale(320),
         .scroll_offset = &app->settings_scroll,
         .content_height = settings_scroll_page_content_height,
         .user_data = &page_ctx,

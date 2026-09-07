@@ -86,6 +86,30 @@ jobs:
       - name: Run Tests
         run: make test
 
+      - name: Check out sync test server
+        uses: actions/checkout@v4
+        with:
+          repository: kryonlabs/daochi
+          ref: 430938f9285e7374c61990be1ece2bef5d3f3178
+          path: .test-server
+          submodules: recursive
+
+      - name: Set up Go for sync test server
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: .test-server/go.mod
+          cache-dependency-path: .test-server/go.sum
+
+      - name: Set up Node.js for sync tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify sync and recovery
+        run: |
+          make -C .test-server build
+          make sync-server-test DAOCHI_BIN="$GITHUB_WORKSPACE/.test-server/daochi"
+
   build-chrome-extension:
     name: Build Chrome Extension
     runs-on: ubuntu-latest

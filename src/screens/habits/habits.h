@@ -26,6 +26,7 @@ enum {
 };
 
 int habit_counting_enabled(const InbeHabit *habit);
+int habit_counter_target(const InbeHabit *habit);
 void habit_format_date(int day_index, char *out, size_t out_size);
 void habit_format_duration(int seconds, char *out, size_t out_size);
 int habit_tm_date_index(const struct tm *tm);

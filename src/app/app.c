@@ -27,6 +27,7 @@
 #include "screens/settings/settings_theme.h"
 #include "screens/practice_screen.h"
 #include "practices/practice_registry.h"
+#include "screens/session_results.h"
 #include "practices/patterns/patterns_practice.h"
 #include "app/device_preferences.h"
 #include "storage.h"
@@ -534,10 +535,10 @@ int
 app_draw_close_title_bar(InbeApp *app, const char *title, int height)
 {
     int hover = 0;
-    int button_size = ScaleUIPx(18);
-    int padding = ScaleUIPx(6);
+    int button_size = Scale(22);
+    int padding = Scale(11);
     int button_total = button_size + padding * 2;
-    int x = view_width - button_total - ScaleUIPx(12);
+    int x = view_width - button_total - Scale(8);
     int y = (height - button_total) / 2;
 
     if(y < 0)
@@ -561,15 +562,15 @@ app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
                                   int height)
 {
     int hover = 0;
-    int button_size = ScaleUIPx(18);
-    int padding = ScaleUIPx(6);
+    int button_size = Scale(22);
+    int padding = Scale(11);
     int button_total = button_size + padding * 2;
-    int close_x = view_width - button_total - ScaleUIPx(12);
+    int close_x = view_width - button_total - Scale(8);
     int close_y = (height - button_total) / 2;
-    int dropdown_x = ScaleUIPx(8);
-    int dropdown_h = dropdown.height > 0 ? dropdown.height : ScaleUIPx(32);
+    int dropdown_x = Scale(8);
+    int dropdown_h = dropdown.height > 0 ? dropdown.height : Scale(32);
     int dropdown_y = (height - dropdown_h) / 2;
-    int dropdown_w = close_x - dropdown_x - ScaleUIPx(8);
+    int dropdown_w = close_x - dropdown_x - Scale(8);
 
     if(close_y < 0)
         close_y = 0;
@@ -771,7 +772,7 @@ app_schedule_habits_post_frame_flush(InbeApp *app)
 int
 app_toolbar_height(void)
 {
-    return ScaleUIPx(58);
+    return Scale(58);
 }
 
 int
@@ -855,8 +856,7 @@ app_screen_local_modal_valid(const InbeApp *app, UIModalType type)
     case UIModalMeditationSetup:
         return app->inbe.screen == InbeScreenStart;
     case UIModalConfirmDeleteHabit:
-    case UIModalHabitPracticeListInfo:
-    case UIModalHabitCountingInfo:
+    case UIModalHabitPracticePicker:
         return app->inbe.screen == InbeScreenHabitEdit ||
                (app->inbe.screen == InbeScreenHabits &&
                 app->habits.tab == HABIT_TAB_EDIT);
@@ -1285,7 +1285,7 @@ app_restore_habits_view_settings(InbeApp *app)
     habit_tab = storage_get_setting_int("habits_tab", HABIT_TAB_WEEKLY);
     view_mode = storage_get_setting_int("habits_view_mode", HABIT_VIEW_WEEKLY);
     app->habits.screen_mode = clampi(screen_mode, HABITS_SCREEN_OVERVIEW,
-                                     HABITS_SCREEN_REORDER);
+                                     HABITS_SCREEN_STATISTICS);
     if(app->habits.screen_mode == HABITS_SCREEN_REORDER)
         app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
     app->habits.tab = clampi(habit_tab, HABIT_TAB_WEEKLY, HABIT_TAB_COUNT - 1);
@@ -1300,8 +1300,9 @@ app_restore_habits_view_settings(InbeApp *app)
             }
         }
     }
-    if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
-        app->habits.selected = app->habits.count > 0 ? 0 : -1;
+    /* The cards screen is the root. Restoring a previously viewed habit must
+     * not reopen it automatically on launch. */
+    app->habits.selected = -1;
 }
 
 void
@@ -1378,8 +1379,8 @@ app_reload_after_import(InbeApp *app, int reload_settings)
     }
     if(app->habit_detail_index >= app->habits.count)
         app->habit_detail_index = -1;
-    if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
-        app->habits.selected = app->habits.count > 0 ? 0 : -1;
+    if(app->habits.selected >= app->habits.count)
+        app->habits.selected = -1;
     app->habit_session_edit.active = 0;
     app->habit_edit.active = 0;
 }
@@ -1469,7 +1470,7 @@ app_draw_blank_home_easteregg(InbeApp *app)
 
     bottom_reserved = app_content_bottom_reserved(app);
     available_h = view_height - bottom_reserved;
-    if(available_h < ScaleUIPx(120))
+    if(available_h < Scale(120))
         available_h = view_height;
 
     scale = (float)view_width / (float)texture.width;
@@ -1497,8 +1498,8 @@ app_draw_blank_home_easteregg(InbeApp *app)
     logo_size = (float)view_width * 0.58f;
     if(logo_size > (float)available_h * 0.58f)
         logo_size = (float)available_h * 0.58f;
-    if(logo_size > (float)ScaleUIPx(320))
-        logo_size = (float)ScaleUIPx(320);
+    if(logo_size > (float)Scale(320))
+        logo_size = (float)Scale(320);
     if(logo_size < (float)logo.width)
         logo_size = (float)logo.width;
     if(logo_size > (float)view_width)
@@ -1575,13 +1576,16 @@ app_init(void *vapp) {
     view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
     UpdateUIDPI(view_width, view_height);
+    view_width = GetLayoutWidth();
+    view_height = GetLayoutHeight();
     {
         float user_scale = app->ui_scale_tenths > 0
                                ? (float)app->ui_scale_tenths / 10.0f
                                : 1.0f;
-        InitUI(view_width, view_height, GetUIDPIScale() * user_scale);
+        InitUI(view_width, view_height, user_scale);
     }
-    TraceLog(LOG_INFO, "INBE: DPI scale=%.2f (viewport %dx%d)", GetUIDPIScale(), view_width, view_height);
+    TraceLog(LOG_INFO, "INBE: render scale=%.2f layout=%dx%d",
+             GetRenderScale(), view_width, view_height);
 #if ANDROID_BUILD
     SetTextInputPlatformCallback(android_device_set_soft_keyboard_visible);
 #endif
@@ -1720,8 +1724,25 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenHabits:
+        if(app->habits.screen_mode == HABITS_SCREEN_HISTORY ||
+           app->habits.screen_mode == HABITS_SCREEN_STATISTICS) {
+            app->habits.screen_mode = HABITS_SCREEN_DETAIL;
+            app->habits.tab = HABIT_TAB_WEEKLY;
+            app->habits.view_mode = HABIT_VIEW_WEEKLY;
+            app->habits.scroll = 0;
+            save_settings(app);
+            break;
+        }
+        if(app->habits.screen_mode == HABITS_SCREEN_DETAIL) {
+            app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+            app->habits.tab = HABIT_TAB_WEEKLY;
+            app->habits.view_mode = HABIT_VIEW_WEEKLY;
+            app->habits.scroll = 0;
+            save_settings(app);
+            break;
+        }
         if(app->habits.tab == HABIT_TAB_EDIT && app->habit_edit.active) {
-            habit_edit_commit(app);
+            habit_edit_cancel(app);
             break;
         }
         app_switch_screen(app, InbeScreenStart);
@@ -1820,8 +1841,8 @@ app_donation_address_style(void)
     style.text = GetThemeText();
     style.cursor = GetThemeText();
     style.radius = 0.08f;
-    style.padding_x = ScaleUIPx(10);
-    style.padding_y = ScaleUIPx(8);
+    style.padding_x = Scale(10);
+    style.padding_y = Scale(8);
     return style;
 }
 
@@ -1836,7 +1857,7 @@ app_donation_address_box_height(const char *address, int w, int font,
     props.text = address;
     props.font = font;
     props.style = style;
-    props.line_gap = ScaleUIPx(2);
+    props.line_gap = Scale(2);
     return GetNodeHeight(NodeReadonlyTextBox(props));
 }
 
@@ -1845,25 +1866,25 @@ static int app_donation_button_stack(int w);
 static int
 app_donation_coin_section_height(const char *address, int w)
 {
-    int label_font = GetUIFontSize();
-    int address_font = GetUISmallFontSize();
-    int pad = ScaleUIPx(12);
-    int button_h = ScaleUIPx(36);
-    int gap = ScaleUIPx(8);
+    int label_font = GetFontSize();
+    int address_font = GetSmallFontSize();
+    int pad = Scale(12);
+    int button_h = Scale(36);
+    int gap = Scale(8);
     int content_w = w - pad * 2;
     int action_h = button_h;
 
-    if(content_w < ScaleUIPx(120))
-        content_w = ScaleUIPx(120);
+    if(content_w < Scale(120))
+        content_w = Scale(120);
     if(app_donation_button_stack(content_w))
         action_h = button_h * 3 + gap * 2;
 
     return pad +
            TextLineHeight(label_font) +
-           ScaleUIPx(6) +
+           Scale(6) +
            app_donation_address_box_height(address, content_w, address_font,
                                            app_donation_address_style()) +
-           ScaleUIPx(10) + action_h + pad;
+           Scale(10) + action_h + pad;
 }
 
 static char app_donation_bitcoin_text[96];
@@ -1879,7 +1900,7 @@ static int app_donation_modal_scroll;
 static int
 app_donation_button_stack(int w)
 {
-    return w < ScaleUIPx(330);
+    return w < Scale(330);
 }
 
 static void
@@ -1894,11 +1915,11 @@ app_draw_donation_coin_section(const char *label, const char *address,
                                int focus_id,
                                int x, int w, int *y)
 {
-    int label_font = GetUIFontSize();
-    int address_font = GetUISmallFontSize();
-    int pad = ScaleUIPx(12);
-    int button_h = ScaleUIPx(36);
-    int gap = ScaleUIPx(8);
+    int label_font = GetFontSize();
+    int address_font = GetSmallFontSize();
+    int pad = Scale(12);
+    int button_h = Scale(36);
+    int gap = Scale(8);
     int content_x = x + pad;
     int content_w = w - pad * 2;
     int button_w = (content_w - gap * 2) / 3;
@@ -1925,12 +1946,18 @@ app_draw_donation_coin_section(const char *label, const char *address,
                          DarkenUIColor(GetThemeBackground(), 5));
     DrawRectangleRoundedLinesEx((Rectangle){(float)x, (float)card_y,
                                 (float)w, (float)card_h}, 0.08f, 8,
-                                (float)ScaleUIPx(1),
+                                (float)Scale(1),
                                 DarkenUIColor(GetThemeBackground(), 26));
 
     *y = card_y + pad;
-    Text(label, content_x, *y, label_font, GetThemeText());
-    *y += TextLineHeight(label_font) + ScaleUIPx(6);
+    Text((TextProps){
+        .bounds = {(float)content_x, (float)*y, 0, 0},
+        .text = label,
+        .font = label_font,
+        .color = GetThemeText(),
+        .wrap = TextWrapNone,
+    });
+    *y += TextLineHeight(label_font) + Scale(6);
 
     box_h = app_donation_address_box_height(address, content_w, address_font,
                                            style);
@@ -1945,13 +1972,13 @@ app_draw_donation_coin_section(const char *label, const char *address,
     text_area.focused = focused;
     text_area.scroll_y = scroll;
     text_area.font = address_font;
-    text_area.line_gap = ScaleUIPx(2);
+    text_area.line_gap = Scale(2);
     text_area.focus_id = focus_id;
     text_area.style = style;
     text_area.read_only = 1;
     text_area.wrap = 1;
     TextArea(text_area);
-    *y += box_h + ScaleUIPx(10);
+    *y += box_h + Scale(10);
 
     if(stack_buttons)
         button_w = content_w;
@@ -2019,30 +2046,30 @@ draw_about_donation_modal(InbeApp *app)
     int y;
     int coin_y;
     int button_w;
-    int button_h = ScaleUIPx(36);
+    int button_h = Scale(36);
     int hover = 0;
     Texture2D empty_icon;
 
     if(app == NULL)
         return;
 
-    modal_w = ScaleUIPx(760);
-    if(view_width < ScaleUIPx(820))
-        modal_w = ScaleUIPx(460);
-    if(modal_w > view_width - ScaleUIPx(24))
-        modal_w = view_width - ScaleUIPx(24);
-    if(modal_w < ScaleUIPx(240))
-        modal_w = ScaleUIPx(240);
-    content_w = modal_w - ScaleUIPx(36);
-    coin_gap = ScaleUIPx(12);
-    columns = content_w >= ScaleUIPx(640);
+    modal_w = Scale(760);
+    if(view_width < Scale(820))
+        modal_w = Scale(460);
+    if(modal_w > view_width - Scale(24))
+        modal_w = view_width - Scale(24);
+    if(modal_w < Scale(240))
+        modal_w = Scale(240);
+    content_w = modal_w - Scale(36);
+    coin_gap = Scale(12);
+    columns = content_w >= Scale(640);
     coin_w = columns ? (content_w - coin_gap) / 2 : content_w;
 
     memset(&message, 0, sizeof(message));
     message.text = GetLocaleText("about_donation_message");
     message.width = content_w;
-    message.font = GetUISmallFontSize();
-    message.line_gap = ScaleUIPx(4);
+    message.font = GetSmallFontSize();
+    message.line_gap = Scale(4);
     message.color = DarkenUIColor(GetThemeText(), 28);
     message_h = GetNodeHeight(NodeParagraph(message, 0, 0));
     bitcoin_h = app_donation_coin_section_height(app_bitcoin_donation_address(),
@@ -2051,14 +2078,14 @@ draw_about_donation_modal(InbeApp *app)
                                                 coin_w);
     coins_h = columns ? (bitcoin_h > monero_h ? bitcoin_h : monero_h)
                       : bitcoin_h + coin_gap + monero_h;
-    content_h = message_h + ScaleUIPx(16) + coins_h;
-    modal_h = ScaleUIPx(58) + content_h + ScaleUIPx(14) + button_h +
-              ScaleUIPx(16);
-    max_modal_h = view_height - ScaleUIPx(24);
+    content_h = message_h + Scale(16) + coins_h;
+    modal_h = Scale(58) + content_h + Scale(14) + button_h +
+              Scale(16);
+    max_modal_h = view_height - Scale(24);
     if(modal_h > max_modal_h)
         modal_h = max_modal_h;
-    if(modal_h < ScaleUIPx(260))
-        modal_h = ScaleUIPx(260);
+    if(modal_h < Scale(260))
+        modal_h = Scale(260);
 
     memset(&empty_icon, 0, sizeof(empty_icon));
     frame = ModalFrame(modal_w, modal_h,
@@ -2069,13 +2096,13 @@ draw_about_donation_modal(InbeApp *app)
         return;
     }
 
-    button_w = ScaleUIPx(120);
+    button_w = Scale(120);
     if(button_w > frame.content_w)
         button_w = frame.content_w;
 
-    scroll_h = frame.content_h - button_h - ScaleUIPx(14);
-    if(scroll_h < ScaleUIPx(120))
-        scroll_h = ScaleUIPx(120);
+    scroll_h = frame.content_h - button_h - Scale(14);
+    if(scroll_h < Scale(120))
+        scroll_h = Scale(120);
     memset(&scroll_area, 0, sizeof(scroll_area));
     scroll_area.bounds = (Rectangle){
         (float)frame.content_x,
@@ -2087,17 +2114,17 @@ draw_about_donation_modal(InbeApp *app)
     scroll_area.content_x = frame.content_x;
     scroll_area.content_width = frame.content_w;
     scroll_area.scroll_offset = &app_donation_modal_scroll;
-    scroll_area.wheel_step = ScaleUIPx(34);
-    scroll_area.scrollbar_x = frame.content_x + frame.content_w - ScaleUIPx(8);
+    scroll_area.wheel_step = Scale(34);
+    scroll_area.scrollbar_x = frame.content_x + frame.content_w - Scale(8);
 
     scroll_view = BeginUIScrollContainer(scroll_area);
     scroll_content_w = scroll_view.content_w;
-    columns = scroll_content_w >= ScaleUIPx(640);
+    columns = scroll_content_w >= Scale(640);
     coin_w = columns ? (scroll_content_w - coin_gap) / 2 : scroll_content_w;
     message.width = scroll_content_w;
     y = scroll_view.content_y;
     Paragraph(message, scroll_view.content_x, &y);
-    y += ScaleUIPx(16);
+    y += Scale(16);
     coin_y = y;
 
     app_draw_donation_coin_section("Bitcoin",
@@ -2143,7 +2170,7 @@ draw_about_donation_modal(InbeApp *app)
     EndUIScrollContainer(scroll_area, scroll_view);
 
     if(StyledButton(frame.x + (frame.w - button_w) / 2,
-                     frame.y + frame.h - button_h - ScaleUIPx(16),
+                     frame.y + frame.h - button_h - Scale(16),
                      button_w, button_h,
                      GetLocaleText("close_button"),
                      ButtonStyleSecondary, 0, &hover)) {
@@ -2221,27 +2248,27 @@ draw_secure_migration_modal(InbeApp *app)
 
     memset(&message, 0, sizeof(message));
     message.text = message_text;
-    message.width = ScaleUIPx(380) - ScaleUIPx(36);
-    message.font = GetUIFontSize();
-    message.line_gap = ScaleUIPx(4);
+    message.width = Scale(380) - Scale(36);
+    message.font = GetFontSize();
+    message.line_gap = Scale(4);
     message.color = GetThemeText();
     message_h = GetNodeHeight(NodeParagraph(message, 0, 0));
-    button_h = ScaleUIPx(36);
-    gap = ScaleUIPx(10);
-    modal_h = ScaleUIPx(74) + message_h + ScaleUIPx(24) + button_h +
-              ScaleUIPx(24);
+    button_h = Scale(36);
+    gap = Scale(10);
+    modal_h = Scale(74) + message_h + Scale(24) + button_h +
+              Scale(24);
     if(status.secure_migration_pending && app->secure_migration_started)
-        modal_h += ScaleUIPx(42);
-    if(modal_h < ScaleUIPx(210))
-        modal_h = ScaleUIPx(210);
+        modal_h += Scale(42);
+    if(modal_h < Scale(210))
+        modal_h = Scale(210);
 
-    frame = ModalFrame(ScaleUIPx(380), modal_h,
+    frame = ModalFrame(Scale(380), modal_h,
                        GetLocaleText("sync_secure_migration_title"),
                        no_texture, no_texture);
     y = frame.content_y;
     message.width = frame.content_w;
     Paragraph(message, frame.content_x, &y);
-    y += ScaleUIPx(18);
+    y += Scale(18);
 
     if(status.secure_migration_pending && app->secure_migration_started) {
         long long total = status.secure_migration_total;
@@ -2268,7 +2295,7 @@ draw_secure_migration_modal(InbeApp *app)
             (float)frame.content_x,
             (float)y,
             (float)frame.content_w,
-            (float)ScaleUIPx(24)
+            (float)Scale(24)
         };
         progress_props.min = 0;
         progress_props.max = progress_max > 0 ? progress_max : 1;
@@ -2278,9 +2305,9 @@ draw_secure_migration_modal(InbeApp *app)
         return;
     }
 
-    button_y = frame.y + frame.h - ScaleUIPx(24) - button_h;
+    button_y = frame.y + frame.h - Scale(24) - button_h;
     if(!status.secure_migration_pending) {
-        int button_w = ScaleUIPx(120);
+        int button_w = Scale(120);
         if(StyledButton(frame.x + (frame.w - button_w) / 2, button_y,
                         button_w, button_h, GetLocaleText("ok_button"),
                         ButtonStylePrimary, 0, &hover))
@@ -2699,6 +2726,11 @@ app_update_draw(void *vapp, Rectangle viewport) {
     int full_height;
     int content_x = 0;
     int content_w;
+    int layout_width;
+    int layout_height;
+    int layout_content_x;
+    int layout_content_w;
+    float render_scale;
 
     if(app == 0 || viewport.width <= 0 || viewport.height <= 0)
         return;
@@ -2707,7 +2739,6 @@ app_update_draw(void *vapp, Rectangle viewport) {
 
     full_width = (int)viewport.width;
     full_height = (int)viewport.height;
-    app_full_view_width = full_width;
     view_width = full_width;
     view_height = full_height;
 
@@ -2719,13 +2750,25 @@ app_update_draw(void *vapp, Rectangle viewport) {
         InitUIDPI();
         UpdateUIDPI(view_width, view_height);
     }
+    layout_width = GetLayoutWidth();
+    layout_height = GetLayoutHeight();
+    render_scale = GetRenderScale();
+    if(!(render_scale > 0.0f))
+        render_scale = 1.0f;
+    layout_content_x = (int)((float)content_x / render_scale + 0.5f);
+    layout_content_w = layout_width - layout_content_x;
+    if(layout_content_w < 1)
+        layout_content_w = 1;
+    app_full_view_width = layout_width;
+    view_width = layout_width;
+    view_height = layout_height;
     SetUIViewSize(view_width, view_height);
 
     {
         float user_scale = app->ui_scale_tenths > 0
                                ? (float)app->ui_scale_tenths / 10.0f
                                : 1.0f;
-        InitUI(view_width, view_height, GetUIDPIScale() * user_scale);
+        InitUI(view_width, view_height, user_scale);
     }
     if(app->modal.active)
         BeginUIModalLayer();
@@ -2753,9 +2796,10 @@ app_update_draw(void *vapp, Rectangle viewport) {
                       content_x != last_content_x || content_w != last_content_w;
 
         if(changed && (last_log_time < 0.0 || now - last_log_time >= 0.25)) {
-            TraceLog(LOG_INFO, "INBE_EMBED: geometry viewport=%dx%d content_x=%d content=%dx%d dpi=%.2f",
-                     full_width, full_height, content_x, content_w, full_height,
-                     GetUIDPIScale());
+            TraceLog(LOG_INFO, "INBE_EMBED: geometry viewport=%dx%d layout=%dx%d content_x=%d content=%dx%d render_scale=%.2f",
+                     full_width, full_height, layout_width, layout_height,
+                     layout_content_x, layout_content_w, layout_height,
+                     GetRenderScale());
             last_log_time = now;
         }
         if(changed) {
@@ -2765,11 +2809,11 @@ app_update_draw(void *vapp, Rectangle viewport) {
             last_content_w = content_w;
         }
     }
-    view_width = content_w;
-    view_height = full_height;
+    view_width = layout_content_w;
+    view_height = layout_height;
     SetUIViewSize(view_width, view_height);
     memset(&app->camera, 0, sizeof(app->camera));
-    app->camera.zoom = 1.0f;
+    app->camera.zoom = render_scale;
     app->camera.offset.x = IsUIInspectActive() ? 0.0f : viewport.x + content_x;
     app->camera.offset.y = IsUIInspectActive() ? 0.0f : viewport.y;
     SetUIFrame(app->camera);

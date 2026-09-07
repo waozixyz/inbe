@@ -33,7 +33,7 @@ storage_habits_load(void *habits_ptr)
     if(sqlite3_prepare_v2(g_storage.db,
                           "SELECT "
                           "id,name,description,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
-                          "enabled,weekdays,reminder_hour "
+                          "enabled,counter_target,weekdays,reminder_hour "
                           "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id LIMIT 32",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
@@ -51,8 +51,11 @@ storage_habits_load(void *habits_ptr)
         habit->sync_mode = sqlite3_column_int(stmt, 6);
         habit->sync_activity = sqlite3_column_int(stmt, 7);
         habit->counter_enabled = sqlite3_column_int(stmt, 8) != 0;
-        habit->weekdays = sqlite3_column_int(stmt, 9);
-        habit->reminder_hour = sqlite3_column_int(stmt, 10);
+        habit->counter_target = sqlite3_column_int(stmt, 9);
+        if(habit->counter_target < 1)
+            habit->counter_target = 1;
+        habit->weekdays = sqlite3_column_int(stmt, 10);
+        habit->reminder_hour = sqlite3_column_int(stmt, 11);
         if(habit->reminder_hour > 23)
             habit->reminder_hour = -1;
         index++;
@@ -127,9 +130,9 @@ storage_habits_save(const void *habits_ptr)
     sqlite3_prepare_v2(g_storage.db,
                        "INSERT INTO "
                        "habits(id,user_id,name,description,color_r,color_g,color_b,sync_mode,sync_"
-                       "activity,counter_enabled,sort_order,deleted_at,updated_at,"
+                       "activity,counter_enabled,counter_target,sort_order,deleted_at,updated_at,"
                        "weekdays,reminder_hour) "
-                       "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,0,?12,?13,?14) "
+                       "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,0,?13,?14,?15) "
                        "ON CONFLICT(id) DO UPDATE SET "
                        "user_id=excluded.user_id,"
                        "name=excluded.name,"
@@ -140,6 +143,7 @@ storage_habits_save(const void *habits_ptr)
                        "sync_mode=excluded.sync_mode,"
                        "sync_activity=excluded.sync_activity,"
                        "counter_enabled=excluded.counter_enabled,"
+                       "counter_target=excluded.counter_target,"
                        "sort_order=excluded.sort_order,"
                        "deleted_at=0,"
                        "updated_at=excluded.updated_at,"
@@ -153,6 +157,7 @@ storage_habits_save(const void *habits_ptr)
                        "habits.sync_mode<>excluded.sync_mode OR "
                        "habits.sync_activity<>excluded.sync_activity OR "
                        "habits.counter_enabled<>excluded.counter_enabled OR "
+                       "habits.counter_target<>excluded.counter_target OR "
                        "habits.sort_order<>excluded.sort_order OR "
                        "habits.deleted_at<>0 OR "
                        "habits.weekdays<>excluded.weekdays OR "
@@ -201,10 +206,12 @@ storage_habits_save(const void *habits_ptr)
         sqlite3_bind_int(habit_stmt, 8, habit->sync_mode);
         sqlite3_bind_int(habit_stmt, 9, habit->sync_activity);
         sqlite3_bind_int(habit_stmt, 10, habit->counter_enabled ? 1 : 0);
-        sqlite3_bind_int(habit_stmt, 11, i);
-        sqlite3_bind_int64(habit_stmt, 12, changed_at);
-        sqlite3_bind_int(habit_stmt, 13, habit->weekdays & 0x7f);
-        sqlite3_bind_int(habit_stmt, 14, habit->reminder_hour >= 0 &&
+        sqlite3_bind_int(habit_stmt, 11, habit->counter_target > 0
+                                          ? habit->counter_target : 1);
+        sqlite3_bind_int(habit_stmt, 12, i);
+        sqlite3_bind_int64(habit_stmt, 13, changed_at);
+        sqlite3_bind_int(habit_stmt, 14, habit->weekdays & 0xff);
+        sqlite3_bind_int(habit_stmt, 15, habit->reminder_hour >= 0 &&
                                        habit->reminder_hour <= 23
                                        ? habit->reminder_hour : -1);
         if(sqlite3_step(habit_stmt) == SQLITE_DONE && sqlite3_changes(g_storage.db) > 0)

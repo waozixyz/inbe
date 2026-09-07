@@ -311,6 +311,7 @@ schema_create :: () -> int #export {
         " sync_mode INTEGER NOT NULL,"
         " sync_activity INTEGER NOT NULL,"
         " counter_enabled INTEGER NOT NULL DEFAULT 0,"
+        " counter_target INTEGER NOT NULL DEFAULT 1,"
         " sort_order INTEGER NOT NULL,"
         " deleted_at INTEGER NOT NULL DEFAULT 0,"
         " updated_at INTEGER NOT NULL DEFAULT 0"
@@ -530,6 +531,10 @@ migrate_schema :: () -> int #export {
     }
     if !table_has_column("habits", "counter_enabled") &&
        !exec_sql("ALTER TABLE habits ADD COLUMN counter_enabled INTEGER NOT NULL DEFAULT 0") {
+        return 0
+    }
+    if !table_has_column("habits", "counter_target") &&
+       !exec_sql("ALTER TABLE habits ADD COLUMN counter_target INTEGER NOT NULL DEFAULT 1") {
         return 0
     }
     if !table_has_column("habit_days", "count") &&

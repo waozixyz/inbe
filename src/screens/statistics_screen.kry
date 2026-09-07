@@ -101,18 +101,30 @@ statistics_draw_metric :: (x: int, y: int, w: int, h: int, label: const char*, v
     value_w := 0
 
     DrawRectangle(x, y, w, h, DarkenUIColor(GetThemeBackground(), 8))
-    DrawRectangle(x, y, ScaleUIPx(4), h, accent)
+    DrawRectangle(x, y, Scale(4), h, accent)
     DrawLine(x, y + h - 1, x + w, y + h - 1, DarkenUIColor(GetThemeBackground(), 30))
-    Text(label, x + ScaleUIPx(12), y + ScaleUIPx(8), label_font, DarkenUIColor(GetThemeText(), 20))
+    Text((TextProps){
+        .bounds={(x + Scale(12)), (y + Scale(8)), 0, 0},
+        .text=(label),
+        .font=(label_font),
+        .color=(DarkenUIColor(GetThemeText(), 20)),
+        .wrap=TextWrapNone
+    })
     value_w = TextWidth(value, value_font)
-    if value_w > w - ScaleUIPx(24) {
+    if value_w > w - Scale(24) {
         value_font = 20
     }
-    Text(value, x + ScaleUIPx(12), y + ScaleUIPx(30), value_font, GetThemeText())
+    Text((TextProps){
+        .bounds={(x + Scale(12)), (y + Scale(30)), 0, 0},
+        .text=(value),
+        .font=(value_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 }
 
 statistics_draw_section_title :: (title: const char*, x: int, y: int, w: int) -> int #private {
-    paragraph := (ParagraphSpec){.text = title, .width = w, .font = Text16, .line_gap = ScaleUIPx(3), .color = GetThemeText()}
+    paragraph := (ParagraphSpec){.text = title, .width = w, .font = Text16, .line_gap = Scale(3), .color = GetThemeText()}
     title_y := y
     height := GetNodeHeight(NodeParagraph(paragraph, 0, 0))
 
@@ -152,12 +164,12 @@ statistics_format_average :: (out: char*, out_size: size_t, value_x100: int,
 statistics_draw_mood_panel :: (content_x: int, y: int, content_w: int,
                                stats: const InbeStorageMoodStats*,
                                accent: Color) -> int #private {
-    panel_h := ScaleUIPx(156)
-    metrics_gap := ScaleUIPx(8)
-    metric_h := ScaleUIPx(58)
+    panel_h := Scale(156)
+    metrics_gap := Scale(8)
+    metric_h := Scale(58)
     metric_w := (content_w - metrics_gap) / 2
-    bars_y := y + ScaleUIPx(78)
-    bars_h := ScaleUIPx(54)
+    bars_y := y + Scale(78)
+    bars_h := Scale(54)
     slot_w := content_w / 5
     value: [32] char = {0}
 
@@ -166,7 +178,7 @@ statistics_draw_mood_panel :: (content_x: int, y: int, content_w: int,
     }
 
     y += statistics_draw_section_title(GetLocaleText("habit_stats_mood_title"),
-                                       content_x, y, content_w) + ScaleUIPx(10)
+                                       content_x, y, content_w) + Scale(10)
     statistics_format_average(value, sizeof(value), stats->average_after_x100,
                               "/5")
     statistics_draw_metric(content_x, y, metric_w, metric_h,
@@ -182,23 +194,27 @@ statistics_draw_mood_panel :: (content_x: int, y: int, content_w: int,
                   DarkenUIColor(GetThemeBackground(), 7))
     for int i = 0; i < 5; i++ {
         count := stats->counts[i]
-        bar_h := count > 0 ? (count * (bars_h - ScaleUIPx(24))) / stats->total
-                           : ScaleUIPx(3)
-        x := content_x + i * slot_w + ScaleUIPx(7)
-        w := slot_w - ScaleUIPx(14)
-        bar_y := bars_y + bars_h - bar_h - ScaleUIPx(18)
+        bar_h := count > 0 ? (count * (bars_h - Scale(24))) / stats->total
+                           : Scale(3)
+        x := content_x + i * slot_w + Scale(7)
+        w := slot_w - Scale(14)
+        bar_y := bars_y + bars_h - bar_h - Scale(18)
         label: [4] char = {0}
 
-        if w < ScaleUIPx(4) {
-            w = ScaleUIPx(4)
+        if w < Scale(4) {
+            w = Scale(4)
         }
         DrawRectangle(x, bar_y, w, bar_h,
                       count > 0 ? statistics_mood_color(i + 1)
                                 : DarkenUIColor(GetThemeBackground(), 24))
         snprintf(label, sizeof(label), "%d", i + 1)
-        Text(label, x + (w - TextWidth(label, Text12)) / 2,
-             bars_y + bars_h - ScaleUIPx(16), Text12,
-             DarkenUIColor(GetThemeText(), 18))
+        Text((TextProps){
+            .bounds={(x + (w - TextWidth(label, Text12)) / 2), (bars_y + bars_h - Scale(16)), 0, 0},
+            .text=(label),
+            .font=(Text12),
+            .color=(DarkenUIColor(GetThemeText(), 18)),
+            .wrap=TextWrapNone
+        })
     }
 
     return panel_h
@@ -208,7 +224,7 @@ statistics_draw_hold_range_selector :: (app: InbeApp*, x: int, y: int, w: int) -
     labels: [2] const char* = {"1W", "1M"}
     values: [2] const int = {7, 31}
     selected := app->habits.hold_stats_range_days == 31 ? 1 : 0
-    h := ScaleUIPx(34)
+    h := Scale(34)
     segment_w := w / 2
     clicked := 0
     mouse_world := GetScreenToWorld2D(GetMousePosition(), app->camera)
@@ -223,7 +239,7 @@ statistics_draw_hold_range_selector :: (app: InbeApp*, x: int, y: int, w: int) -
         fill := active ? GetThemeButton() : DarkenUIColor(GetThemeBackground(), 10)
         top := LightenUIColor(fill, 35)
         bottom := DarkenUIColor(fill, 45)
-        font := GetUIFontSize()
+        font := GetFontSize()
         text_w := 0
 
         if active_hit {
@@ -238,7 +254,13 @@ statistics_draw_hold_range_selector :: (app: InbeApp*, x: int, y: int, w: int) -
         DrawRectangle(segment_x, y, current_w, h, fill)
         Bevel(segment_x, y, current_w, h, top, bottom)
         text_w = TextWidth(labels[i], font)
-        Text(labels[i], segment_x + (current_w - text_w) / 2, GetUIControlTextY(labels[i], y, h, font), font, GetThemeText())
+        Text((TextProps){
+            .bounds={(segment_x + (current_w - text_w) / 2), (GetUIControlTextY(labels[i], y, h, font)), 0, 0},
+            .text=(labels[i]),
+            .font=(font),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
         if active_hit && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !UIInputCapturesClick(mouse_world) && selected != i {
             app->habits.hold_stats_range_days = values[i]
             clicked = 1
@@ -249,8 +271,8 @@ statistics_draw_hold_range_selector :: (app: InbeApp*, x: int, y: int, w: int) -
 }
 
 statistics_content_height :: (linked_count: int, mood_count: int) -> int #private {
-    return ScaleUIPx(linked_count > 0 ? 710 : 420) +
-           (mood_count > 0 ? ScaleUIPx(188) : 0)
+    return Scale(linked_count > 0 ? 710 : 420) +
+           (mood_count > 0 ? Scale(188) : 0)
 }
 
 statistics_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
@@ -267,12 +289,12 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
     day_points := (int[STATISTICS_MAX_GRAPH_DAYS]){0}
     day_totals := (int[STATISTICS_MAX_GRAPH_DAYS]){0}
     max_hold := 1
-    graph_h := ScaleUIPx(170)
-    axis_w := ScaleUIPx(48)
+    graph_h := Scale(170)
+    axis_w := Scale(48)
     plot_x := content_x + axis_w
-    plot_y := y + ScaleUIPx(8)
-    plot_w := content_w - axis_w - ScaleUIPx(10)
-    plot_h := graph_h - ScaleUIPx(36)
+    plot_y := y + Scale(8)
+    plot_w := content_w - axis_w - Scale(10)
+    plot_h := graph_h - Scale(36)
     axis_label: [32] char = {0}
 
     DrawRectangle(content_x, y, content_w, graph_h, DarkenUIColor(GetThemeBackground(), 7))
@@ -321,7 +343,13 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
         seconds := max_hold - (max_hold * i) / 2
         snprintf(axis_label, sizeof(axis_label), "%ds", seconds)
         DrawLine(plot_x, line_y, plot_x + plot_w, line_y, DarkenUIColor(GetThemeBackground(), 20))
-        Text(axis_label, content_x + ScaleUIPx(4), line_y - ScaleUIPx(8), Text12, DarkenUIColor(GetThemeText(), 24))
+        Text((TextProps){
+            .bounds={(content_x + Scale(4)), (line_y - Scale(8)), 0, 0},
+            .text=(axis_label),
+            .font=(Text12),
+            .color=(DarkenUIColor(GetThemeText(), 24)),
+            .wrap=TextWrapNone
+        })
     }
     DrawLine(plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h, DarkenUIColor(GetThemeText(), 42))
     {
@@ -340,7 +368,7 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
             x0 := plot_x + (plot_w * day_slot) / graph_days
             x1 := plot_x + (plot_w * (day_slot + 1)) / graph_days
             points[i].x = x0 + ((ordinal + 1) * (x1 - x0)) / (count + 1)
-            points[i].y = plot_y + plot_h - (points[i].hold_seconds * (plot_h - ScaleUIPx(10))) / max_hold
+            points[i].y = plot_y + plot_h - (points[i].hold_seconds * (plot_h - Scale(10))) / max_hold
             if day_first_x[day_slot] < 0 || points[i].x < day_first_x[day_slot] {
                 day_first_x[day_slot] = points[i].x
             }
@@ -362,7 +390,7 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
                     continue
                 }
                 avg_seconds = day_totals[i] / day_points[i]
-                avg_y = plot_y + plot_h - (avg_seconds * (plot_h - ScaleUIPx(10))) / max_hold
+                avg_y = plot_y + plot_h - (avg_seconds * (plot_h - Scale(10))) / max_hold
                 if has_prev {
                     DrawLine(prev_x, prev_y, day_first_x[i], avg_y, accent)
                 }
@@ -375,12 +403,18 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
     }
 
     for int i = 0; i < point_count; i++ {
-        DrawCircle(points[i].x, points[i].y, ScaleUIPx(3), accent)
+        DrawCircle(points[i].x, points[i].y, Scale(3), accent)
     }
     if point_count <= 0 {
         empty := GetLocaleText(graph_days == 31 ? "habit_stats_no_rounds_month" : "habit_stats_no_rounds_week")
         text_w := TextWidth(empty, Text12)
-        Text(empty, content_x + (content_w - text_w) / 2, y + graph_h / 2 - ScaleUIPx(8), Text12, DarkenUIColor(GetThemeText(), 24))
+        Text((TextProps){
+            .bounds={(content_x + (content_w - text_w) / 2), (y + graph_h / 2 - Scale(8)), 0, 0},
+            .text=(empty),
+            .font=(Text12),
+            .color=(DarkenUIColor(GetThemeText(), 24)),
+            .wrap=TextWrapNone
+        })
     }
     for int i = 0; i < graph_days; i++ {
         day_offset := graph_days - 1 - i
@@ -397,7 +431,13 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
             FormatLocaleText(label, sizeof(label), "statistics_day_offset_label", day_offset)
         }
         day_x = plot_x + (plot_w * i) / graph_days
-        Text(label, day_x + ScaleUIPx(2), y + graph_h - ScaleUIPx(20), Text12, DarkenUIColor(GetThemeText(), 24))
+        Text((TextProps){
+            .bounds={(day_x + Scale(2)), (y + graph_h - Scale(20)), 0, 0},
+            .text=(label),
+            .font=(Text12),
+            .color=(DarkenUIColor(GetThemeText(), 24)),
+            .wrap=TextWrapNone
+        })
     }
 }
 
@@ -412,9 +452,9 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
     last_30_total := 30
     weekday_counts: [7] int = {0}
     max_weekday := 1
-    chart_h := ScaleUIPx(128)
-    metrics_gap := ScaleUIPx(8)
-    metric_h := ScaleUIPx(66)
+    chart_h := Scale(128)
+    metrics_gap := Scale(8)
+    metric_h := Scale(66)
     metric_w := 0
     value: [64] char = {0}
     has_wim_hof_rounds := statistics_has_wim_hof_rounds(linked_ctx)
@@ -482,45 +522,51 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
     statistics_draw_metric(content_x, y, metric_w, metric_h, GetLocaleText("habit_stats_current_streak"), value, active->color)
     snprintf(value, sizeof(value), "%d/%d", last_30_done, last_30_total)
     statistics_draw_metric(content_x + metric_w + metrics_gap, y, content_w - metric_w - metrics_gap, metric_h, GetLocaleText("habit_stats_last_30_days"), value, LightenUIColor(active->color, 24))
-    y += metric_h + ScaleUIPx(22)
+    y += metric_h + Scale(22)
 
     if mood_count > 0 {
         y += statistics_draw_mood_panel(content_x, y, content_w, &mood_stats,
-                                        active->color) + ScaleUIPx(22)
+                                        active->color) + Scale(22)
     }
 
     if has_wim_hof_rounds {
-        y += statistics_draw_section_title(GetLocaleText("habit_stats_wim_hof_hold_rounds"), content_x, y, content_w) + ScaleUIPx(10)
-        statistics_draw_hold_range_selector(app, content_x, y, ScaleUIPx(118))
-        y += ScaleUIPx(42)
+        y += statistics_draw_section_title(GetLocaleText("habit_stats_wim_hof_hold_rounds"), content_x, y, content_w) + Scale(10)
+        statistics_draw_hold_range_selector(app, content_x, y, Scale(118))
+        y += Scale(42)
         statistics_draw_hold_graph(app, linked_ctx, content_x, y, content_w, &today_tm, EXERCISE_WIM_HOF, active->color)
-        y += ScaleUIPx(194)
+        y += Scale(194)
     }
 
-    y += statistics_draw_section_title(GetLocaleText("habit_stats_weekday_pattern"), content_x, y, content_w) + ScaleUIPx(10)
+    y += statistics_draw_section_title(GetLocaleText("habit_stats_weekday_pattern"), content_x, y, content_w) + Scale(10)
     DrawRectangle(content_x, y, content_w, chart_h, DarkenUIColor(GetThemeBackground(), 7))
     {
         labels: [7] const char* = {"S", "M", "T", "W", "T", "F", "S"}
         slot_w := content_w / 7
         for int i = 0; i < 7; i++ {
-            h := weekday_counts[i] > 0 ? (weekday_counts[i] * (chart_h - ScaleUIPx(34))) / max_weekday : ScaleUIPx(3)
-            x := content_x + i * slot_w + ScaleUIPx(5)
-            w := slot_w - ScaleUIPx(10)
-            bar_y := y + chart_h - h - ScaleUIPx(22)
+            h := weekday_counts[i] > 0 ? (weekday_counts[i] * (chart_h - Scale(34))) / max_weekday : Scale(3)
+            x := content_x + i * slot_w + Scale(5)
+            w := slot_w - Scale(10)
+            bar_y := y + chart_h - h - Scale(22)
 
-            if w < ScaleUIPx(4) {
-                w = ScaleUIPx(4)
+            if w < Scale(4) {
+                w = Scale(4)
             }
             DrawRectangle(x, bar_y, w, h, weekday_counts[i] > 0 ? LightenUIColor(active->color, 12) : DarkenUIColor(GetThemeBackground(), 24))
-            Text(labels[i], x + (w - TextWidth(labels[i], Text12)) / 2, y + chart_h - ScaleUIPx(18), Text12, DarkenUIColor(GetThemeText(), 18))
+            Text((TextProps){
+                .bounds={(x + (w - TextWidth(labels[i], Text12)) / 2), (y + chart_h - Scale(18)), 0, 0},
+                .text=(labels[i]),
+                .font=(Text12),
+                .color=(DarkenUIColor(GetThemeText(), 18)),
+                .wrap=TextWrapNone
+            })
         }
     }
-    y += chart_h + ScaleUIPx(24)
+    y += chart_h + Scale(24)
 
     if linked_ctx != NULL && linked_ctx->count > 0 {
         best: [32] char = {0}
         total: [32] char = {0}
-        y += statistics_draw_section_title(GetLocaleText("habit_stats_practice_time"), content_x, y, content_w) + ScaleUIPx(10)
+        y += statistics_draw_section_title(GetLocaleText("habit_stats_practice_time"), content_x, y, content_w) + Scale(10)
         habit_format_duration(linked_ctx->best_seconds, best, sizeof(best))
         habit_format_duration(linked_ctx->total_seconds, total, sizeof(total))
         statistics_draw_metric(content_x, y, metric_w, metric_h, GetLocaleText("habit_stats_best_hold"), best, active->color)
@@ -538,9 +584,9 @@ draw_statistics_content :: (app: InbeApp*, content_top: int) {
 
     content_bottom := app_content_bottom_reserved(app)
     viewport_h := view_height - content_top - content_bottom
-    scroll_y := content_top + ScaleUIPx(4)
-    scroll_h := viewport_h - ScaleUIPx(4)
-    max_w := ScaleUIPx(CONTENT_MAX_W)
+    scroll_y := content_top + Scale(4)
+    scroll_h := viewport_h - Scale(4)
+    max_w := Scale(CONTENT_MAX_W)
     active := (InbeHabit*)NULL
     linked_ctx := (HabitLinkedContext*)NULL
     page_ctx := (StatisticsScrollPageContext){0}
@@ -574,7 +620,7 @@ draw_statistics_content :: (app: InbeApp*, content_top: int) {
     page_ctx.linked_count = linked_ctx != NULL ? linked_ctx->count : 0
     page_ctx.mood_count = page_mood_count
     page = BeginUIScrollPage((UIScrollPageSpec){.y = scroll_y, .height = scroll_h, .max_content_width = max_w, .scroll_offset = &app->habits.scroll, .content_height = statistics_scroll_page_content_height, .user_data = &page_ctx})
-    statistics_draw_view(app, active, linked_ctx, page.content_x, page.content_w, page.content_y + ScaleUIPx(8))
+    statistics_draw_view(app, active, linked_ctx, page.content_x, page.content_w, page.content_y + Scale(8))
     EndUIScrollPage(page)
     free(linked_ctx)
 }

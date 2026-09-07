@@ -1,9 +1,6 @@
 [results_write_failed]
 无法保存更改，请重试。
 ---
-[practice_repeat_button]
-重复上次练习
----
 [app_title]
 内息清风
 ---
@@ -370,12 +367,6 @@ Finish
 [settings_title]
 设置
 ---
-[settings_section_breathing]
-呼吸
----
-[settings_section_session]
-练习
----
 [settings_tab_device]
 设备
 ---
@@ -570,12 +561,14 @@ Finish
 ---
 [tutorial_step_exhale_hold]
 30 次呼吸后，呼气并尽可能长时间屏息。
-
+---
+[tutorial_step_exhale_hold_hint]
 当你想呼吸时，按下呼吸按钮。
 ---
 [tutorial_step_inhale_hold]
 充分吸气并保持 15 秒。
-
+---
+[tutorial_step_inhale_hold_hint]
 呼气后，下一轮将开始。
 ---
 [share_sheet_title]
@@ -970,9 +963,6 @@ Yoga
 ---
 [habits_today]
 今天
----
-[habits_drag_hint]
-拖动卡片标题可排序
 ---
 [habits_guide_meditation_views]
 周视图和日历视图显示此习惯。
@@ -1719,15 +1709,6 @@ Dismiss forever
 [tutorial_safety_warning]
 切勿在驾驶、站立或水中时练习。
 ---
-[tutorial_current_speed]
-当前速度：%d
----
-[tutorial_change_in_customize]
-可在自定义中更改。
----
-[tutorial_during_practice]
-练习时
----
 [back_button]
 返回
 ---
@@ -1747,10 +1728,13 @@ Dismiss forever
 选择节奏符合目标的模式。方形呼吸保持平衡，4-7-8帮助平静，连贯呼吸较温和，延长呼气会增加放松时间。
 ---
 [patterns_manual_phases_text]
-按照亮起的吸气、屏息、呼气和屏息阶段进行。时长为零的阶段会自动跳过。
+从上到下阅读循环。右侧数字表示每个阶段的时长；零表示跳过该阶段。
 ---
 [patterns_manual_customize_text]
-在自定义中调整各阶段和练习时长。轻松呼吸；如果感到头晕或不适，请停止。
+开始前选择练习时长。保持呼吸轻松；如果感到头晕或不适，请停止。
+---
+[patterns_ready_label]
+准备就绪
 ---
 [habit_color_label]
 颜色

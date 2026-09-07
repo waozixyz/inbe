@@ -133,8 +133,7 @@ typedef enum {
     UIModalConfirmImportDataSettings,
     UIModalSyncAccountBackup,
     UIModalConfirmDeleteSyncAccount,
-    UIModalHabitPracticeListInfo,
-    UIModalHabitCountingInfo,
+    UIModalHabitPracticePicker,
     UIModalPracticeManual,
     UIModalPracticeConfig,
     UIModalThemePicker,
@@ -283,6 +282,9 @@ typedef struct AppReminder {
 } AppReminder;
 
 int app_draw_close_title_bar(InbeApp *app, const char *title, int height);
+int app_active_practice_title_height(void);
+int app_draw_active_practice_title_bar(InbeApp *app, const char *title,
+                                       int height);
 int app_scaffold_close_title(const char *title, int height, void *user_data);
 int app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
                                       int height);
@@ -367,12 +369,17 @@ typedef struct HabitEditState {
     int description_scroll_y;
     int focused;
     int description_focused;
+    int sections[4];
+    int more_colors;
+    int name_error;
+    int form_viewport_height;
     char text[INBE_HABIT_NAME_SIZE];
     char description[INBE_HABIT_DESCRIPTION_SIZE];
     Color color;
     int sync_mode;
     int sync_activity;
     int counter_enabled;
+    int counter_target;
     int weekdays;
     int reminder_hour;
 } HabitEditState;
@@ -383,6 +390,7 @@ typedef struct InbeSessionResult {
     int primary_value;
     int secondary_value;
     int saved;
+    int write_failed;
     int mood;
     int round_count;
     int round_values[MaxRounds];
@@ -464,7 +472,7 @@ struct InbeApp {
     int sync_alias_focused;
     int sync_alias_then_backup;
     char sync_alias_input[40];
-    KsyncAccount pending_sync_account;
+    SyncAccount pending_sync_account;
     int pending_sync_account_action;
     int device_picker_scroll;
     int fullscreen_enabled;
@@ -504,6 +512,7 @@ struct InbeApp {
     int habits_guide_seen;
     int exercise_manual_seen_mask;
     int practice_home_scroll;
+    UISwipeGesture practice_home_swipe;
     Rectangle practice_home_bounds_card;
     Rectangle practice_home_bounds_start;
     Rectangle practice_home_bounds_manual;
@@ -547,6 +556,8 @@ struct InbeApp {
     int habit_counter_press_long_done;
     int habit_counter_press_start_x;
     int habit_counter_press_start_y;
+    int habit_card_press_x;
+    int habit_card_grab_y;
     int advanced_session_controls;
     int double_tap_to_breathe;
     double breath_tap_last_time;

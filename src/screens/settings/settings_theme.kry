@@ -14,9 +14,9 @@ content_height :: (content_w: int) -> int {
     unused content_w
 
     #if WEB {
-        return ScaleUIPx(314) + ScaleUIPx(66)
+        return Scale(314) + Scale(66)
     } #else {
-        return ScaleUIPx(298) + ScaleUIPx(66)
+        return Scale(298) + Scale(66)
     }
 }
 
@@ -58,7 +58,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         }
     }
     *y += GetNodeHeight(NodeThemeSettings(settings))
-    *y += ScaleUIPx(18)
+    *y += Scale(18)
 }
 
 draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
@@ -66,9 +66,9 @@ draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     multiplier := scale_value / 10.0f
     effective: float = multiplier * GetUIDPIScale()
     scale_text: [16] char
-    step_w := ScaleUIPx(28)
-    step_gap := ScaleUIPx(8)
-    step_y := *y + ScaleUIPx(28) - ScaleUIPx(14)
+    step_w := Scale(28)
+    step_gap := Scale(8)
+    step_y := *y + Scale(28) - Scale(14)
     slider_x := x + step_w + step_gap
     slider_w := w - (step_w + step_gap) * 2
     minus_hover := 0
@@ -79,7 +79,7 @@ draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
             scale_value = scale_value - 1
         }
     }
-    if slider_w < ScaleUIPx(100) {
+    if slider_w < Scale(100) {
         slider_x = x
         slider_w = w
     }
@@ -102,12 +102,12 @@ draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         app->settings_dirty = 1
         save_settings(app)
     }
-    *y += ScaleUIPx(66)
+    *y += Scale(66)
 }
 
 settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
-    modal_w := ScaleUIPx(320)
-    modal_h := ScaleUIPx(360)
+    modal_w := Scale(320)
+    modal_h := Scale(360)
     title := GetLocaleText("theme_picker_title")
     frame := (UIPanelFrame){0}
     scroll_area := (UIScrollArea){0}
@@ -134,8 +134,8 @@ settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
         .content_x = frame.content_x,
         .content_width = frame.content_w,
         .scroll_offset = &app->theme_state.theme_picker_scroll,
-        .wheel_step = ScaleUIPx(42),
-        .scrollbar_x = frame.content_x + frame.content_w - ScaleUIPx(8)
+        .wheel_step = Scale(42),
+        .scrollbar_x = frame.content_x + frame.content_w - Scale(8)
     }
 
     for int i = 0; i < 3; i++ {

@@ -167,7 +167,7 @@ LightenUIColor(Color color, int amount)
 }
 
 int
-ScaleUIPx(int px)
+Scale(int px)
 {
     return px;
 }
@@ -215,7 +215,7 @@ GetNodeHeight(UIWidgetNode node)
 }
 
 int
-GetUIFontSize(void)
+GetFontSize(void)
 {
     return 16;
 }
@@ -308,7 +308,7 @@ BottomNav(BottomNavProps nav)
         .clicked_route = bottom_nav_clicked_route,
         .clicked_index = bottom_nav_clicked_route == APP_NAV_ROUTE_NONE ? -1 : 0,
         .y = 508,
-        .height = 52
+        .height = 80
     };
 }
 
@@ -316,7 +316,7 @@ UIWidgetNode
 NodeBottomNav(BottomNavProps nav)
 {
     UIWidgetNode node = {0};
-    node.bounds.height = 52;
+    node.bounds.height = 80;
     (void)nav;
     return node;
 }
@@ -495,7 +495,7 @@ settings_screen_tab_label(int tab)
 }
 
 int
-GetUISmallFontSize(void)
+GetSmallFontSize(void)
 {
     return 12;
 }
@@ -685,7 +685,7 @@ settings_screen_clear_status(void)
 }
 
 int
-sync_account_load(KsyncAccount *account)
+sync_account_load(SyncAccount *account)
 {
     (void)account;
     return 0;
@@ -851,7 +851,7 @@ test_unblocked_bottom_nav_click_still_routes(void)
            "unblocked bottom nav click should route to habits");
     expect(reset_settings_preview_count == 0,
            "habits route should not reset settings preview");
-    expect(app_content_bottom_reserved(&app) == 52,
+    expect(app_content_bottom_reserved(&app) == 80,
            "bottom nav should reserve larger touch height");
     expect(bottom_nav_last.bottom_margin == 0,
            "bottom nav should preserve zero Android margin");
@@ -981,7 +981,7 @@ test_empty_bottom_nav_draws_stack_only_bar(void)
     expect(app.inbe.screen == InbeScreenStart &&
            app.main_tab == APP_MAIN_TAB_NONE,
            "empty bottom nav should stay on blank start screen");
-    expect(app_content_bottom_reserved(&app) == 52,
+    expect(app_content_bottom_reserved(&app) == 80,
            "empty bottom nav should reserve stack bar space");
 }
 

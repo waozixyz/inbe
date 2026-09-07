@@ -26,19 +26,28 @@ manual_screen_reset_layouts :: (app: InbeApp*) {
 }
 
 manual_screen_tutorial_line_gap :: () -> int #private {
-    return ScaleUIPx(6)
+    return Scale(6)
 }
 
 manual_screen_tutorial_side_padding :: () -> int {
-    return ScaleUIPx(24)
+    return Scale(24)
 }
 
 manual_screen_tutorial_top_gap :: () -> int {
     return 0
 }
 
+manual_screen_guide_header_height :: () -> int {
+    title_h := Scale(42)
+    title_step_gap := Scale(10)
+    step_h := Scale(24)
+    content_gap := Scale(16)
+
+    return title_h + title_step_gap + step_h + content_gap
+}
+
 manual_screen_tutorial_max_width :: () -> int {
-    return ScaleUIPx(480)
+    return Scale(480)
 }
 
 manual_screen_hero_bounds :: (content_x: int, content_w: int,
@@ -65,37 +74,44 @@ manual_screen_draw_guide_header :: (title: const char*, page: int,
                                     page_count: int, content_x: int,
                                     y: int*, content_w: int) {
     progress: [48] char = {0}
+    title_h := Scale(42)
+    title_step_gap := Scale(10)
+    step_h := Scale(24)
+    content_gap := Scale(16)
     if title == NULL || y == NULL || page_count <= 0 {
         return
     }
     page = clampi(page, 0, page_count - 1)
-    Text((TextProps){
-        .bounds={(content_x), (*y), 0, 0},
-        .text=(title),
-        .font=(ScaleUIPx(Text20)),
-        .color=(GetThemeText()),
-        .wrap=TextWrapNone
-    })
-    *y += ScaleUIPx(30)
     snprintf(progress, sizeof(progress), GetLocaleText("tutorial_step_progress"),
              page + 1, page_count)
+
     Text((TextProps){
-        .bounds={(content_x), (*y), 0, 0},
+        .bounds={(float)content_x, (float)*y, (float)content_w,
+                 (float)title_h},
+        .text=(title),
+        .font=(Scale(Text20)),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone,
+        .vertical_align=TextAlignCenter
+    })
+    Text((TextProps){
+        .bounds={(float)content_x, (float)(*y + title_h + title_step_gap),
+                 (float)content_w, (float)step_h},
         .text=(progress),
         .font=(GetSmallFontSize()),
         .color=(GetThemeLink()),
         .wrap=TextWrapNone
     })
-    *y += ScaleUIPx(24)
+    *y += title_h + title_step_gap + step_h + content_gap
 }
 
 manual_screen_draw_hero_progress :: (bounds: Rectangle, page: int,
                                      page_count: int) {
-    fade_h := ScaleUIPx(58)
-    dot_gap := ScaleUIPx(18)
+    fade_h := Scale(58)
+    dot_gap := Scale(18)
     dots_w := (page_count - 1) * dot_gap
     center_x := (int)(bounds.x + bounds.width / 2)
-    dots_y := (int)(bounds.y + bounds.height - ScaleUIPx(15))
+    dots_y := (int)(bounds.y + bounds.height - Scale(15))
 
     if page_count <= 0 || bounds.width <= 0 || bounds.height <= 0 {
         return
@@ -112,7 +128,7 @@ manual_screen_draw_hero_progress :: (bounds: Rectangle, page: int,
     for int i = 0; i < page_count; i++ {
         dot_x := center_x - dots_w / 2 + i * dot_gap
 
-        DrawCircle(dot_x, dots_y, ScaleUIPx(i == page ? 4 : 3),
+        DrawCircle(dot_x, dots_y, Scale(i == page ? 4 : 3),
                    i == page ? GetThemeButton() : GetThemeMutedText())
     }
 }
@@ -131,7 +147,7 @@ manual_screen_draw_title_bar :: (app: InbeApp*, title: const char*,
 }
 
 manual_screen_guide_nav_height :: () -> int {
-    return ScaleUIPx(68)
+    return Scale(68)
 }
 
 manual_screen_guide_controls :: (app: InbeApp*, nav: ManualGuideNav) {
@@ -142,7 +158,7 @@ manual_screen_guide_controls :: (app: InbeApp*, nav: ManualGuideNav) {
     swipe := UpdateUISwipe(&app->manual_swipe, (UISwipeSpec){
         .bounds = {0, (float)nav.content_y, (float)view_width, (float)nav.content_h},
         .directions = UI_SWIPE_HORIZONTAL,
-        .min_distance = (float)ScaleUIPx(48),
+        .min_distance = (float)Scale(48),
         .axis_bias = 1.25f,
         .max_duration = 0.8f
     })
@@ -150,11 +166,11 @@ manual_screen_guide_controls :: (app: InbeApp*, nav: ManualGuideNav) {
     next := IsKeyPressed(KEY_RIGHT) || swipe.direction == UI_SWIPE_LEFT
     finish := IsKeyPressed(KEY_ENTER)
     close := IsKeyPressed(KEY_BACK) || IsKeyPressed(KEY_ESCAPE)
-    pad := ScaleUIPx(12)
+    pad := Scale(12)
     width := (view_width - pad * 3) / 2
     height := nav.h - pad * 2
-    if height > ScaleUIPx(48) {
-        height = ScaleUIPx(48)
+    if height > Scale(48) {
+        height = Scale(48)
     }
     if !close && width > 0 && height > 0 {
         DrawRectangle(0, nav.y, view_width, nav.h, GetThemeBackground())

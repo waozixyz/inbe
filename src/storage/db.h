@@ -62,6 +62,6 @@ int storage_sync_review_write_json(const char *json);
 void storage_sync_review_delete_json(void);
 int insert_session_at_ex(long long started_at, int local_date, const int *round_times,
                          int round_count, int topic, int activity, const char *source,
-                         char *out_id, size_t out_id_size);
+                         char *out_id, size_t out_id_size, int *out_inserted);
 
 #endif

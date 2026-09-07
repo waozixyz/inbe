@@ -57,7 +57,7 @@ sun_manual_paragraph :: (step: int, content_w: int) -> ParagraphSpec #private {
 sun_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
     ctx := (SunManualPageContext*)user_data
 
-    return ScaleUIPx(178 + 18 + 68) +
+    return Scale(178 + 18 + 68) +
            GetNodeHeight(NodeParagraph(
                sun_manual_paragraph(ctx->page, content_w), 0, 0))
 }
@@ -79,77 +79,77 @@ sun_manual_draw_pose :: (Texture2D sheet, int pose, Rectangle bounds) #private {
 
 sun_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
                            step: int, y: int*) #private {
-    visual_h := ScaleUIPx(178)
+    visual_h := Scale(178)
     visual := (Rectangle){(float)page.content_x, (float)*y,
                           (float)page.content_w, (float)visual_h}
 
     DrawRectangleRounded(visual, 0.12f, 10, GetThemeSurface())
     if step < 2 {
-        pose_w := (page.content_w - ScaleUIPx(36)) / 3
+        pose_w := (page.content_w - Scale(36)) / 3
         poses: [3] int = {0, step == 0 ? 5 : 3, step == 0 ? 11 : 7}
 
         for int i = 0; i < 3; i++ {
             pose_bounds := (Rectangle){
-                (float)(page.content_x + ScaleUIPx(10) +
-                        i * (pose_w + ScaleUIPx(8))),
-                (float)(*y + ScaleUIPx(24)),
+                (float)(page.content_x + Scale(10) +
+                        i * (pose_w + Scale(8))),
+                (float)(*y + Scale(24)),
                 (float)pose_w,
-                (float)ScaleUIPx(112)
+                (float)Scale(112)
             }
             sun_manual_draw_pose(
                 app->sun_salutation.pose_sheets[app->sun_salutation.figure],
                 poses[i], pose_bounds)
             DrawCircle((int)(pose_bounds.x + pose_bounds.width / 2),
-                       *y + ScaleUIPx(151), ScaleUIPx(4),
+                       *y + Scale(151), Scale(4),
                        i == 1 ? GetThemeButton() : GetThemeBorder())
         }
     } else {
         value: [32] char = {0}
-        line_y := *y + ScaleUIPx(24)
+        line_y := *y + Scale(24)
 
         snprintf(value, sizeof(value), "%dx", app->sun_salutation.repetitions)
         Text((TextProps){
-            .bounds={(page.content_x + ScaleUIPx(18)), (line_y), 0, 0},
+            .bounds={(page.content_x + Scale(18)), (line_y), 0, 0},
             .text=(GetLocaleText("sun_salutation_repetitions_label")),
             .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         Text((TextProps){
-            .bounds={(page.content_x + page.content_w - ScaleUIPx(54)), (line_y), 0, 0},
+            .bounds={(page.content_x + page.content_w - Scale(54)), (line_y), 0, 0},
             .text=(value),
             .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
-        line_y += ScaleUIPx(45)
+        line_y += Scale(45)
         snprintf(value, sizeof(value), "%d s", app->sun_salutation.start_seconds)
         Text((TextProps){
-            .bounds={(page.content_x + ScaleUIPx(18)), (line_y), 0, 0},
+            .bounds={(page.content_x + Scale(18)), (line_y), 0, 0},
             .text=(GetLocaleText("sun_salutation_start_speed_label")),
             .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         Text((TextProps){
-            .bounds={(page.content_x + page.content_w - ScaleUIPx(54)), (line_y), 0, 0},
+            .bounds={(page.content_x + page.content_w - Scale(54)), (line_y), 0, 0},
             .text=(value),
             .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
-        line_y += ScaleUIPx(45)
+        line_y += Scale(45)
         snprintf(value, sizeof(value), "%d s", app->sun_salutation.end_seconds)
         Text((TextProps){
-            .bounds={(page.content_x + ScaleUIPx(18)), (line_y), 0, 0},
+            .bounds={(page.content_x + Scale(18)), (line_y), 0, 0},
             .text=(GetLocaleText("sun_salutation_end_speed_label")),
             .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         Text((TextProps){
-            .bounds={(page.content_x + page.content_w - ScaleUIPx(54)), (line_y), 0, 0},
+            .bounds={(page.content_x + page.content_w - Scale(54)), (line_y), 0, 0},
             .text=(value),
             .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
     }
-    *y += visual_h + ScaleUIPx(18)
+    *y += visual_h + Scale(18)
 }
 
 sun_manual_draw :: (app: InbeApp*) {
@@ -164,16 +164,15 @@ sun_manual_draw :: (app: InbeApp*) {
     practice_screen_manual_layout(app, UIModalPracticeManual,
                                   SUN_MANUAL_PAGES,
                                   manual_screen_tutorial_top_gap(), 0,
-                                  ScaleUIPx(120), &layout)
+                                  Scale(120), &layout)
     manual_screen_draw_title_bar(app, GetLocaleText("exercise_sun_salutation"),
                                  layout.title_h, sun_manual_close)
-
     page_ctx := (SunManualPageContext){step}
     page := BeginUIScrollPage((UIScrollPageSpec){
         .y = layout.content_y,
         .height = layout.content_h,
         .max_content_width = responsive_max_w,
-        .min_content_width = ScaleUIPx(200),
+        .min_content_width = Scale(200),
         .side_padding = manual_screen_tutorial_side_padding(),
         .scroll_offset = &app->manual_scroll,
         .content_height = sun_manual_content_height,
@@ -184,7 +183,7 @@ sun_manual_draw :: (app: InbeApp*) {
     hero_page := page
     hero_y := y
     hero := manual_screen_hero_bounds(page.content_x, page.content_w,
-                                      hero_y, ScaleUIPx(178))
+                                      hero_y, Scale(178))
 
     hero_page.content_x = (int)hero.x
     hero_page.content_w = (int)hero.width

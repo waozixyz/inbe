@@ -1,9 +1,6 @@
 [results_write_failed]
 Änderungen konnten nicht gespeichert werden. Bitte erneut versuchen.
 ---
-[practice_repeat_button]
-Letzte Übung wiederholen
----
 [app_title]
 Inner Breeze
 ---
@@ -370,12 +367,6 @@ Rundenzeiten
 [settings_title]
 Einstellungen
 ---
-[settings_section_breathing]
-Atmung
----
-[settings_section_session]
-Sitzung
----
 [settings_tab_device]
 Gerät
 ---
@@ -570,12 +561,14 @@ Finde einen Rhythmus, der sich natürlich anfühlt: gleichmäßig und schnell, a
 ---
 [tutorial_step_exhale_hold]
 Atme nach 30 Atemzügen aus und halte so lange du kannst.
-
+---
+[tutorial_step_exhale_hold_hint]
 Wenn du den Drang zu atmen spürst, drücke die ATEM-Taste.
 ---
 [tutorial_step_inhale_hold]
 Atme vollständig ein und halte 15 Sekunden.
-
+---
+[tutorial_step_inhale_hold_hint]
 Atme aus, dann beginnt die nächste Runde.
 ---
 [share_sheet_title]
@@ -970,9 +963,6 @@ Tippe auf Kreise, um Tage abzuhaken. Tippe auf eine Karte für Details; ziehe ih
 ---
 [habits_today]
 Heute
----
-[habits_drag_hint]
-Kartentitel zum Sortieren ziehen
 ---
 [habits_guide_meditation_views]
 Wochen- und Kalenderansicht zeigen diese Gewohnheit.
@@ -1719,15 +1709,6 @@ Schritt %d von %d
 [tutorial_safety_warning]
 Übe niemals beim Fahren, im Stehen oder im Wasser.
 ---
-[tutorial_current_speed]
-Aktuelle Geschwindigkeit: %d
----
-[tutorial_change_in_customize]
-Ändere sie unter Anpassen.
----
-[tutorial_during_practice]
-Während der Übung
----
 [back_button]
 Zurück
 ---
@@ -1747,10 +1728,13 @@ Lege unter Anpassen Wiederholungen sowie Anfangs- und Endtempo fest. Beginne lan
 Wähle ein Muster, dessen Rhythmus zu deinem Ziel passt. Box ist ausgeglichen, 4-7-8 beruhigt, Kohärent ist sanft und Langes Ausatmen verlängert die Abgabe.
 ---
 [patterns_manual_phases_text]
-Folge Einatmen, Halten, Ausatmen und Halten, wenn sie aufleuchten. Eine Phase mit Länge null wird automatisch übersprungen.
+Lies den Zyklus von oben nach unten. Die Zahl rechts zeigt die Phasenlänge; null bedeutet, dass diese Phase übersprungen wird.
 ---
 [patterns_manual_customize_text]
-Passe Phasenlängen und Sitzungsdauer unter Anpassen an. Atme leicht; höre bei Schwindel oder Unwohlsein auf.
+Wähle vor dem Start eine Sitzungsdauer. Atme leicht; höre auf, wenn dir schwindelig oder unwohl wird.
+---
+[patterns_ready_label]
+Bereit
 ---
 [habit_color_label]
 Farbe

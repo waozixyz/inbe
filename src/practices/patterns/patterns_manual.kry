@@ -21,7 +21,7 @@ static patterns_manual_body_keys: [PATTERNS_MANUAL_PAGES] const char* = {
 static patterns_manual_title_keys: [PATTERNS_MANUAL_PAGES] const char* = {
     "patterns_preset_label",
     "patterns_cycle_label",
-    "practice_configure_button"
+    "patterns_ready_label"
 }
 
 patterns_manual_close :: (app: InbeApp*, mark_seen: int) {
@@ -54,71 +54,246 @@ patterns_manual_paragraph :: (step: int, content_w: int) -> ParagraphSpec #priva
         GetLocaleText(patterns_manual_body_keys[step]), content_w)
 }
 
-patterns_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
-    ctx := (PatternsManualPageContext*)user_data
-
-    return ScaleUIPx(184 + 18 + 68) +
-           GetNodeHeight(NodeParagraph(
-               patterns_manual_paragraph(ctx->page, content_w), 0, 0))
+patterns_manual_visual_height :: (step: int) -> int #private {
+    if step == 0 {
+        return Scale(330)
+    }
+    if step == 1 {
+        return Scale(300)
+    }
+    return Scale(248)
 }
 
-patterns_manual_phase_card :: (label: const char*, x: int, y: int,
-                               w: int, h: int, active: int) #private {
+patterns_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
+    ctx := (PatternsManualPageContext*)user_data
+    step := ctx != nil ? ctx->page : 0
+    h := patterns_manual_visual_height(step) + Scale(18) +
+         manual_screen_guide_header_height() +
+         GetNodeHeight(NodeParagraph(
+             patterns_manual_paragraph(step, content_w), 0, 0))
+
+    return h
+}
+
+patterns_manual_phase_count :: (app: InbeApp*, phase: int) -> int #private {
+    if app == nil {
+        return patterns_preset_ratio(0, phase)
+    }
+    if app->patterns.preset == patterns_preset_count() - 1 {
+        return app->patterns.custom[phase]
+    }
+    return patterns_preset_ratio(app->patterns.preset, phase)
+}
+
+patterns_manual_phase_card :: (label: const char*, count: int, x: int,
+                               y: int, w: int, h: int, index: int,
+                               active: int) #private {
     fill := active ? GetThemeButton() : GetThemeSurface()
     text_color := active ? GetThemeButtonText() : GetThemeText()
+    meta_color := active ? Fade(GetThemeButtonText(), 0.82f) : GetThemeMutedText()
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
+    badge_size := Scale(28)
+    badge_x := x + Scale(12)
+    badge_y := y + (h - badge_size) / 2
+    count_text: [24] char = {0}
 
     DrawRectangleRounded(bounds, 0.2f, 8, fill)
     DrawRectangleRoundedLinesEx(bounds, 0.2f, 8, 1.0f, GetThemeBorder())
-    DrawFittedTextInRect(label, bounds, GetFontSize(), 10, text_color)
+    DrawCircle(badge_x + badge_size / 2, badge_y + badge_size / 2,
+               badge_size / 2, active ? GetThemeButtonText()
+                                      : Fade(GetThemeCircle(), 0.32f))
+    snprintf(count_text, sizeof(count_text), "%d", index + 1)
+    Text((TextProps){
+        .bounds={
+            (badge_x + (badge_size - TextWidth(count_text, GetSmallFontSize())) / 2),
+            (TextBaselineY(count_text, badge_y, badge_size, GetSmallFontSize())),
+            0, 0
+        },
+        .text=(count_text),
+        .font=(GetSmallFontSize()),
+        .color=(active ? GetThemeButton() : GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    Text((TextProps){
+        .bounds={(x + Scale(54)), (TextBaselineY(label, y, h, GetFontSize())), 0, 0},
+        .text=(label),
+        .font=(GetFontSize()),
+        .color=(text_color),
+        .wrap=TextWrapNone
+    })
+    snprintf(count_text, sizeof(count_text), "%d", count)
+    Text((TextProps){
+        .bounds={
+            (x + w - Scale(18) - TextWidth(count_text, GetFontSize())),
+            (TextBaselineY(count_text, y, h, GetFontSize())),
+            0, 0
+        },
+        .text=(count_text),
+        .font=(GetFontSize()),
+        .color=(meta_color),
+        .wrap=TextWrapNone
+    })
+}
+
+patterns_manual_preset_ratio_text :: (app: InbeApp*, preset: int, out: char*,
+                                      out_size: size_t) #private {
+    ratio: [4] int = {0, 0, 0, 0}
+
+    if out == nil || out_size == 0 {
+        return
+    }
+    for int i = 0; i < 4; i++ {
+        ratio[i] = patterns_preset_ratio(preset, i)
+    }
+    if preset == patterns_preset_count() - 1 && app != nil {
+        for int i = 0; i < 4; i++ {
+            ratio[i] = app->patterns.custom[i]
+        }
+    }
+    snprintf(out, out_size, "%d-%d-%d-%d",
+             ratio[0], ratio[1], ratio[2], ratio[3])
+}
+
+patterns_manual_preset_card :: (app: InbeApp*, preset: int,
+                                bounds: Rectangle) #private {
+    selected := app->patterns.preset == preset
+    fill := selected ? GetThemeButton() : GetThemeSurface()
+    border := selected ? GetThemeCircle() : GetThemeBorder()
+    text_color := selected ? GetThemeButtonText() : GetThemeText()
+    ratio_color := selected ? Fade(GetThemeButtonText(), 0.82f) : GetThemeMutedText()
+    label := GetLocaleText(patterns_preset_label_key(preset))
+    label_font := FitFontSize(label, (int)bounds.width - Scale(22),
+                              GetFontSize(), GetSmallFontSize())
+    ratio_font := GetSmallFontSize()
+    label_w := TextWidth(label, label_font)
+    ratio: [32] char = {0}
+
+    DrawRectangleRounded(bounds, 0.2f, 10, fill)
+    DrawRectangleRoundedLinesEx(bounds, 0.2f, 10, 1.0f, border)
+    Text((TextProps){
+        .bounds={
+            ((int)bounds.x + ((int)bounds.width - label_w) / 2),
+            ((int)bounds.y + Scale(7)),
+            0, 0
+        },
+        .text=(label),
+        .font=(label_font),
+        .color=(text_color),
+        .wrap=TextWrapNone
+    })
+    patterns_manual_preset_ratio_text(app, preset, ratio, sizeof(ratio))
+    ratio_w := TextWidth(ratio, ratio_font)
+    Text((TextProps){
+        .bounds={
+            ((int)bounds.x + ((int)bounds.width - ratio_w) / 2),
+            ((int)bounds.y + Scale(31)),
+            0, 0
+        },
+        .text=(ratio),
+        .font=(ratio_font),
+        .color=(ratio_color),
+        .wrap=TextWrapNone
+    })
+}
+
+patterns_manual_draw_preset_selector :: (app: InbeApp*, page: UIScrollPage,
+                                         y: int*) #private {
+    visual_h := patterns_manual_visual_height(0)
+    bounds := (Rectangle){(float)page.content_x, (float)*y,
+                          (float)page.content_w, (float)visual_h}
+    pad := Scale(16)
+    gap := Scale(12)
+    button_h := Scale(58)
+    header_h := Scale(56)
+    card_w := (page.content_w - pad * 2 - gap) / 2
+    current_ratio: [32] char = {0}
+
+    DrawRectangleRounded(bounds, 0.12f, 10, GetThemeSurfaceAlt())
+    patterns_ratio_text(app, current_ratio, sizeof(current_ratio))
+    Text((TextProps){
+        .bounds={
+            (page.content_x + pad),
+            (*y + Scale(18)),
+            (page.content_w - pad * 2),
+            Scale(24)
+        },
+        .text=(GetLocaleText("patterns_preset_label")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone,
+        .vertical_align=TextAlignCenter
+    })
+    Text((TextProps){
+        .bounds={
+            (page.content_x + pad),
+            (*y + Scale(44)),
+            (page.content_w - pad * 2),
+            Scale(22)
+        },
+        .text=(current_ratio),
+        .font=(GetSmallFontSize()),
+        .color=(GetThemeMutedText()),
+        .wrap=TextWrapNone
+    })
+    preset_count := patterns_preset_count()
+
+    for int i = 0; i < preset_count; i++ {
+        row := i / 2
+        col := i % 2
+        button_w := card_w
+        button_x := page.content_x + pad + col * (card_w + gap)
+        button_y := *y + header_h + Scale(18) + row * (button_h + gap)
+
+        if i == preset_count - 1 {
+            button_w = page.content_w - pad * 2
+            button_x = page.content_x + pad
+        }
+        patterns_manual_preset_card(app, i, (Rectangle){
+            (float)button_x, (float)button_y,
+            (float)button_w, (float)button_h
+        })
+    }
+    *y += visual_h + Scale(18)
 }
 
 patterns_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
                                 step: int, y: int*) #private {
-    visual_h := ScaleUIPx(184)
+    visual_h := patterns_manual_visual_height(step)
     bounds := (Rectangle){(float)page.content_x, (float)*y,
                           (float)page.content_w, (float)visual_h}
 
-    DrawRectangleRounded(bounds, 0.12f, 10, GetThemeSurfaceAlt())
     if step == 0 {
-        labels: [4] const char* = {
-            GetLocaleText("patterns_preset_box"),
-            GetLocaleText("patterns_preset_478"),
-            GetLocaleText("patterns_preset_coherent"),
-            GetLocaleText("patterns_preset_extended_exhale")
-        }
-        gap := ScaleUIPx(10)
-        card_w := (page.content_w - ScaleUIPx(30)) / 2
-
-        for int i = 0; i < 4; i++ {
-            patterns_manual_phase_card(labels[i],
-                page.content_x + ScaleUIPx(10) + (i % 2) * (card_w + gap),
-                *y + ScaleUIPx(20) + (i / 2) * ScaleUIPx(72),
-                card_w, ScaleUIPx(54), i == app->patterns.preset)
-        }
-    } else if step == 1 {
+        patterns_manual_draw_preset_selector(app, page, y)
+        return
+    }
+    DrawRectangleRounded(bounds, 0.12f, 10, GetThemeSurfaceAlt())
+    if step == 1 {
         labels: [4] const char* = {
             GetLocaleText("patterns_phase_inhale"),
             GetLocaleText("patterns_phase_hold_in"),
             GetLocaleText("patterns_phase_exhale"),
             GetLocaleText("patterns_phase_hold_out")
         }
-        gap := ScaleUIPx(5)
-        card_w := (page.content_w - ScaleUIPx(35)) / 4
-        center_x := page.content_x + page.content_w / 2
+        gap := Scale(10)
+        card_x := page.content_x + Scale(16)
+        card_y := *y + Scale(18)
+        card_w := page.content_w - Scale(32)
+        card_h := Scale(54)
 
-        DrawCircle(center_x, *y + ScaleUIPx(67), ScaleUIPx(48),
-                   Fade(GetThemeCircle(), 0.24f))
-        DrawCircle(center_x, *y + ScaleUIPx(67), ScaleUIPx(32),
-                   GetThemeCircle())
         for int i = 0; i < 4; i++ {
-            patterns_manual_phase_card(labels[i],
-                page.content_x + ScaleUIPx(10) + i * (card_w + gap),
-                *y + ScaleUIPx(125), card_w, ScaleUIPx(42), i == 0)
+            patterns_manual_phase_card(
+                labels[i], patterns_manual_phase_count(app, i),
+                card_x, card_y + i * (card_h + gap),
+                card_w, card_h, i, i == 0)
         }
     } else {
         ratio: [32] char = {0}
         duration: [32] char = {0}
+        card_gap := Scale(12)
+        card_x := page.content_x + Scale(16)
+        card_w := page.content_w - Scale(32)
+        card_h := Scale(76)
+        card_y := *y + Scale(24)
 
         patterns_ratio_text(app, ratio, sizeof(ratio))
         if app->patterns.duration_minutes == 0 {
@@ -128,32 +303,83 @@ patterns_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
             snprintf(duration, sizeof(duration), "%d min",
                      app->patterns.duration_minutes)
         }
+        DrawRectangleRounded((Rectangle){
+            (float)card_x,
+            (float)card_y,
+            (float)card_w,
+            (float)card_h
+        }, 0.18f, 10, GetThemeSurface())
+        DrawRectangleRoundedLinesEx((Rectangle){
+            (float)card_x,
+            (float)card_y,
+            (float)card_w,
+            (float)card_h
+        }, 0.18f, 10, 1.0f, GetThemeBorder())
         Text((TextProps){
-            .bounds={(page.content_x + ScaleUIPx(18)), (*y + ScaleUIPx(34)), 0, 0},
+            .bounds={
+                (card_x + Scale(18)),
+                (card_y + Scale(14)),
+                (card_w - Scale(36)),
+                Scale(24)
+            },
             .text=(GetLocaleText("patterns_preset_label")),
+            .font=(GetFontSize()),
             .color=(GetThemeText()),
-            .wrap=TextWrapNone
+            .wrap=TextWrapNone,
+            .vertical_align=TextAlignCenter
         })
         Text((TextProps){
-            .bounds={(page.content_x + page.content_w - ScaleUIPx(90)), (*y + ScaleUIPx(34)), 0, 0},
+            .bounds={
+                (card_x + Scale(18)),
+                (card_y + Scale(42)),
+                (card_w - Scale(36)),
+                Scale(22)
+            },
             .text=(ratio),
+            .font=(GetSmallFontSize()),
             .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
+        card_y += card_h + card_gap
+        DrawRectangleRounded((Rectangle){
+            (float)card_x,
+            (float)card_y,
+            (float)card_w,
+            (float)card_h
+        }, 0.18f, 10, GetThemeSurface())
+        DrawRectangleRoundedLinesEx((Rectangle){
+            (float)card_x,
+            (float)card_y,
+            (float)card_w,
+            (float)card_h
+        }, 0.18f, 10, 1.0f, GetThemeBorder())
         Text((TextProps){
-            .bounds={(page.content_x + ScaleUIPx(18)), (*y + ScaleUIPx(92)), 0, 0},
+            .bounds={
+                (card_x + Scale(18)),
+                (card_y + Scale(14)),
+                (card_w - Scale(36)),
+                Scale(24)
+            },
             .text=(GetLocaleText("patterns_duration_label")),
+            .font=(GetFontSize()),
             .color=(GetThemeText()),
-            .wrap=TextWrapNone
+            .wrap=TextWrapNone,
+            .vertical_align=TextAlignCenter
         })
         Text((TextProps){
-            .bounds={(page.content_x + page.content_w - ScaleUIPx(90)), (*y + ScaleUIPx(92)), 0, 0},
+            .bounds={
+                (card_x + Scale(18)),
+                (card_y + Scale(42)),
+                (card_w - Scale(36)),
+                Scale(22)
+            },
             .text=(duration),
+            .font=(GetSmallFontSize()),
             .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
     }
-    *y += visual_h + ScaleUIPx(18)
+    *y += visual_h + Scale(18)
 }
 
 patterns_manual_draw :: (app: InbeApp*) {
@@ -168,16 +394,15 @@ patterns_manual_draw :: (app: InbeApp*) {
     practice_screen_manual_layout(app, UIModalPracticeManual,
                                   PATTERNS_MANUAL_PAGES,
                                   manual_screen_tutorial_top_gap(), 0,
-                                  ScaleUIPx(120), &layout)
+                                  Scale(120), &layout)
     manual_screen_draw_title_bar(app, GetLocaleText("patterns_title"),
                                  layout.title_h, patterns_manual_close)
-
     page_ctx := (PatternsManualPageContext){step}
     page := BeginUIScrollPage((UIScrollPageSpec){
         .y = layout.content_y,
         .height = layout.content_h,
         .max_content_width = responsive_max_w,
-        .min_content_width = ScaleUIPx(200),
+        .min_content_width = Scale(200),
         .side_padding = manual_screen_tutorial_side_padding(),
         .scroll_offset = &app->manual_scroll,
         .content_height = patterns_manual_content_height,
@@ -188,7 +413,8 @@ patterns_manual_draw :: (app: InbeApp*) {
     hero_page := page
     hero_y := y
     hero := manual_screen_hero_bounds(page.content_x, page.content_w,
-                                      hero_y, ScaleUIPx(184))
+                                      hero_y,
+                                      patterns_manual_visual_height(step))
 
     hero_page.content_x = (int)hero.x
     hero_page.content_w = (int)hero.width

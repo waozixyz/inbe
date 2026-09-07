@@ -319,34 +319,34 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
         GetLocaleText("duration_1h"),
         GetLocaleText("duration_2h")
     }
-    modal_w := ScaleUIPx(320)
-    modal_h := ScaleUIPx(236)
+    modal_w := Scale(320)
+    modal_h := Scale(236)
     modal_x: int
     modal_y: int
     title_font: int
     title_w: int
-    btn_h := ScaleUIPx(38)
-    gap := ScaleUIPx(10)
-    side := ScaleUIPx(18)
+    btn_h := Scale(38)
+    gap := Scale(10)
+    side := Scale(18)
     row_y: int
     btn_w: int
-    cancel_w := ScaleUIPx(120)
+    cancel_w := Scale(120)
     cancel_x: int
     cancel_y: int
     cancel_hover := 0
 
-    if modal_w > view_width - ScaleUIPx(24) {
-        modal_w = view_width - ScaleUIPx(24)
+    if modal_w > view_width - Scale(24) {
+        modal_w = view_width - Scale(24)
     }
-    if modal_h > view_height - ScaleUIPx(24) {
-        modal_h = view_height - ScaleUIPx(24)
+    if modal_h > view_height - Scale(24) {
+        modal_h = view_height - Scale(24)
     }
 
     modal_x = (view_width - modal_w) / 2
     modal_y = (view_height - modal_h) / 2
     btn_w = (modal_w - side * 2 - gap * 2) / 3
-    if btn_w < ScaleUIPx(64) {
-        btn_w = ScaleUIPx(64)
+    if btn_w < Scale(64) {
+        btn_w = Scale(64)
     }
 
     SetUIModalCapture((Rectangle){
@@ -364,16 +364,18 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
                    LightenUIColor(GetThemeSurface(), 40),
                    DarkenUIColor(GetThemeSurface(), 40))
 
-    title_font = GetUITitleFontSize(GetLocaleText("meditation_title"),
+    title_font = GetTitleFontSize(GetLocaleText("meditation_title"),
                                     modal_w - side * 2)
     title_w = TextWidth(GetLocaleText("meditation_title"), title_font)
-    Text(GetLocaleText("meditation_title"),
-                  modal_x + (modal_w - title_w) / 2,
-                  modal_y + ScaleUIPx(16),
-                  title_font,
-                  GetThemeText())
+    Text((TextProps){
+        .bounds={(modal_x + (modal_w - title_w) / 2), (modal_y + Scale(16)), 0, 0},
+        .text=(GetLocaleText("meditation_title")),
+        .font=(title_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 
-    row_y = modal_y + ScaleUIPx(62)
+    row_y = modal_y + Scale(62)
     for int i = 0; i < 3; i++ {
         x := modal_x + side + i * (btn_w + gap)
 
@@ -392,7 +394,7 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
         }
     }
 
-    cancel_y = modal_y + modal_h - btn_h - ScaleUIPx(16)
+    cancel_y = modal_y + modal_h - btn_h - Scale(16)
     cancel_x = modal_x + (modal_w - cancel_w) / 2
     if StyledButton(cancel_x,
                            cancel_y,
@@ -409,10 +411,10 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
 draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
     add_seconds: [3] const int = {60, 5 * 60, 10 * 60}
     labels: [3] const char* = {"+1", "+5", "+10"}
-    gap := ScaleUIPx(8)
-    btn_h := ScaleUIPx(34)
-    btn_w := ScaleUIPx(58)
-    finish_w := ScaleUIPx(96)
+    gap := Scale(8)
+    btn_h := Scale(34)
+    btn_w := Scale(58)
+    finish_w := Scale(96)
     total_w := btn_w * 3 + gap * 2
     x := center_x - total_w / 2
     hover := 0
@@ -421,11 +423,11 @@ draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
         return
     }
 
-    if x < ScaleUIPx(12) {
-        x = ScaleUIPx(12)
+    if x < Scale(12) {
+        x = Scale(12)
     }
-    if x + total_w > view_width - ScaleUIPx(12) {
-        x = view_width - ScaleUIPx(12) - total_w
+    if x + total_w > view_width - Scale(12) {
+        x = view_width - Scale(12) - total_w
     }
 
     for int i = 0; i < 3; i++ {
@@ -443,13 +445,13 @@ draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
 
     if app->meditation.complete_waiting {
         finish_x := center_x - finish_w / 2
-        finish_y := y + btn_h + ScaleUIPx(10)
+        finish_y := y + btn_h + Scale(10)
 
-        if finish_x < ScaleUIPx(12) {
-            finish_x = ScaleUIPx(12)
+        if finish_x < Scale(12) {
+            finish_x = Scale(12)
         }
-        if finish_x + finish_w > view_width - ScaleUIPx(12) {
-            finish_x = view_width - ScaleUIPx(12) - finish_w
+        if finish_x + finish_w > view_width - Scale(12) {
+            finish_x = view_width - Scale(12) - finish_w
         }
 
         if StyledButton(finish_x,
@@ -470,9 +472,9 @@ meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     font := Text24
     max_w: int
     text_w: int
-    title_h := GetNodeHeight(NodeTitleBar(0))
+    title_h := app_active_practice_title_height()
 
-    if app_draw_close_title_bar(app, GetLocaleText("meditation_title"), title_h) {
+    if app_draw_active_practice_title_bar(app, GetLocaleText("meditation_title"), title_h) {
         meditation_request_exit(app)
         return
     }
@@ -484,21 +486,20 @@ meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     practice_draw_audio_controls(app)
 
     format_time(time_text, sizeof(time_text), app->meditation.remaining_seconds)
-    max_w = view_width - ScaleUIPx(48)
+    max_w = view_width - Scale(48)
     if TextWidth(time_text, font) > max_w {
         font = Text16
     }
     text_w = TextWidth(time_text, font)
-    Text(time_text,
-                  center_x - text_w / 2,
-                  GetUIControlTextY(time_text,
-                                    center_y - font,
-                                    font * 2,
-                                    font),
-                  font,
-                  GetThemeText())
+    Text((TextProps){
+        .bounds={(center_x - text_w / 2), (GetUIControlTextY(time_text, center_y - font, font * 2, font)), 0, 0},
+        .text=(time_text),
+        .font=(font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 
-    draw_extend_controls(app, center_x, center_y + ScaleUIPx(42))
+    draw_extend_controls(app, center_x, center_y + Scale(42))
     if app->meditation.complete_waiting {
         return
     }

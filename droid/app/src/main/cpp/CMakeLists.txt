@@ -11,7 +11,10 @@ endif()
 
 set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(SRC_DIR "${REPO_ROOT}/src")
-set(KRYON_DIR "${REPO_ROOT}/vendor/kryon")
+if(NOT DEFINED KRYON_DIR)
+    set(KRYON_DIR "${REPO_ROOT}/vendor/kryon")
+endif()
+get_filename_component(KRYON_DIR "${KRYON_DIR}" ABSOLUTE BASE_DIR "${REPO_ROOT}")
 set(RAYLIB_DIR "${KRYON_DIR}/vendor/raylib/src")
 set(KRYON_RAYLIB_GENERATED_DIR "${CMAKE_BINARY_DIR}/kryon/raylib_generated")
 set(KRYON_COMPAT_GENERATED_HEADER "${KRYON_RAYLIB_GENERATED_DIR}/kryon_compat.generated.h")
@@ -61,11 +64,11 @@ list(REMOVE_ITEM KRYON_SOURCES
     "${KRYON_DIR}/src/scene/node_area2d.c"
     "${KRYON_DIR}/src/scene/node_collision_shape2d.c")
 file(GLOB KRYON_K2C_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/k2c/*.c")
-list(APPEND KRYON_K2C_SOURCES
-    "${KRYON_DIR}/cmd/kir/kir.c"
-    "${KRYON_DIR}/cmd/kir/kir_parse.c"
-    "${KRYON_DIR}/cmd/kir/kir_text.c")
+file(GLOB KRYON_KIR_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/kir/*.c")
+list(APPEND KRYON_K2C_SOURCES ${KRYON_KIR_SOURCES})
+list(SORT KRYON_K2C_SOURCES)
 find_program(HOST_CC NAMES cc clang gcc REQUIRED)
+find_program(HOST_PYTHON NAMES python3 REQUIRED)
 set(KRYON_K2C "${CMAKE_BINARY_DIR}/host-tools/k2c")
 # needs the kir headers on the include path
 set(INBE_KRY_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated")
@@ -112,6 +115,15 @@ add_custom_target(inbe_kry_generated DEPENDS
     ${INBE_KRY_GENERATED_HEADERS}
     "${INBE_KRY_PROJECT_HEADER}"
 )
+add_custom_target(inbe_clean_runtime_api
+    COMMAND "${HOST_PYTHON}"
+        "${KRYON_DIR}/scripts/check-clean-text-api.py"
+        "${SRC_DIR}"
+    WORKING_DIRECTORY "${REPO_ROOT}"
+    COMMENT "Rejecting stale or duplicate Kryon runtime API usage"
+    VERBATIM
+)
+add_dependencies(inbe_kry_generated inbe_clean_runtime_api)
 
 add_custom_command(
     OUTPUT
@@ -138,7 +150,7 @@ add_custom_target(kryon_raylib_generated DEPENDS
 )
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
-file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner.png")
+file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner*.png")
 set(INBE_EMBEDDED_INPUTS
     ${INBE_LOCALE_ASSETS}
     assets/easteregg/art.png
@@ -220,7 +232,7 @@ target_include_directories(raylib PUBLIC
 )
 
 add_library(main SHARED
-    "${SRC_DIR}/main.c"
+    "${SRC_DIR}/platform/inbe_main_host.c"
     ${APP_C_SOURCES}
     "${SRC_DIR}/storage/storage.c"
     "${SRC_DIR}/storage/storage_json_builder.c"
@@ -244,6 +256,8 @@ add_dependencies(main inbe_kry_generated kryon_raylib_generated)
 target_include_directories(main PRIVATE
     "${KRYON_DIR}/include"
     "${KRYON_DIR}/src"
+    "${KRYON_DIR}/vendor/monocypher/src"
+    "${KRYON_DIR}/vendor/monocypher/src/optional"
     "${SRC_DIR}"
     "${SRC_DIR}/app"
     "${SRC_DIR}/core"
@@ -276,6 +290,7 @@ target_compile_definitions(main PRIVATE
     SUPPORT_FILEFORMAT_OGG=1
     UI_EMBEDDED_ONLY=1
     HAS_LIBOQS=1
+    KRYON_WITH_SYNC=1
     KRYON_WITH_PHYSICS=0
 )
 

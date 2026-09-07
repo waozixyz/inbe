@@ -97,11 +97,29 @@ draw_round_line :: (line_text: const char*, seconds_text: const char*,
     text_y = GetUIControlTextY(line_text, y, h, font)
     draw_x = x
 
-    Text(prefix, draw_x, text_y, font, GetThemeText())
+    Text((TextProps){
+        .bounds={(draw_x), (text_y), 0, 0},
+        .text=(prefix),
+        .font=(font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
     draw_x += TextWidth(prefix, font)
-    Text(seconds_text, draw_x, text_y, font, GetThemeButtonHover())
+    Text((TextProps){
+        .bounds={(draw_x), (text_y), 0, 0},
+        .text=(seconds_text),
+        .font=(font),
+        .color=(GetThemeButtonHover()),
+        .wrap=TextWrapNone
+    })
     draw_x += TextWidth(seconds_text, font)
-    Text(suffix, draw_x, text_y, font, GetThemeText())
+    Text((TextProps){
+        .bounds={(draw_x), (text_y), 0, 0},
+        .text=(suffix),
+        .font=(font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 }
 
 delete_round :: (entry: const HabitLinkedEntry*, round: int) -> int #private {
@@ -166,12 +184,12 @@ draw_edit_screen :: (app: InbeApp*) {
     ctx: HabitLinkedContext
     habit: InbeHabit* = nil
     date_text: [32] char = {0}
-    top_h := ScaleUIPx(58)
+    top_h := Scale(58)
     bottom_reserved := 0
     keyboard_h := 0
     viewport_h := 0
-    max_w := ScaleUIPx(400)
-    y := top_h + ScaleUIPx(14)
+    max_w := Scale(400)
+    y := top_h + Scale(14)
 
     if app == nil {
         return
@@ -195,8 +213,8 @@ draw_edit_screen :: (app: InbeApp*) {
 
     keyboard_h = habit_session_keyboard_height(app)
     viewport_h = view_height - top_h - bottom_reserved - keyboard_h
-    if viewport_h < ScaleUIPx(80) {
-        viewport_h = ScaleUIPx(80)
+    if viewport_h < Scale(80) {
+        viewport_h = Scale(80)
     }
 
     if app_draw_close_title_bar(app, date_text, top_h) {
@@ -242,10 +260,10 @@ draw_edit_screen :: (app: InbeApp*) {
 draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                          content_x: int, content_w: int, y: int,
                          draw: int) -> int {
-    row_h := ScaleUIPx(34)
-    section_gap := ScaleUIPx(10)
-    section_h := ScaleUIPx(28)
-    section_font := GetUIFontSize()
+    row_h := Scale(34)
+    section_gap := Scale(10)
+    section_h := Scale(28)
+    section_font := GetFontSize()
 
     if app == nil || ctx == nil {
         return y
@@ -253,8 +271,13 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
 
     if ctx->count <= 0 {
         if draw {
-            Text(GetLocaleText("no_sessions"), content_x, y,
-                          GetUIFontSize(), GetThemeText())
+            Text((TextProps){
+                .bounds={(content_x), (y), 0, 0},
+                .text=(GetLocaleText("no_sessions")),
+                .font=(GetFontSize()),
+                .color=(GetThemeText()),
+                .wrap=TextWrapNone
+            })
         }
         return y + row_h
     }
@@ -273,19 +296,24 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
         }
 
         if draw {
-            Text(practice_activity_label(activity), content_x, y,
-                          section_font, DarkenUIColor(GetThemeText(), 12))
+            Text((TextProps){
+                .bounds={(content_x), (y), 0, 0},
+                .text=(practice_activity_label(activity)),
+                .font=(section_font),
+                .color=(DarkenUIColor(GetThemeText(), 12)),
+                .wrap=TextWrapNone
+            })
         }
         y += section_h
 
         for int i = 0; i < ctx->count; i++ {
             time_text: [16] char = {0}
             summary_text: [32] char = {0}
-            icon_size := ScaleUIPx(18)
-            icon_padding := ScaleUIPx(6)
+            icon_size := Scale(18)
+            icon_padding := Scale(6)
             icon_w := icon_size + icon_padding * 2
             trash_x := content_x + content_w - icon_w
-            row_font := GetUISmallFontSize()
+            row_font := GetSmallFontSize()
             summary_x := 0
             hover_trash := 0
 
@@ -309,22 +337,28 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                                     "results_rounds",
                                     ctx->entries[i].round_count)
             }
-            summary_x = content_x + ScaleUIPx(76)
-            summary_too_wide := summary_x + TextWidth(summary_text, row_font) > trash_x - ScaleUIPx(8)
+            summary_x = content_x + Scale(76)
+            summary_too_wide := summary_x + TextWidth(summary_text, row_font) > trash_x - Scale(8)
             if summary_too_wide {
-                summary_x = content_x + ScaleUIPx(62)
+                summary_x = content_x + Scale(62)
             }
 
             if draw {
-                Text(time_text, content_x,
-                              GetUIControlTextY(time_text, y, row_h,
-                                                row_font),
-                              row_font, GetThemeText())
-                Text(summary_text, summary_x,
-                              GetUIControlTextY(summary_text, y, row_h,
-                                                row_font),
-                              row_font, DarkenUIColor(GetThemeText(), 12))
-                if PaddedIconBtn(0, trash_x, y - ScaleUIPx(4),
+                Text((TextProps){
+                    .bounds={(content_x), (GetUIControlTextY(time_text, y, row_h, row_font)), 0, 0},
+                    .text=(time_text),
+                    .font=(row_font),
+                    .color=(GetThemeText()),
+                    .wrap=TextWrapNone
+                })
+                Text((TextProps){
+                    .bounds={(summary_x), (GetUIControlTextY(summary_text, y, row_h, row_font)), 0, 0},
+                    .text=(summary_text),
+                    .font=(row_font),
+                    .color=(DarkenUIColor(GetThemeText(), 12)),
+                    .wrap=TextWrapNone
+                })
+                if PaddedIconBtn(0, trash_x, y - Scale(4),
                                        icon_size, icon_padding,
                                        app->icons[UI_ICON_TYPE_TRASH],
                                        &hover_trash) {
@@ -339,7 +373,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
 
             if activity == EXERCISE_MEDITATION ||
                activity == EXERCISE_SUN_SALUTATION {
-                y += ScaleUIPx(4)
+                y += Scale(4)
                 continue
             }
 
@@ -347,9 +381,9 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                 round_line: [64] char = {0}
                 round_seconds: [16] char = {0}
                 round_trash_x := content_x + content_w - icon_w
-                round_edit_x := round_trash_x - icon_w - ScaleUIPx(4)
-                round_text_x := content_x + ScaleUIPx(16)
-                round_text_w := round_edit_x - round_text_x - ScaleUIPx(8)
+                round_edit_x := round_trash_x - icon_w - Scale(4)
+                round_text_x := content_x + Scale(16)
+                round_text_w := round_edit_x - round_text_x - Scale(8)
                 editing_round: int = app->habit_session_edit.active &&
                                  app->habit_session_edit.kind == HABIT_SESSION_EDIT_ROUND &&
                                  app->habit_session_edit.round == r &&
@@ -371,13 +405,13 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                                 editing_round
                                     ? atoi(app->habit_session_edit.text)
                                     : ctx->entries[i].rounds[r])
-                    if round_text_w < ScaleUIPx(80) {
-                        round_text_w = ScaleUIPx(80)
+                    if round_text_w < Scale(80) {
+                        round_text_w = Scale(80)
                     }
                     draw_round_line(round_line, round_seconds, round_text_x,
-                                       y, round_text_w, ScaleUIPx(24),
+                                       y, round_text_w, Scale(24),
                                        row_font, editing_round)
-                    if PaddedIconBtn(0, round_edit_x, y - ScaleUIPx(6),
+                    if PaddedIconBtn(0, round_edit_x, y - Scale(6),
                                            icon_size, icon_padding,
                                            app->icons[editing_round
                                                       ? UI_ICON_TYPE_SAVE
@@ -392,7 +426,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                         }
                         return y
                     }
-                    if PaddedIconBtn(0, round_trash_x, y - ScaleUIPx(6),
+                    if PaddedIconBtn(0, round_trash_x, y - Scale(6),
                                            icon_size, icon_padding,
                                            app->icons[UI_ICON_TYPE_TRASH],
                                            &hover_round_trash) {
@@ -403,9 +437,9 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                         return y
                     }
                 }
-                y += ScaleUIPx(28)
+                y += Scale(28)
             }
-            y += ScaleUIPx(4)
+            y += Scale(4)
         }
         y += section_gap
     }
@@ -418,9 +452,9 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
         if habit_counting_enabled(habit) {
             minimum_count := ctx->count
             total_count := habit_effective_day_count(habit, ctx->day_filter, ctx)
-            button_h := ScaleUIPx(34)
-            step_w := ScaleUIPx(42)
-            gap := ScaleUIPx(8)
+            button_h := Scale(34)
+            step_w := Scale(42)
+            gap := Scale(8)
             minus_x := content_x
             plus_x := content_x + content_w - step_w
             label_x := minus_x + step_w + gap
@@ -428,7 +462,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
             hover := 0
             total_text: [64] char = {0}
 
-            y += ScaleUIPx(6)
+            y += Scale(6)
             if draw {
                 FormatLocaleText(total_text, sizeof(total_text),
                                     "habit_session_total_count", total_count)
@@ -443,10 +477,13 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                 }
                 DrawRectangle(label_x, y, label_w, button_h,
                                  DarkenUIColor(GetThemeBackground(), 5))
-                Text(total_text, label_x + ScaleUIPx(8),
-                              GetUIControlTextY(total_text, y, button_h,
-                                                GetUISmallFontSize()),
-                              GetUISmallFontSize(), GetThemeText())
+                Text((TextProps){
+                    .bounds={(label_x + Scale(8)), (GetUIControlTextY(total_text, y, button_h, GetSmallFontSize())), 0, 0},
+                    .text=(total_text),
+                    .font=(GetSmallFontSize()),
+                    .color=(GetThemeText()),
+                    .wrap=TextWrapNone
+                })
                 if StyledButton(plus_x, y, step_w, button_h, "+",
                                        ButtonStyleSecondary, 0, &hover) {
                     habit_apply_count_action(app, app->habit_detail_index,
@@ -456,7 +493,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                     return y
                 }
             }
-            y += button_h + ScaleUIPx(8)
+            y += button_h + Scale(8)
         }
     }
 
@@ -464,9 +501,9 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
 }
 
 keyboard_height :: (app: InbeApp*) -> int {
-    key_h := ScaleUIPx(48)
-    gap := ScaleUIPx(6)
-    pad := ScaleUIPx(10)
+    key_h := Scale(48)
+    gap := Scale(6)
+    pad := Scale(10)
 
     #if !ANDROID {
         if app == nil || !app->on_screen_keyboard_enabled {
@@ -486,9 +523,9 @@ draw_keyboard :: (app: InbeApp*, entry: const HabitLinkedEntry*) -> int {
         "7", "8", "9",
         "DEL", "0", "OK"
     }
-    key_h := ScaleUIPx(48)
-    gap := ScaleUIPx(6)
-    pad := ScaleUIPx(10)
+    key_h := Scale(48)
+    gap := Scale(6)
+    pad := Scale(10)
     keyboard_h := habit_session_keyboard_height(app)
     x := GetUIPageSidePadding()
     y := view_height - keyboard_h

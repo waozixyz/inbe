@@ -40,7 +40,7 @@ text_style :: () -> TextInputStyle #private {
         .text = GetThemeText(),
         .cursor = GetThemeText(),
         .radius = 0.0f,
-        .padding_x = ScaleUIPx(10)
+        .padding_x = Scale(10)
     }
 }
 
@@ -259,24 +259,34 @@ draw_json_people :: (json: const char*, array_key: const char*,
                     app: InbeApp*) #private {
     array_path: [48] char = {0}
     count := 0
-    font := GetUIFontSize()
-    small := GetUISmallFontSize()
+    font := GetFontSize()
+    small := GetSmallFontSize()
     with_remove: int = !with_actions && strcmp(array_key, "friends") == 0
     with_cancel: int = !with_actions && strcmp(array_key, "outgoing") == 0
 
     if snprintf(array_path, sizeof(array_path), "$.%s", array_key) >=
        (int)sizeof(array_path) {
-        Text(GetLocaleText("profile_none_label"), x, *y, small,
-                      DarkenUIColor(GetThemeText(), 35))
-        *y += ScaleUIPx(24)
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(GetLocaleText("profile_none_label")),
+            .font=(small),
+            .color=(DarkenUIColor(GetThemeText(), 35)),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(24)
         return
     }
 
     count = storage_json_array_count_path(json, array_path)
     if count <= 0 {
-        Text(GetLocaleText("profile_none_label"), x, *y, small,
-                      DarkenUIColor(GetThemeText(), 35))
-        *y += ScaleUIPx(24)
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(GetLocaleText("profile_none_label")),
+            .font=(small),
+            .color=(DarkenUIColor(GetThemeText(), 35)),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(24)
         return
     }
 
@@ -286,7 +296,7 @@ draw_json_people :: (json: const char*, array_key: const char*,
         display_id: [80] char = {0}
         title: [96] char = {0}
         url: [256] char = {0}
-        row_h := with_actions ? ScaleUIPx(42) : ScaleUIPx(30)
+        row_h := with_actions ? Scale(42) : Scale(30)
         hover_accept := 0
         hover_decline := 0
         hover_remove := 0
@@ -332,25 +342,31 @@ draw_json_people :: (json: const char*, array_key: const char*,
         }
 
         display_name(title, sizeof(title), alias, display_id)
-        Text(title, x, *y, font, GetThemeText())
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(title),
+            .font=(font),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
 
         if with_remove {
-            icon_size := ScaleUIPx(18)
-            icon_padding := ScaleUIPx(6)
+            icon_size := Scale(18)
+            icon_padding := Scale(6)
             button_w := icon_size + icon_padding * 2
 
-            if PaddedIconBtn(0, x + w - button_w, *y - ScaleUIPx(6),
+            if PaddedIconBtn(0, x + w - button_w, *y - Scale(6),
                                    icon_size, icon_padding,
                                    app->icons[UI_ICON_TYPE_TRASH],
                                    &hover_remove) {
                 prompt_remove_friend(app, display_id, title)
             }
         } else if with_cancel {
-            icon_size := ScaleUIPx(18)
-            icon_padding := ScaleUIPx(6)
+            icon_size := Scale(18)
+            icon_padding := Scale(6)
             button_w := icon_size + icon_padding * 2
 
-            if PaddedIconBtn(0, x + w - button_w, *y - ScaleUIPx(6),
+            if PaddedIconBtn(0, x + w - button_w, *y - Scale(6),
                                    icon_size, icon_padding,
                                    app->icons[UI_ICON_TYPE_TRASH],
                                    &hover_cancel) &&
@@ -362,10 +378,10 @@ draw_json_people :: (json: const char*, array_key: const char*,
         }
 
         if with_actions {
-            btn_w := (w - ScaleUIPx(8)) / 2
+            btn_w := (w - Scale(8)) / 2
 
-            if StyledButton(x, *y + ScaleUIPx(22), btn_w,
-                                   ScaleUIPx(30),
+            if StyledButton(x, *y + Scale(22), btn_w,
+                                   Scale(30),
                                    GetLocaleText("profile_friend_accept_button"),
                                    ButtonStylePrimary, 0,
                                    &hover_accept) &&
@@ -374,8 +390,8 @@ draw_json_people :: (json: const char*, array_key: const char*,
                 settings_screen_set_status_success(
                     GetLocaleText("profile_updating_status"), nil)
             }
-            if StyledButton(x + btn_w + ScaleUIPx(8),
-                                   *y + ScaleUIPx(22), btn_w, ScaleUIPx(30),
+            if StyledButton(x + btn_w + Scale(8),
+                                   *y + Scale(22), btn_w, Scale(30),
                                    GetLocaleText("profile_friend_decline_button"),
                                    ButtonStyleSecondary, 0,
                                    &hover_decline) &&
@@ -391,8 +407,8 @@ draw_json_people :: (json: const char*, array_key: const char*,
 }
 
 draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
-    font := GetUIFontSize()
-    btn_h := ScaleUIPx(34)
+    font := GetFontSize()
+    btn_h := Scale(34)
     hover_add := 0
     commit := 0
     url: [256] char = {0}
@@ -411,29 +427,39 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
     outgoing_count = json_array_count(app->profile_friend_requests_json,
                                       "outgoing")
 
-    *y += ScaleUIPx(16)
-    Text(GetLocaleText("profile_friends_title"), x, *y, font,
-                  GetThemeText())
-    *y += ScaleUIPx(30)
+    *y += Scale(16)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("profile_friends_title")),
+        .font=(font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(30)
 
-    Text(GetLocaleText("profile_friend_input_label"), x, *y,
-                  GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
-    *y += ScaleUIPx(22)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("profile_friend_input_label")),
+        .font=(GetSmallFontSize()),
+        .color=(DarkenUIColor(GetThemeText(), 35)),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(22)
 
     TextField((TextFieldProps){
-        .bounds = {x, *y, w, ScaleUIPx(38)},
+        .bounds = {x, *y, w, Scale(38)},
         .text = app->profile_friend_input,
         .text_size = sizeof(app->profile_friend_input),
         .cursor_position = &app->profile_friend_input_cursor,
         .focused = &app->profile_friend_input_focused,
         .max_codepoints = 79,
-        .font = GetUIFontSize(),
+        .font = GetFontSize(),
         .focus_id = 810,
         .style = profile_social_text_style(),
         .filter = profile_social_friend_filter,
         .commit_pressed = &commit
     })
-    *y += ScaleUIPx(46)
+    *y += Scale(46)
 
     if (StyledButton(x, *y, w, btn_h,
                             GetLocaleText("profile_add_friend_button"),
@@ -461,35 +487,50 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
                 GetLocaleText("sync_server_url_invalid"))
         }
     }
-    *y += btn_h + ScaleUIPx(22)
+    *y += btn_h + Scale(22)
 
     if incoming_count > 0 {
-        Text(GetLocaleText("profile_incoming_title"), x, *y, font,
-                      GetThemeText())
-        *y += ScaleUIPx(28)
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(GetLocaleText("profile_incoming_title")),
+            .font=(font),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(28)
         draw_json_people(app->profile_friend_requests_json, "incoming",
                             x, w, y, 1, app)
-        *y += ScaleUIPx(16)
+        *y += Scale(16)
     }
 
-    Text(GetLocaleText("profile_friends_title"), x, *y, font,
-                  GetThemeText())
-    *y += ScaleUIPx(28)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("profile_friends_title")),
+        .font=(font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(28)
     draw_json_people(app->profile_friends_json, "friends", x, w, y, 0, app)
 
     if outgoing_count > 0 {
-        *y += ScaleUIPx(16)
-        Text(GetLocaleText("profile_outgoing_title"), x, *y, font,
-                      GetThemeText())
-        *y += ScaleUIPx(28)
+        *y += Scale(16)
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(GetLocaleText("profile_outgoing_title")),
+            .font=(font),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(28)
         draw_json_people(app->profile_friend_requests_json, "outgoing",
                             x, w, y, 0, app)
     }
 }
 
 friends_content_height :: (app: InbeApp*, content_w: int) -> int {
-    h := ScaleUIPx(16) + ScaleUIPx(30) + ScaleUIPx(22) + ScaleUIPx(46) +
-         ScaleUIPx(34) + ScaleUIPx(22)
+    h := Scale(16) + Scale(30) + Scale(22) + Scale(46) +
+         Scale(34) + Scale(22)
     incoming_count := 0
     outgoing_count := 0
     friends := 0
@@ -506,24 +547,30 @@ friends_content_height :: (app: InbeApp*, content_w: int) -> int {
     friends = json_array_count(app->profile_friends_json, "friends")
 
     if incoming_count > 0 {
-        h += ScaleUIPx(28) +
-             incoming_count * ScaleUIPx(42) +
-             ScaleUIPx(16)
+        h += Scale(28) +
+             incoming_count * Scale(42) +
+             Scale(16)
     }
-    h += ScaleUIPx(28) +
-         (friends > 0 ? friends * ScaleUIPx(30) : ScaleUIPx(24))
+    h += Scale(28) +
+         (friends > 0 ? friends * Scale(30) : Scale(24))
     if outgoing_count > 0 {
-        h += ScaleUIPx(16) + ScaleUIPx(28) +
-             outgoing_count * ScaleUIPx(30)
+        h += Scale(16) + Scale(28) +
+             outgoing_count * Scale(30)
     }
-    return h + ScaleUIPx(16)
+    return h + Scale(16)
 }
 
 draw_leaderboard_value :: (x: int, w: int, y: int, value: const char*,
                           font: int) #private {
     rank_w := TextWidth(value, font)
 
-    Text(value, x + w - rank_w, y, font, GetThemeText())
+    Text((TextProps){
+        .bounds={(x + w - rank_w), (y), 0, 0},
+        .text=(value),
+        .font=(font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 }
 
 leaderboard_zero_value :: (app: InbeApp*, metric: int, out: char*,
@@ -677,10 +724,10 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
                          x: int, w: int, y: int*) #private {
     rows := 0
     cache_rows := 0
-    font := GetUIFontSize()
-    small := GetUISmallFontSize()
+    font := GetFontSize()
+    small := GetSmallFontSize()
     draw_rows: [24] ProfileLeaderboardDrawRow = {0}
-    account: KsyncAccount
+    account: SyncAccount
     has_account := sync_account_load(&account) && account.public_id[0] != '\0'
     self_seen := 0
     self_value: [48] char = {0}
@@ -694,17 +741,21 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
     cache_rows = storage_json_array_count_path(json, "$.rows")
     has_visible_rows := cache_rows > 0 || friend_count > 0 || has_account
     if app_social_refresh_loading() && !has_visible_rows {
-        spinner_x := x + ScaleUIPx(10)
-        spinner_y := *y + ScaleUIPx(9)
+        spinner_x := x + Scale(10)
+        spinner_y := *y + Scale(9)
         angle := app != nil ? (float)((app->inbe.frame * 5) % 360) : 0.0f
 
         DrawRing((Vector2){(float)spinner_x, (float)spinner_y},
-                 (float)ScaleUIPx(5), (float)ScaleUIPx(7),
+                 (float)Scale(5), (float)Scale(7),
                  angle, angle + 270.0f, 24, GetThemeText())
-        Text(GetLocaleText("profile_updating_status"),
-             x + ScaleUIPx(24), *y, small,
-             DarkenUIColor(GetThemeText(), 20))
-        *y += ScaleUIPx(30)
+        Text((TextProps){
+            .bounds={(x + Scale(24)), (*y), 0, 0},
+            .text=(GetLocaleText("profile_updating_status")),
+            .font=(small),
+            .color=(DarkenUIColor(GetThemeText(), 20)),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(30)
         return
     }
     for int i = 0; i < cache_rows && rows < 24; i++ {
@@ -778,21 +829,32 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
         display_name(display, sizeof(display),
                         draw_rows[i].alias, draw_rows[i].user_id)
         snprintf(name, sizeof(name), "%d. %s", i + 1, display)
-        Text(name, x, *y, font, GetThemeText())
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(name),
+            .font=(font),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
         draw_leaderboard_value(x, w, *y, draw_rows[i].value, font)
-        *y += ScaleUIPx(30)
+        *y += Scale(30)
     }
 
     if rows == 0 {
-        Text(GetLocaleText("profile_no_leaderboard_data"),
-                      x, *y, small, DarkenUIColor(GetThemeText(), 35))
-        *y += ScaleUIPx(24)
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(GetLocaleText("profile_no_leaderboard_data")),
+            .font=(small),
+            .color=(DarkenUIColor(GetThemeText(), 35)),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(24)
     }
 }
 
 leaderboard_row_count :: (app: InbeApp*, json: const char*) -> int #private {
     draw_rows: [24] ProfileLeaderboardDrawRow = {0}
-    account: KsyncAccount
+    account: SyncAccount
     has_account := sync_account_load(&account) && account.public_id[0] != '\0'
     self_seen := 0
     rows := 0
@@ -860,7 +922,7 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
                                                    "$.rows")
     avg_count := storage_json_array_count_path(app->profile_leaderboard_avg_json,
                                                 "$.rows")
-    account: KsyncAccount
+    account: SyncAccount
     has_account := sync_account_load(&account) && account.public_id[0] != '\0'
     self_seen := 0
     friend_count: int = app != nil ? json_array_count(app->profile_friends_json,
@@ -871,8 +933,8 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
         metric_label(app->profile_leaderboard_practice,
                      PROFILE_LEADERBOARD_AVG_HOLD)
     }
-    header_h := ScaleUIPx(34)
-    row_h := ScaleUIPx(32)
+    header_h := Scale(34)
+    row_h := Scale(32)
     show_average := app->profile_leaderboard_practice == EXERCISE_WIM_HOF
     column_count := show_average ? 3 : 2
     name_w := show_average ? w / 2 : (w * 2) / 3
@@ -882,11 +944,11 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
                         friend_count > 0 || has_account
     if app_social_refresh_loading() && !has_visible_rows {
         angle := (float)((app->inbe.frame * 5) % 360)
-        DrawRing((Vector2){(float)(x + ScaleUIPx(10)),
-                           (float)(*y + ScaleUIPx(9))},
-                 (float)ScaleUIPx(5), (float)ScaleUIPx(7), angle,
+        DrawRing((Vector2){(float)(x + Scale(10)),
+                           (float)(*y + Scale(9))},
+                 (float)Scale(5), (float)Scale(7), angle,
                  angle + 270.0f, 24, GetThemeText())
-        *y += ScaleUIPx(20)
+        *y += Scale(20)
         return
     }
 
@@ -962,7 +1024,7 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
         if OverlayButton((OverlayButtonProps){
             .bounds = {(float)hx, (float)*y, (float)widths[c], (float)header_h},
             .label = columns[c],
-            .font = GetUISmallFontSize(),
+            .font = GetSmallFontSize(),
             .disabled = c == 0,
             .background = selected ? DarkenUIColor(GetThemeBackground(), 18)
                                    : DarkenUIColor(GetThemeBackground(), 8),
@@ -985,20 +1047,40 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
             DrawRectangle(x, *y, w, row_h,
                           DarkenUIColor(GetThemeBackground(), 5))
         }
-        Text(rank_names[i], x + ScaleUIPx(6), *y + ScaleUIPx(8),
-             GetUISmallFontSize(), GetThemeText())
-        Text(rows[i].streak, x + name_w + ScaleUIPx(6),
-             *y + ScaleUIPx(8), GetUISmallFontSize(), GetThemeText())
+        Text((TextProps){
+            .bounds={(x + Scale(6)), (*y + Scale(8)), 0, 0},
+            .text=(rank_names[i]),
+            .font=(GetSmallFontSize()),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
+        Text((TextProps){
+            .bounds={(x + name_w + Scale(6)), (*y + Scale(8)), 0, 0},
+            .text=(rows[i].streak),
+            .font=(GetSmallFontSize()),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
         if show_average {
-            Text(rows[i].average, x + name_w + value_w + ScaleUIPx(6),
-                 *y + ScaleUIPx(8), GetUISmallFontSize(), GetThemeText())
+            Text((TextProps){
+                .bounds={(x + name_w + value_w + Scale(6)), (*y + Scale(8)), 0, 0},
+                .text=(rows[i].average),
+                .font=(GetSmallFontSize()),
+                .color=(GetThemeText()),
+                .wrap=TextWrapNone
+            })
         }
         *y += row_h
     }
     if count == 0 {
-        Text(GetLocaleText("profile_no_leaderboard_data"), x, *y,
-             GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
-        *y += ScaleUIPx(24)
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(GetLocaleText("profile_no_leaderboard_data")),
+            .font=(GetSmallFontSize()),
+            .color=(DarkenUIColor(GetThemeText(), 35)),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(24)
     }
 }
 
@@ -1007,15 +1089,15 @@ leaderboard_content_height :: (app: InbeApp*, content_w: int) -> int {
 
     unused content_w
     if app == nil {
-        return ScaleUIPx(160)
+        return Scale(160)
     }
 
     rows = leaderboard_row_count(app, app->profile_leaderboard_json)
-    return ScaleUIPx(16) + ScaleUIPx(22) + ScaleUIPx(46) +
-           ScaleUIPx(34) + ScaleUIPx(10) +
-           ScaleUIPx(22) +
-           (rows > 0 ? rows * ScaleUIPx(30) : ScaleUIPx(24)) +
-           ScaleUIPx(16)
+    return Scale(16) + Scale(22) + Scale(46) +
+           Scale(34) + Scale(10) +
+           Scale(22) +
+           (rows > 0 ? rows * Scale(30) : Scale(24)) +
+           Scale(16)
 }
 
 refresh_leaderboard :: (app: InbeApp*) #private {
@@ -1041,8 +1123,8 @@ refresh_cache :: (app: InbeApp*) {
 
 draw_choice_row :: (app: InbeApp*, x: int, w: int, y: int*, value: int*,
                    labels: const char* const*, count: int) #private {
-    gap := ScaleUIPx(8)
-    btn_h := ScaleUIPx(34)
+    gap := Scale(8)
+    btn_h := Scale(34)
     btn_w := 0
 
     if count <= 0 {
@@ -1063,7 +1145,7 @@ draw_choice_row :: (app: InbeApp*, x: int, w: int, y: int*, value: int*,
         if OverlayButton((OverlayButtonProps){
             .bounds = {(float)bx, (float)*y, (float)bw, (float)btn_h},
             .label = labels[i],
-            .font = GetUISmallFontSize(),
+            .font = GetSmallFontSize(),
             .disabled = selected,
             .background = bg,
             .hover_background = DarkenUIColor(GetThemeBackground(), 13),
@@ -1075,7 +1157,7 @@ draw_choice_row :: (app: InbeApp*, x: int, w: int, y: int*, value: int*,
             load_leaderboard_cache(app)
         }
     }
-    *y += btn_h + ScaleUIPx(10)
+    *y += btn_h + Scale(10)
 }
 
 draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
@@ -1108,10 +1190,15 @@ draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
         load_leaderboard_cache(app)
     }
 
-    *y += ScaleUIPx(16)
-    Text(GetLocaleText("profile_practice_label"), x, *y,
-                  GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
-    *y += ScaleUIPx(22)
+    *y += Scale(16)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("profile_practice_label")),
+        .font=(GetSmallFontSize()),
+        .color=(DarkenUIColor(GetThemeText(), 35)),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(22)
 
     before_practice = app->profile_leaderboard_practice
     practice_selection := 0
@@ -1120,7 +1207,7 @@ draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
             practice_selection = i
         }
     }
-    if Dropdown(811, x, *y, w, ScaleUIPx(36),
+    if Dropdown(811, x, *y, w, Scale(36),
                        practice_options, EXERCISE_COUNT,
                        &practice_selection) {
         app->profile_leaderboard_practice = practice_ordered_id(practice_selection)
@@ -1133,7 +1220,7 @@ draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
         refresh_leaderboard(app)
     }
 
-    *y += ScaleUIPx(54)
+    *y += Scale(54)
     if !app->profile_friends_loaded {
         load_friends_cache(app)
     }

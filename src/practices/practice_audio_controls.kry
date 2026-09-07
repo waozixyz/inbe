@@ -34,8 +34,8 @@ practice_audio_music_icon :: (app: InbeApp*) -> Texture2D #private {
 
 practice_draw_audio_controls :: (app: InbeApp*) {
     title_h := GetNodeHeight(NodeTitleBar(0))
-    icon_size := ScaleUIPx(18)
-    icon_padding := ScaleUIPx(5)
+    icon_size := Scale(18)
+    icon_padding := Scale(5)
     control_y := (title_h - (icon_size + icon_padding * 2)) / 2
 
     if app == nil {
@@ -47,7 +47,7 @@ practice_draw_audio_controls :: (app: InbeApp*) {
 
     if IconSliderPopup((IconSliderPopupProps){
         .id = PRACTICE_AUDIO_SOUND_POPUP_ID,
-        .x = ScaleUIPx(8),
+        .x = Scale(8),
         .y = control_y,
         .icon_size = icon_size,
         .icon_padding = icon_padding,
@@ -56,8 +56,8 @@ practice_draw_audio_controls :: (app: InbeApp*) {
         .value = &app->sound_volume,
         .min = SETTINGS_VOLUME_MIN,
         .max = SETTINGS_VOLUME_MAX,
-        .popup_width = ScaleUIPx(40),
-        .popup_height = ScaleUIPx(176)
+        .popup_width = Scale(40),
+        .popup_height = Scale(176)
     }) {
         app->settings_dirty = 1
         save_settings(app)
@@ -65,7 +65,7 @@ practice_draw_audio_controls :: (app: InbeApp*) {
 
     if IconSliderPopup((IconSliderPopupProps){
         .id = PRACTICE_AUDIO_MUSIC_POPUP_ID,
-        .x = ScaleUIPx(48),
+        .x = Scale(48),
         .y = control_y,
         .icon_size = icon_size,
         .icon_padding = icon_padding,
@@ -74,8 +74,8 @@ practice_draw_audio_controls :: (app: InbeApp*) {
         .value = &app->music_volume,
         .min = SETTINGS_VOLUME_MIN,
         .max = SETTINGS_VOLUME_MAX,
-        .popup_width = ScaleUIPx(40),
-        .popup_height = ScaleUIPx(176)
+        .popup_width = Scale(40),
+        .popup_height = Scale(176)
     }) {
         app->settings_dirty = 1
         save_settings(app)

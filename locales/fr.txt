@@ -1,9 +1,6 @@
 [results_write_failed]
 Impossible d’enregistrer les modifications. Réessayez.
 ---
-[practice_repeat_button]
-Refaire la dernière pratique
----
 [app_title]
 Inner Breeze
 ---
@@ -370,12 +367,6 @@ Temps des cycles
 [settings_title]
 Réglages
 ---
-[settings_section_breathing]
-Respiration
----
-[settings_section_session]
-Séance
----
 [settings_tab_device]
 Appareil
 ---
@@ -570,12 +561,14 @@ Trouvez un rythme naturel : régulier et rapide, tout en respirant pleinement.
 ---
 [tutorial_step_exhale_hold]
 Après 30 respirations, expirez et retenez aussi longtemps que possible.
-
+---
+[tutorial_step_exhale_hold_hint]
 Quand vous ressentez le besoin de respirer, appuyez sur le bouton RESPIRER.
 ---
 [tutorial_step_inhale_hold]
 Inspirez pleinement et retenez 15 secondes.
-
+---
+[tutorial_step_inhale_hold_hint]
 Expirez, puis la série suivante commencera.
 ---
 [share_sheet_title]
@@ -970,9 +963,6 @@ Touchez les cercles pour cocher les jours. Touchez une carte pour les détails ;
 ---
 [habits_today]
 Aujourd’hui
----
-[habits_drag_hint]
-Faites glisser le titre pour réordonner
 ---
 [habits_guide_meditation_views]
 Les vues semaine et calendrier montrent cette habitude.
@@ -1719,15 +1709,6 @@ Respiration de récupération
 [tutorial_safety_warning]
 Ne pratiquez jamais en conduisant, debout ou dans l’eau.
 ---
-[tutorial_current_speed]
-Vitesse actuelle : %d
----
-[tutorial_change_in_customize]
-Modifiez-la dans Personnaliser.
----
-[tutorial_during_practice]
-Pendant la pratique
----
 [back_button]
 Retour
 ---
@@ -1747,10 +1728,13 @@ Réglez les répétitions et le rythme initial et final dans Personnaliser. Comm
 Choisissez un modèle dont le rythme correspond à votre objectif. Carré est équilibré, 4-7-8 apaise, Cohérent est doux et Expiration prolongée allonge le relâchement.
 ---
 [patterns_manual_phases_text]
-Suivez Inspirer, Retenir, Expirer et Retenir lorsqu’ils s’allument. Une phase de durée nulle est ignorée automatiquement.
+Lisez le cycle de haut en bas. Le nombre à droite indique la durée de chaque phase ; zéro signifie qu’elle est ignorée.
 ---
 [patterns_manual_customize_text]
-Réglez la durée des phases et de la séance dans Personnaliser. Respirez sans effort; arrêtez en cas de vertige ou d’inconfort.
+Choisissez une durée avant de commencer. Gardez une respiration douce ; arrêtez si vous avez des vertiges ou un malaise.
+---
+[patterns_ready_label]
+Prêt
 ---
 [habit_color_label]
 Couleur

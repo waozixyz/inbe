@@ -186,7 +186,7 @@ reset_settings_preview :: (app: InbeApp*) {
     app->settings_preview.play_in_background = play_in_background
     app->settings_preview.breath_animation = breath_animation
     GetUICenteredColumn(CONTENT_MAX_W, CONTENT_SIDE_PAD, nil, &content_w)
-    update_preview_bounds(&app->settings_preview, content_w, ScaleUIPx(132))
+    update_preview_bounds(&app->settings_preview, content_w, Scale(132))
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths,
                       pause_seconds)
     session_reset_round_breathe(&app->settings_preview)
@@ -649,7 +649,7 @@ app_load_settings :: (app: InbeApp*) -> int {
                             APP_MAIN_TAB_PRACTICE)
     load_clamped_setting(&settings_cache, &app->habits.screen_mode,
                             "habits_screen_mode", HABITS_SCREEN_OVERVIEW,
-                            HABITS_SCREEN_OVERVIEW, HABITS_SCREEN_DETAIL)
+                            HABITS_SCREEN_OVERVIEW, HABITS_SCREEN_STATISTICS)
     load_clamped_setting(&settings_cache, &app->habits.tab, "habits_tab",
                             HABIT_TAB_WEEKLY, HABIT_TAB_WEEKLY,
                             HABIT_TAB_COUNT - 1)

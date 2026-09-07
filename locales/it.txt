@@ -1,9 +1,6 @@
 [results_write_failed]
 Impossibile salvare le modifiche. Riprova.
 ---
-[practice_repeat_button]
-Ripeti l’ultima pratica
----
 [app_title]
 Inner Breeze
 ---
@@ -370,12 +367,6 @@ Tempi round
 [settings_title]
 Impostazioni
 ---
-[settings_section_breathing]
-Respirazione
----
-[settings_section_session]
-Sessione
----
 [settings_tab_device]
 Dispositivo
 ---
@@ -603,12 +594,14 @@ Trova un ritmo naturale: stabile e rapido, continuando a respirare a fondo.
 ---
 [tutorial_step_exhale_hold]
 Dopo 30 respiri, espira e trattieni il più a lungo possibile.
-
+---
+[tutorial_step_exhale_hold_hint]
 Quando senti il bisogno di respirare, premi il pulsante RESPIRA.
 ---
 [tutorial_step_inhale_hold]
 Inspira completamente e trattieni per 15 secondi.
-
+---
+[tutorial_step_inhale_hold_hint]
 Espira e inizierà il round successivo.
 ---
 [share_sheet_title]
@@ -970,9 +963,6 @@ Tocca i cerchi per segnare i giorni. Tocca una scheda per i dettagli; trascina i
 ---
 [habits_today]
 Oggi
----
-[habits_drag_hint]
-Trascina il titolo per riordinare
 ---
 [habits_guide_meditation_views]
 Le viste settimana e calendario mostrano questa abitudine.
@@ -1719,15 +1709,6 @@ Passaggio %d di %d
 [tutorial_safety_warning]
 Non praticare mai mentre guidi, in piedi o in acqua.
 ---
-[tutorial_current_speed]
-Velocità attuale: %d
----
-[tutorial_change_in_customize]
-Modificala in Personalizza.
----
-[tutorial_during_practice]
-Durante la pratica
----
 [back_button]
 Indietro
 ---
@@ -1747,10 +1728,13 @@ Imposta ripetizioni e ritmo iniziale e finale in Personalizza. Inizia lentamente
 Scegli uno schema con un ritmo adatto al tuo obiettivo. Quadrato è bilanciato, 4-7-8 rilassa, Coerente è dolce ed Espirazione estesa prolunga il rilascio.
 ---
 [patterns_manual_phases_text]
-Segui Inspira, Trattieni, Espira e Trattieni quando si illuminano. Una fase di durata zero viene saltata automaticamente.
+Leggi il ciclo dall’alto verso il basso. Il numero a destra mostra la durata di ogni fase; zero significa che viene saltata.
 ---
 [patterns_manual_customize_text]
-Regola durata delle fasi e della sessione in Personalizza. Respira senza sforzo; fermati se avverti vertigini o disagio.
+Scegli la durata della sessione prima di iniziare. Mantieni il respiro leggero; fermati se hai capogiri o disagio.
+---
+[patterns_ready_label]
+Pronto
 ---
 [habit_color_label]
 Colore

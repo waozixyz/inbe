@@ -257,7 +257,7 @@ make_account_values_variant(int variant, char public_id[65],
 }
 
 static InbeSyncAccountSaveResult
-import_key_and_save(KsyncAccount *account, const char *path, int clear_local_data)
+import_key_and_save(SyncAccount *account, const char *path, int clear_local_data)
 {
     if(!sync_account_import_private_key_preview(account, path))
         return INBE_SYNC_ACCOUNT_SAVE_FAILED;
@@ -273,7 +273,7 @@ test_import_export_clear(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    KsyncAccount account;
+    SyncAccount account;
     char *exported;
     FILE *file;
 
@@ -298,9 +298,8 @@ test_import_export_clear(void)
     exported = LoadFileText(export_path);
     check_true("read exported key", exported != NULL);
     if(exported != NULL) {
-        check_true("export uses accepted key header",
-                   strstr(exported, "ksync-account-key-v1\n") == exported ||
-                   strstr(exported, "lyra-account-key-v1\n") == exported);
+        check_true("export uses generic key header",
+                   strstr(exported, "account-key-v1\n") == exported);
         check_true("export includes public key", strstr(exported, "\npublic_key=") != NULL);
         UnloadFileText(exported);
     }
@@ -347,7 +346,7 @@ test_reject_invalid_keys(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    KsyncAccount account;
+    SyncAccount account;
     FILE *file;
 
     make_clean_root(root, sizeof(root), "invalid");
@@ -385,7 +384,7 @@ test_legacy_synced_account_migrates_connected_server(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    KsyncAccount account;
+    SyncAccount account;
 
     make_clean_root(root, sizeof(root), "legacy-connected-flag");
     snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
@@ -421,7 +420,7 @@ test_unsynced_account_does_not_migrate_connected_server(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    KsyncAccount account;
+    SyncAccount account;
 
     make_clean_root(root, sizeof(root), "unsynced-connected-flag");
     snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
@@ -454,7 +453,7 @@ test_disconnected_account_reports_queue_without_connection(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    KsyncAccount account;
+    SyncAccount account;
     InbeStorageSyncStatus status;
 
     make_clean_root(root, sizeof(root), "disconnected-queued");
@@ -493,7 +492,7 @@ test_imported_account_backfills_existing_local_data(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    KsyncAccount account;
+    SyncAccount account;
     char *payload;
     int rounds[] = {30, 45, 60};
 
@@ -553,7 +552,7 @@ test_logout_preserves_data_owner(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    KsyncAccount account;
+    SyncAccount account;
 
     make_clean_root(root, sizeof(root), "logout-owner");
     snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
@@ -586,8 +585,8 @@ test_different_account_requires_clear_local_data(void)
     char public_id_two[65];
     char public_key_two[2625];
     char private_key_two[5121];
-    KsyncAccount account;
-    KsyncAccount loaded;
+    SyncAccount account;
+    SyncAccount loaded;
 
     make_clean_root(root, sizeof(root), "account-switch");
     snprintf(key_path_one, sizeof(key_path_one), "%s/one.key", root);
@@ -644,8 +643,8 @@ test_social_cache_does_not_block_account_switch(void)
     char public_id_two[65];
     char public_key_two[2625];
     char private_key_two[5121];
-    KsyncAccount account;
-    KsyncAccount loaded;
+    SyncAccount account;
+    SyncAccount loaded;
 
     make_clean_root(root, sizeof(root), "social-cache-account-switch");
     snprintf(key_path_one, sizeof(key_path_one), "%s/one.key", root);

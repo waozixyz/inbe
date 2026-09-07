@@ -1,9 +1,6 @@
 [results_write_failed]
 No se pudieron guardar los cambios. Inténtalo de nuevo.
 ---
-[practice_repeat_button]
-Repetir última práctica
----
 [app_title]
 Inner Breeze
 ---
@@ -370,12 +367,6 @@ Tiempos de ronda
 [settings_title]
 Configuración
 ---
-[settings_section_breathing]
-Respiración
----
-[settings_section_session]
-Sesión
----
 [settings_tab_device]
 Dispositivo
 ---
@@ -570,12 +561,14 @@ Encuentra un ritmo que se sienta natural: estable y rápido, pero respirando com
 ---
 [tutorial_step_exhale_hold]
 Después de 30 respiraciones, exhala y mantén todo lo que puedas.
-
+---
+[tutorial_step_exhale_hold_hint]
 Cuando sientas la necesidad de respirar, presiona el botón RESPIRAR.
 ---
 [tutorial_step_inhale_hold]
 Inhala completamente y mantén durante 15 segundos.
-
+---
+[tutorial_step_inhale_hold_hint]
 Exhala y comenzará la siguiente ronda.
 ---
 [share_sheet_title]
@@ -970,9 +963,6 @@ Toca los círculos para marcar días. Toca una tarjeta para ver detalles; arrast
 ---
 [habits_today]
 Hoy
----
-[habits_drag_hint]
-Arrastra el título para reordenar
 ---
 [habits_guide_meditation_views]
 Las vistas semanal y calendario muestran este hábito.
@@ -1719,15 +1709,6 @@ Paso %d de %d
 [tutorial_safety_warning]
 Nunca practiques conduciendo, de pie ni en el agua.
 ---
-[tutorial_current_speed]
-Velocidad actual: %d
----
-[tutorial_change_in_customize]
-Cámbiala en Personalizar.
----
-[tutorial_during_practice]
-Durante la práctica
----
 [back_button]
 Atrás
 ---
@@ -1747,10 +1728,13 @@ Define las repeticiones y el ritmo inicial y final en Personalizar. Empieza desp
 Elige un patrón cuyo ritmo coincida con tu objetivo. Caja es equilibrado, 4-7-8 relaja, Coherente es suave y Exhalación prolongada alarga la salida.
 ---
 [patterns_manual_phases_text]
-Sigue Inhalar, Retener, Exhalar y Retener cuando se iluminen. Las fases de duración cero se omiten automáticamente.
+Lee el ciclo de arriba abajo. El número de la derecha muestra la duración de cada fase; cero significa que se omite.
 ---
 [patterns_manual_customize_text]
-Ajusta la duración de las fases y de la sesión en Personalizar. Respira con facilidad; detente si sientes mareo o malestar.
+Elige la duración antes de empezar. Mantén la respiración suave; detente si sientes mareo o incomodidad.
+---
+[patterns_ready_label]
+Listo
 ---
 [habit_color_label]
 Color

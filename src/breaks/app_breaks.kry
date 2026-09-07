@@ -187,11 +187,11 @@ app_breaks_window_update :: (app: InbeApp*) {
             win_h = 640
         }
     }
-    if win_w < ScaleUIPx(340) {
-        win_w = ScaleUIPx(340)
+    if win_w < Scale(340) {
+        win_w = Scale(340)
     }
-    if win_h < ScaleUIPx(320) {
-        win_h = ScaleUIPx(320)
+    if win_h < Scale(320) {
+        win_h = Scale(320)
     }
 
     if app->break_window != nil && (app->break_window_w != win_w ||
@@ -272,27 +272,27 @@ app_breaks_window_click :: (app: InbeApp*, t: int, x: int, y: int,
     }
 
     panel_w := view_w * 72 / 100
-    if panel_w > ScaleUIPx(560) {
-        panel_w = ScaleUIPx(560)
+    if panel_w > Scale(560) {
+        panel_w = Scale(560)
     }
-    if panel_w < ScaleUIPx(280) {
-        panel_w = ScaleUIPx(280)
+    if panel_w < Scale(280) {
+        panel_w = Scale(280)
     }
     panel_h := view_h * 46 / 100
-    if panel_h > ScaleUIPx(420) {
-        panel_h = ScaleUIPx(420)
+    if panel_h > Scale(420) {
+        panel_h = Scale(420)
     }
-    if panel_h < ScaleUIPx(240) {
-        panel_h = ScaleUIPx(240)
+    if panel_h < Scale(240) {
+        panel_h = Scale(240)
     }
     panel_y := view_h / 2 - panel_h / 2
-    button_y := panel_y + panel_h - ScaleUIPx(56)
-    if y < button_y - ScaleUIPx(8) || y > button_y + ScaleUIPx(40) {
+    button_y := panel_y + panel_h - Scale(56)
+    if y < button_y - Scale(8) || y > button_y + Scale(40) {
         return
     }
-    button_w := ScaleUIPx(132)
-    gap := ScaleUIPx(12)
-    half := button_w / 2 + ScaleUIPx(10)
+    button_w := Scale(132)
+    gap := Scale(12)
+    half := button_w / 2 + Scale(10)
     count := 0
     if timer->show_postpone != 0 {
         count++
@@ -609,8 +609,8 @@ app_breaks_hud_update :: (app: InbeApp*) {
         track := DarkenUIColor(GetThemeBackground(), 18)
         flags := UI_WINDOW_BORDERLESS + UI_WINDOW_ALWAYS_ON_TOP +
                  UI_WINDOW_SKIP_TASKBAR + UI_WINDOW_STICKY
-        hud_x := ScaleUIPx(8)
-        hud_y := ScaleUIPx(8)
+        hud_x := Scale(8)
+        hud_y := Scale(8)
         if app->break_hud_x >= 0 && app->break_hud_y >= 0 {
             # restore the dragged-to position instead of the default corner
             hud_x = app->break_hud_x
@@ -689,12 +689,23 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
         time_x := hud_w - pad
         next := break_timer_next_due_s(&app->breaks, t)
 
-        Text(labels[t], bar_x, row_y + ScaleUIPx(2), Text12, muted)
+        Text((TextProps){
+            .bounds={(bar_x), (row_y + Scale(2)), 0, 0},
+            .text=(labels[t]),
+            .font=(Text12),
+            .color=(muted),
+            .wrap=TextWrapNone
+        })
 
         if next < 0 {
             line := "off"
-            Text(line, time_x - TextWidth(line, Text12), row_y + ScaleUIPx(2),
-                 Text12, muted)
+            Text((TextProps){
+                .bounds={(time_x - TextWidth(line, Text12)), (row_y + Scale(2)), 0, 0},
+                .text=(line),
+                .font=(Text12),
+                .color=(muted),
+                .wrap=TextWrapNone
+            })
         } else if timer->state == BreakStateBreaking {
             # active break: count down the remaining rest time (this is the
             # wait that resets the timer once it completes)
@@ -704,17 +715,22 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
             }
             line: [16] char
             break_format_duration(line, sizeof(line), left)
-            Text(line, time_x - TextWidth(line, Text12), row_y + ScaleUIPx(2),
-                 Text12, fill)
+            Text((TextProps){
+                .bounds={(time_x - TextWidth(line, Text12)), (row_y + Scale(2)), 0, 0},
+                .text=(line),
+                .font=(Text12),
+                .color=(fill),
+                .wrap=TextWrapNone
+            })
             if timer->duration_s > 0 {
                 fraction := timer->idle_s * (bar_w - 2) / timer->duration_s
                 if fraction > bar_w - 2 {
                     fraction = bar_w - 2
                 }
-                Rect(bar_x, row_y + row_h - ScaleUIPx(4), bar_w, ScaleUIPx(3),
+                Rect(bar_x, row_y + row_h - Scale(4), bar_w, Scale(3),
                      DarkenUIColor(GetThemeBackground(), 30), DarkenUIColor(GetThemeBackground(), 30))
                 if fraction > 0 {
-                    Rect(bar_x + 1, row_y + row_h - ScaleUIPx(4), fraction, ScaleUIPx(3),
+                    Rect(bar_x + 1, row_y + row_h - Scale(4), fraction, Scale(3),
                          fill, fill)
                 }
             }
@@ -726,18 +742,23 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
                 break_format_duration(line, sizeof(line), next)
             }
             color: Color = next == 0 ? overdue : GetThemeText()
-            Text(line, time_x - TextWidth(line, Text12), row_y + ScaleUIPx(2),
-                 Text12, color)
+            Text((TextProps){
+                .bounds={(time_x - TextWidth(line, Text12)), (row_y + Scale(2)), 0, 0},
+                .text=(line),
+                .font=(Text12),
+                .color=(color),
+                .wrap=TextWrapNone
+            })
 
             if timer->limit_s > 0 {
                 fraction := timer->active_s * (bar_w - 2) / timer->limit_s
                 if fraction > bar_w - 2 {
                     fraction = bar_w - 2
                 }
-                Rect(bar_x, row_y + row_h - ScaleUIPx(4), bar_w, ScaleUIPx(3),
+                Rect(bar_x, row_y + row_h - Scale(4), bar_w, Scale(3),
                      DarkenUIColor(GetThemeBackground(), 30), DarkenUIColor(GetThemeBackground(), 30))
                 if fraction > 0 {
-                    Rect(bar_x + 1, row_y + row_h - ScaleUIPx(4), fraction, ScaleUIPx(3),
+                    Rect(bar_x + 1, row_y + row_h - Scale(4), fraction, Scale(3),
                          next == 0 ? overdue : fill, next == 0 ? overdue : fill)
                 }
                 # Idle progress toward a natural break: a yellow tip grows on
@@ -748,8 +769,8 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
                    timer->idle_s > 0 && !timer->idle_latched {
                     tip := (bar_w - 2 - fraction) * timer->idle_s / timer->duration_s
                     if tip > 0 {
-                        Rect(bar_x + 1 + fraction, row_y + row_h - ScaleUIPx(4),
-                             tip, ScaleUIPx(3), idle_col, idle_col)
+                        Rect(bar_x + 1 + fraction, row_y + row_h - Scale(4),
+                             tip, Scale(3), idle_col, idle_col)
                     }
                 }
             }

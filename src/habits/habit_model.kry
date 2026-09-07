@@ -34,6 +34,13 @@ habit_counting_enabled :: (habit: const InbeHabit*) -> int {
     return habit != nil && habit->counter_enabled
 }
 
+habit_counter_target :: (habit: const InbeHabit*) -> int {
+    if habit == nil || habit->counter_target < 1 {
+        return 1
+    }
+    return habit->counter_target
+}
+
 habit_reserve_days :: (habit: InbeHabit*, capacity: int) -> int {
     days: InbeHabitDay*
     new_capacity: int
@@ -95,6 +102,9 @@ habit_weekday_bit :: (day_index: int) -> int {
 }
 
 habit_scheduled_day :: (habit: const InbeHabit*, day_index: int) -> int {
+    if habit != nil && (habit->weekdays & INBE_HABIT_SCHEDULE_OFF) != 0 {
+        return 0
+    }
     if habit == nil || habit->weekdays == 0 {
         return 1
     }
@@ -103,6 +113,12 @@ habit_scheduled_day :: (habit: const InbeHabit*, day_index: int) -> int {
 
 habit_completed_day :: (habit: const InbeHabit*, day_index: int) -> int {
     index := habit_find_day(habit, day_index)
+    if index >= 0 && habit_counting_enabled(habit) {
+        count := habit->days[index].count > 0
+            ? habit->days[index].count
+            : (habit->days[index].completed ? 1 : 0)
+        return count >= habit_counter_target(habit)
+    }
     return index >= 0 &&
            (habit->days[index].completed || habit->days[index].count > 0)
 }
@@ -259,6 +275,7 @@ habits_add_seed :: (habits: InbeHabits*, id: const char*, name: const char*,
     habit->sync_mode = INBE_HABIT_SYNC_ACTIVITIES
     habit->sync_activity = activity_mask
     habit->counter_enabled = 0
+    habit->counter_target = 1
 }
 
 habits_add_default_set :: (habits: InbeHabits*) {
@@ -417,6 +434,7 @@ habits_add_custom :: (habits: InbeHabits*, name: const char*, color: Color,
     habit->sync_mode = sync_mode
     habit->sync_activity = sync_activity
     habit->counter_enabled = 0
+    habit->counter_target = 1
     habits->selected = habits->count
     habits->count++
     habits_save(habits)

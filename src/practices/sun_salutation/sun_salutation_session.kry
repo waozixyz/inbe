@@ -195,7 +195,7 @@ draw_pose_image :: (texture: Texture2D, pose_index: int, top_y: int, bottom_y: i
         pose_index = SUN_SALUTATION_POSE_COUNT - 1
     }
 
-    max_w = (float)(view_width - ScaleUIPx(48))
+    max_w = (float)(view_width - Scale(48))
     max_h = (float)(bottom_y - top_y)
     scale = max_w / (float)SUN_SALUTATION_POSE_FRAME_W
     if (float)SUN_SALUTATION_POSE_FRAME_H * scale > max_h {
@@ -244,7 +244,7 @@ draw_transition_image :: (texture: Texture2D, frame_index: int,
         frame_index = SUN_SALUTATION_TRANSITION_FRAME_COUNT - 1
     }
 
-    max_w = (float)(view_width - ScaleUIPx(48))
+    max_w = (float)(view_width - Scale(48))
     max_h = (float)(bottom_y - top_y)
     scale = max_w / (float)SUN_SALUTATION_POSE_FRAME_W
     if (float)SUN_SALUTATION_POSE_FRAME_H * scale > max_h {
@@ -308,9 +308,9 @@ draw_pose_timer :: (app: InbeApp*, seconds: int, top_y: int, bottom_y: int) #pri
     x: int
     y: int
     w: int
-    h := ScaleUIPx(5)
+    h := Scale(5)
     fill_w: int
-    font := GetUISmallFontSize()
+    font := GetSmallFontSize()
     muted := DarkenUIColor(GetThemeText(), 32)
 
     if app == nil || seconds <= 0 || bottom_y <= top_y {
@@ -325,18 +325,24 @@ draw_pose_timer :: (app: InbeApp*, seconds: int, top_y: int, bottom_y: int) #pri
 
     text_w = TextWidth(timer_text, font)
     x = (view_width - text_w) / 2
-    y = top_y + ScaleUIPx(4)
-    Text(timer_text, x, y, font, muted)
+    y = top_y + Scale(4)
+    Text((TextProps){
+        .bounds={(x), (y), 0, 0},
+        .text=(timer_text),
+        .font=(font),
+        .color=(muted),
+        .wrap=TextWrapNone
+    })
 
     w = view_width / 3
-    if w < ScaleUIPx(96) {
-        w = ScaleUIPx(96)
+    if w < Scale(96) {
+        w = Scale(96)
     }
-    if w > ScaleUIPx(220) {
-        w = ScaleUIPx(220)
+    if w > Scale(220) {
+        w = Scale(220)
     }
     x = (view_width - w) / 2
-    y += font + ScaleUIPx(6)
+    y += font + Scale(6)
     fill_w = (w * app->sun_salutation.step_ticks) / (seconds * 60)
     if fill_w < 0 {
         fill_w = 0
@@ -362,8 +368,8 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     current_step_seconds: int
     ticks_per_step: int
     pause_icon: Texture2D
-    title_h := GetNodeHeight(NodeTitleBar(0))
-    content_top := title_h + ScaleUIPx(8)
+    title_h := app_active_practice_title_height()
+    content_top := title_h + Scale(8)
     image_bottom: int
     min_view_dim := view_width < view_height ? view_width : view_height
 
@@ -431,7 +437,7 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     }
 
     step_label = sun_salutation_step_label(step)
-    if app_draw_close_title_bar(app, step_label, title_h) {
+    if app_draw_active_practice_title_bar(app, step_label, title_h) {
         sun_salutation_request_exit(app)
         return
     }
@@ -459,18 +465,18 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
         .view_height = view_height,
         .count = 3,
         .items = controls,
-        .icon_size = ScaleUIPx(24),
-        .icon_padding = ScaleUIPx(10),
-        .gap = ScaleUIPx(12),
-        .side_margin = ScaleUIPx(24),
-        .bottom_margin = ScaleUIPx(6),
+        .icon_size = Scale(24),
+        .icon_padding = Scale(10),
+        .gap = Scale(12),
+        .side_margin = Scale(24),
+        .bottom_margin = Scale(6),
         .max_button_width = min_view_dim / 6,
-        .min_icon_size = ScaleUIPx(16),
-        .min_icon_padding = ScaleUIPx(6),
-        .min_gap = ScaleUIPx(8)
+        .min_icon_size = Scale(16),
+        .min_icon_padding = Scale(6),
+        .min_gap = Scale(8)
     })
 
-    image_bottom = row.y - ScaleUIPx(18)
+    image_bottom = row.y - Scale(18)
     draw_pose_timer(app, current_step_seconds, content_top, image_bottom)
     transition_index = sun_salutation_transition_index_for_step(step)
     if transition_index >= 0 &&
@@ -481,10 +487,10 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
                                                      ticks_per_step)
         draw_transition_image(app->sun_salutation.transition_sheets[figure][transition_index],
                               transition_frame,
-                              content_top + ScaleUIPx(28), image_bottom)
+                              content_top + Scale(28), image_bottom)
     } else {
         draw_pose_image(app->sun_salutation.pose_sheets[figure], pose_index,
-                           content_top + ScaleUIPx(28), image_bottom)
+                           content_top + Scale(28), image_bottom)
     }
 
     if row.clicked_index == 0 {

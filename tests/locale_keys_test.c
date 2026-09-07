@@ -102,6 +102,7 @@ load_locale_keys(const char *path, LocaleKeys *keys)
     char line[512];
     char pending_key[MAX_KEY_LEN] = "";
     int ok = 1;
+    int needs_separator = 0;
 
     if(keys == NULL)
         return 0;
@@ -116,7 +117,15 @@ load_locale_keys(const char *path, LocaleKeys *keys)
     while(fgets(line, sizeof(line), fp) != NULL) {
         char key[MAX_KEY_LEN];
         trim_newline(line);
+        if(strcmp(line, "---") == 0)
+            needs_separator = 0;
         if(parse_key_line(line, key, sizeof(key))) {
+            if(needs_separator) {
+                fprintf(stderr, "FAIL %s missing --- before [%s]\n", path, key);
+                failures++;
+                ok = 0;
+            }
+            needs_separator = 1;
             if(pending_key[0] != '\0') {
                 fprintf(stderr, "FAIL %s key [%s] has no value\n", path, pending_key);
                 failures++;

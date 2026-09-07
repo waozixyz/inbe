@@ -32,7 +32,7 @@ sh vendor/kryon/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     assets/practices/whm/1.png \
     assets/practices/whm/2.png \
     assets/practices/meditation/1.png \
-    assets/practices/*/banner.png \
+    assets/practices/*/banner*.png \
     assets/practices/sunsalutation/poses_man_sheet.png \
     assets/practices/sunsalutation/poses_woman_sheet.png \
     assets/fonts/subset/NotoSans-Inbe-Regular.ttf \

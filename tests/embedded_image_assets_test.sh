@@ -48,9 +48,17 @@ done
 
 for required in \
   assets/practices/whm/banner.png \
+  assets/practices/whm/banner-light.png \
+  assets/practices/whm/banner-dark.png \
   assets/practices/meditation/banner.png \
+  assets/practices/meditation/banner-light.png \
+  assets/practices/meditation/banner-dark.png \
   assets/practices/sunsalutation/banner.png \
-  assets/practices/patterns/banner.png; do
+  assets/practices/sunsalutation/banner-light.png \
+  assets/practices/sunsalutation/banner-dark.png \
+  assets/practices/patterns/banner.png \
+  assets/practices/patterns/banner-light.png \
+  assets/practices/patterns/banner-dark.png; do
   [[ -f "$ROOT_DIR/$required" ]] ||
     fail "required practice banner missing: $required"
   grep -Fq "{\"$required\"" "$EMBEDDED_C" ||

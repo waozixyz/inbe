@@ -7,7 +7,7 @@
 enum {
     INBE_STORAGE_PATH_SIZE = 512,
     INBE_STORAGE_ID_SIZE = 64,
-    INBE_SYNC_PROTOCOL_VERSION = 5
+    INBE_SYNC_PROTOCOL_VERSION = 6
 };
 
 typedef struct InbeStorageSessionCheckin {
@@ -102,7 +102,6 @@ int storage_save_session_at_for_activity(int local_date, int hour, int minute, i
 int storage_replace_session(const char *id, const int *round_times, int round_count);
 int storage_rename_session_time(const char *id, int hour, int minute);
 int storage_delete_session(const char *id);
-int storage_discard_session(const char *id);
 int storage_load_session(const char *id, int *round_times, int max_rounds,
                               int *year, int *month, int *day,
                               int *hour, int *minute, int *second);

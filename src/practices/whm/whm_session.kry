@@ -129,18 +129,18 @@ update_preview_bounds :: (inbe: Inbe*, content_w: int, content_h: int) {
     }
 
     rmax = span / 2
-    if rmax < ScaleUIPx(60) {
-        rmax = ScaleUIPx(60)
+    if rmax < Scale(60) {
+        rmax = Scale(60)
     }
-    if rmax > ScaleUIPx(120) {
-        rmax = ScaleUIPx(120)
+    if rmax > Scale(120) {
+        rmax = Scale(120)
     }
     rmin = rmax / 2
-    if rmin < ScaleUIPx(24) {
-        rmin = ScaleUIPx(24)
+    if rmin < Scale(24) {
+        rmin = Scale(24)
     }
-    if rmin > rmax - ScaleUIPx(10) {
-        rmin = rmax - ScaleUIPx(10)
+    if rmin > rmax - Scale(10) {
+        rmin = rmax - Scale(10)
     }
     set_circle_bounds(inbe, rmin, rmax)
 }
@@ -348,7 +348,7 @@ session_start :: (app: InbeApp*) {
     app->inbe.progressive_start_speed = progressive_start_speed
     app->inbe.play_in_background = play_in_background
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
-    session_update_circle_bounds_for_view(&app->inbe, GetNodeHeight(NodeTitleBar(0)), ScaleUIPx(56) + 80)
+    session_update_circle_bounds_for_view(&app->inbe, GetNodeHeight(NodeTitleBar(0)), Scale(56) + 80)
     app_switch_screen(app, InbeScreenSession)
     app->session_paused = 0
     app->results_saved = 0
@@ -627,6 +627,7 @@ draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
     count: int
     font: int = Text24
     text_color: Color = text_color_for_background(GetThemeCircle())
+    display_text: const char* = app->inbe.count
 
     if app->inbe.phase == InbePhaseStarting {
         total_seconds: int = inbe_effective_pause_seconds(&app->inbe)
@@ -642,32 +643,34 @@ draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
             }
         }
         snprintf(text, sizeof(text), "%d", remaining)
-        DrawCenteredUIControlText(text, center_x, center_y, font, text_color)
-        return
-    }
-
-    if app->inbe.phase == InbePhaseRecover {
+        display_text = text
+    } else if app->inbe.phase == InbePhaseRecover {
         if app->inbe.r < app->inbe.rmax {
-            DrawCenteredUIControlText("000", center_x, center_y, font, text_color)
-            return
+            display_text = "000"
+        } else {
+            count = int_from_count(app->inbe.count)
+            if count < 15 {
+                count_from_int(text, 15 - count)
+                display_text = text
+            } else {
+                display_text = "000"
+            }
         }
-
-        count = int_from_count(app->inbe.count)
-        if count < 15 {
-            count_from_int(text, 15 - count)
-            DrawCenteredUIControlText(text, center_x, center_y, font, text_color)
-            return
-        }
-        DrawCenteredUIControlText("000", center_x, center_y, font, text_color)
-        return
+    } else if app->inbe.phase == InbePhaseNext {
+        display_text = "000"
     }
 
-    if app->inbe.phase == InbePhaseNext {
-        DrawCenteredUIControlText("000", center_x, center_y, font, text_color)
-        return
-    }
-
-    DrawCenteredUIControlText(app->inbe.count, center_x, center_y, font, text_color)
+    Text((TextProps){
+        .bounds = {(float)(center_x - Scale(60)),
+                   (float)(center_y - Scale(30)),
+                   (float)Scale(120), (float)Scale(60)},
+        .text = display_text,
+        .font = font,
+        .color = text_color,
+        .wrap = TextWrapNone,
+        .align = TextAlignCenter,
+        .vertical_align = TextAlignCenter
+    })
 }
 
 color_with_alpha :: (color: Color, alpha: unsigned char) -> Color #private {
@@ -749,7 +752,7 @@ draw_session_progress_circle :: (app: InbeApp*, center_x: int, center_y: int, ra
     total_ticks: int = 1
     countdown: int = 0
     progress: float = 0.0f
-    gap: int = ScaleUIPx(5)
+    gap: int = Scale(5)
     band_width: int
     thickness: int
     inner_radius: float
@@ -769,19 +772,19 @@ draw_session_progress_circle :: (app: InbeApp*, center_x: int, center_y: int, ra
     session_circle_progress(app, &total_ticks, &progress, &countdown)
 
     if total_ticks <= 20 {
-        band_width = ScaleUIPx(14)
+        band_width = Scale(14)
     }
     else if total_ticks <= 40 {
-        band_width = ScaleUIPx(11)
+        band_width = Scale(11)
     }
     else {
-        band_width = ScaleUIPx(8)
+        band_width = Scale(8)
     }
     if band_width < 5 {
         band_width = 5
     }
 
-    thickness = total_ticks <= 40 ? ScaleUIPx(3) : ScaleUIPx(2)
+    thickness = total_ticks <= 40 ? Scale(3) : Scale(2)
     if thickness < 1 {
         thickness = 1
     }
@@ -858,12 +861,12 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
     play_text: const char* = GetLocaleText("play_button")
     practice_text: const char* = practice_label(app->exercise_type)
     font: int = Text16
-    practice_font: int = GetUIFontSize()
+    practice_font: int = GetFontSize()
     practice_w: int
     practice_y: int
     scale: float = 1.0f
 
-    radius: int = ScaleUIPx(44)
+    radius: int = Scale(44)
 
     clicked = UIHandleCircleClick((Vector2){(float)center_x, (float)center_y},
                                   (float)radius, 0, &hovered)
@@ -884,23 +887,37 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
 
     scaled_radius: int = (int)(radius * scale)
     practice_w = TextWidth(practice_text, practice_font)
-    if practice_w > view_width - ScaleUIPx(48) {
-        practice_font = GetUISmallFontSize()
+    if practice_w > view_width - Scale(48) {
+        practice_font = GetSmallFontSize()
     }
     practice_w = TextWidth(practice_text, practice_font)
-    practice_y = center_y - scaled_radius - ScaleUIPx(42)
-    if practice_y < ScaleUIPx(8) {
-        practice_y = ScaleUIPx(8)
+    practice_y = center_y - scaled_radius - Scale(42)
+    if practice_y < Scale(8) {
+        practice_y = Scale(8)
     }
-    Text(practice_text, center_x - practice_w / 2,
-                    GetUIControlTextY(practice_text, practice_y, ScaleUIPx(32), practice_font),
-                    practice_font, GetThemeText())
+    Text((TextProps){
+        .bounds={(center_x - practice_w / 2), (GetUIControlTextY(practice_text, practice_y, Scale(32), practice_font)), 0, 0},
+        .text=(practice_text),
+        .font=(practice_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 
     DrawCircle(center_x, center_y, scaled_radius, GetThemeCircle())
     DrawCircleLines(center_x, center_y, scaled_radius, GetThemeText())
 
 
-    DrawCenteredUIControlText(play_text, center_x, center_y, font,  text_color_for_background(GetThemeCircle()))
+    Text((TextProps){
+        .bounds = {(float)(center_x - scaled_radius),
+                   (float)(center_y - scaled_radius),
+                   (float)(scaled_radius * 2), (float)(scaled_radius * 2)},
+        .text = play_text,
+        .font = font,
+        .color = text_color_for_background(GetThemeCircle()),
+        .wrap = TextWrapNone,
+        .align = TextAlignCenter,
+        .vertical_align = TextAlignCenter
+    })
 
     return clicked
 }
@@ -919,41 +936,7 @@ session_round_label :: (app: InbeApp*, text: char*, text_size: size_t) #private 
 }
 
 session_draw_round_title_bar :: (app: InbeApp*, title: const char*, height: int) -> int #private {
-    hover: int = 0
-    close_icon: int = ScaleUIPx(18)
-    close_padding: int = ScaleUIPx(6)
-    close_total: int = close_icon + close_padding * 2
-    close_x: int = view_width - close_total - ScaleUIPx(12)
-    close_y: int = (height - close_total) / 2
-    side_reserved: int = view_width - close_x + ScaleUIPx(8)
-    font: int = Text24
-    max_w: int = view_width - side_reserved * 2
-    title_w: int
-
-    if title == nil {
-        title = ""
-    }
-    if close_y < 0 {
-        close_y = 0
-    }
-    if max_w < ScaleUIPx(48) {
-        max_w = view_width - ScaleUIPx(16)
-    }
-    title_w = TextWidth(title, font)
-    while font > GetUIFontSize() && title_w > max_w {
-        font--
-        title_w = TextWidth(title, font)
-    }
-
-    TitleBar("", height)
-    Text(title, (view_width - title_w) / 2,
-               GetUIControlTextY(title, 0, height, font), font, GetThemeText())
-    if app != nil && !app->modal.active &&
-       PaddedIconBtn(0, close_x, close_y, close_icon, close_padding,
-                           app->icons[UI_ICON_TYPE_X], &hover) {
-        return 1
-    }
-    return 0
+    return app_draw_active_practice_title_bar(app, title, height)
 }
 
 draw_preview_inbe :: (inbe: Inbe*, center_x: int, center_y: int) {
@@ -1006,8 +989,8 @@ session_handle_exit_modal :: (app: InbeApp*) -> int #private {
 }
 
 session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
-    breath_max_y: int = view_height - ScaleUIPx(44)
-    title_h: int = GetNodeHeight(NodeTitleBar(0))
+    breath_max_y: int = view_height - Scale(44)
+    title_h: int = app_active_practice_title_height()
     title: [32] char
 
     session_round_label(app, title, sizeof(title))
@@ -1035,18 +1018,18 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
             .view_height = view_height,
             .count = 3,
             .items = controls,
-            .icon_size = ScaleUIPx(24),
-            .icon_padding = ScaleUIPx(10),
-            .gap = ScaleUIPx(12),
-            .side_margin = ScaleUIPx(24),
-            .bottom_margin = ScaleUIPx(6),
+            .icon_size = Scale(24),
+            .icon_padding = Scale(10),
+            .gap = Scale(12),
+            .side_margin = Scale(24),
+            .bottom_margin = Scale(6),
             .max_button_width = min_view_dim / 6,
-            .min_icon_size = ScaleUIPx(16),
-            .min_icon_padding = ScaleUIPx(6),
-            .min_gap = ScaleUIPx(8)
+            .min_icon_size = Scale(16),
+            .min_icon_padding = Scale(6),
+            .min_gap = Scale(8)
         })
 
-        breath_max_y = row.y - ScaleUIPx(44)
+        breath_max_y = row.y - Scale(44)
         if row.clicked_index == 0 {
             session_step_back(app)
         }
@@ -1094,23 +1077,28 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
     if app->inbe.phase == InbePhaseHold {
         breath_label: const char* = GetLocaleText("breath_button")
         breath_font: int = Text16
-        breath_w: int = TextWidth(breath_label, breath_font) + ScaleUIPx(72)
-        breath_h: int = TextLineHeight(breath_font) + ScaleUIPx(28)
-        breath_y: int = center_y + app->inbe.rmax - ScaleUIPx(42)
+        breath_w: int = TextWidth(breath_label, breath_font) + Scale(72)
+        breath_h: int = TextLineHeight(breath_font) + Scale(28)
+        breath_y: int = center_y + app->inbe.rmax - Scale(42)
         breath_x: int
         breath_hover: int = 0
 
         if app->double_tap_to_breathe {
             hint: const char* = GetLocaleText("double_tap_to_breathe_hint")
-            hint_font: int = GetUIFontSize()
+            hint_font: int = GetFontSize()
             hint_w: int = TextWidth(hint, hint_font)
-            hint_y: int = center_y + app->inbe.rmax + ScaleUIPx(12)
+            hint_y: int = center_y + app->inbe.rmax + Scale(12)
 
             if hint_y > breath_max_y {
                 hint_y = breath_max_y
             }
-            Text(hint, center_x - hint_w / 2, hint_y, hint_font,
-                            GetThemeText())
+            Text((TextProps){
+                .bounds={(center_x - hint_w / 2), (hint_y), 0, 0},
+                .text=(hint),
+                .font=(hint_font),
+                .color=(GetThemeText()),
+                .wrap=TextWrapNone
+            })
             if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
                 now: double = GetTime()
                 if app->breath_tap_last_time > 0.0 &&
@@ -1124,11 +1112,11 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
             return
         }
 
-        if breath_w < ScaleUIPx(184) {
-            breath_w = ScaleUIPx(184)
+        if breath_w < Scale(184) {
+            breath_w = Scale(184)
         }
-        if breath_w > view_width - ScaleUIPx(24) {
-            breath_w = view_width - ScaleUIPx(24)
+        if breath_w > view_width - Scale(24) {
+            breath_w = view_width - Scale(24)
         }
         if breath_y > breath_max_y {
             breath_y = breath_max_y
@@ -1147,17 +1135,17 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
 
 session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
     box_x: int
-    box_y: int = ScaleUIPx(78)
+    box_y: int = Scale(78)
     box_w: int
-    row_y: int = ScaleUIPx(215)
-    row_h: int = ScaleUIPx(32)
+    row_y: int = Scale(215)
+    row_h: int = Scale(32)
     total: int = 0
     best: int = -1
     round_times: [MaxRounds] int
     rounds: int = collect_result_rounds(app, round_times, MaxRounds)
     discard_hover: int = 0
     save_hover: int = 0
-    action_y: int = view_height - ScaleUIPx(40)
+    action_y: int = view_height - Scale(40)
     title_font: int
     title_w: int
 
@@ -1169,15 +1157,21 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
     }
 
     responsive_max_w: int = (int)(view_width * 0.96f)
-    min_content_w: int = ScaleUIPx(320)
+    min_content_w: int = Scale(320)
     if responsive_max_w < min_content_w {
         responsive_max_w = min_content_w
     }
     GetUICenteredColumn(responsive_max_w, GetUIPageSidePadding(), &box_x, &box_w)
 
-    title_font = GetUITitleFontSize(GetLocaleText("results_title"), view_width - ScaleUIPx(48))
+    title_font = GetTitleFontSize(GetLocaleText("results_title"), view_width - Scale(48))
     title_w = TextWidth(GetLocaleText("results_title"), title_font)
-    Text(GetLocaleText("results_title"), center_x - title_w / 2, ScaleUIPx(34), title_font, GetThemeText())
+    Text((TextProps){
+        .bounds={(center_x - title_w / 2), (Scale(34)), 0, 0},
+        .text=(GetLocaleText("results_title")),
+        .font=(title_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 
     for int i = 0; i < rounds; i++ {
         seconds: int = round_times[i]
@@ -1199,7 +1193,7 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
         FormatLocaleText(lines[1], sizeof(lines[1]), "results_best", best)
         FormatLocaleText(lines[2], sizeof(lines[2]), "results_avg",
                       rounds > 0 ? total / rounds : 0)
-        if view_width < 420 && TextWidth(lines[2], summary_font) > box_w - ScaleUIPx(20) {
+        if view_width < 420 && TextWidth(lines[2], summary_font) > box_w - Scale(20) {
             snprintf(lines[2], sizeof(lines[2]), "%ds", rounds > 0 ? total / rounds : 0)
         }
         for int i = 0; i < 3; i++ {
@@ -1209,7 +1203,7 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
             .x = box_x,
             .y = box_y,
             .width = box_w,
-            .row_height = ScaleUIPx(29),
+            .row_height = Scale(29),
             .rows = rows,
             .row_count = 3,
             .background = DarkenUIColor(GetThemeBackground(), 6),
@@ -1219,13 +1213,13 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
     }
 
     DrawLeftUIControlTextInRect(GetLocaleText("round_times_title"),
-                                    (Rectangle){(float)box_x, (float)ScaleUIPx(181),
-                                                (float)box_w, (float)ScaleUIPx(28)},
-                                    GetUIFontSize(), DarkenUIColor(GetThemeText(), 20))
+                                    (Rectangle){(float)box_x, (float)Scale(181),
+                                                (float)box_w, (float)Scale(28)},
+                                    GetFontSize(), DarkenUIColor(GetThemeText(), 20))
     for int i = 0; i < rounds; i++ {
         row: [48] char
         info_row: UIInfoRow
-        row_font: int = GetUIFontSize()
+        row_font: int = GetFontSize()
         FormatLocaleText(row, sizeof(row), "round_result_label", i + 1, round_times[i])
         info_row = (UIInfoRow){row, row_font, GetThemeText()}
         InfoRows((InfoRowsProps){

@@ -3,8 +3,8 @@
 #include "db.h"
 #include "storage_json_builder.h"
 
-#include "ksync_account.h"
-#include "ksync_crypto.h"
+#include "sync_account.h"
+#include "sync_crypto.h"
 #include "kryon.h"
 #include <sqlite3.h>
 #include <stdint.h>
@@ -59,6 +59,8 @@ storage_json_valid(const char *json);
 #define STORAGE_SYNC_LAST_SERVER_HASH_KEY "sync_last_server_state_hash"
 #define STORAGE_SYNC_SERVER_CLOCK_KEY "sync_server_clock"
 #define STORAGE_SYNC_LATEST_PROTOCOL_KEY "sync_latest_protocol"
+#define STORAGE_SYNC_LEGACY_WRITE_REQUIRED_KEY "sync_legacy_write_required"
+#define STORAGE_SYNC_LEGACY_PROJECTION_EPOCH_KEY "sync_legacy_projection_epoch"
 #define STORAGE_SYNC_PENDING_REVIEW_KEY "sync_pending_review_pending"
 #define STORAGE_SYNC_APPLY_REVIEW_KEY "sync_apply_pending_review"
 #define STORAGE_SYNC_FULL_REPLACE_KEY "sync_full_replace_requested"
@@ -70,8 +72,10 @@ storage_json_valid(const char *json);
 #define STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY "sync_encrypted_shadow_v4_queued_v2"
 #define STORAGE_SYNC_ENCRYPTED_SHADOW_TOTAL_KEY "sync_encrypted_shadow_v4_total_v2"
 #define STORAGE_SYNC_OP_BATCH_LIMIT 400
-#define STORAGE_SYNC_RECORD_KEY_CONTEXT "inbe-ksync-record-key-v1"
-#define STORAGE_SYNC_RECORD_KEY_ID "inbe-v4-main"
+#define STORAGE_SYNC_RECORD_KEY_CONTEXT "inbe-private-record-key-v1"
+#define STORAGE_SYNC_RECORD_KEY_ID "inbe-main-1"
+#define STORAGE_SYNC_LEGACY_RECORD_KEY_CONTEXT "inbe-ksync-record-key-v1"
+#define STORAGE_SYNC_LEGACY_RECORD_KEY_ID "inbe-v4-main"
 
 long long
 storage_next_change_time(void)
@@ -105,6 +109,16 @@ fill_random_bytes(unsigned char *data, size_t len)
     for(size_t i = 0; i < len; i++)
         data[i] = (unsigned char)((rand() >> ((i % sizeof(int)) * 8)) & 0xff);
     return 1;
+}
+
+static void
+storage_sha256_hex(const uint8_t *data, size_t len, char out_hex[65])
+{
+    uint8_t digest[32];
+
+    SyncCryptoSha256(data, len, digest);
+    if(!SyncCryptoBytesToHex(digest, sizeof(digest), out_hex, 65))
+        out_hex[0] = '\0';
 }
 
 static void
@@ -605,14 +619,15 @@ storage_append_habit_row_json(StorageJsonBuilder *json, sqlite3_stmt *stmt)
                  sqlite3_column_int(stmt, 4));
     storage_json_builder_appendf(json,
                  ",\"sync_mode\":%d,\"sync_activity\":%d,\"counter_enabled\":"
-                 "%d,\"sort_order\":%d,\"deleted_at\":%lld",
+                 "%d,\"counter_target\":%d,\"sort_order\":%d,\"deleted_at\":%lld",
                  sqlite3_column_int(stmt, 5), sqlite3_column_int(stmt, 6),
-                 sqlite3_column_int(stmt, 7) != 0 ? 1 : 0, sqlite3_column_int(stmt, 8),
-                 sqlite3_column_int64(stmt, 9));
+                 sqlite3_column_int(stmt, 7) != 0 ? 1 : 0,
+                 sqlite3_column_int(stmt, 8), sqlite3_column_int(stmt, 9),
+                 sqlite3_column_int64(stmt, 10));
     storage_json_builder_append(json, ",\"updated_at\":");
-    storage_json_builder_append_epoch(json, sqlite3_column_int64(stmt, 10));
+    storage_json_builder_append_epoch(json, sqlite3_column_int64(stmt, 11));
     storage_json_builder_appendf(json, ",\"weekdays\":%d,\"reminder_hour\":%d",
-                 sqlite3_column_int(stmt, 11), sqlite3_column_int(stmt, 12));
+                 sqlite3_column_int(stmt, 12), sqlite3_column_int(stmt, 13));
     storage_json_builder_append(json, "}");
 }
 
@@ -741,7 +756,7 @@ storage_append_habit_payload_json(StorageJsonBuilder *json, const char *habit_id
         json,
         "SELECT "
         "id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
-        "enabled,sort_order,deleted_at,updated_at,weekdays,reminder_hour "
+        "enabled,counter_target,sort_order,deleted_at,updated_at,weekdays,reminder_hour "
         "FROM habits WHERE user_id=?1 AND id=?2",
         habit_id, storage_append_habit_row_json);
 }
@@ -893,11 +908,11 @@ storage_encrypted_collection_for_entity(const char *entity_type)
     if(entity_type == NULL)
         return NULL;
     if(strcmp(entity_type, "habit") == 0)
-        return "inbe.habits";
+        return "private.inbe.v1.habits";
     if(strcmp(entity_type, "habit_day") == 0)
-        return "inbe.habit_days";
+        return "private.inbe.v1.habit-days";
     if(strcmp(entity_type, "session") == 0)
-        return "inbe.sessions";
+        return "private.inbe.v1.sessions";
     return NULL;
 }
 
@@ -919,22 +934,28 @@ storage_encrypted_record_id(const char *entity_type, const char *entity_id,
 }
 
 static int
-storage_private_record_key(uint8_t out[32])
+storage_private_record_key_for_context(const char *context, uint8_t out[32])
 {
     const char *private_key_hex = storage_get_setting_text(STORAGE_SYNC_PRIVATE_KEY_KEY);
-    uint8_t private_key[(KSYNC_PRIVATE_KEY_HEX_SIZE - 1) / 2];
+    uint8_t private_key[(SYNC_PRIVATE_KEY_HEX_SIZE - 1) / 2];
     int ok;
 
     if(private_key_hex == NULL)
         return 0;
-    ok = KsyncCryptoHexToBytes(private_key_hex, private_key, sizeof(private_key));
+    ok = SyncCryptoHexToBytes(private_key_hex, private_key, sizeof(private_key));
     if(ok) {
-        KsyncCryptoHmacSha256(private_key, sizeof(private_key),
-                              (const uint8_t *)STORAGE_SYNC_RECORD_KEY_CONTEXT,
-                              strlen(STORAGE_SYNC_RECORD_KEY_CONTEXT), out);
+        SyncCryptoHmacSha256(private_key, sizeof(private_key),
+                              (const uint8_t *)context, strlen(context), out);
     }
     memset(private_key, 0, sizeof(private_key));
     return ok;
+}
+
+static int
+storage_private_record_key(uint8_t out[32])
+{
+    return storage_private_record_key_for_context(STORAGE_SYNC_RECORD_KEY_CONTEXT,
+                                                  out);
 }
 
 static int
@@ -949,6 +970,7 @@ storage_append_encrypted_record_json(StorageJsonBuilder *json, const uint8_t key
     uint8_t *sealed = NULL;
     char *sealed_hex = NULL;
     char nonce_hex[25];
+    char content_hash[SYNC_PUBLIC_ID_HEX_SIZE];
     size_t sealed_len;
     int ok = 0;
 
@@ -958,6 +980,7 @@ storage_append_encrypted_record_json(StorageJsonBuilder *json, const uint8_t key
     storage_append_sync_op_payload(&plain, entity_type, entity_id, local_date);
     if(!plain.ok || plain.data == NULL)
         goto done;
+    storage_sha256_hex((const uint8_t *)plain.data, plain.len, content_hash);
 
     sealed_len = plain.len + 16;
     sealed = (uint8_t *)malloc(sealed_len);
@@ -974,13 +997,13 @@ storage_append_encrypted_record_json(StorageJsonBuilder *json, const uint8_t key
     if(!aad.ok || aad.data == NULL)
         goto done;
 
-    KsyncCryptoRandom(nonce, sizeof(nonce));
-    if(!KsyncCryptoChaCha20Poly1305Seal(key, nonce, (const uint8_t *)plain.data,
+    SyncCryptoRandom(nonce, sizeof(nonce));
+    if(!SyncCryptoChaCha20Poly1305Seal(key, nonce, (const uint8_t *)plain.data,
                                         plain.len, (const uint8_t *)aad.data,
                                         aad.len, sealed))
         goto done;
-    if(!KsyncCryptoBytesToHex(nonce, sizeof(nonce), nonce_hex, sizeof(nonce_hex)) ||
-       !KsyncCryptoBytesToHex(sealed, sealed_len, sealed_hex, sealed_len * 2 + 1))
+    if(!SyncCryptoBytesToHex(nonce, sizeof(nonce), nonce_hex, sizeof(nonce_hex)) ||
+       !SyncCryptoBytesToHex(sealed, sealed_len, sealed_hex, sealed_len * 2 + 1))
         goto done;
 
     storage_json_builder_append(json, "{");
@@ -997,6 +1020,9 @@ storage_append_encrypted_record_json(StorageJsonBuilder *json, const uint8_t key
     storage_json_builder_append_epoch(json, queued_at);
     if(deleted)
         storage_json_builder_appendf(json, ",\"deleted_at\":%lld", queued_at > 0 ? queued_at : now_seconds());
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "content_hash", content_hash);
+    storage_json_builder_append(json, ",\"schema_version\":1");
     storage_json_builder_append(json, "}");
     ok = json->ok;
 
@@ -1091,10 +1117,11 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     storage_json_builder_append(&json, "{");
     storage_json_builder_appendf(&json, "\"protocol_version\":%d,", INBE_SYNC_PROTOCOL_VERSION);
     storage_json_builder_append(&json, "\"app_id\":\"inbe\",");
-    storage_json_builder_append(&json, "\"client_capabilities\":[\"v4-encrypted-records\","
-                       "\"v4-dual-write-transition\","
-                       "\"v5-dual-read\","
-                       "\"v5-legacy-encrypted-collections\"],");
+    storage_json_builder_append(&json, "\"client_capabilities\":["
+                       "\"v6-device-transactions\","
+                       "\"encrypted-primary\","
+                       "\"legacy-merge\","
+                       "\"legacy-dual-write\"],");
     storage_json_builder_append(&json, "\"include_legacy_data\":true,");
     storage_json_builder_append_key_string(&json, "user_id_hash", user_id_hash);
     storage_json_builder_append(&json, ",");
@@ -1120,7 +1147,10 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     storage_json_builder_append(&json, ",\"habit_days\":[]");
     storage_json_builder_append(&json, ",\"sessions\":[]");
     storage_json_builder_append(&json, ",");
-    storage_append_sync_ops_json(&json, through_seq);
+    if(get_meta_int64(STORAGE_SYNC_LEGACY_WRITE_REQUIRED_KEY, 1) != 0)
+        storage_append_sync_ops_json(&json, through_seq);
+    else
+        storage_json_builder_append(&json, "\"ops\":[]");
     storage_json_builder_append(&json, ",");
     storage_append_encrypted_records_json(&json, through_seq);
     storage_json_builder_append(&json, "}");
@@ -1674,6 +1704,166 @@ storage_apply_sync_social_json(const char *response_json)
            storage_exec_json_user_sql(social_cache_sql, response_json);
 }
 
+static const char *
+storage_decrypted_array_name(const char *collection)
+{
+    if(strcmp(collection, "private.inbe.v1.habits") == 0 ||
+       strcmp(collection, "inbe.habits") == 0) {
+        return "habits";
+    }
+    if(strcmp(collection, "private.inbe.v1.habit-days") == 0 ||
+       strcmp(collection, "inbe.habit_days") == 0) {
+        return "habit_days";
+    }
+    if(strcmp(collection, "private.inbe.v1.sessions") == 0 ||
+       strcmp(collection, "inbe.sessions") == 0) {
+        return "sessions";
+    }
+    return NULL;
+}
+
+static int
+storage_apply_decrypted_record(const char *collection, const char *plaintext)
+{
+    const char *array_name = storage_decrypted_array_name(collection);
+    StorageJsonBuilder response = {0};
+    int ok;
+
+    if(array_name == NULL || plaintext == NULL ||
+       !storage_json_valid(plaintext)) {
+        return 0;
+    }
+    response.ok = 1;
+    storage_json_builder_append(&response, "{\"changes\":{\"");
+    storage_json_builder_append(&response, array_name);
+    storage_json_builder_append(&response, "\":[");
+    storage_json_builder_append(&response, plaintext);
+    storage_json_builder_append(&response, "]}}");
+    if(!response.ok || response.data == NULL) {
+        storage_json_builder_free(&response);
+        return 0;
+    }
+
+    if(strcmp(array_name, "habits") == 0) {
+        ok = storage_reconcile_remote_habit_ids(response.data) &&
+             storage_apply_sync_habits_json(response.data);
+    } else if(strcmp(array_name, "habit_days") == 0) {
+        ok = storage_apply_sync_habit_days_json(response.data);
+    } else {
+        ok = storage_apply_sync_session_rounds_json(response.data) &&
+             storage_apply_sync_sessions_json(response.data);
+    }
+    storage_json_builder_free(&response);
+    return ok;
+}
+
+static int
+storage_decrypt_record(const char *collection, const char *record_id,
+                       const char *key_id, const char *nonce_hex,
+                       const char *ciphertext_hex, const char *content_hash,
+                       char **plaintext_out)
+{
+    const char *context;
+    StorageJsonBuilder aad = {0};
+    uint8_t key[32];
+    uint8_t nonce[12];
+    uint8_t *sealed = NULL;
+    char *plaintext = NULL;
+    char actual_hash[SYNC_PUBLIC_ID_HEX_SIZE];
+    size_t sealed_len;
+    int ok = 0;
+
+    *plaintext_out = NULL;
+    if(strcmp(key_id, STORAGE_SYNC_RECORD_KEY_ID) == 0) {
+        context = STORAGE_SYNC_RECORD_KEY_CONTEXT;
+    } else if(strcmp(key_id, STORAGE_SYNC_LEGACY_RECORD_KEY_ID) == 0 ||
+              strcmp(key_id, "inbe-v5-main") == 0) {
+        context = STORAGE_SYNC_LEGACY_RECORD_KEY_CONTEXT;
+    } else {
+        return 0;
+    }
+    if(strlen(ciphertext_hex) < 32 || strlen(ciphertext_hex) % 2 != 0 ||
+       !SyncCryptoHexToBytes(nonce_hex, nonce, sizeof(nonce)) ||
+       !storage_private_record_key_for_context(context, key)) {
+        return 0;
+    }
+    sealed_len = strlen(ciphertext_hex) / 2;
+    sealed = (uint8_t *)malloc(sealed_len);
+    plaintext = (char *)malloc(sealed_len - 16 + 1);
+    if(sealed == NULL || plaintext == NULL)
+        goto done;
+    if(!SyncCryptoHexToBytes(ciphertext_hex, sealed, sealed_len))
+        goto done;
+
+    aad.ok = 1;
+    storage_json_builder_append(&aad, collection);
+    storage_json_builder_append(&aad, "\n");
+    storage_json_builder_append(&aad, record_id);
+    storage_json_builder_append(&aad, "\n");
+    storage_json_builder_append(&aad, key_id);
+    if(!aad.ok || aad.data == NULL)
+        goto done;
+    if(!SyncCryptoChaCha20Poly1305Open(key, nonce, sealed, sealed_len,
+                                       (const uint8_t *)aad.data, aad.len,
+                                       (uint8_t *)plaintext)) {
+        goto done;
+    }
+    plaintext[sealed_len - 16] = '\0';
+    if(content_hash != NULL && content_hash[0] != '\0') {
+        storage_sha256_hex((const uint8_t *)plaintext, sealed_len - 16, actual_hash);
+        if(strcmp(actual_hash, content_hash) != 0)
+            goto done;
+    }
+    *plaintext_out = plaintext;
+    plaintext = NULL;
+    ok = 1;
+
+done:
+    memset(key, 0, sizeof(key));
+    storage_json_builder_free(&aad);
+    free(sealed);
+    free(plaintext);
+    return ok;
+}
+
+static int
+storage_apply_encrypted_records(const char *response_json)
+{
+    static const char *query =
+        "SELECT json_extract(value,'$.collection'),"
+        "json_extract(value,'$.id'),json_extract(value,'$.key_id'),"
+        "json_extract(value,'$.nonce'),json_extract(value,'$.ciphertext'),"
+        "COALESCE(json_extract(value,'$.content_hash'),'') "
+        "FROM (SELECT value FROM json_each(?1,'$.changes.encrypted_records') "
+        "UNION ALL SELECT value FROM json_each(?1,'$.data.encrypted_records'))";
+    sqlite3_stmt *statement = NULL;
+    int ok = 1;
+
+    if(sqlite3_prepare_v2(g_storage.db, query, -1, &statement, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(statement, 1, response_json);
+    while(ok && sqlite3_step(statement) == SQLITE_ROW) {
+        const char *collection = (const char *)sqlite3_column_text(statement, 0);
+        const char *record_id = (const char *)sqlite3_column_text(statement, 1);
+        const char *key_id = (const char *)sqlite3_column_text(statement, 2);
+        const char *nonce = (const char *)sqlite3_column_text(statement, 3);
+        const char *ciphertext = (const char *)sqlite3_column_text(statement, 4);
+        const char *content_hash = (const char *)sqlite3_column_text(statement, 5);
+        char *plaintext = NULL;
+
+        if(collection == NULL || storage_decrypted_array_name(collection) == NULL)
+            continue;
+        ok = record_id != NULL && key_id != NULL && nonce != NULL &&
+             ciphertext != NULL &&
+             storage_decrypt_record(collection, record_id, key_id, nonce,
+                                    ciphertext, content_hash, &plaintext) &&
+             storage_apply_decrypted_record(collection, plaintext);
+        free(plaintext);
+    }
+    sqlite3_finalize(statement);
+    return ok;
+}
+
 int
 storage_apply_sync_response_json(const char *response_json)
 {
@@ -1681,6 +1871,9 @@ storage_apply_sync_response_json(const char *response_json)
     long long server_clock;
     long long old_server_version;
     long long latest_protocol;
+    long long legacy_projection_epoch;
+    int legacy_write_was_required;
+    int legacy_write_is_required;
     char server_hash[80];
     char account_alias[40];
 
@@ -1697,6 +1890,12 @@ storage_apply_sync_response_json(const char *response_json)
     latest_protocol = storage_json_extract_int64(response_json, "$.latest_protocol", 0);
     if(latest_protocol > 0)
         set_meta_int64(STORAGE_SYNC_LATEST_PROTOCOL_KEY, latest_protocol);
+    legacy_write_was_required =
+        get_meta_int64(STORAGE_SYNC_LEGACY_WRITE_REQUIRED_KEY, 1) != 0;
+    legacy_write_is_required =
+        storage_json_extract_int64(response_json, "$.legacy_write_required", 1) != 0;
+    legacy_projection_epoch =
+        storage_json_extract_int64(response_json, "$.legacy_projection_epoch", 0);
     if(storage_json_extract_int64(response_json, "$.full_snapshot_required", 0) != 0 &&
        get_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0) == 0) {
         if(!storage_has_any())
@@ -1719,7 +1918,8 @@ storage_apply_sync_response_json(const char *response_json)
     if(!exec_sql("SAVEPOINT inbe_sync_apply"))
         return 0;
     storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
-    if(!storage_reconcile_remote_habit_ids(response_json) ||
+    if(!storage_apply_encrypted_records(response_json) ||
+       !storage_reconcile_remote_habit_ids(response_json) ||
        !storage_apply_sync_habits_json(response_json) ||
        !storage_apply_sync_habit_days_json(response_json) ||
        !storage_merge_duplicate_habit_names() ||
@@ -1765,6 +1965,12 @@ storage_apply_sync_response_json(const char *response_json)
     set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 1);
     set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 1);
     set_meta_int64(STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY, 1);
+    set_meta_int64(STORAGE_SYNC_LEGACY_WRITE_REQUIRED_KEY,
+                   legacy_write_is_required);
+    set_meta_int64(STORAGE_SYNC_LEGACY_PROJECTION_EPOCH_KEY,
+                   legacy_projection_epoch);
+    if(legacy_write_is_required && !legacy_write_was_required)
+        storage_enqueue_all_sync_state();
     if((storage_json_extract_int64(response_json, "$.latest_protocol", 0) >= 4 ||
         storage_json_extract_int64(response_json, "$.protocol_version", 0) >= 4 ||
         storage_json_array_has_items(response_json, "$.changes.encrypted_records") ||

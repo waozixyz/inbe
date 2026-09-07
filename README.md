@@ -25,6 +25,7 @@ optionally sync user-owned data through a Daochi-compatible sync server.
 - Habit tracking with session history and linked practice counts
 - Local import and export support
 - Theme customization with light and dark variants
+- Repeat the last completed practice using its current settings
 
 ## Build
 
@@ -67,6 +68,15 @@ Run the test suite:
 ```bash
 make test
 ```
+
+To test sync and recovery against an isolated local server:
+
+```bash
+make sync-server-test DAOCHI_BIN=/absolute/path/to/daochi
+```
+
+This uses disposable client databases and a loopback server; see
+[web and sync test coverage](WEB_RENDERER_TESTS.md) for details.
 
 Native binaries are written to `build/bin/<platform>/`. Release artifacts are
 written under `build/dist/`.

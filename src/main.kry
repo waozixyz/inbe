@@ -1,0 +1,179 @@
+#import "kryon.h"
+#import "app.h"
+#import "app/app_update_check.h"
+#import "breaks/app_breaks.h"
+#import "breaks/break_engine.h"
+#import "platform/inbe_desktop_tray.h"
+
+ANDROID :: ANDROID_BUILD
+WEB :: #defined(PLATFORM_WEB)
+TRAY :: #defined(INBE_DESKTOP_TRAY_ENABLED)
+
+inbe_native_prepare :: (argc: int, argv: char**) #extern
+inbe_native_window_size :: (window_w: int*, window_h: int*) #extern
+inbe_native_configure_window :: () #extern
+inbe_native_before_window :: () #extern
+inbe_native_after_window :: () -> int #extern
+inbe_native_after_app_init :: (app: InbeApp*, argc: int, argv: char**) #extern
+inbe_native_screenshot_active :: () -> int #extern
+inbe_native_run_screenshot :: (app: InbeApp*) -> int #extern
+inbe_native_should_start_hidden :: (app: InbeApp*) -> int #extern
+inbe_native_platform_shutdown :: () #extern
+inbe_native_update_apply_at_exit :: () -> int #extern
+inbe_frame :: (app: InbeApp*) #extern
+
+#if WEB {
+    inbe_native_start_web_loop :: (app: InbeApp*) #extern
+} #else {
+    inbe_native_install_shutdown_handlers :: () #extern
+    inbe_native_shutdown_requested :: () -> int #extern
+}
+
+inbe_app :: InbeApp #global
+
+inbe_shutdown :: () {
+    # Desktop self-update may re-exec a staged AppImage after state is saved
+    # and the window/audio stack is down.
+    inbe_native_platform_shutdown()
+    if inbe_native_update_apply_at_exit() {
+        return
+    }
+}
+
+inbe_cleanup_window :: () {
+    #if TRAY {
+        inbe_desktop_tray_shutdown()
+    }
+    app_destroy(&inbe_app)
+    set_global_inbe_app(nil)
+    CloseWindow()
+    inbe_native_platform_shutdown()
+}
+
+inbe_run_screenshot_if_requested :: () -> int {
+    result := inbe_native_run_screenshot(&inbe_app)
+    if result == 0 {
+        return 0
+    }
+    # Positive means screenshot saved; negative means capture/save failure.
+    inbe_cleanup_window()
+    if result > 0 {
+        return 0
+    }
+    return 1
+}
+
+#if TRAY {
+    inbe_run_tray_loop :: () {
+        quit := 0
+
+        # With a tray, the close button asks whether to keep running in the
+        # background or quit. The native window pump exposes close requests
+        # through StealUICoreWindowClose().
+        while !quit {
+            tray_action: InbeDesktopTrayAction = inbe_desktop_tray_poll_action()
+            close_result: AppClosePromptResult = AppClosePromptNone
+
+            if inbe_native_shutdown_requested() {
+                TraceLog(LOG_INFO, "INBE: quit requested by shutdown signal")
+                quit = 1
+            }
+            if tray_action != INBE_DESKTOP_TRAY_ACTION_NONE {
+                inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit)
+            }
+            if StealUICoreWindowClose() {
+                inbe_desktop_tray_apply_action(&inbe_app,
+                                               INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST,
+                                               &quit)
+            }
+            if !quit {
+                inbe_frame(&inbe_app)
+                inbe_desktop_tray_update_status(&inbe_app)
+            }
+
+            close_result = app_consume_close_prompt_result(&inbe_app)
+            if close_result == AppClosePromptKeepRunning {
+                inbe_desktop_tray_keep_running()
+            } else if close_result == AppClosePromptQuit {
+                TraceLog(LOG_INFO, "INBE: quit requested by close prompt")
+                quit = 1
+            }
+
+            if inbe_app.request_quit {
+                TraceLog(LOG_INFO, "INBE: quit requested by app layer")
+                quit = 1
+            }
+
+            tray_action = inbe_desktop_tray_poll_action()
+            if tray_action != INBE_DESKTOP_TRAY_ACTION_NONE {
+                inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit)
+            }
+            if StealUICoreWindowClose() && !inbe_app.close_prompt_open {
+                app_request_desktop_close(&inbe_app)
+            }
+        }
+    }
+} #else {
+    inbe_run_plain_loop :: () {
+        quit := 0
+
+        # No tray: there is nothing to keep running in the background, so any
+        # close request just exits.
+        while !inbe_native_shutdown_requested() && !quit {
+            inbe_frame(&inbe_app)
+            if WindowShouldClose() || StealUICoreWindowClose() ||
+               inbe_native_shutdown_requested() || inbe_app.request_quit {
+                quit = 1
+            }
+        }
+    }
+}
+
+main :: (argc: int, argv: char**) -> int {
+    window_w: int = 0
+    window_h: int = 0
+
+    inbe_native_prepare(argc, argv)
+    inbe_native_window_size(&window_w, &window_h)
+    inbe_native_configure_window()
+    inbe_native_before_window()
+
+    InitWindow(window_w, window_h, config.title)
+    if !inbe_native_after_window() {
+        return 1
+    }
+
+    app_init(&inbe_app)
+    inbe_native_after_app_init(&inbe_app, argc, argv)
+
+    #if WEB {
+        inbe_native_start_web_loop(&inbe_app)
+        return 0
+    } #else {
+        inbe_native_install_shutdown_handlers()
+
+        #if TRAY {
+            inbe_desktop_tray_init()
+            if inbe_native_should_start_hidden(&inbe_app) {
+                TraceLog(LOG_INFO, "INBE: starting hidden in the tray (startup mode)")
+                inbe_desktop_tray_keep_running()
+            }
+            KryonMemReport("after-tray-init")
+        }
+
+        screenshot_exit := inbe_run_screenshot_if_requested()
+        if screenshot_exit != 0 || inbe_native_screenshot_active() {
+            return screenshot_exit
+        }
+
+        #if TRAY {
+            inbe_run_tray_loop()
+        } #else {
+            inbe_run_plain_loop()
+        }
+
+        inbe_cleanup_window()
+        inbe_shutdown()
+        return 0
+    }
+}

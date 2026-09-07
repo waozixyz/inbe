@@ -1221,6 +1221,46 @@ async function practiceStartClickTarget(client) {
   return target;
 }
 
+async function verifyPracticeCarouselSwipe(client) {
+  await openPracticeHome(client);
+  const target = await practiceStartClickTarget(client);
+  const selected = () => pageJson(client, 'Module._app_web_test_practice_selected()');
+  const initial = await selected();
+  const x = target.x;
+  const y = target.rect.top + (target.y - target.rect.top) * 0.4;
+  const distance = target.rect.width * 0.4;
+  async function drag(dx, dy) {
+    const startX = x - dx / 2;
+    const startY = y - dy / 2;
+    await client.send('Input.dispatchMouseEvent', {
+      type: 'mousePressed', x: startX, y: startY, button: 'left', clickCount: 1
+    });
+    await waitAnimationFrames(client, 2);
+    for (let i = 1; i <= 6; i++) {
+      await client.send('Input.dispatchMouseEvent', {
+        type: 'mouseMoved', x: startX + dx * i / 6, y: startY + dy * i / 6,
+        button: 'left', buttons: 1
+      });
+      await waitAnimationFrames(client, 1);
+    }
+    await client.send('Input.dispatchMouseEvent', {
+      type: 'mouseReleased', x: startX + dx, y: startY + dy, button: 'left', clickCount: 1
+    });
+    await waitAnimationFrames(client, 3);
+  }
+  await drag(-distance, 0);
+  if (await selected() === initial) throw new Error('left swipe did not change practice');
+  await drag(distance, 0);
+  if (await selected() !== initial) throw new Error('right swipe did not return to practice');
+  await drag(0, distance / 2);
+  if (await selected() !== initial) throw new Error('vertical drag changed practice');
+  await dispatchCanvasClick(client, x, y);
+  await waitAnimationFrames(client, 3);
+  if (await selected() !== initial) throw new Error('artwork tap changed practice');
+  for (let i = 0; i < 4; i++) await drag(-distance, 0);
+  if (await selected() !== initial) throw new Error('carousel did not wrap after four swipes');
+}
+
 async function verifyPracticeStartClick(client) {
   await openPracticeHome(client);
   const target = await practiceStartClickTarget(client);
@@ -1235,6 +1275,26 @@ async function verifyPracticeStartClick(client) {
     throw new Error(`practice start click did not start a session: ${JSON.stringify(state)}`);
   if (!/is-hidden/.test(state.loadingClass))
     throw new Error(`practice start click showed loading overlay: ${JSON.stringify(state.loadingClass)}`);
+}
+
+async function verifyPracticeCompletionPersistence(client) {
+  await waitForStorageIdle(client);
+  const ok = await pageJson(client, `(async () => {
+    ${wasmHookEvalHelper()}
+    await callWasmHook('app_web_test_complete_practice');
+    if (!Module._app_web_test_completed_practice_persisted()) return false;
+    return await Module.__kryonFlushStorageSync(true);
+  })()`, true);
+  if (!ok) {
+    const stage = await pageJson(client, 'Module._app_web_test_completion_stage()');
+    throw new Error('practice pause/resume/completion failed at stage ' + stage);
+  }
+  await waitForStorageIdle(client);
+  await client.send('Page.reload', { ignoreCache: true });
+  await waitForHealthyPage(client);
+  const persisted = await pageJson(client,
+    'Module._app_web_test_completed_practice_persisted() === 1');
+  if (!persisted) throw new Error('completed practice mood did not survive reload');
 }
 
 function readPngBrightness(base64) {
@@ -1591,7 +1651,9 @@ try {
     await verifyLanguageRouteDoesNotOverrideSavedOnboarding(client, port);
     await verifyFirstRunGuideCanvasFlow(client);
     await verifySyncKeyImport(client);
+    await verifyPracticeCarouselSwipe(client);
     await verifyPracticeStartClick(client);
+    await verifyPracticeCompletionPersistence(client);
     await verifyHabitsClickDoesNotReload(client);
   }
   console.log(`web smoke: PASS (${renderer})`);

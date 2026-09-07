@@ -1,31 +1,37 @@
 # Web Renderer Tests
 
-Inbe has two web renderer paths:
+Inbe ships the Kryon Canvas2D renderer. `web-canvas` is an alias for `web`.
 
 | Target | Renderer | Purpose |
 |---|---|---|
-| `make web` | raylib/WebGL | Shipping web build with liboqs sync support. |
-| `make web-canvas` | Kryon Canvas2D | No-WebGL fallback build using Kryon's Canvas backend. The app still uses Emscripten/WASM for C code and support libraries. |
-| `make web-compare-test` | both | Builds both renderers and runs the browser smoke suite against each. |
-| `make web-side-by-side-test` | both | Builds both renderers, runs both smoke tests, then serves a split-page manual comparison view. |
+| `make web` | Kryon Canvas2D | Shipping Emscripten/WASM build with liboqs sync support; WebGL is not required. |
+| `make web-canvas` | Kryon Canvas2D | Alias for the shipping web build. |
+| `make web-compare-test` | Kryon Canvas2D | Builds the web target and runs its smoke suite. |
+| `make web-side-by-side-test` | Kryon Canvas2D | Builds, tests, and serves a preview page. |
 
-The shared smoke test is `scripts/web-smoke-test.mjs`. It is renderer-aware:
+The shared smoke test is `scripts/web-smoke-test.mjs`:
 
-- `WEB_SMOKE_RENDERER=raylib` requires a live WebGL context.
 - `WEB_SMOKE_RENDERER=canvas` requires a live Canvas2D context and nonblank pixels.
-- Both paths require the app runtime-ready hook, a cycling render loop, IDBFS idle/flush behavior, and app settings persistence.
-- Both paths require sync-key import to work. Canvas links the same ksync/liboqs account crypto as raylib-web; only the renderer differs.
+- It requires the app runtime-ready hook, a cycling render loop, IDBFS idle/flush behavior, and app settings persistence.
+- It verifies sync-key import, practice startup, and habit navigation without reloading.
+- The Chromium path also completes a one-minute meditation through pause and
+  background elapsed time, saves its mood, and verifies the saved check-in after reload.
 
-Current known gap:
+Server integration:
 
-- The shared smoke test verifies account crypto/import parity, rendering, storage, and app settings persistence. It does not yet run a real local sync server transaction for either renderer.
+- Run `make sync-server-test DAOCHI_BIN=/absolute/path/to/daochi` with a built
+  Daochi server. The runner starts a disposable loopback server and two isolated
+  client databases, and retains test data and logs in a printed temporary directory.
+- It checks offline recovery, a lost upload response, retry without duplicates,
+  conflicting mood edits, backup restoration, and synced deletion. It uses Inbe's
+  native storage and sync code; browser transport remains covered by the web smoke suite.
 
-For manual visual comparison, run:
+For a manual preview, run:
 
 ```bash
 make web-side-by-side-test
 ```
 
-The script prints a local URL with raylib/WebGL on the left and Canvas2D on the
-right. Use `scripts/web-side-by-side-test.sh --no-serve` for CI-style
-build-and-smoke validation without starting the comparison server.
+The script prints a local preview URL. Use
+`scripts/web-side-by-side-test.sh --no-serve` for build-and-smoke validation
+without starting the preview server.

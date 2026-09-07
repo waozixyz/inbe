@@ -235,7 +235,7 @@ start_sync_key_export_dialog :: (app: InbeApp*, filename: const char*) -> int #p
         unused app
         InitFileDialog(&dlg)
         if SaveFileDialog(&dlg, GetLocaleText("sync_save_key_dialog_title"), filename) {
-            account: KsyncAccount
+            account: SyncAccount
             path := GetFileDialogPath(&dlg)
             if path != nil && path[0] != '\0' &&
                sync_account_load(&account) &&
@@ -259,7 +259,7 @@ start_sync_key_export_dialog :: (app: InbeApp*, filename: const char*) -> int #p
 }
 
 import_sync_key_path :: (app: InbeApp*, path: const char*) -> int #private {
-    account: KsyncAccount
+    account: SyncAccount
 
     if path != nil && path[0] != '\0' &&
        sync_account_import_private_key_preview(&account, path) {
@@ -314,27 +314,27 @@ start_sync_key_import_dialog :: (app: InbeApp*) -> int #private {
 }
 
 content_height :: (content_w: int) -> int {
-    data_button_h: int = ScaleUIPx(36)
+    data_button_h: int = Scale(36)
 
     unused content_w
 
     health_row := 0
     #if ANDROID {
-        health_row = data_button_h + ScaleUIPx(12)
+        health_row = data_button_h + Scale(12)
     }
-    return ScaleUIPx(SETTINGS_DATA_TOP_PADDING) +
-           data_button_h + ScaleUIPx(12) +
-           data_button_h + ScaleUIPx(12) +
-           data_button_h + ScaleUIPx(12) +
-           data_button_h + ScaleUIPx(12) +
+    return Scale(SETTINGS_DATA_TOP_PADDING) +
+           data_button_h + Scale(12) +
+           data_button_h + Scale(12) +
+           data_button_h + Scale(12) +
+           data_button_h + Scale(12) +
            health_row +
-           ScaleUIPx(42) +
-           ScaleUIPx(40)
+           Scale(42) +
+           Scale(40)
 }
 
 draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
-    account: KsyncAccount
-    data_button_h := ScaleUIPx(36)
+    account: SyncAccount
+    data_button_h := Scale(36)
     hover_import: int = 0
     hover_export: int = 0
     hover_delete: int = 0
@@ -343,27 +343,27 @@ draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
     settings_sync_account_set_save_dialog(start_sync_key_export_dialog)
     settings_sync_account_set_import_dialog(start_sync_key_import_dialog)
 
-    *y += ScaleUIPx(SETTINGS_DATA_TOP_PADDING)
+    *y += Scale(SETTINGS_DATA_TOP_PADDING)
     if StyledButton(x, *y, w, data_button_h,
                            GetLocaleText("import_data_button"),
                            ButtonStylePrimary, 0, &hover_import) {
         import_data(app)
     }
-    *y += data_button_h + ScaleUIPx(12)
+    *y += data_button_h + Scale(12)
 
     if StyledButton(x, *y, w, data_button_h,
                            GetLocaleText("export_data_button"),
                            ButtonStylePrimary, 0, &hover_export) {
         export_data(app)
     }
-    *y += data_button_h + ScaleUIPx(12)
+    *y += data_button_h + Scale(12)
 
     if StyledButton(x, *y, w, data_button_h,
                            GetLocaleText("export_csv_button"),
                            ButtonStyleSecondary, 0, &hover_export) {
         export_csv(app)
     }
-    *y += data_button_h + ScaleUIPx(12)
+    *y += data_button_h + Scale(12)
 
     #if ANDROID {
         hover_health: int = 0
@@ -372,7 +372,7 @@ draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
                                ButtonStyleSecondary, 0, &hover_health) {
             export_health_connect(app)
         }
-        *y += data_button_h + ScaleUIPx(12)
+        *y += data_button_h + Scale(12)
     }
 
     if !has_account {
@@ -381,16 +381,16 @@ draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
                                ButtonStyleDanger, 0, &hover_delete) {
             request_delete_all_data(app)
         }
-        *y += data_button_h + ScaleUIPx(12)
+        *y += data_button_h + Scale(12)
     }
-    settings_screen_draw_status_reserved(x, y, ScaleUIPx(42))
+    settings_screen_draw_status_reserved(x, y, Scale(42))
 }
 
 draw_sync_status :: (x: int, w: int, y: int*) {
     status: InbeStorageSyncStatus
     line: [160] char = {0}
-    font: int = GetUISmallFontSize()
-    label_font: int = GetUIFontSize()
+    font: int = GetSmallFontSize()
+    label_font: int = GetFontSize()
     label_color: Color = GetThemeText()
     body_color: Color = DarkenUIColor(GetThemeText(), 25)
     warn_color: Color = (Color){196, 126, 45, 255}
@@ -403,9 +403,14 @@ draw_sync_status :: (x: int, w: int, y: int*) {
         return
     }
 
-    Text(GetLocaleText("sync_status_title"),
-                  x, *y, label_font, label_color)
-    *y += ScaleUIPx(24)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("sync_status_title")),
+        .font=(label_font),
+        .color=(label_color),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(24)
 
     left_w = w / 2
     row_y = *y
@@ -414,26 +419,46 @@ draw_sync_status :: (x: int, w: int, y: int*) {
                         GetLocaleText(status.has_account && status.server_connected
                                       ? "sync_status_connected"
                                       : "sync_status_disconnected"))
-    Text(line, x, row_y, font,
-                  status.has_account && status.server_connected
-                      ? ok_color
-                      : body_color)
+    Text((TextProps){
+        .bounds={(x), (row_y), 0, 0},
+        .text=(line),
+        .font=(font),
+        .color=(status.has_account && status.server_connected ? ok_color : body_color),
+        .wrap=TextWrapNone
+    })
 
     FormatLocaleText(line, sizeof(line), "sync_status_queued",
                         status.queued_changes)
-    Text(line, x + left_w, row_y, font,
-                  status.queued_changes > 0 ? warn_color : body_color)
+    Text((TextProps){
+        .bounds={(x + left_w), (row_y), 0, 0},
+        .text=(line),
+        .font=(font),
+        .color=(status.queued_changes > 0 ? warn_color : body_color),
+        .wrap=TextWrapNone
+    })
 
-    row_y += ScaleUIPx(22)
+    row_y += Scale(22)
     FormatLocaleText(line, sizeof(line), "sync_status_server",
                         status.server_version)
-    Text(line, x, row_y, font, body_color)
+    Text((TextProps){
+        .bounds={(x), (row_y), 0, 0},
+        .text=(line),
+        .font=(font),
+        .color=(body_color),
+        .wrap=TextWrapNone
+    })
 
     FormatLocaleText(line, sizeof(line), "sync_status_clock",
                         status.server_clock)
-    Text(line, x + left_w, row_y, font, body_color)
+    Text((TextProps){
+        .bounds={(x + left_w), (row_y), 0, 0},
+        .text=(line),
+        .font=(font),
+        .color=(body_color),
+        .wrap=TextWrapNone
+    })
 
-    row_y += ScaleUIPx(22)
+    row_y += Scale(22)
     if status.protocol_upgrade_available {
         snprintf(line, sizeof(line), "%s",
                     GetLocaleText("sync_status_upgrade"))
@@ -464,9 +489,15 @@ draw_sync_status :: (x: int, w: int, y: int*) {
        status.secure_migration_pending {
         status_line_color = warn_color
     }
-    Text(line, x, row_y, font, status_line_color)
+    Text((TextProps){
+        .bounds={(x), (row_y), 0, 0},
+        .text=(line),
+        .font=(font),
+        .color=(status_line_color),
+        .wrap=TextWrapNone
+    })
 
-    *y += ScaleUIPx(74)
+    *y += Scale(74)
 }
 
 handle_android_import :: (app: InbeApp*) {
@@ -726,10 +757,10 @@ export_health_connect :: (app: InbeApp*) #private {
 
 draw_import_choice_modal :: (app: InbeApp*) -> int {
     frame: UIPanelFrame
-    font: int = GetUIFontSize()
+    font: int = GetFontSize()
     message: const char* = GetLocaleText("import_choice_message")
-    row_gap: int = ScaleUIPx(10)
-    btn_h: int = ScaleUIPx(36)
+    row_gap: int = Scale(10)
+    btn_h: int = Scale(36)
     msg_x: int
     msg_y: int
     btn_y: int
@@ -738,17 +769,23 @@ draw_import_choice_modal :: (app: InbeApp*) -> int {
 
     unused app
 
-    frame = ModalFrame(ScaleUIPx(320),
-                             ScaleUIPx(232),
+    frame = ModalFrame(Scale(320),
+                             Scale(232),
                              GetLocaleText("import_choice_title"),
                              (Texture2D){0},
                              (Texture2D){0})
     msg_x = frame.content_x
     msg_y = frame.content_y
 
-    Text(message, msg_x, msg_y, font, GetThemeText())
+    Text((TextProps){
+        .bounds={(msg_x), (msg_y), 0, 0},
+        .text=(message),
+        .font=(font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 
-    btn_y = frame.y + frame.h - ScaleUIPx(24) - btn_h * 2 - row_gap
+    btn_y = frame.y + frame.h - Scale(24) - btn_h * 2 - row_gap
     btn_w = (frame.content_w - row_gap) / 2
 
     if StyledButton(frame.content_x,
@@ -795,14 +832,14 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
     intro_h: int
     modal_w: int
     modal_h: int
-    btn_h: int = ScaleUIPx(36)
-    gap: int = ScaleUIPx(10)
+    btn_h: int = Scale(36)
+    gap: int = Scale(10)
     btn_y: int
     diff_y: int
     diff_h: int
     legend_y: int
     hover: int = 0
-    diff_content_h: int = ScaleUIPx(40)
+    diff_content_h: int = Scale(40)
     p: const char* = nil
     diff_view: UIScrollView
     diff_line: char* = nil
@@ -811,15 +848,15 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
 
     unused app
 
-    modal_w = ui_view_width >= ScaleUIPx(620)
-        ? ScaleUIPx(560)
-        : ScaleUIPx(336)
-    modal_h = ui_view_height >= ScaleUIPx(520)
-        ? ScaleUIPx(440)
-        : ui_view_height - ScaleUIPx(32)
+    modal_w = ui_view_width >= Scale(620)
+        ? Scale(560)
+        : Scale(336)
+    modal_h = ui_view_height >= Scale(520)
+        ? Scale(440)
+        : ui_view_height - Scale(32)
 
-    if modal_h < ScaleUIPx(320) {
-        modal_h = ScaleUIPx(320)
+    if modal_h < Scale(320) {
+        modal_h = Scale(320)
     }
 
     if !storage_sync_review_diff(&diff_detail) {
@@ -835,26 +872,26 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
     intro = (ParagraphSpec){
         .text = GetLocaleText("sync_review_message"),
         .width = frame.content_w,
-        .font = GetUISmallFontSize(),
-        .line_gap = ScaleUIPx(2),
+        .font = GetSmallFontSize(),
+        .line_gap = Scale(2),
         .color = GetThemeText()
     }
     intro_h = GetNodeHeight(NodeParagraph(intro, 0, 0))
     intro_y = frame.content_y
     Paragraph(intro, frame.content_x, &intro_y)
 
-    diff_y = frame.content_y + intro_h + ScaleUIPx(12)
-    btn_y = frame.y + frame.h - ScaleUIPx(24) - btn_h
-    legend_y = btn_y - ScaleUIPx(24)
-    diff_h = legend_y - diff_y - ScaleUIPx(8)
-    if diff_h < ScaleUIPx(150) {
-        diff_h = ScaleUIPx(150)
+    diff_y = frame.content_y + intro_h + Scale(12)
+    btn_y = frame.y + frame.h - Scale(24) - btn_h
+    legend_y = btn_y - Scale(24)
+    diff_h = legend_y - diff_y - Scale(8)
+    if diff_h < Scale(150) {
+        diff_h = Scale(150)
     }
 
     p = diff_detail
-    diff_content_h = ScaleUIPx(20)
+    diff_content_h = Scale(20)
     while p != nil && *p != '\0' {
-        diff_content_h += ScaleUIPx(20)
+        diff_content_h += Scale(20)
         p = strchr(p, '\n')
         if p != nil {
             p++
@@ -869,10 +906,10 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
             (float)diff_h
         },
         .content_height = diff_content_h,
-        .content_x = frame.content_x + ScaleUIPx(10),
-        .content_width = frame.content_w - ScaleUIPx(20),
+        .content_x = frame.content_x + Scale(10),
+        .content_width = frame.content_w - Scale(20),
         .scroll_offset = &sync_review_diff_scroll,
-        .wheel_step = ScaleUIPx(24)
+        .wheel_step = Scale(24)
     })
 
     diff_line = strtok(diff_detail, "\n")
@@ -885,12 +922,14 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
             line_color = (Color){74, 170, 112, 255}
         }
 
-        Text(diff_line,
-                      diff_view.content_x,
-                      line_y,
-                      GetUISmallFontSize(),
-                      line_color)
-        line_y += ScaleUIPx(20)
+        Text((TextProps){
+            .bounds={(diff_view.content_x), (line_y), 0, 0},
+            .text=(diff_line),
+            .font=(GetSmallFontSize()),
+            .color=(line_color),
+            .wrap=TextWrapNone
+        })
+        line_y += Scale(20)
         diff_line = strtok(nil, "\n")
     }
 
@@ -904,16 +943,20 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
         .scroll_offset = &sync_review_diff_scroll
     }, diff_view)
 
-    Text(GetLocaleText("sync_review_local_only"),
-                  frame.content_x,
-                  legend_y,
-                  GetUISmallFontSize(),
-                  (Color){215, 88, 88, 255})
-    Text(GetLocaleText("sync_review_remote_only"),
-                  frame.content_x + ScaleUIPx(112),
-                  legend_y,
-                  GetUISmallFontSize(),
-                  (Color){74, 170, 112, 255})
+    Text((TextProps){
+        .bounds={(frame.content_x), (legend_y), 0, 0},
+        .text=(GetLocaleText("sync_review_local_only")),
+        .font=(GetSmallFontSize()),
+        .color=((Color){215, 88, 88, 255}),
+        .wrap=TextWrapNone
+    })
+    Text((TextProps){
+        .bounds={(frame.content_x + Scale(112)), (legend_y), 0, 0},
+        .text=(GetLocaleText("sync_review_remote_only")),
+        .font=(GetSmallFontSize()),
+        .color=((Color){74, 170, 112, 255}),
+        .wrap=TextWrapNone
+    })
 
     if StyledButton(frame.content_x,
                            btn_y,
@@ -1028,7 +1071,7 @@ draw_modals :: (app: InbeApp*) -> int {
             app->pending_sync_account_action = InbePendingSyncAccountNone
             settings_screen_set_status_error(GetLocaleText("sync_account_switch_cancelled"))
         } else if modal_result == 2 {
-            account: KsyncAccount = app->pending_sync_account
+            account: SyncAccount = app->pending_sync_account
             action: InbePendingSyncAccountAction = app->pending_sync_account_action
             app_close_modal(app)
             if settings_sync_account_save_prepared(app, &account, action, 1) {

@@ -1,9 +1,6 @@
 [results_write_failed]
 Změny se nepodařilo uložit. Zkuste to znovu.
 ---
-[practice_repeat_button]
-Zopakovat poslední cvičení
----
 [app_title]
 Inner Breeze
 ---
@@ -370,12 +367,6 @@ Ukončit
 [settings_title]
 Nastavení
 ---
-[settings_section_breathing]
-Dýchání
----
-[settings_section_session]
-Sezení
----
 [settings_tab_device]
 Zařízení
 ---
@@ -570,12 +561,14 @@ Najděte rytmus, který vám připadá přirozený: stabilní a rychlý, ale st�
 ---
 [tutorial_step_exhale_hold]
 Po 30 deších vydechněte a zadržte dech tak dlouho, jak můžete.
-
+---
+[tutorial_step_exhale_hold_hint]
 Když pocítíte potřebu nadechnout se, stiskněte tlačítko DECH.
 ---
 [tutorial_step_inhale_hold]
 Plně se nadechněte a zadržte dech na 15 sekund.
-
+---
+[tutorial_step_inhale_hold_hint]
 Vydechněte a začne další kolo.
 ---
 [share_sheet_title]
@@ -970,9 +963,6 @@ Klepnutím na kroužky označíte dny. Klepnutím na kartu otevřete podrobnosti
 ---
 [habits_today]
 Dnes
----
-[habits_drag_hint]
-Pořadí změníte tažením názvu karty
 ---
 [habits_guide_meditation_views]
 Týdenní a kalendářní zobrazení ukazují tento návyk.
@@ -1719,15 +1709,6 @@ Krok %d ze %d
 [tutorial_safety_warning]
 Nikdy necvičte při řízení, ve stoje ani ve vodě.
 ---
-[tutorial_current_speed]
-Aktuální rychlost: %d
----
-[tutorial_change_in_customize]
-Změňte ji v Přizpůsobení.
----
-[tutorial_during_practice]
-Během cvičení
----
 [back_button]
 Zpět
 ---
@@ -1747,10 +1728,13 @@ V Přizpůsobení nastavte opakování a počáteční i konečné tempo. Při u
 Zvolte vzor, jehož rytmus odpovídá vašemu cíli. Čtverec je vyvážený, 4-7-8 uklidňuje, Koherentní je jemný a Prodloužený výdech prodlužuje uvolnění.
 ---
 [patterns_manual_phases_text]
-Sledujte Nádech, Zádrž, Výdech a Zádrž, jak se rozsvěcují. Fáze s nulovou délkou se automaticky přeskočí.
+Čtěte cyklus shora dolů. Číslo vpravo ukazuje délku fáze; nula znamená, že se fáze přeskočí.
 ---
 [patterns_manual_customize_text]
-V Přizpůsobení upravte délky fází a relace. Dýchejte lehce; při závrati nebo nepohodlí přestaňte.
+Před začátkem zvolte délku cvičení. Dýchejte zlehka; přestaňte, pokud se vám zatočí hlava nebo se necítíte dobře.
+---
+[patterns_ready_label]
+Připraveno
 ---
 [habit_color_label]
 Barva

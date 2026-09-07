@@ -431,7 +431,7 @@ fill_test_private_key(char out[5121])
 }
 
 static void
-test_sync_payload_includes_v4_encrypted_shadow_records(void)
+test_sync_payload_includes_v6_encrypted_records(void)
 {
     char root[512];
     char db_path[512];
@@ -445,8 +445,8 @@ test_sync_payload_includes_v4_encrypted_shadow_records(void)
     sqlite3 *db = NULL;
     int count;
 
-    make_clean_root(root, sizeof(root), "sync-v4-encrypted-shadow");
-    check_true("init v4 encrypted shadow db", storage_init(root));
+    make_clean_root(root, sizeof(root), "sync-v6-encrypted-records");
+    check_true("init v6 encrypted record db", storage_init(root));
     fill_test_private_key(private_key);
     storage_set_setting_text("sync_public_id", "test-public-id");
     storage_set_setting_text("sync_public_key", "test-public-key");
@@ -457,19 +457,19 @@ test_sync_payload_includes_v4_encrypted_shadow_records(void)
     habits_save(&habits);
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
-    check_true("v5 protocol in sync payload",
-               payload != NULL && strstr(payload, "\"protocol_version\":5") != NULL);
+    check_true("v6 protocol in sync payload",
+               payload != NULL && strstr(payload, "\"protocol_version\":6") != NULL);
     check_true("inbe app id in sync payload",
                payload != NULL && strstr(payload, "\"app_id\":\"inbe\"") != NULL);
-    check_true("v5 legacy data opt-in in sync payload",
+    check_true("v6 legacy data opt-in in sync payload",
                payload != NULL && strstr(payload, "\"include_legacy_data\":true") != NULL);
-    check_true("v5 compatibility capabilities in sync payload",
+    check_true("v6 compatibility capabilities in sync payload",
                payload != NULL && strstr(payload, "\"client_capabilities\"") != NULL &&
-                   strstr(payload, "v4-encrypted-records") != NULL &&
-                   strstr(payload, "v5-dual-read") != NULL &&
-                   strstr(payload, "v5-legacy-encrypted-collections") != NULL);
+                   strstr(payload, "v6-device-transactions") != NULL &&
+                   strstr(payload, "encrypted-primary") != NULL &&
+                   strstr(payload, "legacy-dual-write") != NULL);
     count = storage_json_array_count_path(payload, "$.encrypted_records");
-    check_true("v4 encrypted shadow records present", count > 0);
+    check_true("v6 encrypted records present", count > 0);
     check_true("first encrypted collection",
                storage_json_array_object_text(payload, "$.encrypted_records", 0,
                                               "collection", collection,
@@ -546,6 +546,61 @@ test_sync_payload_includes_v4_encrypted_shadow_records(void)
     check_int("stale completed v4 queue cleared", (int)status.queued_changes, 0);
     check_int("stale completed v4 queue is not pending",
               status.secure_migration_pending, 0);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_legacy_write_policy_requeues_projection(void)
+{
+    char root[512];
+    char private_key[5121];
+    InbeHabits habits;
+    char *payload;
+    const char *disabled_response =
+        "{\"protocol_version\":6,\"latest_protocol\":6,\"status\":\"ok\","
+        "\"server_version\":20,\"server_clock\":20,"
+        "\"changes_complete\":true,\"full_snapshot_required\":false,"
+        "\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],"
+        "\"meditation_logs\":[],\"social_cache\":[],\"encrypted_records\":[]},"
+        "\"legacy_write_required\":false}";
+    const char *reactivated_response =
+        "{\"protocol_version\":6,\"latest_protocol\":6,\"status\":\"ok\","
+        "\"server_version\":21,\"server_clock\":21,"
+        "\"changes_complete\":true,\"full_snapshot_required\":false,"
+        "\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],"
+        "\"meditation_logs\":[],\"social_cache\":[],\"encrypted_records\":[]},"
+        "\"legacy_write_required\":true,\"legacy_projection_epoch\":1234}";
+
+    make_clean_root(root, sizeof(root), "sync-legacy-write-policy");
+    check_true("init legacy write policy db", storage_init(root));
+    fill_test_private_key(private_key);
+    storage_set_setting_text("sync_public_id", "test-public-id");
+    storage_set_setting_text("sync_public_key", "test-public-key");
+    storage_set_setting_text("sync_private_key", private_key);
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    habits_save(&habits);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("legacy projection enabled before server policy",
+               payload != NULL && strstr(payload, "\"ops\":[{") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    check_true("apply disabled legacy write policy",
+               storage_apply_sync_response_json(disabled_response));
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("legacy projection disabled after quiet window",
+               payload != NULL && strstr(payload, "\"ops\":[]") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    check_true("apply reactivated legacy write policy",
+               storage_apply_sync_response_json(reactivated_response));
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("legacy projection requeued when old device returns",
+               payload != NULL && strstr(payload, "\"ops\":[{") != NULL);
+    storage_free_sync_payload_json(payload);
 
     storage_close();
     remove_tree(root);
@@ -658,8 +713,8 @@ test_sync_migration_matrix_keeps_release_data_displayable(void)
     check_true("open migrated v3 release fixture db", storage_init(root));
     assert_versioned_fixture_displayed("load migrated v3 release fixture habits");
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
-    check_true("migrated v3 payload stays on v5",
-               payload != NULL && strstr(payload, "\"protocol_version\":5") != NULL);
+    check_true("migrated v3 payload upgrades cleanly to v6",
+               payload != NULL && strstr(payload, "\"protocol_version\":6") != NULL);
     check_true("migrated v3 payload registers inbe",
                payload != NULL && strstr(payload, "\"app_id\":\"inbe\"") != NULL);
     check_true("migrated v3 payload queues encrypted shadow",
@@ -681,6 +736,8 @@ test_sync_migration_matrix_keeps_release_data_displayable(void)
     check_true("load migrated v4 sync status", storage_sync_status(&status));
     check_int("migrated v4 secure migration complete", status.secure_migration_pending, 0);
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("migrated v4 payload upgrades cleanly to v6",
+               payload != NULL && strstr(payload, "\"protocol_version\":6") != NULL);
     check_true("migrated v4 payload registers inbe",
                payload != NULL && strstr(payload, "\"app_id\":\"inbe\"") != NULL);
     check_int("migrated v4 does not rerun encrypted migration",
@@ -720,6 +777,8 @@ test_sync_migration_matrix_keeps_release_data_displayable(void)
     check_int("v5 fixture has no protocol upgrade warning",
               status.protocol_upgrade_available, 0);
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("migrated v5 payload upgrades cleanly to v6",
+               payload != NULL && strstr(payload, "\"protocol_version\":6") != NULL);
     check_true("v5 fixture payload registers inbe",
                payload != NULL && strstr(payload, "\"app_id\":\"inbe\"") != NULL);
     storage_free_sync_payload_json(payload);
@@ -2496,9 +2555,45 @@ test_external_tickmate_db_import(void)
     remove_tree(dest);
 }
 
+static void
+test_checkin_backup_restore(void)
+{
+    char source[512], target[512], archive[1024], id[128];
+    int duration = 60;
+    InbeStorageSessionCheckin saved = {0}, loaded = {0};
+    make_clean_root(source, sizeof(source), "checkin-backup");
+    make_clean_root(target, sizeof(target), "checkin-restored");
+    snprintf(archive, sizeof(archive), "%s/backup.zip", source);
+    check_true("checkin source", storage_init(source));
+    check_true("checkin session", storage_save_session_for_activity(&duration, 1, 0, 1, id, sizeof(id)));
+    saved.mood_before = 2;
+    saved.mood_after = 4;
+    saved.energy = 3;
+    saved.stress = 1;
+    snprintf(saved.note, sizeof(saved.note), "Quiet morning");
+    snprintf(saved.tags, sizeof(saved.tags), "morning,home");
+    check_true("save checkin", storage_save_session_checkin(id, &saved));
+    check_true("export checkin", storage_export_zip(archive));
+    storage_close();
+    check_true("checkin target", storage_init(target));
+    check_true("import checkin", storage_import_zip(archive));
+    check_true("load restored checkin", storage_load_session_checkin(id, &loaded));
+    check_true("restore all checkin fields", memcmp(&saved, &loaded, sizeof(saved)) == 0);
+    saved.mood_after = 5;
+    check_true("edit restored checkin", storage_save_session_checkin(id, &saved));
+    check_true("reimport duplicate", storage_import_zip(archive));
+    check_true("load retained local checkin", storage_load_session_checkin(id, &loaded));
+    check_int("duplicate preserves local mood", loaded.mood_after, 5);
+    check_int("duplicate does not add a session", storage_session_count(), 1);
+    storage_close();
+    remove_tree(source);
+    remove_tree(target);
+}
+
 int
 main(void)
 {
+    test_checkin_backup_restore();
     test_raw_db_import();
     test_zip_db_import();
     test_habit_name_merge_import();
@@ -2519,7 +2614,8 @@ main(void)
     test_sync_backfill_includes_existing_habits();
     test_sync_payload_excludes_local_settings();
     test_sync_payload_includes_queued_current_edits();
-    test_sync_payload_includes_v4_encrypted_shadow_records();
+    test_sync_payload_includes_v6_encrypted_records();
+    test_sync_legacy_write_policy_requeues_projection();
     test_sync_migration_matrix_keeps_release_data_displayable();
     test_sync_payload_batches_large_outbox();
     test_sync_outbox_preserves_edits_after_snapshot();

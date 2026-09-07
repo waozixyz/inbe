@@ -1,9 +1,6 @@
 [results_write_failed]
 Could not save changes. Please try again.
 ---
-[practice_repeat_button]
-Repeat last practice
----
 [app_title]
 Inner Breeze
 ---
@@ -33,6 +30,39 @@ Practice sessions
 ---
 [profile_weekly_insight]
 You showed up on %d days this week.
+---
+[profile_today_short]
+Today
+---
+[profile_active_days_short]
+Active days
+---
+[profile_sessions_short]
+Sessions
+---
+[profile_sync_prompt_body]
+Create an account to sync and protect your progress.
+---
+[profile_sync_ready_body]
+Sync is ready for this profile.
+---
+[profile_account_sync_title]
+Account & sync
+---
+[profile_account_sync_body]
+Create account or import key
+---
+[profile_data_management_title]
+Data
+---
+[profile_data_management_body]
+Import, export, and storage
+---
+[profile_leaderboard_preview_body]
+See rankings and your current streak
+---
+[profile_no_rank_short]
+No rank yet
 ---
 [tab_habits]
 Habits
@@ -376,12 +406,6 @@ Round times
 [settings_title]
 Settings
 ---
-[settings_section_breathing]
-Breathing
----
-[settings_section_session]
-Session
----
 [settings_tab_device]
 Device
 ---
@@ -678,12 +702,14 @@ Find a rhythm that feels natural to you: steady and quick, while still breathing
 ---
 [tutorial_step_exhale_hold]
 After 30 breaths, exhale and hold as long as you can.
-
+---
+[tutorial_step_exhale_hold_hint]
 When you feel the urge to breathe, press the BREATH button.
 ---
 [tutorial_step_inhale_hold]
 Inhale fully and hold for 15 seconds.
-
+---
+[tutorial_step_inhale_hold_hint]
 Exhale, and the next round will begin.
 ---
 [share_sheet_title]
@@ -1155,9 +1181,6 @@ Tap circles to mark days. Tap a card for details; drag its title to reorder.
 ---
 [habits_today]
 Today
----
-[habits_drag_hint]
-Drag a card title to reorder
 ---
 [habits_guide_meditation_views]
 Weekly and calendar views show this habit.
@@ -1718,15 +1741,6 @@ Step %d of %d
 [tutorial_safety_warning]
 Never practice while driving, standing, or in water.
 ---
-[tutorial_current_speed]
-Current speed: %d
----
-[tutorial_change_in_customize]
-Change this from Customize.
----
-[tutorial_during_practice]
-During practice
----
 [back_button]
 Back
 ---
@@ -1746,10 +1760,13 @@ Set repetitions and a starting and ending tempo in Customize. Begin slowly while
 Choose a preset whose rhythm matches your goal. Box is balanced, 4-7-8 is calming, Coherent is gentle, and Extended exhale lengthens the release.
 ---
 [patterns_manual_phases_text]
-Follow Inhale, Hold, Exhale, and Hold as they light up. A zero-length phase is skipped automatically.
+Read the cycle from top to bottom. The number on the right shows each phase length; zero means that phase is skipped.
 ---
 [patterns_manual_customize_text]
-Adjust phase lengths and session duration in Customize. Keep the breath easy; stop if you feel dizzy or uncomfortable.
+Review your pattern and duration before you start. Change them from Customize, keep the breath easy, and stop if you feel dizzy or uncomfortable.
+---
+[patterns_ready_label]
+Ready
 ---
 [habit_color_label]
 Color

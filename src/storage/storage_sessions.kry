@@ -88,12 +88,16 @@ write_session_rounds :: (session_id: const char*, round_times: const int*,
 insert_session_at_ex :: (started_at: long long, local_date: int,
                             round_times: const int*, round_count: int,
                             topic: int, activity: int, source: const char*,
-                            out_id: char*, out_id_size: size_t) -> int {
+                            out_id: char*, out_id_size: size_t, out_inserted: int*) -> int {
     stmt: sqlite3_stmt* = nil
     id: [INBE_STORAGE_ID_SIZE] char
     rc: int
     inserted: int
     rhash: unsigned int
+
+    if out_inserted != nil {
+        *out_inserted = 0
+    }
 
     if g_storage.db == nil || round_times == nil || round_count <= 0 ||
        round_count > MaxRounds {
@@ -142,6 +146,9 @@ insert_session_at_ex :: (started_at: long long, local_date: int,
         storage_materialize_session_habit_days()
     }
     storage_schedule_persist()
+    if out_inserted != nil {
+        *out_inserted = inserted
+    }
     return 1
 }
 
@@ -164,7 +171,7 @@ storage_save_session_for_activity :: (round_times: const int*, round_count: int,
     local_date = (tm->tm_year + 1900) * 10000 + (tm->tm_mon + 1) * 100 +
                  tm->tm_mday
     return insert_session_at_ex((long long)now, local_date, saved, saved_count,
-                                topic, activity, "app", out_id, out_id_size)
+                                topic, activity, "app", out_id, out_id_size, nil)
 }
 
 storage_save_session_at_for_activity :: (local_date: int, hour: int,
@@ -201,7 +208,7 @@ storage_save_session_at_for_activity :: (local_date: int, hour: int,
 
     return insert_session_at_ex((long long)started_at, local_date, saved,
                                 saved_count, topic, activity, "app", out_id,
-                                out_id_size)
+                                out_id_size, nil)
 }
 
 storage_save_session :: (round_times: const int*, round_count: int,
@@ -303,9 +310,8 @@ storage_save_session_checkin :: (path_or_id: const char*,
     sqlite3_bind_int(stmt, 5, checkin->stress)
     bind_text(stmt, 6, checkin->note)
     bind_text(stmt, 7, checkin->tags)
-    sqlite3_bind_int64(stmt, 8, now_seconds())
-    sqlite3_step(stmt)
-    changed: int = sqlite3_changes(g_storage.db) > 0
+    sqlite3_bind_int64(stmt, 8, storage_next_change_time())
+    changed: int = sqlite3_step(stmt) == SQLITE_DONE && sqlite3_changes(g_storage.db) > 0
     sqlite3_finalize(stmt)
     if changed {
         storage_enqueue_sync_session(id)
@@ -455,7 +461,7 @@ storage_replace_session :: (path_or_id: const char*, round_times: const int*,
     }
     bind_text(stmt, 1, id)
     sqlite3_bind_int64(stmt, 2, (sqlite3_int64)hash_rounds(saved, saved_count))
-    sqlite3_bind_int64(stmt, 3, now_seconds())
+    sqlite3_bind_int64(stmt, 3, storage_next_change_time())
     sqlite3_step(stmt)
     sqlite3_finalize(stmt)
     storage_enqueue_sync_session(id)
@@ -514,7 +520,7 @@ storage_rename_session_time :: (path_or_id: const char*, hour: int,
     }
     bind_text(stmt, 1, id)
     sqlite3_bind_int64(stmt, 2, (sqlite3_int64)t)
-    sqlite3_bind_int64(stmt, 3, now_seconds())
+    sqlite3_bind_int64(stmt, 3, storage_next_change_time())
     sqlite3_step(stmt)
     sqlite3_finalize(stmt)
     storage_enqueue_sync_session(id)
@@ -536,39 +542,14 @@ storage_delete_session :: (path_or_id: const char*) -> int {
         return 0
     }
     bind_text(stmt, 1, id)
-    sqlite3_bind_int64(stmt, 2, now_seconds())
-    sqlite3_step(stmt)
+    sqlite3_bind_int64(stmt, 2, storage_next_change_time())
+    changed := sqlite3_step(stmt) == SQLITE_DONE && sqlite3_changes(g_storage.db) > 0
     sqlite3_finalize(stmt)
+    if !changed {
+        return 0
+    }
     storage_enqueue_sync_session(id)
     storage_materialize_session_habit_days()
-    storage_schedule_persist()
-    return 1
-}
-
-storage_discard_session :: (path_or_id: const char*) -> int {
-    id: [INBE_STORAGE_ID_SIZE] char
-
-    if !parse_db_id(path_or_id, id, sizeof(id)) {
-        return 0
-    }
-    if !exec_sql("BEGIN IMMEDIATE") {
-        return 0
-    }
-    if !db_exec_text("DELETE FROM session_rounds WHERE session_id=?1", id) {
-        exec_sql("ROLLBACK")
-        return 0
-    }
-    if !db_exec_text("DELETE FROM sessions WHERE id=?1", id) {
-        exec_sql("ROLLBACK")
-        return 0
-    }
-    if !exec_sql("COMMIT") {
-        exec_sql("ROLLBACK")
-        return 0
-    }
-    storage_materialize_session_habit_days()
-    exec_sql("DELETE FROM sync_outbox")
-    g_storage.pending_sync_outbox_seq = 0
     storage_schedule_persist()
     return 1
 }
@@ -657,7 +638,7 @@ storage_delete_all_sessions :: () -> long long {
     count: int = storage_session_count()
     habit_day_count: int = 0
     habit_count: int = storage_habit_count()
-    deleted_at: long long = now_seconds()
+    deleted_at: long long = storage_next_change_time()
     changed: int = 0
 
     if g_storage.db == nil {

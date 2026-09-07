@@ -9,7 +9,7 @@ WEB :: #defined(PLATFORM_WEB)
 DESKTOP :: !ANDROID && !WEB
 
 settings_breaks_slider_h :: () -> int #private {
-    return ScaleUIPx(66)
+    return Scale(66)
 }
 
 settings_breaks_timer_row_h :: (label: const char*, w: int) -> int #private {
@@ -19,11 +19,11 @@ settings_breaks_timer_row_h :: (label: const char*, w: int) -> int #private {
 
 settings_breaks_content_height :: (app: InbeApp*, content_w: int) -> int {
     unused app
-    label_w := content_w > 0 ? content_w : ScaleUIPx(240)
-    height := ScaleUIPx(120)
+    label_w := content_w > 0 ? content_w : Scale(240)
+    height := Scale(120)
 
     height += settings_ui_toggle_row_height(GetLocaleText("settings_breaks_enabled"), label_w)
-    height += ScaleUIPx(76)
+    height += Scale(76)
     height += settings_ui_toggle_row_height(GetLocaleText("settings_breaks_sounds"), label_w)
     height += settings_ui_toggle_row_height(GetLocaleText("settings_breaks_reading_mode"), label_w)
     height += settings_ui_toggle_row_height(GetLocaleText("settings_breaks_micro_counts"), label_w)
@@ -35,7 +35,7 @@ settings_breaks_content_height :: (app: InbeApp*, content_w: int) -> int {
     }
     for int t = 0; t < 3; t++ {
         header := GetLocaleText(timer_keys[t])
-        height += ScaleUIPx(44) + GetNodeHeight(NodeParagraph((ParagraphSpec){.text = header, .width = label_w}, 0, 0))
+        height += Scale(44) + GetNodeHeight(NodeParagraph((ParagraphSpec){.text = header, .width = label_w}, 0, 0))
         height += settings_breaks_timer_row_h(GetLocaleText("settings_breaks_timer_enabled"), label_w)
         height += settings_breaks_slider_h()
         height += settings_breaks_slider_h()
@@ -45,13 +45,19 @@ settings_breaks_content_height :: (app: InbeApp*, content_w: int) -> int {
         height += settings_breaks_timer_row_h(GetLocaleText("settings_breaks_show_postpone"), label_w)
     }
 
-    height += ScaleUIPx(200)
+    height += Scale(200)
     return height
 }
 
 settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private {
-    Text(GetLocaleText("settings_breaks_status"), x, *y, GetUIFontSize(), GetThemeText())
-    *y += ScaleUIPx(30)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("settings_breaks_status")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(30)
 
     muted := DarkenUIColor(GetThemeText(), 40)
     names: [3] const char* = {
@@ -60,9 +66,9 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
         GetLocaleText("break_daily_title")
     }
     bar_x := x + w / 2
-    bar_w := w / 2 - ScaleUIPx(8)
-    if bar_w < ScaleUIPx(80) {
-        bar_w = ScaleUIPx(80)
+    bar_w := w / 2 - Scale(8)
+    if bar_w < Scale(80) {
+        bar_w = Scale(80)
     }
 
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
@@ -79,8 +85,20 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
         } else {
             break_format_duration(line, sizeof(line), next)
         }
-        Text(names[t], x, *y, Text12, muted)
-        Text(line, bar_x - ScaleUIPx(8) - TextWidth(line, Text12), *y, Text12, GetThemeText())
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(names[t]),
+            .font=(Text12),
+            .color=(muted),
+            .wrap=TextWrapNone
+        })
+        Text((TextProps){
+            .bounds={(bar_x - Scale(8) - TextWidth(line, Text12)), (*y), 0, 0},
+            .text=(line),
+            .font=(Text12),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
 
         track := DarkenUIColor(GetThemeBackground(), 26)
         border := DarkenUIColor(GetThemeText(), 60)
@@ -91,9 +109,9 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
             if fraction > bar_w - 2 {
                 fraction = bar_w - 2
             }
-            Rect(bar_x, *y + ScaleUIPx(2), bar_w, ScaleUIPx(12), track, border)
+            Rect(bar_x, *y + Scale(2), bar_w, Scale(12), track, border)
             if fraction > 0 {
-                Rect(bar_x + 1, *y + ScaleUIPx(3), fraction, ScaleUIPx(10), fill, fill)
+                Rect(bar_x + 1, *y + Scale(3), fraction, Scale(10), fill, fill)
             }
             # Same yellow idle tip as the HUD: fills the rest of the bar while
             # the user is away; full means a natural break resets the timer.
@@ -101,13 +119,13 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
                timer->idle_s > 0 && !timer->idle_latched {
                 tip := (bar_w - 2 - fraction) * timer->idle_s / timer->duration_s
                 if tip > 0 {
-                    Rect(bar_x + 1 + fraction, *y + ScaleUIPx(3), tip, ScaleUIPx(10), idle_col, idle_col)
+                    Rect(bar_x + 1 + fraction, *y + Scale(3), tip, Scale(10), idle_col, idle_col)
                 }
             }
         }
-        *y += ScaleUIPx(22)
+        *y += Scale(22)
     }
-    *y += ScaleUIPx(12)
+    *y += Scale(12)
 }
 
 settings_breaks_draw_timer :: (app: InbeApp*, t: int, x: int, w: int, y: int*) #private {
@@ -129,8 +147,14 @@ settings_breaks_draw_timer :: (app: InbeApp*, t: int, x: int, w: int, y: int*) #
     } else {
         header = GetLocaleText("settings_breaks_micro_header")
     }
-    Text(header, x, *y, GetUIFontSize(), GetThemeText())
-    *y += ScaleUIPx(34)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(header),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(34)
 
     if settings_ui_commit_toggle_row(app, x, w, y,
                                      GetLocaleText("settings_breaks_timer_enabled"),
@@ -187,7 +211,7 @@ settings_breaks_draw_timer :: (app: InbeApp*, t: int, x: int, w: int, y: int*) #
         }
         app->settings_dirty = 1
     }
-    *y += ScaleUIPx(10)
+    *y += Scale(10)
 }
 
 settings_breaks_draw_week :: (app: InbeApp*, x: int, w: int, y: int*) #private {
@@ -196,12 +220,24 @@ settings_breaks_draw_week :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     rows: [42] BreakDayRow
     count := storage_break_history(7, rows, 42)
 
-    Text(GetLocaleText("settings_breaks_week_stats"), x, *y, GetUIFontSize(), GetThemeText())
-    *y += ScaleUIPx(30)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("settings_breaks_week_stats")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(30)
     if count <= 0 {
         muted := DarkenUIColor(GetThemeText(), 40)
-        Text(GetLocaleText("settings_breaks_no_data"), x, *y, Text12, muted)
-        *y += ScaleUIPx(24)
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(GetLocaleText("settings_breaks_no_data")),
+            .font=(Text12),
+            .color=(muted),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(24)
         return
     }
 
@@ -224,10 +260,16 @@ settings_breaks_draw_week :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         name: const char* = t == BREAK_REST ? GetLocaleText("break_rest_title") : t == BREAK_DAILY ? GetLocaleText("break_daily_title") : GetLocaleText("break_micro_title")
         snprintf(line, sizeof(line), "%s  %d / %d / %d",
                  name, taken[t], skipped[t], postponed[t])
-        Text(line, x, *y, Text12, muted)
-        *y += ScaleUIPx(20)
+        Text((TextProps){
+            .bounds={(x), (*y), 0, 0},
+            .text=(line),
+            .font=(Text12),
+            .color=(muted),
+            .wrap=TextWrapNone
+        })
+        *y += Scale(20)
     }
-    *y += ScaleUIPx(12)
+    *y += Scale(12)
 }
 
 settings_breaks_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
@@ -253,12 +295,18 @@ settings_breaks_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         GetLocaleText("settings_breaks_block_input"),
         GetLocaleText("settings_breaks_block_screen")
     }
-    Text(GetLocaleText("settings_breaks_block_mode"), x, *y, GetUIFontSize(), GetThemeText())
-    if Dropdown(540, x, *y + ScaleUIPx(26), w, ScaleUIPx(36), block_options, 3, &block_mode) {
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("settings_breaks_block_mode")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    if Dropdown(540, x, *y + Scale(26), w, Scale(36), block_options, 3, &block_mode) {
         app->break_block_mode = block_mode
         app->settings_dirty = 1
     }
-    *y += ScaleUIPx(76)
+    *y += Scale(76)
 
     if settings_ui_commit_toggle_row(app, x, w, y,
                                      GetLocaleText("settings_breaks_sounds"),
@@ -276,15 +324,15 @@ settings_breaks_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         app->breaks.micro_counts_as_activity = micro_counts
     }
 
-    button_w := (w - ScaleUIPx(12)) / 2
-    if button_w > ScaleUIPx(200) {
-        button_w = ScaleUIPx(200)
+    button_w := (w - Scale(12)) / 2
+    if button_w > Scale(200) {
+        button_w = Scale(200)
     }
     rest_hover := 0
     if TextButton(4201, x, *y, GetLocaleText("settings_breaks_rest_now"), &rest_hover) {
         app_breaks_rest_break_now(app)
     }
-    *y += ScaleUIPx(60)
+    *y += Scale(60)
 
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
         settings_breaks_draw_timer(app, t, x, w, y)

@@ -39,7 +39,7 @@ static preset_ratios: [PATTERNS_PRESET_COUNT * 4] const int = {
     0, 0, 0, 0
 }
 
-preset_ratio :: (preset: int, part: int) -> int #private {
+patterns_preset_ratio :: (preset: int, part: int) -> int {
     if preset < 0 || preset >= PATTERNS_PRESET_COUNT {
         preset = PATTERNS_PRESET_BOX
     }
@@ -49,7 +49,7 @@ preset_ratio :: (preset: int, part: int) -> int #private {
     return preset_ratios[preset * 4 + part]
 }
 
-preset_label_key :: (preset: int) -> const char* #private {
+patterns_preset_label_key :: (preset: int) -> const char* {
     if preset == PATTERNS_PRESET_478 {
         return "patterns_preset_478"
     }
@@ -72,7 +72,7 @@ pattern_ratio :: (app: const InbeApp*, out: int*) #private {
         preset = PATTERNS_PRESET_BOX
     }
     for int i = 0; i < 4; i++ {
-        out[i] = preset_ratio(preset, i)
+            out[i] = patterns_preset_ratio(preset, i)
     }
     if preset == PATTERNS_PRESET_CUSTOM {
         for int i = 0; i < 4; i++ {
@@ -109,7 +109,7 @@ patterns_practice_init :: (app: InbeApp*) {
     }
     app->patterns.preset = PATTERNS_PRESET_BOX
     for int i = 0; i < 4; i++ {
-        app->patterns.custom[i] = preset_ratio(PATTERNS_PRESET_BOX, i)
+        app->patterns.custom[i] = patterns_preset_ratio(PATTERNS_PRESET_BOX, i)
     }
     app->patterns.duration_minutes = 5
 }
@@ -293,8 +293,8 @@ draw_config :: (app: InbeApp*) #private {
     layout := (PracticeSubscreenLayout){0}
     hover := 0
 
-    practice_screen_config_layout(app, UIModalPracticeConfig, 0, &layout)
-    practice_screen_handle_config_title(app, GetLocaleText("practice_config_title"),
+    practice_screen_config_layout(app, UIModalPracticeConfig, Scale(18), &layout)
+    practice_screen_handle_config_title(app, GetLocaleText("practice_configure_button"),
                                            UIModalPracticeConfig,
                                            patterns_practice_leave_config)
 
@@ -302,8 +302,8 @@ draw_config :: (app: InbeApp*) #private {
     page := BeginUIScrollPage((UIScrollPageSpec){
         .y = layout.scroll_y,
         .height = layout.scroll_h,
-        .max_content_width = ScaleUIPx(CONTENT_MAX_W),
-        .min_content_width = ScaleUIPx(320),
+        .max_content_width = Scale(CONTENT_MAX_W),
+        .min_content_width = Scale(320),
         .scroll_offset = &app->settings_scroll,
         .content_height = patterns_config_content_height_cb,
         .user_data = &page_ctx
@@ -311,25 +311,26 @@ draw_config :: (app: InbeApp*) #private {
     y := page.content_y
     x := page.content_x
     w := page.content_w
-    btn_h := ScaleUIPx(36)
-    gap := ScaleUIPx(8)
+    btn_h := Scale(48)
+    gap := Scale(8)
 
-    Text(GetLocaleText("patterns_preset_label"), x, y,
-                  GetUIFontSize(), GetThemeText())
-    y += ScaleUIPx(30)
+    Text((TextProps){
+        .bounds={(x), (y), 0, 0},
+        .text=(GetLocaleText("patterns_preset_label")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    y += Scale(30)
 
-    preset_w := (w - gap) / 2
-    if preset_w > ScaleUIPx(220) {
-        preset_w = ScaleUIPx(220)
-    }
+    preset_w := w
     for int i = 0; i < PATTERNS_PRESET_COUNT; i++ {
-        col := i % 2
-        row := i / 2
+        row := i
         label: [96] char
         ratio: [4] int
 
         for int j = 0; j < 4; j++ {
-            ratio[j] = preset_ratio(i, j)
+                ratio[j] = patterns_preset_ratio(i, j)
         }
         if i == PATTERNS_PRESET_CUSTOM {
             for int j = 0; j < 4; j++ {
@@ -337,12 +338,12 @@ draw_config :: (app: InbeApp*) #private {
             }
         }
         snprintf(label, sizeof(label), "%s  %d-%d-%d-%d",
-                 GetLocaleText(preset_label_key(i)),
+                 GetLocaleText(patterns_preset_label_key(i)),
                  ratio[0], ratio[1], ratio[2], ratio[3])
         style := app->patterns.preset == i
             ? ButtonStylePrimary
             : ButtonStyleSecondary
-        if StyledButton(x + col * (preset_w + gap),
+        if StyledButton(x,
                                y + row * (btn_h + gap), preset_w, btn_h,
                                label, style, 0, &hover) {
             app->patterns.preset = i
@@ -350,12 +351,17 @@ draw_config :: (app: InbeApp*) #private {
             save_settings(app)
         }
     }
-    y += ((PATTERNS_PRESET_COUNT + 1) / 2) * (btn_h + gap) + ScaleUIPx(10)
+    y += PATTERNS_PRESET_COUNT * (btn_h + gap) + Scale(10)
 
     if app->patterns.preset == PATTERNS_PRESET_CUSTOM {
-        Text(GetLocaleText("patterns_custom_label"), x, y,
-                      GetUIFontSize(), GetThemeText())
-        y += ScaleUIPx(30)
+        Text((TextProps){
+            .bounds={(x), (y), 0, 0},
+            .text=(GetLocaleText("patterns_custom_label")),
+            .font=(GetFontSize()),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
+        y += Scale(30)
         step_labels: [4] const char* = {
             GetLocaleText("patterns_phase_inhale"),
             GetLocaleText("patterns_phase_hold_in"),
@@ -363,8 +369,14 @@ draw_config :: (app: InbeApp*) #private {
             GetLocaleText("patterns_phase_hold_out")
         }
         for int i = 0; i < 4; i++ {
-            Text(step_labels[i], x, y, GetUIFontSize(), GetThemeText())
-            minus_w := ScaleUIPx(46)
+            Text((TextProps){
+                .bounds={(x), (y), 0, 0},
+                .text=(step_labels[i]),
+                .font=(GetFontSize()),
+                .color=(GetThemeText()),
+                .wrap=TextWrapNone
+            })
+            minus_w := Scale(46)
             if StyledButton(x + w - minus_w * 2 - gap, y,
                                    minus_w, btn_h, "-5",
                                    ButtonStyleSecondary, 0, &hover) {
@@ -388,17 +400,27 @@ draw_config :: (app: InbeApp*) #private {
             value_text: [16] char
             snprintf(value_text, sizeof(value_text), "%d s  ",
                      app->patterns.custom[i])
-            value_w := TextWidth(value_text, GetUIFontSize())
-            Text(value_text, x + w - minus_w * 2 - gap - value_w - ScaleUIPx(8),
-                          y, GetUIFontSize(), GetThemeText())
+            value_w := TextWidth(value_text, GetFontSize())
+            Text((TextProps){
+                .bounds={(x + w - minus_w * 2 - gap - value_w - Scale(8)), (y), 0, 0},
+                .text=(value_text),
+                .font=(GetFontSize()),
+                .color=(GetThemeText()),
+                .wrap=TextWrapNone
+            })
             y += btn_h + gap
         }
-        y += ScaleUIPx(6)
+        y += Scale(6)
     }
 
-    Text(GetLocaleText("patterns_duration_label"), x, y,
-                  GetUIFontSize(), GetThemeText())
-    y += ScaleUIPx(30)
+    Text((TextProps){
+        .bounds={(x), (y), 0, 0},
+        .text=(GetLocaleText("patterns_duration_label")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    y += Scale(30)
     duration_values: [5] const int = {0, 3, 5, 10, 20}
     for int i = 0; i < 5; i++ {
         label: [32] char
@@ -419,7 +441,7 @@ draw_config :: (app: InbeApp*) #private {
             save_settings(app)
         }
     }
-    y += btn_h + ScaleUIPx(10)
+    y += btn_h + Scale(10)
 
     meditation_music_draw_practice_settings(app, EXERCISE_PATTERNS,
                                             x, w, &y, 0, 1)
@@ -430,19 +452,19 @@ draw_config :: (app: InbeApp*) #private {
 patterns_config_content_height_cb :: (content_w: int, user_data: void*) -> int #private {
     ctx := (PatternsConfigContext*)user_data
     app: InbeApp* = ctx != nil ? ctx->app : nil
-    btn_h := ScaleUIPx(36)
-    gap := ScaleUIPx(8)
-    height := ScaleUIPx(24)
+    btn_h := Scale(48)
+    gap := Scale(8)
+    height := Scale(24)
 
-    height += ScaleUIPx(30)
-    height += ((PATTERNS_PRESET_COUNT + 1) / 2) * (btn_h + gap) + ScaleUIPx(10)
+    height += Scale(30)
+    height += PATTERNS_PRESET_COUNT * (btn_h + gap) + Scale(10)
     if app != nil && app->patterns.preset == PATTERNS_PRESET_CUSTOM {
-        height += ScaleUIPx(30) + 4 * (btn_h + gap) + ScaleUIPx(6)
+        height += Scale(30) + 4 * (btn_h + gap) + Scale(6)
     }
-    height += ScaleUIPx(30) + btn_h + ScaleUIPx(10)
+    height += Scale(30) + btn_h + Scale(10)
     height += meditation_music_measure_practice_settings(app, EXERCISE_PATTERNS,
                                                          content_w, 0, 1)
-    height += ScaleUIPx(24)
+    height += Scale(24)
     return height
 }
 
@@ -454,20 +476,25 @@ patterns_config_screen_draw :: (app: InbeApp*) {
     draw_config(app)
 }
 
+patterns_draw_session_title_bar :: (app: InbeApp*, title: const char*, height: int) -> int #private {
+    return app_draw_active_practice_title_bar(app, title, height)
+}
+
 patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     ratio: [4] int
     time_text: [32] char
     hover := 0
-    title_h := GetNodeHeight(NodeTabBar((TabBarProps){
-        .bounds = (Rectangle){0, 0, 0, 0}
-    }))
-    circle_text := pattern_text_color_for_background(GetThemeCircle())
-    top_y := 0
+    title_h := app_active_practice_title_height()
+    button_w := view_width - Scale(112)
+    button_h := Scale(56)
+    button_y := 0
+    session_top := 0
+    session_bottom := 0
 
     if app == nil {
         return
     }
-    if app_draw_close_title_bar(app, GetLocaleText("patterns_title"), title_h) {
+    if patterns_draw_session_title_bar(app, GetLocaleText("patterns_title"), title_h) {
         patterns_request_exit(app)
         return
     }
@@ -475,6 +502,11 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
         return
     }
     practice_draw_audio_controls(app)
+    session_top = title_h + Scale(114)
+    session_bottom = view_height - Scale(174)
+    if session_bottom > session_top {
+        center_y = (session_top + session_bottom) / 2 + Scale(8)
+    }
 
     pattern_ratio(app, ratio)
     phase_len := ratio[app->patterns.phase]
@@ -483,6 +515,12 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     }
     progress := ((float)app->patterns.phase_second +
                  (float)app->patterns.second_accumulator) / (float)phase_len
+    if progress < 0.0 {
+        progress = 0.0
+    }
+    if progress > 1.0 {
+        progress = 1.0
+    }
     if app->patterns.phase == PATTERNS_PHASE_INHALE {
         pattern_circle_draw(app, center_x, center_y, 0.25 + progress * 0.75)
     } else if app->patterns.phase == PATTERNS_PHASE_EXHALE {
@@ -494,26 +532,33 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     }
 
     label := GetLocaleText(patterns_phase_label_key(app->patterns.phase))
-    instruction_font := Text24
-    max_instruction_w := view_width - ScaleUIPx(80)
+    circle_text := pattern_text_color_for_background(GetThemeCircle())
+    instruction_font := Text32
+    max_instruction_w := view_width - Scale(80)
 
     if TextWidth(label, instruction_font) > max_instruction_w {
-        instruction_font = Text16
+        instruction_font = Text24
     }
     label_w := TextWidth(label, instruction_font)
-    Text(label, center_x - label_w / 2,
-                  GetUIControlTextY(label,
-                                    center_y - instruction_font,
-                                    instruction_font * 2,
-                                    instruction_font),
-                  instruction_font, circle_text)
+    Text((TextProps){
+        .bounds={(center_x - label_w / 2), (GetUIControlTextY(label, center_y - instruction_font, instruction_font * 2, instruction_font)), 0, 0},
+        .text=(label),
+        .font=(instruction_font),
+        .color=(circle_text),
+        .wrap=TextWrapNone
+    })
 
     snprintf(time_text, sizeof(time_text), "%s %d",
              GetLocaleText("patterns_cycle_label"), app->patterns.cycle + 1)
-    cycle_w := TextWidth(time_text, Text16)
-    top_y = title_h + ScaleUIPx(10)
-    Text(time_text, center_x - cycle_w / 2, top_y,
-                  Text16, DarkenUIColor(GetThemeText(), 30))
+    cycle_font := Text20
+    cycle_w := TextWidth(time_text, cycle_font)
+    Text((TextProps){
+        .bounds={(center_x - cycle_w / 2), (title_h + Scale(24)), 0, 0},
+        .text=(time_text),
+        .font=(cycle_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 
     if app->patterns.duration_minutes > 0 {
         remain: int = app->patterns.duration_minutes * 60 -
@@ -528,22 +573,29 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
                  app->patterns.elapsed_seconds / 60,
                  app->patterns.elapsed_seconds % 60)
     }
-    total_w := TextWidth(time_text, Text16)
-    Text(time_text, center_x - total_w / 2, top_y + ScaleUIPx(24),
-                  Text16, DarkenUIColor(GetThemeText(), 30))
+    timer_font := Text24
+    total_w := TextWidth(time_text, timer_font)
+    Text((TextProps){
+        .bounds={(center_x - total_w / 2), (title_h + Scale(56)), 0, 0},
+        .text=(time_text),
+        .font=(timer_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 
+    button_y = center_y + pattern_circle_max_radius() + Scale(42)
     if app->patterns.paused {
-        if StyledButton(center_x - ScaleUIPx(60), center_y + ScaleUIPx(138),
-                               ScaleUIPx(120), ScaleUIPx(34),
+        if StyledButton(center_x - button_w / 2, button_y,
+                               button_w, button_h,
                                GetLocaleText("patterns_resume_button"),
                                ButtonStylePrimary, 0, &hover) {
             app->patterns.paused = 0
         }
         return
     }
-    if IsKeyPressed(KEY_SPACE) || StyledButton(center_x - ScaleUIPx(60),
-                          center_y + ScaleUIPx(138), ScaleUIPx(120),
-                          ScaleUIPx(34), GetLocaleText("patterns_pause_button"),
+    if IsKeyPressed(KEY_SPACE) || StyledButton(center_x - button_w / 2,
+                          button_y, button_w,
+                          button_h, GetLocaleText("patterns_pause_button"),
                           ButtonStyleSecondary, 0, &hover) {
         app->patterns.paused = 1
     }
@@ -564,10 +616,29 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     }
 }
 
+pattern_circle_max_radius :: () -> int #private {
+    max_r := view_width * 30 / 100
+    available_h := view_height - GetNodeHeight(NodeTabBar((TabBarProps){
+        .bounds = (Rectangle){0, 0, 0, 0}
+    })) - Scale(300)
+    limit_h := available_h / 2
+
+    if max_r > limit_h {
+        max_r = limit_h
+    }
+    if max_r > Scale(136) {
+        max_r = Scale(136)
+    }
+    if max_r < Scale(104) {
+        max_r = Scale(104)
+    }
+    return max_r
+}
+
 pattern_circle_draw :: (app: InbeApp*, center_x: int, center_y: int,
                           fraction: float) #private {
-    min_r := ScaleUIPx(36)
-    max_r := ScaleUIPx(110)
+    max_r := pattern_circle_max_radius()
+    min_r := max_r * 38 / 100
     if fraction < 0.0 {
         fraction = 0.0
     }

@@ -204,7 +204,7 @@ meditation_music_format_download_status :: (out: char*, out_size: size_t,
 
 meditation_music_draw_download_progress :: (app: InbeApp*, x: int, y: int, w: int) #export {
     download: RuntimeAssetDownload*
-    bar_h := ScaleUIPx(10)
+    bar_h := Scale(10)
     fill_w := 0
     bg := GetThemeBackground()
     button := GetThemeButton()
@@ -231,15 +231,15 @@ meditation_music_draw_download_progress :: (app: InbeApp*, x: int, y: int, w: in
     DrawRectangle(x, y, w, bar_h, DarkenUIColor(bg, 28))
     Bevel(x, y, w, bar_h, DarkenUIColor(bg, 55), LightenUIColor(bg, 35))
     if fill_w > 0 {
-        inner_w := fill_w - ScaleUIPx(4)
+        inner_w := fill_w - Scale(4)
 
-        if inner_w < ScaleUIPx(2) {
-            inner_w = ScaleUIPx(2)
+        if inner_w < Scale(2) {
+            inner_w = Scale(2)
         }
-        DrawRectangle(x + ScaleUIPx(2),
-                         y + ScaleUIPx(2),
+        DrawRectangle(x + Scale(2),
+                         y + Scale(2),
                          inner_w,
-                         bar_h - ScaleUIPx(4),
+                         bar_h - Scale(4),
                          button)
     }
 }
@@ -662,7 +662,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
                                                y: int*,
                                                show_installed_download: int,
                                                show_status: int) {
-    button_h := ScaleUIPx(36)
+    button_h := Scale(48)
     button_w: int
     hover := 0
     installed: int
@@ -688,11 +688,13 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         app->meditation.music_practice_mask |= 1 << practice
     }
 
-    Text(GetLocaleText("practice_background_music_label"),
-                  content_x,
-                  *y,
-                  GetUIFontSize(),
-                  GetThemeText())
+    Text((TextProps){
+        .bounds={(content_x), (*y), 0, 0},
+        .text=(GetLocaleText("practice_background_music_label")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 
     track_count = app_audio_music_count(app)
     if track_count > INBE_AUDIO_MUSIC_COUNT_MAX {
@@ -709,9 +711,9 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     }
     if Dropdown(451 + practice,
                             content_x,
-                            *y + ScaleUIPx(26),
+                            *y + Scale(26),
                             content_w,
-                            ScaleUIPx(36),
+                            Scale(48),
                             track_options,
                             track_count + 1,
                             &selection) {
@@ -728,7 +730,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         meditation_music_unload(app)
         save_settings(app)
     }
-    *y += ScaleUIPx(78)
+    *y += Scale(90)
 
     selected_track = app->meditation.music_practice_tracks[practice]
     if selected_track == INBE_AUDIO_MUSIC_NONE {
@@ -742,7 +744,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         } else {
             test_label = GetLocaleText("meditation_music_test_button")
         }
-        button_w = TextWidth(test_label, GetUIFontSize()) + ScaleUIPx(24)
+        button_w = TextWidth(test_label, GetFontSize()) + Scale(24)
         if button_w > content_w {
             button_w = content_w
         }
@@ -758,7 +760,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
                 app->meditation.music_practice_tracks[practice]
             test_track(app)
         }
-        *y += button_h + ScaleUIPx(12)
+        *y += button_h + Scale(12)
     }
 
     if !installed || show_installed_download {
@@ -769,7 +771,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         } else {
             download_label = GetLocaleText("meditation_music_download_button")
         }
-        button_w = TextWidth(download_label, GetUIFontSize()) + ScaleUIPx(24)
+        button_w = TextWidth(download_label, GetFontSize()) + Scale(24)
         if button_w > content_w {
             button_w = content_w
         }
@@ -783,7 +785,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
                                &hover) {
             meditation_music_start_download(app)
         }
-        *y += button_h + ScaleUIPx(12)
+        *y += button_h + Scale(12)
     }
 
     if show_status &&
@@ -793,23 +795,30 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
             meditation_music_format_download_status(download_status,
                                                       sizeof(download_status),
                                                       &app->meditation.music_download)
-            Text(download_status, content_x, *y,
-                          GetUIFontSize(), GetThemeText())
-            *y += ScaleUIPx(28)
+            Text((TextProps){
+                .bounds={(content_x), (*y), 0, 0},
+                .text=(download_status),
+                .font=(GetFontSize()),
+                .color=(GetThemeText()),
+                .wrap=TextWrapNone
+            })
+            *y += Scale(28)
             meditation_music_draw_download_progress(app, content_x, *y, content_w)
-            *y += ScaleUIPx(22)
+            *y += Scale(22)
         } else {
-            Text(app->meditation.music_status,
-                          content_x,
-                          *y,
-                          GetUIFontSize(),
-                          GetThemeText())
-            *y += ScaleUIPx(34)
+            Text((TextProps){
+                .bounds={(content_x), (*y), 0, 0},
+                .text=(app->meditation.music_status),
+                .font=(GetFontSize()),
+                .color=(GetThemeText()),
+                .wrap=TextWrapNone
+            })
+            *y += Scale(34)
         }
     }
 
     draw_attribution(content_x, content_w, y)
-    *y += ScaleUIPx(10)
+    *y += Scale(10)
 }
 
 meditation_music_measure_practice_settings :: (app: InbeApp*,
@@ -818,7 +827,7 @@ meditation_music_measure_practice_settings :: (app: InbeApp*,
                                                   show_installed_download: int,
                                                   show_status: int) -> int {
     installed: int
-    h := ScaleUIPx(78)
+    h := Scale(90)
     selected_track: int
 
     if app == nil {
@@ -834,22 +843,22 @@ meditation_music_measure_practice_settings :: (app: InbeApp*,
 
     installed = meditation_music_available(app)
     if installed {
-        h += ScaleUIPx(48)
+        h += Scale(60)
     }
     if !installed || show_installed_download {
-        h += ScaleUIPx(48)
+        h += Scale(60)
     }
 
     if show_status &&
        (!installed ||
         app->meditation.music_download.status != RUNTIME_ASSET_IDLE) {
         if app->meditation.music_download.status == RUNTIME_ASSET_DOWNLOADING {
-            h += ScaleUIPx(50)
+            h += Scale(50)
         } else {
-            h += ScaleUIPx(34)
+            h += Scale(34)
         }
     }
 
-    h += attribution_height(content_w) + ScaleUIPx(10)
+    h += attribution_height(content_w) + Scale(10)
     return h
 }

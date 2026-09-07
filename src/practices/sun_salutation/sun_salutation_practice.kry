@@ -2,6 +2,7 @@
 #import "app/app_settings.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/sun_salutation/sun_salutation_practice.h"
+#import "screens/practice_screen.h"
 #import "stdio.h"
 
 static pose_sequence: [SUN_SALUTATION_STEP_COUNT] const int = {
@@ -80,6 +81,10 @@ sun_salutation_practice_init :: (app: InbeApp*) {
     if app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_MAN].id == 0 {
         app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_MAN] =
             app_load_asset_texture("practices/sunsalutation/poses_man_sheet.png")
+    }
+    if app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_WOMAN].id == 0 {
+        app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_WOMAN] =
+            app_load_asset_texture("practices/sunsalutation/poses_woman_sheet.png")
     }
     if app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][0].id == 0 {
         app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][0] =
@@ -162,45 +167,47 @@ draw_preview_pose :: (texture: Texture2D, pose_index: int,
 }
 
 preview_height :: (content_w: int) -> int #private {
-    thumb_w := (content_w - ScaleUIPx(22)) / 6
+    thumb_w := (content_w - Scale(22)) / 6
 
-    if thumb_w < ScaleUIPx(34) {
-        thumb_w = ScaleUIPx(34)
+    if thumb_w < Scale(34) {
+        thumb_w = Scale(34)
     }
-    if thumb_w > ScaleUIPx(56) {
-        thumb_w = ScaleUIPx(56)
+    if thumb_w > Scale(56) {
+        thumb_w = Scale(56)
     }
-    return thumb_w * 2 + ScaleUIPx(56)
+    return thumb_w * 2 + Scale(56)
 }
 
 draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
-    label_font := GetUIFontSize()
-    small_font := GetUISmallFontSize()
+    label_font := GetFontSize()
+    small_font := GetSmallFontSize()
     label_w: int
-    thumb_w := (w - ScaleUIPx(22)) / 6
+    thumb_w := (w - Scale(22)) / 6
     thumb_h: int
-    gap := ScaleUIPx(4)
+    gap := Scale(4)
     active_step: int
     preview_step_ticks: int
     row_y: int
     muted := DarkenUIColor(GetThemeText(), 40)
 
-    if thumb_w < ScaleUIPx(34) {
-        thumb_w = ScaleUIPx(34)
+    if thumb_w < Scale(34) {
+        thumb_w = Scale(34)
     }
-    if thumb_w > ScaleUIPx(56) {
-        thumb_w = ScaleUIPx(56)
+    if thumb_w > Scale(56) {
+        thumb_w = Scale(56)
     }
     thumb_h = thumb_w
 
     label_w = TextWidth(GetLocaleText("sun_salutation_tempo_preview_label"),
                             label_font)
-    Text(GetLocaleText("sun_salutation_tempo_preview_label"),
-                  x + (w - label_w) / 2,
-                  y,
-                  label_font,
-                  GetThemeText())
-    y += ScaleUIPx(28)
+    Text((TextProps){
+        .bounds={(x + (w - label_w) / 2), (y), 0, 0},
+        .text=(GetLocaleText("sun_salutation_tempo_preview_label")),
+        .font=(label_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    y += Scale(28)
 
     preview_step_ticks = app->sun_salutation.start_seconds * 60
     if preview_step_ticks <= 0 {
@@ -214,7 +221,7 @@ draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
         row := i / 6
         px := x + col * (thumb_w + gap) +
               (w - (thumb_w * 6 + gap * 5)) / 2
-        py := y + row * (thumb_h + ScaleUIPx(18))
+        py := y + row * (thumb_h + Scale(18))
         pose_index := sun_salutation_step_pose_index(i)
         tint := Fade(WHITE, 0.62f)
 
@@ -238,35 +245,37 @@ draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
             next_col := (i + 1) % 6
 
             if next_col != 0 {
-                DrawLine(px + thumb_w + ScaleUIPx(1),
+                DrawLine(px + thumb_w + Scale(1),
                             py + thumb_h / 2,
-                            px + thumb_w + gap - ScaleUIPx(1),
+                            px + thumb_w + gap - Scale(1),
                             py + thumb_h / 2,
                             muted)
             }
         }
     }
 
-    row_y = y + thumb_h * 2 + ScaleUIPx(26)
+    row_y = y + thumb_h * 2 + Scale(26)
     if TextWidth(GetLocaleText("sun_salutation_tempo_preview_hint"),
                      small_font) <= w {
-        Text(GetLocaleText("sun_salutation_tempo_preview_hint"),
-                      x,
-                      row_y,
-                      small_font,
-                      muted)
+        Text((TextProps){
+            .bounds={(x), (row_y), 0, 0},
+            .text=(GetLocaleText("sun_salutation_tempo_preview_hint")),
+            .font=(small_font),
+            .color=(muted),
+            .wrap=TextWrapNone
+        })
     }
 }
 
 draw_figure_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private {
-    label_font := GetUIFontSize()
-    small_font := GetUISmallFontSize()
+    label_font := GetFontSize()
+    small_font := GetSmallFontSize()
     label_w: int
     row_y: int
-    option_gap := ScaleUIPx(10)
+    option_gap := Scale(10)
     option_w := (w - option_gap) / 2
-    option_h := ScaleUIPx(118)
-    image_h := ScaleUIPx(72)
+    option_h := Scale(118)
+    image_h := Scale(72)
     changed := 0
     mouse := GetMousePosition()
 
@@ -276,12 +285,14 @@ draw_figure_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private 
 
     label_w = TextWidth(GetLocaleText("sun_salutation_figure_label"),
                             label_font)
-    Text(GetLocaleText("sun_salutation_figure_label"),
-                  x + (w - label_w) / 2,
-                  y,
-                  label_font,
-                  GetThemeText())
-    row_y = y + ScaleUIPx(30)
+    Text((TextProps){
+        .bounds={(x + (w - label_w) / 2), (y), 0, 0},
+        .text=(GetLocaleText("sun_salutation_figure_label")),
+        .font=(label_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    row_y = y + Scale(30)
 
     for int i = 0; i < SUN_SALUTATION_ACTIVE_FIGURE_COUNT; i++ {
         bounds := (Rectangle){
@@ -291,9 +302,9 @@ draw_figure_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private 
             (float)option_h
         }
         image_bounds := (Rectangle){
-            bounds.x + ScaleUIPx(8),
-            bounds.y + ScaleUIPx(8),
-            bounds.width - ScaleUIPx(16),
+            bounds.x + Scale(8),
+            bounds.y + Scale(8),
+            bounds.width - Scale(16),
             (float)image_h
         }
         selected := app->sun_salutation.figure == i
@@ -325,11 +336,13 @@ draw_figure_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private 
                              (int)image_bounds.width,
                              (int)image_bounds.height,
                              WHITE)
-        Text(label,
-                      (int)(bounds.x + (bounds.width - text_w) * 0.5f),
-                      (int)(bounds.y + bounds.height - ScaleUIPx(28)),
-                      small_font,
-                      GetThemeText())
+        Text((TextProps){
+            .bounds={((int)(bounds.x + (bounds.width - text_w) * 0.5f)), ((int)(bounds.y + bounds.height - Scale(28))), 0, 0},
+            .text=(label),
+            .font=(small_font),
+            .color=(GetThemeText()),
+            .wrap=TextWrapNone
+        })
 
         if hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
            !UIInputCapturesClick(mouse) && !selected {
@@ -349,11 +362,11 @@ config_content_height :: (content_w: int, user_data: void*) -> int #private {
         return 0
     }
 
-    bottom_padding = app_content_bottom_reserved(ctx->app) + ScaleUIPx(24)
+    bottom_padding = app_content_bottom_reserved(ctx->app) + Scale(24)
     ctx->app->practice_config_tab = 0
-    return (SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 ? ScaleUIPx(148) + ScaleUIPx(16) : 0) +
-           preview_height(content_w) + ScaleUIPx(16) +
-           ScaleUIPx(74) * 3 +
+    return (SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 ? Scale(148) + Scale(16) : 0) +
+           preview_height(content_w) + Scale(16) +
+           Scale(74) * 3 +
            meditation_music_measure_practice_settings(ctx->app,
                                                       EXERCISE_SUN_SALUTATION,
                                                       content_w, 0, 1) +
@@ -361,9 +374,7 @@ config_content_height :: (content_w: int, user_data: void*) -> int #private {
 }
 
 sun_salutation_config_screen_draw :: (app: InbeApp*) {
-    title_h := app_content_top_reserved(app)
-    scroll_y: int
-    scroll_h: int
+    layout := (PracticeSubscreenLayout){0}
     repetitions: int
     start_seconds: int
     end_seconds: int
@@ -375,38 +386,20 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
     normalize_settings(app)
     app->practice_config_tab = 0
 
-    if app->modal.active && app->modal.type == UIModalPracticeConfig {
-        title_h = GetNodeHeight(NodeTitleBar(0))
-        if app_draw_close_title_bar(app,
-                                    GetLocaleText("practice_config_title"),
-                                    title_h) {
-            app_close_modal(app)
-            return
-        }
-    } else if app_draw_close_title_bar(app,
-                                       GetLocaleText("practice_config_title"),
-                                       title_h) {
-        if app->settings_dirty {
-            save_settings(app)
-        }
-        app->settings_scroll = 0
-        app->practice_tab = PRACTICE_TAB_PLAY
-        app_switch_screen(app, InbeScreenStart)
+    practice_screen_config_layout(app, UIModalPracticeConfig, Scale(14),
+                                  &layout)
+    if practice_screen_handle_config_title(app,
+                                           GetLocaleText("practice_configure_button"),
+                                           UIModalPracticeConfig, nil) {
         return
-    }
-
-    scroll_y = title_h + ScaleUIPx(14)
-    scroll_h = view_height - scroll_y - app_content_bottom_reserved(app)
-    if scroll_h < 0 {
-        scroll_h = 0
     }
 
     page_ctx := (ConfigScrollPageContext){app}
     page := BeginUIScrollPage((UIScrollPageSpec){
-        .y = scroll_y,
-        .height = scroll_h,
-        .max_content_width = ScaleUIPx(CONTENT_MAX_W),
-        .min_content_width = ScaleUIPx(320),
+        .y = layout.scroll_y,
+        .height = layout.scroll_h,
+        .max_content_width = Scale(CONTENT_MAX_W),
+        .min_content_width = Scale(320),
         .scroll_offset = &app->settings_scroll,
         .content_height = config_content_height,
         .user_data = &page_ctx
@@ -417,11 +410,11 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         if draw_figure_selector(app, page.content_x, y, page.content_w) {
             save_settings(app)
         }
-        y += ScaleUIPx(148) + ScaleUIPx(16)
+        y += Scale(148) + Scale(16)
     }
 
     draw_preview(app, page.content_x, y, page.content_w)
-    y += preview_height(page.content_w) + ScaleUIPx(16)
+    y += preview_height(page.content_w) + Scale(16)
 
     repetitions = app->sun_salutation.repetitions
     if Slider(610,
@@ -436,7 +429,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         app->sun_salutation.repetitions = repetitions
         save_settings(app)
     }
-    y += ScaleUIPx(74)
+    y += Scale(74)
 
     start_seconds = app->sun_salutation.start_seconds
     if Slider(611,
@@ -452,7 +445,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         normalize_settings(app)
         save_settings(app)
     }
-    y += ScaleUIPx(74)
+    y += Scale(74)
 
     end_seconds = app->sun_salutation.end_seconds
     if Slider(612,
@@ -468,7 +461,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         normalize_settings(app)
         save_settings(app)
     }
-    y += ScaleUIPx(74)
+    y += Scale(74)
 
     meditation_music_draw_practice_settings(app, EXERCISE_SUN_SALUTATION,
                                             page.content_x, page.content_w,

@@ -1,9 +1,6 @@
 [results_write_failed]
 Perubahan tidak dapat disimpan. Silakan coba lagi.
 ---
-[practice_repeat_button]
-Ulangi latihan terakhir
----
 [app_title]
 Inner Breeze
 ---
@@ -370,12 +367,6 @@ Waktu ronde
 [settings_title]
 Pengaturan
 ---
-[settings_section_breathing]
-Pernapasan
----
-[settings_section_session]
-Sesi
----
 [settings_tab_device]
 Perangkat
 ---
@@ -570,12 +561,14 @@ Temukan ritme yang terasa alami: stabil dan cepat, tetapi tetap bernapas penuh.
 ---
 [tutorial_step_exhale_hold]
 Setelah 30 napas, hembuskan dan tahan selama mungkin.
-
+---
+[tutorial_step_exhale_hold_hint]
 Saat ingin bernapas, tekan tombol NAPAS.
 ---
 [tutorial_step_inhale_hold]
 Tarik napas penuh dan tahan selama 15 detik.
-
+---
+[tutorial_step_inhale_hold_hint]
 Hembuskan, lalu ronde berikutnya akan mulai.
 ---
 [share_sheet_title]
@@ -970,9 +963,6 @@ Ketuk lingkaran untuk menandai hari. Ketuk kartu untuk detail; seret judulnya un
 ---
 [habits_today]
 Hari ini
----
-[habits_drag_hint]
-Seret judul kartu untuk mengurutkan
 ---
 [habits_guide_meditation_views]
 Tampilan mingguan dan kalender menunjukkan kebiasaan ini.
@@ -1719,15 +1709,6 @@ Langkah %d dari %d
 [tutorial_safety_warning]
 Jangan pernah berlatih saat mengemudi, berdiri, atau di dalam air.
 ---
-[tutorial_current_speed]
-Kecepatan saat ini: %d
----
-[tutorial_change_in_customize]
-Ubah di Sesuaikan.
----
-[tutorial_during_practice]
-Selama latihan
----
 [back_button]
 Kembali
 ---
@@ -1747,10 +1728,13 @@ Atur pengulangan serta tempo awal dan akhir di Sesuaikan. Mulailah perlahan saat
 Pilih pola dengan ritme yang sesuai tujuan Anda. Kotak seimbang, 4-7-8 menenangkan, Koheren lembut, dan Hembusan panjang memperpanjang pelepasan.
 ---
 [patterns_manual_phases_text]
-Ikuti Tarik napas, Tahan, Buang napas, dan Tahan saat menyala. Fase berdurasi nol dilewati otomatis.
+Baca siklus dari atas ke bawah. Angka di kanan menunjukkan durasi tiap fase; nol berarti fase itu dilewati.
 ---
 [patterns_manual_customize_text]
-Atur panjang fase dan durasi sesi di Sesuaikan. Bernapaslah dengan ringan; berhenti jika pusing atau tidak nyaman.
+Pilih durasi sesi sebelum mulai. Bernapaslah dengan ringan; berhenti jika merasa pusing atau tidak nyaman.
+---
+[patterns_ready_label]
+Siap
 ---
 [habit_color_label]
 Warna

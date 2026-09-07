@@ -47,10 +47,10 @@ meditation_manual_content_height :: (content_w: int, user_data: void*) -> int #p
                          "meditation_manual_customize_text", content_w)
 
     if ctx->page == 0 {
-        return ScaleUIPx(230 + 12 + 54) +
+        return Scale(230 + 12 + 54) +
                GetNodeHeight(NodeParagraph(paragraph, 0, 0))
     }
-    return ScaleUIPx(230 + 12 + 54) +
+    return Scale(230 + 12 + 54) +
            GetNodeHeight(NodeParagraph(paragraph, 0, 0))
 }
 
@@ -61,7 +61,7 @@ meditation_manual_draw_page :: (app: InbeApp*, page: UIScrollPage,
                                  "meditation_manual_customize_text"
 
     hero_y := *y
-    hero_h := ScaleUIPx(230)
+    hero_h := Scale(230)
     hero := manual_screen_hero_bounds(page.content_x, page.content_w,
                                       hero_y, hero_h)
 
@@ -74,13 +74,13 @@ meditation_manual_draw_page :: (app: InbeApp*, page: UIScrollPage,
         center_y := hero_y + hero_h / 2
 
         DrawRectangleRounded(hero, 0.08f, 10, GetThemeSurface())
-        DrawCircle(center_x, center_y, ScaleUIPx(68),
+        DrawCircle(center_x, center_y, Scale(68),
                    Fade(GetThemeCircle(), 0.24f))
-        DrawCircle(center_x, center_y, ScaleUIPx(48), GetThemeCircle())
+        DrawCircle(center_x, center_y, Scale(48), GetThemeCircle())
         Text((TextProps){
-            .bounds = {(float)(center_x - ScaleUIPx(48)),
-                       (float)(center_y - ScaleUIPx(48)),
-                       (float)ScaleUIPx(96), (float)ScaleUIPx(96)},
+            .bounds = {(float)(center_x - Scale(48)),
+                       (float)(center_y - Scale(48)),
+                       (float)Scale(96), (float)Scale(96)},
             .text = GetLocaleText("meditation_title"),
             .color = GetThemeReadableText(GetThemeCircle()),
             .wrap = TextWrapNone,
@@ -89,7 +89,7 @@ meditation_manual_draw_page :: (app: InbeApp*, page: UIScrollPage,
         })
     }
     manual_screen_draw_hero_progress(hero, step, MEDITATION_MANUAL_PAGES)
-    *y += hero_h + ScaleUIPx(12)
+    *y += hero_h + Scale(12)
     manual_screen_draw_guide_header(GetLocaleText(title_key), step,
                                     MEDITATION_MANUAL_PAGES,
                                     page.content_x, y, page.content_w)
@@ -109,16 +109,15 @@ meditation_manual_draw :: (app: InbeApp*) {
     practice_screen_manual_layout(app, UIModalPracticeManual,
                                   MEDITATION_MANUAL_PAGES,
                                   manual_screen_tutorial_top_gap(), 0,
-                                  ScaleUIPx(120), &layout)
+                                  Scale(120), &layout)
     manual_screen_draw_title_bar(app, GetLocaleText("meditation_manual_title"),
                                  layout.title_h, meditation_manual_close)
-
     page_ctx := (MeditationManualPageContext){step}
     page := BeginUIScrollPage((UIScrollPageSpec){
         .y = layout.content_y,
         .height = layout.content_h,
         .max_content_width = responsive_max_w,
-        .min_content_width = ScaleUIPx(200),
+        .min_content_width = Scale(200),
         .side_padding = manual_screen_tutorial_side_padding(),
         .scroll_offset = &app->manual_scroll,
         .content_height = meditation_manual_content_height,

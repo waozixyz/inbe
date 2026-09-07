@@ -74,6 +74,12 @@ bottom_nav_should_draw :: (app: InbeApp*) -> int #private {
     if app == NULL {
         return 0
     }
+    if app_nav_desktop_rail_enabled(app) {
+        return 0
+    }
+    if app->inbe.screen == InbeScreenHabitEdit {
+        return 0
+    }
     if app->file_dialog_active {
         return 0
     }
@@ -86,11 +92,145 @@ bottom_nav_should_draw :: (app: InbeApp*) -> int #private {
     return app_current_nav_route(app) != APP_NAV_ROUTE_NONE || bottom_nav_blank_home(app)
 }
 
+bottom_nav_draw_icon :: (icon: Texture2D, bounds: Rectangle, tint: Color) #private {
+    if icon.id == 0 {
+        return
+    }
+    DrawTexturePro(icon,
+                   (Rectangle){0, 0, (float)icon.width, (float)icon.height},
+                   bounds, (Vector2){0}, 0.0f, tint)
+}
+
+desktop_rail_route_active :: (app: InbeApp*, route: int) -> int #private {
+    if route == APP_NAV_ROUTE_STACK {
+        return app != NULL && (app->nav_sidebar_open ||
+                               app_nav_sidebar_screen_active(app) ||
+                               app->inbe.screen == InbeScreenSettings)
+    }
+    return bottom_nav_route_active(app, route)
+}
+
+desktop_rail_route_label :: (route: int) -> const char* #private {
+    if route == APP_NAV_ROUTE_STACK {
+        return GetLocaleText("settings_title")
+    }
+    return app_nav_route_label(route)
+}
+
+desktop_rail_button :: (app: InbeApp*, route: int, y: int) -> int #private {
+    rail_w := app_nav_desktop_rail_width()
+    margin := Scale(6)
+    item_w := rail_w - margin * 2
+    item_h := Scale(104)
+    icon_size := Scale(34)
+    icon := bottom_nav_route_icon(app, route)
+    label := desktop_rail_route_label(route)
+    mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
+    bounds := (Rectangle){(float)margin, (float)y, (float)item_w, (float)item_h}
+    active := desktop_rail_route_active(app, route)
+    hover := CheckCollisionPointRec(mouse, bounds) && !UIInputCapturesClick(mouse)
+    fill := Fade(GetThemeSurface(), 0.0f)
+    border := Fade(GetThemeText(), 0.0f)
+    tint := Fade(GetThemeText(), 0.76f)
+    label_font := Text16
+    label_w := TextWidth(label, label_font)
+    icon_x := margin + (item_w - icon_size) / 2
+    icon_y := y + Scale(28)
+
+    if active {
+        fill = Fade(GetThemeButton(), 0.24f)
+        border = Fade(GetThemeButtonHover(), 0.70f)
+        tint = LightenUIColor(GetThemeButtonHover(), 42)
+    } else if hover {
+        fill = Fade(GetThemeSurface(), 0.34f)
+        border = Fade(GetThemeText(), 0.16f)
+        tint = GetThemeText()
+    }
+
+    if active || hover {
+        DrawRectangleRounded(bounds, 0.08f, 10, fill)
+        DrawRectangleRoundedLinesEx(bounds, 0.08f, 10,
+                                    active ? 2.0f : 1.0f, border)
+    }
+    bottom_nav_draw_icon(icon,
+                         (Rectangle){(float)icon_x, (float)icon_y,
+                                     (float)icon_size, (float)icon_size},
+                         tint)
+    Text((TextProps){
+        .bounds = {(float)(margin + (item_w - label_w) / 2),
+                   (float)(y + Scale(68)), 0, 0},
+        .text = label,
+        .font = label_font,
+        .color = tint,
+        .wrap = TextWrapNone
+    })
+
+    if hover {
+        MarkUIClickable()
+        if !app->modal.active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+            UIConsumeRelease()
+            app_apply_nav_route(app, route)
+            return 1
+        }
+    }
+    return 0
+}
+
+app_draw_desktop_nav_rail :: (app: InbeApp*) #private {
+    rail_w := app_nav_desktop_rail_width()
+    route_y := Scale(184)
+    gap := Scale(18)
+    logo_size := Scale(52)
+    logo_x := (rail_w - logo_size) / 2
+    footer_y := view_height - Scale(142)
+    routes: [3] int = {
+        APP_NAV_ROUTE_HABITS,
+        APP_NAV_ROUTE_PRACTICE,
+        APP_NAV_ROUTE_PROFILE
+    }
+
+    if app == NULL || !app_nav_desktop_rail_enabled(app) {
+        return
+    }
+
+    DrawRectangle(0, 0, rail_w, view_height,
+                  DarkenUIColor(GetThemeBackground(), 9))
+    DrawRectangleGradientH(rail_w - Scale(28), 0, Scale(28), view_height,
+                           Fade(GetThemeBackground(), 0.22f),
+                           Fade(GetThemeBackground(), 0.0f))
+    DrawLine(rail_w - 1, 0, rail_w - 1, view_height,
+             Fade(GetThemeText(), 0.12f))
+
+    DrawCircle(rail_w / 2, Scale(68), logo_size / 2,
+               LightenUIColor(GetThemeButton(), 30))
+    bottom_nav_draw_icon(app->icons[UI_ICON_TYPE_PFP_MOUNTAIN],
+                         (Rectangle){(float)logo_x, (float)Scale(42),
+                                     (float)logo_size, (float)logo_size},
+                         WHITE)
+
+    for int i = 0; i < 3; i++ {
+        if desktop_rail_button(app, routes[i], route_y) {
+            return
+        }
+        route_y += Scale(104) + gap
+    }
+
+    DrawLine(Scale(30), footer_y - Scale(18), rail_w - Scale(30),
+             footer_y - Scale(18), Fade(GetThemeText(), 0.16f))
+    desktop_rail_button(app, APP_NAV_ROUTE_STACK, footer_y)
+}
+
 app_draw_bottom_nav :: (app: InbeApp*) {
     routes := (int[APP_BOTTOM_NAV_CONTENT_MAX + 1]){0}
     route_count := 0
     items := (BottomNavItem[APP_BOTTOM_NAV_CONTENT_MAX + 1]){0}
     result := (BottomNavResult){0}
+
+    if app != NULL && app_nav_desktop_rail_enabled(app) {
+        app_draw_desktop_nav_rail(app)
+        app_draw_nav_sidebar(app)
+        return
+    }
 
     if app != NULL && (app->nav_sidebar_open || app_nav_sidebar_screen_active(app)) {
         app_draw_nav_sidebar(app)

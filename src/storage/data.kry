@@ -62,6 +62,16 @@ data_root :: () -> const char* {
         return g_data_root
     }
 
+    # Desktop screenshot and test runs must never seed the real user's database.
+    #if !WEB && !ANDROID {
+        override_root: const char* = getenv("INBE_DATA_ROOT")
+        if override_root != nil && override_root[0] != '\0' {
+            snprintf(g_data_root, sizeof(g_data_root), "%s", override_root)
+            ensure_dir(g_data_root)
+            return g_data_root
+        }
+    }
+
     #if WEB {
         snprintf(g_data_root, sizeof(g_data_root), "/home/inbe")
     } #else_if ANDROID {
@@ -162,7 +172,7 @@ data_delete_session :: (path: const char*) -> int {
 
 data_discard_session :: (path: const char*) -> int {
     data_init()
-    return storage_discard_session(path)
+    return storage_delete_session(path)
 }
 
 data_save_session_checkin :: (path: const char*,

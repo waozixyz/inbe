@@ -5,6 +5,7 @@
 #include "sync_client.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
+#include "practices/session_results.h"
 #include "screens/practice_screen.h"
 #include <stdio.h>
 #include <string.h>
@@ -30,10 +31,55 @@ EM_JS(void, inbe_web_extension_break_now_js, (int break_type), {
     }
 });
 
-static KsyncAccount web_test_source_account;
+static SyncAccount web_test_source_account;
 static uint8_t web_test_public_key[1312];
 static uint8_t web_test_private_key[2560];
 static int web_test_sync_key_import_status;
+static char web_test_completed_session[FS_PATH_MAX];
+static int web_test_completion_stage;
+void app_web_launch_practice(int practice_id);
+
+EMSCRIPTEN_KEEPALIVE
+int app_web_test_complete_practice(void)
+{
+    InbeApp *app = get_global_inbe_app();
+    if(app == NULL) return 0;
+    web_test_completion_stage = 1;
+    app->meditation.duration_mode = 5;
+    app->meditation.custom_minutes = 1;
+    app->meditation.show_extend_controls = 0;
+    app->inbe.play_in_background = 1;
+    app_web_launch_practice(EXERCISE_MEDITATION);
+    web_test_completion_stage = 2;
+    practice_active_advance_elapsed(app, 1000);
+    app->session_paused = 1;
+    practice_active_advance_elapsed(app, 30000);
+    if(app->meditation.remaining_seconds != 59) return 0;
+    web_test_completion_stage = 3;
+    app->session_paused = 0;
+    practice_active_advance_elapsed(app, 59000);
+    if(!app->session_result.active || !app->session_result.saved) return 0;
+    web_test_completion_stage = 4;
+    snprintf(web_test_completed_session, sizeof(web_test_completed_session), "%s", app->session_result.path);
+    storage_set_setting_text("test_completed_session", web_test_completed_session);
+    app->session_result.mood = 4;
+    session_result_done(app);
+    web_test_completion_stage = app->session_result.active ? 5 : 6;
+    sync_web_storage_critical();
+    return !app->session_result.active;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int app_web_test_completion_stage(void) { return web_test_completion_stage; }
+
+EMSCRIPTEN_KEEPALIVE
+int app_web_test_completed_practice_persisted(void)
+{
+    InbeStorageSessionCheckin checkin = {0};
+    const char *path = storage_get_setting_text("test_completed_session");
+    return path != NULL && storage_load_session_checkin(path, &checkin) &&
+           checkin.mood_after == 4;
+}
 
 static void
 web_test_bytes_to_hex(const uint8_t *bytes, size_t len, char *out, size_t out_size)
@@ -50,7 +96,7 @@ web_test_bytes_to_hex(const uint8_t *bytes, size_t len, char *out, size_t out_si
 }
 
 static void
-web_test_make_sync_account(KsyncAccount *account)
+web_test_make_sync_account(SyncAccount *account)
 {
     if(account == NULL)
         return;
@@ -520,11 +566,11 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_sync_key_state(void)
 {
-    KsyncAccount *source = &web_test_source_account;
+    SyncAccount *source = &web_test_source_account;
 
     if(web_test_sync_key_import_status != 1)
         return web_test_sync_key_import_status;
-    if(!HasKsyncAccountValues(source))
+    if(!HasSyncAccountValues(source))
         return -10;
     return 1;
 }
@@ -533,13 +579,13 @@ EMSCRIPTEN_KEEPALIVE
 void
 app_web_test_import_sync_key(void)
 {
-    KsyncAccount *source = &web_test_source_account;
+    SyncAccount *source = &web_test_source_account;
 
     web_test_sync_key_import_status = 0;
     data_init();
 
     web_test_make_sync_account(source);
-    if(!HasKsyncAccountValues(source)) {
+    if(!HasSyncAccountValues(source)) {
         web_test_sync_key_import_status = -1;
         return;
     }
@@ -551,28 +597,6 @@ app_web_test_import_sync_key(void)
     storage_set_sync_server_connected(0);
     storage_settings_end_write();
     web_test_sync_key_import_status = 1;
-}
-
-EMSCRIPTEN_KEEPALIVE
-int
-app_web_test_habits_click_x(void)
-{
-    InbeApp *app = get_global_inbe_app();
-    int x = 0;
-    int y = 0;
-
-    return habits_overview_test_click_point(app, &x, &y) ? x : -1;
-}
-
-EMSCRIPTEN_KEEPALIVE
-int
-app_web_test_habits_click_y(void)
-{
-    InbeApp *app = get_global_inbe_app();
-    int x = 0;
-    int y = 0;
-
-    return habits_overview_test_click_point(app, &x, &y) ? y : -1;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -594,6 +618,14 @@ app_web_test_show_practice_home(void)
     if(app->modal.active)
         app_close_modal(app);
     app->inbe.screen = InbeScreenStart;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_practice_selected(void)
+{
+    InbeApp *app = get_global_inbe_app();
+    return app != NULL ? app->exercise_type : -1;
 }
 
 EMSCRIPTEN_KEEPALIVE

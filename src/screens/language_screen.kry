@@ -6,11 +6,11 @@ language_screen_draw :: (app: InbeApp*) {
     }
 
     title_font := 0
-    label_font := GetUIFontSize()
+    label_font := GetFontSize()
     title_w := 0
     content_x := 0
     content_w := 0
-    dropdown_h := ScaleUIPx(36)
+    dropdown_h := Scale(36)
     dropdown_w := 0
     dropdown_x := 0
     dropdown_y := 0
@@ -28,12 +28,12 @@ language_screen_draw :: (app: InbeApp*) {
         *selected_index = 0
     }
 
-    GetUICenteredColumn(ScaleUIPx(340), GetUIPageSidePadding(), &content_x, &content_w)
+    GetUICenteredColumn(Scale(340), GetUIPageSidePadding(), &content_x, &content_w)
     dropdown_w = content_w
     dropdown_x = content_x
     dropdown_y = view_height / 2 - dropdown_h / 2
     button_x = view_width / 2
-    button_y = dropdown_y + ScaleUIPx(64)
+    button_y = dropdown_y + Scale(64)
 
     if LocaleDropdown(260, dropdown_x, dropdown_y, dropdown_w, dropdown_h, selected_index) {
         selection_changed = 1
@@ -44,10 +44,22 @@ language_screen_draw :: (app: InbeApp*) {
         app->settings_save_delay_ticks = 18
     }
 
-    title_font = GetUITitleFontSize(GetLocaleText("language_picker_title"), content_w)
+    title_font = GetTitleFontSize(GetLocaleText("language_picker_title"), content_w)
     title_w = TextWidth(GetLocaleText("language_picker_title"), title_font)
-    Text(GetLocaleText("language_picker_title"), view_width / 2 - title_w / 2, ScaleUIPx(28), title_font, GetThemeText())
-    Text(GetLocaleText("language_label"), dropdown_x, dropdown_y - ScaleUIPx(24), label_font, GetThemeText())
+    Text((TextProps){
+        .bounds={(view_width / 2 - title_w / 2), (Scale(28)), 0, 0},
+        .text=(GetLocaleText("language_picker_title")),
+        .font=(title_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    Text((TextProps){
+        .bounds={(dropdown_x), (dropdown_y - Scale(24)), 0, 0},
+        .text=(GetLocaleText("language_label")),
+        .font=(label_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
     if TextButton(0, button_x, button_y, GetLocaleText("next_button"), &next_hover) {
         app_accept_language_selection(app)
         app->main_tab = APP_MAIN_TAB_PRACTICE

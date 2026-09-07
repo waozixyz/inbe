@@ -338,7 +338,7 @@ remote_snapshot_response(void)
            "00Z\"}],"
            "\"sessions\":[{\"id\":\"remote-session\",\"started_at\":\"2026-06-"
            "24T10:00:00Z\","
-           "\"local_date\":20260624,\"topic\":2,\"activity\":2,\"source\":\"ksync-"
+           "\"local_date\":20260624,\"topic\":2,\"activity\":2,\"source\":\"sync-"
            "test\","
            "\"rounds_hash\":202,\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:"
            "00:00Z\","
@@ -361,7 +361,7 @@ deleted_only_remote_snapshot_response(void)
            "\"habit_days\":[],"
            "\"sessions\":[{\"id\":\"deleted-session\",\"started_at\":\"2026-06-"
            "24T10:00:00Z\","
-           "\"local_date\":20260624,\"topic\":2,\"activity\":3,\"source\":\"ksync-"
+           "\"local_date\":20260624,\"topic\":2,\"activity\":3,\"source\":\"sync-"
            "test\","
            "\"rounds_hash\":202,\"deleted_at\":1782300000,\"updated_at\":\"2026-"
            "06-24T10:00:00Z\","
@@ -414,7 +414,7 @@ remote_clean_v3_response(void)
            "\"habit_days\":[{\"habit_id\":\"clean-habit\",\"local_date\":20260624,"
            "\"completed\":true,\"count\":5,\"updated_at\":\"2026-06-24T10:00:00Z\"}],"
            "\"sessions\":[{\"id\":\"clean-session\",\"started_at\":\"2026-06-24T10:00:00Z\","
-           "\"local_date\":20260624,\"topic\":2,\"activity\":2,\"source\":\"ksync-test\","
+           "\"local_date\":20260624,\"topic\":2,\"activity\":2,\"source\":\"sync-test\","
            "\"rounds_hash\":505,\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:00:00Z\","
            "\"rounds\":[{\"round_index\":0,\"hold_seconds\":44}]}],"
            "\"meditation_logs\":[]"
@@ -436,7 +436,7 @@ remote_tiny_session_snapshot_response(void)
            "\"habit_days\":[],"
            "\"sessions\":[{\"id\":\"tiny-remote-session\",\"started_at\":\"2026-06-24T10:"
            "05:00Z\","
-           "\"local_date\":20260624,\"topic\":1,\"activity\":1,\"source\":\"ksync-"
+           "\"local_date\":20260624,\"topic\":1,\"activity\":1,\"source\":\"sync-"
            "test\","
            "\"rounds_hash\":404,\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:"
            "05:00Z\","
@@ -755,10 +755,10 @@ test_sync_payload_includes_v2_ops(void)
               1);
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
-    check_contains("v5 payload protocol", payload, "\"protocol_version\":5");
-    check_contains("v5 payload app id", payload, "\"app_id\":\"inbe\"");
-    check_contains("v5 payload capabilities", payload, "\"client_capabilities\"");
-    check_contains("v5 payload legacy data opt-in", payload, "\"include_legacy_data\":true");
+    check_contains("v6 payload protocol", payload, "\"protocol_version\":6");
+    check_contains("v6 payload app id", payload, "\"app_id\":\"inbe\"");
+    check_contains("v6 payload capabilities", payload, "\"client_capabilities\"");
+    check_contains("v6 payload legacy data opt-in", payload, "\"include_legacy_data\":true");
     check_contains("v2 payload client clock", payload, "\"client_clock\":0");
     check_contains("v2 payload ops array", payload, "\"ops\":[");
     check_contains("v2 payload habit op", payload, "\"entity_type\":\"habit\"");
@@ -785,7 +785,7 @@ test_normal_response_records_server_hash(void)
     const char *response = "{"
                            "\"server_version\":5,"
                            "\"server_clock\":77,"
-                           "\"latest_protocol\":5,"
+                           "\"latest_protocol\":6,"
                            "\"server_state_hash\":\"normal-hash-001\","
                            "\"account_alias\":\"waozi\","
                            "\"changes\":{\"habits\":[],\"habit_days\":[],"
@@ -820,9 +820,9 @@ test_latest_protocol_warning_targets_current_client_only(void)
     char root[1024];
     InbeStorageSyncStatus status;
     const char *response = "{"
-                           "\"server_version\":6,"
+                           "\"server_version\":7,"
                            "\"server_clock\":78,"
-                           "\"latest_protocol\":6,"
+                           "\"latest_protocol\":7,"
                            "\"changes\":{\"habits\":[],\"habit_days\":[],"
                            "\"sessions\":[],\"meditation_logs\":[]}"
                            "}";
@@ -831,7 +831,7 @@ test_latest_protocol_warning_targets_current_client_only(void)
     check_true("init latest protocol db", storage_init(root));
     check_true("apply newer protocol response", storage_apply_sync_response_json(response));
     check_true("newer protocol loads status", storage_sync_status(&status));
-    check_int("newer protocol recorded", status.latest_protocol, 6);
+    check_int("newer protocol recorded", status.latest_protocol, 7);
     check_true("newer protocol warns current client", status.protocol_upgrade_available);
 
     storage_close();

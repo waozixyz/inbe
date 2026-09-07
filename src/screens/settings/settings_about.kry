@@ -5,12 +5,12 @@
 
 about_link_icon_columns :: (content_w: int) -> int #private {
     link_count := 3
-    icon_size := ScaleUIPx(32)
-    icon_padding := ScaleUIPx(4)
-    icon_spacing := ScaleUIPx(20)
+    icon_size := Scale(32)
+    icon_padding := Scale(4)
+    icon_spacing := Scale(20)
     icon_btn_w := icon_size + icon_padding * 2
     max_columns := link_count
-    min_columns := content_w >= ScaleUIPx(240) ? 3 : 2
+    min_columns := content_w >= Scale(240) ? 3 : 2
 
     for int columns = max_columns; columns >= min_columns; columns-- {
         total_w := icon_btn_w * columns + icon_spacing * (columns - 1)
@@ -23,9 +23,9 @@ about_link_icon_columns :: (content_w: int) -> int #private {
 
 about_link_icons_height :: (content_w: int) -> int #private {
     link_count := 3
-    icon_size := ScaleUIPx(32)
-    icon_padding := ScaleUIPx(4)
-    row_spacing := ScaleUIPx(16)
+    icon_size := Scale(32)
+    icon_padding := Scale(4)
+    row_spacing := Scale(16)
     icon_btn_w := icon_size + icon_padding * 2
     columns := about_link_icon_columns(content_w)
     rows := (link_count + columns - 1) / columns
@@ -37,27 +37,27 @@ settings_about_content_height :: (content_w: int) -> int {
     description := (ParagraphSpec){
         .text = GetLocaleText("about_text"),
         .width = content_w,
-        .font = GetUIFontSize(),
-        .line_gap = ScaleUIPx(4),
+        .font = GetFontSize(),
+        .line_gap = Scale(4),
         .color = DarkenUIColor(GetThemeText(), 35)
     }
-    update_row := inbe_update_available() != 0 ? ScaleUIPx(72) : 0
+    update_row := inbe_update_available() != 0 ? Scale(72) : 0
 
-    return ScaleUIPx(248) + update_row +
+    return Scale(248) + update_row +
            GetNodeHeight(NodeParagraph(description, 0, 0)) +
            about_link_icons_height(content_w)
 }
 
 about_draw_link_icons :: (app: InbeApp*, content_x: int, content_w: int, y: int*) #private {
     link_count := 3
-    icon_size := ScaleUIPx(32)
-    icon_padding := ScaleUIPx(4)
-    icon_spacing := ScaleUIPx(20)
+    icon_size := Scale(32)
+    icon_padding := Scale(4)
+    icon_spacing := Scale(20)
     icon_btn_w := icon_size + icon_padding * 2
     columns := about_link_icon_columns(content_w)
     grid_w := icon_btn_w * columns + icon_spacing * (columns - 1)
     links_start_x := content_x + (content_w - grid_w) / 2
-    row_spacing := ScaleUIPx(16)
+    row_spacing := Scale(16)
     icons: [3] Texture2D = {
         app->icons[UI_ICON_TYPE_PLATFORMS_DISCORD],
         app->icons[UI_ICON_TYPE_PLATFORMS_TELEGRAM],
@@ -81,8 +81,8 @@ about_draw_link_icons :: (app: InbeApp*, content_x: int, content_w: int, y: int*
 
 about_draw_donate_button :: (app: InbeApp*, content_x: int, content_w: int, y: int*) #private {
     hover := 0
-    button_h := ScaleUIPx(38)
-    button_w := ScaleUIPx(220)
+    button_h := Scale(38)
+    button_w := Scale(220)
 
     if button_w > content_w {
         button_w = content_w
@@ -99,34 +99,51 @@ about_draw_donate_button :: (app: InbeApp*, content_x: int, content_w: int, y: i
 
 settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     version_text: [32] char = {0}
-    title_font := GetUITitleFontSize(GetLocaleText("app_title"), w)
-    font := GetUIFontSize()
-    logo_size := ScaleUIPx(56)
+    title_font := GetTitleFontSize(GetLocaleText("app_title"), w)
+    font := GetFontSize()
+    logo_size := Scale(56)
     text_w := 0
     muted := DarkenUIColor(GetThemeText(), 35)
     description := (ParagraphSpec){0}
 
-    *y += ScaleUIPx(16)
+    *y += Scale(16)
     Icon(0, x + (w - logo_size) / 2, *y, logo_size,
          UI_ICON_TYPE_PROJ_WAO, WHITE)
-    *y += logo_size + ScaleUIPx(12)
+    *y += logo_size + Scale(12)
 
     text_w = TextWidth(GetLocaleText("app_title"), title_font)
-    Text(GetLocaleText("app_title"), x + (w - text_w) / 2,
-                  *y, title_font, GetThemeText())
-    *y += ScaleUIPx(34)
+    Text((TextProps){
+        .bounds={(x + (w - text_w) / 2), (*y), 0, 0},
+        .text=(GetLocaleText("app_title")),
+        .font=(title_font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(34)
 
     snprintf(version_text, sizeof(version_text), "v%s", INBE_VERSION_STRING)
     text_w = TextWidth(version_text, font)
-    Text(version_text, x + (w - text_w) / 2, *y, font, muted)
-    *y += ScaleUIPx(28)
+    Text((TextProps){
+        .bounds={(x + (w - text_w) / 2), (*y), 0, 0},
+        .text=(version_text),
+        .font=(font),
+        .color=(muted),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(28)
 
     if inbe_update_available() != 0 {
         if inbe_update_can_self_update() != 0 {
             /* Self-service channels (AppImage, Windows portable): a row that
              * walks check -> download -> verified -> restart. */
-            Text(inbe_update_row_text(), x, *y, font, GetThemeText())
-            *y += ScaleUIPx(26)
+            Text((TextProps){
+                .bounds={(x), (*y), 0, 0},
+                .text=(inbe_update_row_text()),
+                .font=(font),
+                .color=(GetThemeText()),
+                .wrap=TextWrapNone
+            })
+            *y += Scale(26)
             if inbe_update_is_downloading() != 0 {
                 fraction := inbe_update_download_fraction()
                 progress: int = fraction >= 0.0 ?
@@ -139,15 +156,20 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
                     snprintf(progress_text, sizeof(progress_text), "%s",
                              GetLocaleText("update_downloading"))
                 }
-                Text(progress_text, x, *y, Text12,
-                             DarkenUIColor(GetThemeText(), 28))
-                *y += ScaleUIPx(22)
+                Text((TextProps){
+                    .bounds={(x), (*y), 0, 0},
+                    .text=(progress_text),
+                    .font=(Text12),
+                    .color=(DarkenUIColor(GetThemeText(), 28)),
+                    .wrap=TextWrapNone
+                })
+                *y += Scale(22)
             } else {
                 buttons: [1] UIButtonRowItem = {
                     {inbe_update_action_label(), ButtonStyleSecondary, 0}
                 }
                 row := (ButtonRowProps){.x = x, .y = *y, .width = w,
-                                        .height = ScaleUIPx(36),
+                                        .height = Scale(36),
                                         .items = buttons, .count = 1}
                 if ButtonRow(row) == 1 {
                     inbe_update_row_action()
@@ -156,9 +178,14 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
             }
             error_text := inbe_update_error_text()
             if error_text[0] != '\0' {
-                Text(error_text, x, *y, Text12,
-                             DarkenUIColor(GetThemeText(), 28))
-                *y += ScaleUIPx(20)
+                Text((TextProps){
+                    .bounds={(x), (*y), 0, 0},
+                    .text=(error_text),
+                    .font=(Text12),
+                    .color=(DarkenUIColor(GetThemeText(), 28)),
+                    .wrap=TextWrapNone
+                })
+                *y += Scale(20)
             }
         } else {
             /* System-managed or source installs: link out to the release. */
@@ -166,28 +193,28 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
             update_w := TextWidth(update_text, font)
             Href((HrefProps){
                 .bounds = {(float)(x + (w - update_w) / 2), (float)*y,
-                           (float)update_w, (float)ScaleUIPx(24)},
+                           (float)update_w, (float)Scale(24)},
                 .text = update_text,
                 .href = inbe_update_download_url(),
                 .font = font,
             })
-            *y += ScaleUIPx(30)
+            *y += Scale(30)
         }
-        *y += ScaleUIPx(8)
+        *y += Scale(8)
     }
 
     description = (ParagraphSpec){
         .text = GetLocaleText("about_text"),
         .width = w,
         .font = font,
-        .line_gap = ScaleUIPx(4),
+        .line_gap = Scale(4),
         .color = muted
     }
     Paragraph(description, x, y)
-    *y += ScaleUIPx(18)
+    *y += Scale(18)
 
     about_draw_link_icons(app, x, w, y)
-    *y += ScaleUIPx(18)
+    *y += Scale(18)
     about_draw_donate_button(app, x, w, y)
-    *y += ScaleUIPx(32)
+    *y += Scale(32)
 }

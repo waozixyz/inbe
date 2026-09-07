@@ -45,9 +45,9 @@ draw_public_id_link :: (text: const char*, x: int, w: int, y: int*, font: int) -
         return 0
     }
 
-    link_h = TextHeight(text, font) + ScaleUIPx(8)
-    if link_h < ScaleUIPx(28) {
-        link_h = ScaleUIPx(28)
+    link_h = TextHeight(text, font) + Scale(8)
+    if link_h < Scale(28) {
+        link_h = Scale(28)
     }
 
     clicked = Href((HrefProps){
@@ -62,8 +62,8 @@ draw_public_id_link :: (text: const char*, x: int, w: int, y: int*, font: int) -
 
 draw_public_id_field :: (text: const char*, x: int, w: int, y: int*, font: int,
                         style: TextInputStyle) #private {
-    field_text: [KSYNC_PUBLIC_ID_HEX_SIZE] char = {0}
-    field_h := ScaleUIPx(38)
+    field_text: [SYNC_PUBLIC_ID_HEX_SIZE] char = {0}
+    field_h := Scale(38)
 
     if text == nil || y == nil {
         return
@@ -117,7 +117,7 @@ backup_filename :: (out: char*, out_size: size_t) #private {
     snprintf(out, out_size, "account.key")
 }
 
-start_sync_key_export :: (app: InbeApp*, account: const KsyncAccount*) -> int #private {
+start_sync_key_export :: (app: InbeApp*, account: const SyncAccount*) -> int #private {
     filename: [64] char
 
     backup_filename(filename, sizeof(filename))
@@ -252,7 +252,7 @@ open_alias_modal :: (app: InbeApp*, then_backup: int) #private {
     app_open_modal(app, UIModalSyncAlias)
 }
 
-save_prepared :: (app: InbeApp*, account: KsyncAccount*,
+save_prepared :: (app: InbeApp*, account: SyncAccount*,
                      action: int, clear_local_data: int) -> int {
     result: InbeSyncAccountSaveResult
 
@@ -284,7 +284,7 @@ save_prepared :: (app: InbeApp*, account: KsyncAccount*,
     return 1
 }
 
-draw_account_id :: (app: InbeApp*, account: const KsyncAccount*,
+draw_account_id :: (app: InbeApp*, account: const SyncAccount*,
                    x: int, w: int, y: int*, small_font: int,
                    style: TextInputStyle) #private {
     alias := storage_get_setting_text(sync_account_alias_key)
@@ -310,7 +310,7 @@ server_connected :: (app: InbeApp*) -> int #private {
     url: [sizeof(app->sync_server_url)] char
     saved_url: const char* = nil
     saved_normalized: [sizeof(app->sync_server_url)] char
-    account: KsyncAccount
+    account: SyncAccount
 
     if app == nil || !sync_account_load(&account) {
         return 0
@@ -331,23 +331,23 @@ server_connected :: (app: InbeApp*) -> int #private {
     return strcmp(saved_normalized, url) == 0
 }
 
-result_key :: (result: KsyncSyncResult) -> const char* #private {
-    if result == KSYNC_SYNC_OK {
+result_key :: (result: SyncResult) -> const char* #private {
+    if result == SYNC_OK {
         return "sync_connected"
     }
-    if result == KSYNC_SYNC_INVALID_URL {
+    if result == SYNC_INVALID_URL {
         return "sync_server_url_invalid"
     }
-    if result == KSYNC_SYNC_NO_ACCOUNT {
+    if result == SYNC_NO_ACCOUNT {
         return "sync_no_account"
     }
-    if result == KSYNC_SYNC_AUTH_FAILED {
+    if result == SYNC_AUTH_FAILED {
         return "sync_auth_failed"
     }
     return "sync_failed"
 }
 
-create_account :: (app: InbeApp*, account: KsyncAccount*) -> int #private {
+create_account :: (app: InbeApp*, account: SyncAccount*) -> int #private {
     if account == nil {
         return 0
     }
@@ -369,9 +369,9 @@ create_account :: (app: InbeApp*, account: KsyncAccount*) -> int #private {
 }
 
 run_connect :: (app: InbeApp*) #private {
-    result: KsyncSyncResult
+    result: SyncResult
     url: [sizeof(app->sync_server_url)] char
-    account: KsyncAccount
+    account: SyncAccount
 
     if app == nil {
         return
@@ -390,7 +390,7 @@ run_connect :: (app: InbeApp*) #private {
     storage_set_setting_text(sync_server_url_key, url)
     storage_set_sync_server_connected(0)
     result = sync_client_connect(url)
-    if result == KSYNC_SYNC_OK {
+    if result == SYNC_OK {
         storage_set_sync_server_connected(1)
         app_request_social_refresh(app)
         if storage_sync_review_clear_if_no_visible_diff() {
@@ -426,8 +426,8 @@ logout :: (app: InbeApp*) #private {
 }
 
 clear_remote_confirmed :: (app: InbeApp*) {
-    account: KsyncAccount
-    result: KsyncSyncResult
+    account: SyncAccount
+    result: SyncResult
     url: [sizeof(app->sync_server_url)] char
 
     if app == nil {
@@ -442,7 +442,7 @@ clear_remote_confirmed :: (app: InbeApp*) {
        sync_client_normalize_url(storage_get_setting_text(sync_server_url_key),
                                  url, sizeof(url)) {
         result = sync_client_delete_account(url)
-        if result != KSYNC_SYNC_OK {
+        if result != SYNC_OK {
             TraceLog(LOG_WARNING, "SYNC: remote account delete failed: %d", result)
         }
     } else {
@@ -461,13 +461,13 @@ text_style :: () -> TextInputStyle #private {
         .text = GetThemeText(),
         .cursor = GetThemeText(),
         .radius = 0.08f,
-        .padding_x = ScaleUIPx(10),
+        .padding_x = Scale(10),
     }
 }
 
 button_min_width :: (label: const char*) -> int #private {
-    return TextWidth(label != nil ? label : "", GetUISmallFontSize()) +
-           ScaleUIPx(20)
+    return TextWidth(label != nil ? label : "", GetSmallFontSize()) +
+           Scale(20)
 }
 
 button_group_fits :: (items: const UIButtonRowItem*, start: int, count: int,
@@ -504,7 +504,7 @@ button_group_count :: (items: const UIButtonRowItem*, start: int, count: int,
 
 draw_adaptive_button_row :: (row: ButtonRowProps, height_out: int*) -> int #private {
     clicked := -1
-    gap := row.gap > 0 ? row.gap : ScaleUIPx(10)
+    gap := row.gap > 0 ? row.gap : Scale(10)
     draw_y := row.y
     index := 0
 
@@ -572,16 +572,16 @@ adaptive_button_row_height :: (items: const UIButtonRowItem*, count: int,
 }
 
 config_content_height :: (content_w: int) -> int {
-    account: KsyncAccount
+    account: SyncAccount
     has_account := sync_account_load(&account)
-    btn_h := ScaleUIPx(36)
-    gap := ScaleUIPx(10)
+    btn_h := Scale(36)
+    gap := Scale(10)
     h := 0
     display: [96] char
     alias: const char* = nil
 
     if content_w <= 0 {
-        content_w = ScaleUIPx(320)
+        content_w = Scale(320)
     }
 
     if !has_account {
@@ -590,10 +590,10 @@ config_content_height :: (content_w: int) -> int {
             {GetLocaleText("sync_import_key_button"), ButtonStylePrimary, 0},
         }
 
-        h += ScaleUIPx(12)
+        h += Scale(12)
         h += adaptive_button_row_height(buttons, 2, content_w, btn_h, gap)
-        h += ScaleUIPx(18)
-        h += ScaleUIPx(42)
+        h += Scale(18)
+        h += Scale(42)
         return h
     }
 
@@ -604,11 +604,11 @@ config_content_height :: (content_w: int) -> int {
         compact_public_id(account.public_id, display, sizeof(display))
     }
 
-    h += ScaleUIPx(18)
-    h += GetNodeHeight(NodeReadonlyTextBox((ReadonlyTextBoxProps){.bounds = {0, 0, (float)content_w, 0}, .text = display, .font = GetUISmallFontSize(), .style = text_style()}))
-    h += ScaleUIPx(8)
-    h += ScaleUIPx(18) + btn_h + ScaleUIPx(12)
-    h += btn_h + ScaleUIPx(12)
+    h += Scale(18)
+    h += GetNodeHeight(NodeReadonlyTextBox((ReadonlyTextBoxProps){.bounds = {0, 0, (float)content_w, 0}, .text = display, .font = GetSmallFontSize(), .style = text_style()}))
+    h += Scale(8)
+    h += Scale(18) + btn_h + Scale(12)
+    h += btn_h + Scale(12)
 
     buttons_main: [3] UIButtonRowItem = {
         {GetLocaleText("sync_copy_id_button"), ButtonStyleSecondary, 0},
@@ -616,30 +616,36 @@ config_content_height :: (content_w: int) -> int {
         {GetLocaleText("sync_backup_key_button"), ButtonStyleSecondary, 0},
     }
     h += adaptive_button_row_height(buttons_main, 3, content_w, btn_h, gap)
-    h += ScaleUIPx(12)
+    h += Scale(12)
 
     buttons_danger: [2] UIButtonRowItem = {
         {GetLocaleText("sync_logout_button"), ButtonStyleSecondary, 0},
         {GetLocaleText("sync_clear_remote_data_button"), ButtonStyleDanger, 0},
     }
     h += adaptive_button_row_height(buttons_danger, 2, content_w, btn_h, gap)
-    h += ScaleUIPx(12)
-    h += ScaleUIPx(42)
+    h += Scale(12)
+    h += Scale(42)
 
     return h
 }
 
 draw :: (app: InbeApp*, x: int, w: int, y: int*) {
-    account: KsyncAccount
+    account: SyncAccount
     has_account := sync_account_load(&account)
-    font := GetUIFontSize()
-    small_font := GetUISmallFontSize()
-    btn_h := ScaleUIPx(36)
-    gap := ScaleUIPx(10)
+    font := GetFontSize()
+    small_font := GetSmallFontSize()
+    btn_h := Scale(36)
+    gap := Scale(10)
     hover := 0
 
-    Text(GetLocaleText("sync_account_title"), x, *y, font, GetThemeText())
-    *y += ScaleUIPx(26)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("sync_account_title")),
+        .font=(font),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(26)
 
     if !has_account {
         if StyledButton(x, *y, w, btn_h,
@@ -647,15 +653,20 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
                                ButtonStylePrimary, 0, &hover) {
             create_account(app, &account)
         }
-        *y += btn_h + ScaleUIPx(18)
+        *y += btn_h + Scale(18)
         return
     }
 
-    Text(GetLocaleText("sync_public_id_label"), x, *y, small_font,
-                  DarkenUIColor(GetThemeText(), 30))
-    *y += ScaleUIPx(18)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("sync_public_id_label")),
+        .font=(small_font),
+        .color=(DarkenUIColor(GetThemeText(), 30)),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(18)
     draw_account_id(app, &account, x, w, y, small_font, text_style())
-    *y += ScaleUIPx(4)
+    *y += Scale(4)
 
     buttons: [3] UIButtonRowItem = {
         {GetLocaleText("sync_copy_id_button"), ButtonStyleSecondary, 0},
@@ -683,16 +694,16 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
 
     *y += row_h
-    *y += ScaleUIPx(16)
+    *y += Scale(16)
 }
 
 draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
-    account: KsyncAccount
+    account: SyncAccount
     has_account := sync_account_load(&account)
-    font := GetUIFontSize()
-    small_font := GetUISmallFontSize()
-    btn_h := ScaleUIPx(36)
-    gap := ScaleUIPx(10)
+    font := GetFontSize()
+    small_font := GetSmallFontSize()
+    btn_h := Scale(36)
+    gap := Scale(10)
     hover := 0
     commit := 0
     input_style := text_style()
@@ -716,7 +727,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
         row_h := 0
         clicked: int
 
-        *y += ScaleUIPx(12)
+        *y += Scale(12)
         clicked = draw_adaptive_button_row((ButtonRowProps){
             .x = x,
             .y = *y,
@@ -735,24 +746,34 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
                     GetLocaleText("sync_private_key_import_failed"))
             }
         }
-        *y += row_h + ScaleUIPx(18)
+        *y += row_h + Scale(18)
     }
 
     if !has_account {
-        settings_screen_draw_status_reserved(x, y, ScaleUIPx(42))
+        settings_screen_draw_status_reserved(x, y, Scale(42))
         unused font
         return
     }
 
-    Text(GetLocaleText("sync_public_id_label"), x, *y, small_font,
-                  DarkenUIColor(GetThemeText(), 30))
-    *y += ScaleUIPx(18)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("sync_public_id_label")),
+        .font=(small_font),
+        .color=(DarkenUIColor(GetThemeText(), 30)),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(18)
     draw_account_id(app, &account, x, w, y, small_font, input_style)
-    *y += ScaleUIPx(8)
+    *y += Scale(8)
 
-    Text(GetLocaleText("sync_remote_label"), x, *y, small_font,
-                  DarkenUIColor(GetThemeText(), 30))
-    *y += ScaleUIPx(18)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("sync_remote_label")),
+        .font=(small_font),
+        .color=(DarkenUIColor(GetThemeText(), 30)),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(18)
     TextField((TextFieldProps){
         .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
         .text = app->sync_server_url,
@@ -768,7 +789,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
     if commit {
         server_save(app)
     }
-    *y += btn_h + ScaleUIPx(12)
+    *y += btn_h + Scale(12)
 
     if StyledButton(x, *y, w, btn_h,
                            server_connected(app)
@@ -777,7 +798,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
                            ButtonStylePrimary, 0, &hover) {
         run_connect(app)
     }
-    *y += btn_h + ScaleUIPx(12)
+    *y += btn_h + Scale(12)
 
     buttons_main: [3] UIButtonRowItem = {
         {GetLocaleText("sync_copy_id_button"), ButtonStyleSecondary, 0},
@@ -804,7 +825,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
         app_open_modal(app, UIModalSyncAccountBackup)
     }
     *y += row_h_main
-    *y += ScaleUIPx(12)
+    *y += Scale(12)
 
     buttons_danger: [2] UIButtonRowItem = {
         {GetLocaleText("sync_logout_button"), ButtonStyleSecondary, 0},
@@ -827,19 +848,19 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
         app_open_modal(app, UIModalConfirmDeleteSyncAccount)
     }
     *y += row_h_danger
-    *y += ScaleUIPx(12)
+    *y += Scale(12)
 
-    settings_screen_draw_status_reserved(x, y, ScaleUIPx(42))
+    settings_screen_draw_status_reserved(x, y, Scale(42))
     unused font
 }
 
 draw_backup_modal :: (app: InbeApp*) -> int {
     frame: UIPanelFrame
-    account: KsyncAccount
-    btn_h := ScaleUIPx(36)
-    gap := ScaleUIPx(10)
-    pad_bottom := ScaleUIPx(24)
-    text_button_gap := ScaleUIPx(40)
+    account: SyncAccount
+    btn_h := Scale(36)
+    gap := Scale(10)
+    pad_bottom := Scale(24)
+    text_button_gap := Scale(40)
     hover := 0
     y: int
     modal_h: int
@@ -851,18 +872,18 @@ draw_backup_modal :: (app: InbeApp*) -> int {
 
     warning = (ParagraphSpec){
         .text = GetLocaleText("sync_backup_warning"),
-        .width = ScaleUIPx(336) - ScaleUIPx(36),
+        .width = Scale(336) - Scale(36),
     }
-    modal_h = ScaleUIPx(58) +
+    modal_h = Scale(58) +
               GetNodeHeight(NodeParagraph(warning, 0, 0)) +
               text_button_gap +
               btn_h * 2 + gap +
               pad_bottom
-    if modal_h < ScaleUIPx(224) {
-        modal_h = ScaleUIPx(224)
+    if modal_h < Scale(224) {
+        modal_h = Scale(224)
     }
 
-    frame = ModalFrame(ScaleUIPx(336), modal_h,
+    frame = ModalFrame(Scale(336), modal_h,
                              GetLocaleText("sync_backup_title"),
                              (Texture2D){0}, (Texture2D){0})
     y = frame.content_y
@@ -891,8 +912,8 @@ draw_backup_modal :: (app: InbeApp*) -> int {
 draw_alias_modal :: (app: InbeApp*) -> int {
     frame: UIPanelFrame
     input_style := text_style()
-    btn_h := ScaleUIPx(36)
-    gap := ScaleUIPx(10)
+    btn_h := Scale(36)
+    gap := Scale(10)
     y: int
     at_w: int
     commit := 0
@@ -913,24 +934,30 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     alias_normalize(current_alias)
     has_alias = current_alias[0] != '\0'
 
-    frame = ModalFrame(ScaleUIPx(336), ScaleUIPx(238),
+    frame = ModalFrame(Scale(336), Scale(238),
                              GetLocaleText(has_alias
                                             ? "sync_alias_change_title"
                                             : "sync_alias_title"),
                              (Texture2D){0}, (Texture2D){0})
     y = frame.content_y
 
-    Text(GetLocaleText(has_alias
-                                ? "sync_alias_change_message"
-                                : "sync_alias_message"),
-                  frame.content_x, y, GetUISmallFontSize(),
-                  DarkenUIColor(GetThemeText(), 20))
-    y += ScaleUIPx(40)
+    Text((TextProps){
+        .bounds={(frame.content_x), (y), 0, 0},
+        .text=(GetLocaleText(has_alias ? "sync_alias_change_message" : "sync_alias_message")),
+        .font=(GetSmallFontSize()),
+        .color=(DarkenUIColor(GetThemeText(), 20)),
+        .wrap=TextWrapNone
+    })
+    y += Scale(40)
 
-    at_w = TextWidth("@", GetUIFontSize()) + ScaleUIPx(12)
-    Text("@", frame.content_x,
-                  GetUIControlTextY("@", y, btn_h, GetUIFontSize()),
-                  GetUIFontSize(), GetThemeText())
+    at_w = TextWidth("@", GetFontSize()) + Scale(12)
+    Text((TextProps){
+        .bounds={(frame.content_x), (GetUIControlTextY("@", y, btn_h, GetFontSize())), 0, 0},
+        .text=("@"),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
     TextField((TextFieldProps){
         .bounds = {(float)(frame.content_x + at_w), (float)y,
                    (float)(frame.content_w - at_w), (float)btn_h},
@@ -939,17 +966,22 @@ draw_alias_modal :: (app: InbeApp*) -> int {
         .cursor_position = &app->sync_alias_cursor,
         .focused = &app->sync_alias_focused,
         .max_codepoints = 32,
-        .font = GetUISmallFontSize(),
+        .font = GetSmallFontSize(),
         .style = input_style,
         .filter = sync_alias_filter,
         .commit_pressed = &commit,
     })
     alias_normalize(app->sync_alias_input)
-    y += btn_h + ScaleUIPx(12)
+    y += btn_h + Scale(12)
 
-    Text(GetLocaleText("sync_alias_rule"), frame.content_x, y,
-                  GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
-    y += ScaleUIPx(34)
+    Text((TextProps){
+        .bounds={(frame.content_x), (y), 0, 0},
+        .text=(GetLocaleText("sync_alias_rule")),
+        .font=(GetSmallFontSize()),
+        .color=(DarkenUIColor(GetThemeText(), 35)),
+        .wrap=TextWrapNone
+    })
+    y += Scale(34)
     unchanged_alias = has_alias && strcmp(app->sync_alias_input, current_alias) == 0
 
     buttons: [2] UIButtonRowItem = {
@@ -988,7 +1020,7 @@ draw_alias_modal :: (app: InbeApp*) -> int {
 
             TraceLog(LOG_INFO, "SYNC: saving alias @%s with %s",
                         app->sync_alias_input, url)
-            if alias_result == KSYNC_SYNC_OK {
+            if alias_result == SYNC_OK {
                 TraceLog(LOG_INFO, "SYNC: alias saved @%s", app->sync_alias_input)
                 result = 1
             } else {
@@ -1008,10 +1040,10 @@ draw_alias_modal :: (app: InbeApp*) -> int {
 
 draw_public_id_modal :: (app: InbeApp*) -> int {
     frame: UIPanelFrame
-    account: KsyncAccount
+    account: SyncAccount
     input_style := text_style()
-    btn_h := ScaleUIPx(36)
-    gap := ScaleUIPx(10)
+    btn_h := Scale(36)
+    gap := Scale(10)
     y: int
     result := 0
 
@@ -1021,19 +1053,23 @@ draw_public_id_modal :: (app: InbeApp*) -> int {
         return 1
     }
 
-    frame = ModalFrame(ScaleUIPx(356), ScaleUIPx(218),
+    frame = ModalFrame(Scale(356), Scale(218),
                              GetLocaleText("sync_public_id_full_title"),
                              (Texture2D){0}, (Texture2D){0})
     y = frame.content_y
 
-    Text(GetLocaleText("sync_public_id_full_message"),
-                  frame.content_x, y, GetUISmallFontSize(),
-                  DarkenUIColor(GetThemeText(), 25))
-    y += ScaleUIPx(34)
+    Text((TextProps){
+        .bounds={(frame.content_x), (y), 0, 0},
+        .text=(GetLocaleText("sync_public_id_full_message")),
+        .font=(GetSmallFontSize()),
+        .color=(DarkenUIColor(GetThemeText(), 25)),
+        .wrap=TextWrapNone
+    })
+    y += Scale(34)
 
     draw_public_id_field(account.public_id, frame.content_x, frame.content_w,
-                            &y, GetUISmallFontSize(), input_style)
-    y += ScaleUIPx(18)
+                            &y, GetSmallFontSize(), input_style)
+    y += Scale(18)
 
     buttons: [2] UIButtonRowItem = {
         {GetLocaleText("sync_copy_id_button"), ButtonStylePrimary, 0},

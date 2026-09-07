@@ -5,6 +5,8 @@
 
 /* Timed-ratio breathing: inhale / hold-in / exhale / hold-out cycles. */
 int patterns_preset_count(void);
+int patterns_preset_ratio(int preset, int part);
+const char *patterns_preset_label_key(int preset);
 void patterns_practice_init(InbeApp *app);
 void patterns_practice_destroy(InbeApp *app);
 void patterns_practice_start(InbeApp *app);

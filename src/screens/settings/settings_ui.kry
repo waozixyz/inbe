@@ -8,29 +8,29 @@ label_paragraph :: (label: const char*, w: int) -> ParagraphSpec #private {
 
 toggle_switch_width :: () -> int {
     if GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL {
-        return ScaleUIPx(52)
+        return Scale(52)
     }
 
-    font := GetUIFontSize()
+    font := GetFontSize()
     off_w := TextWidth(GetLocaleText("toggle_off"), font)
     on_w := TextWidth(GetLocaleText("toggle_on"), font)
-    half := (off_w > on_w ? off_w : on_w) + ScaleUIPx(16)
+    half := (off_w > on_w ? off_w : on_w) + Scale(16)
 
-    return half * 2 + ScaleUIPx(6)
+    return half * 2 + Scale(6)
 }
 
 toggle_row_height :: (label: const char*, w: int) -> int {
     if w <= 0 {
-        w = ScaleUIPx(160)
+        w = Scale(160)
     }
 
     toggle_w := toggle_switch_width()
-    toggle_h := ScaleUIPx(30)
+    toggle_h := Scale(30)
     material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
-    gap := ScaleUIPx(material ? 22 : 16)
+    gap := Scale(material ? 22 : 16)
     label_w := w - toggle_w - gap
 
-    if label_w < ScaleUIPx(120) {
+    if label_w < Scale(120) {
         label_w = w
     }
 
@@ -40,17 +40,17 @@ toggle_row_height :: (label: const char*, w: int) -> int {
         if row_h < toggle_h {
             row_h = toggle_h
         }
-        row_h += ScaleUIPx(material ? 32 : 24)
-        if row_h < ScaleUIPx(material ? 66 : 58) {
-            row_h = ScaleUIPx(material ? 66 : 58)
+        row_h += Scale(material ? 32 : 24)
+        if row_h < Scale(material ? 66 : 58) {
+            row_h = Scale(material ? 66 : 58)
         }
         return row_h
     }
 
-    row_h := label_h + ScaleUIPx(material ? 14 : 10) + toggle_h +
-        ScaleUIPx(material ? 30 : 22)
-    if row_h < ScaleUIPx(material ? 86 : 76) {
-        row_h = ScaleUIPx(material ? 86 : 76)
+    row_h := label_h + Scale(material ? 14 : 10) + toggle_h +
+        Scale(material ? 30 : 22)
+    if row_h < Scale(material ? 86 : 76) {
+        row_h = Scale(material ? 86 : 76)
     }
     return row_h
 }
@@ -63,19 +63,19 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
     row_h := toggle_row_height(label, w)
     label_y := *y
     toggle_w := toggle_switch_width()
-    toggle_h := ScaleUIPx(30)
+    toggle_h := Scale(30)
     material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
-    gap := ScaleUIPx(material ? 22 : 16)
+    gap := Scale(material ? 22 : 16)
     label_w := w - toggle_w - gap
 
-    if label_w < ScaleUIPx(120) {
+    if label_w < Scale(120) {
         label_w = w
     }
 
     Paragraph(label_paragraph(label, label_w), x, &label_y)
     label_h := label_y - *y
     toggle_x := x
-    toggle_y := *y + label_h + ScaleUIPx(material ? 14 : 10)
+    toggle_y := *y + label_h + Scale(material ? 14 : 10)
 
     if label_w < w {
         toggle_x = x + w - toggle_w
@@ -121,13 +121,13 @@ commit_slider_row :: (app: InbeApp*, id: int, x: int, w: int, y: int*, row_h: in
 }
 
 audio_meter_height :: () -> int {
-    return ScaleUIPx(18) + ScaleUIPx(10) + ScaleUIPx(8)
+    return Scale(18) + Scale(10) + Scale(8)
 }
 
 draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) -> int {
     label_font := Text12
-    bar_h := ScaleUIPx(10)
-    label_h := ScaleUIPx(18)
+    bar_h := Scale(10)
+    label_h := Scale(18)
     level := app_audio_output_level(app)
     fill_w := (int)(level * (float)w)
     bg := GetThemeBackground()
@@ -142,17 +142,23 @@ draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) 
         fill_w = w
     }
 
-    Text(label, x, y, label_font, DarkenUIColor(GetThemeText(), 28))
+    Text((TextProps){
+        .bounds={(x), (y), 0, 0},
+        .text=(label),
+        .font=(label_font),
+        .color=(DarkenUIColor(GetThemeText(), 28)),
+        .wrap=TextWrapNone
+    })
     DrawRectangle(x, y + label_h, w, bar_h, DarkenUIColor(bg, 28))
     Bevel(x, y + label_h, w, bar_h,
                 DarkenUIColor(bg, 55), LightenUIColor(bg, 35))
     if fill_w > 0 {
-        inner_w := fill_w - ScaleUIPx(4)
-        if inner_w < ScaleUIPx(2) {
-            inner_w = ScaleUIPx(2)
+        inner_w := fill_w - Scale(4)
+        if inner_w < Scale(2) {
+            inner_w = Scale(2)
         }
-        DrawRectangle(x + ScaleUIPx(2), y + label_h + ScaleUIPx(2),
-                      inner_w, bar_h - ScaleUIPx(4), GetThemeButtonHover())
+        DrawRectangle(x + Scale(2), y + label_h + Scale(2),
+                      inner_w, bar_h - Scale(4), GetThemeButtonHover())
     }
     return audio_meter_height()
 }

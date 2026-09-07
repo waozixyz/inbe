@@ -13,20 +13,20 @@ meditation_config_preset_count :: () -> int #private {
 }
 
 meditation_config_duration_height :: (content_w: int) -> int #private {
-    columns := content_w >= ScaleUIPx(520) ? 3 : 2
+    columns := content_w >= Scale(520) ? 3 : 2
     count := meditation_config_preset_count() + 1
     rows := (count + columns - 1) / columns
 
-    return ScaleUIPx(30) + rows * ScaleUIPx(42) +
-           (rows - 1) * ScaleUIPx(8) +
-           ScaleUIPx(96) + ScaleUIPx(78) + ScaleUIPx(18) + ScaleUIPx(78)
+    return Scale(30) + rows * Scale(56) +
+           (rows - 1) * Scale(8) +
+           Scale(108) + Scale(84) + Scale(18) + Scale(112)
 }
 
 meditation_config_content_height :: (app: InbeApp*, content_w: int) -> int #private {
     bottom_padding := (practice_screen_subscreen_integrated(app, UIModalPracticeConfig)
                            ? app_content_bottom_reserved(app)
                            : 0) +
-                      ScaleUIPx(24)
+                      Scale(24)
 
     return meditation_config_duration_height(content_w) +
            meditation_music_measure_practice_settings(app, EXERCISE_MEDITATION,
@@ -55,8 +55,8 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
     adjust_values: [4] const int = {-5, -1, 1, 5}
     mode := 0
     columns := 0
-    gap := ScaleUIPx(8)
-    btn_h := ScaleUIPx(36)
+    gap := Scale(8)
+    btn_h := Scale(48)
     btn_w := 0
     row_y := 0
     custom_row_y := 0
@@ -72,11 +72,16 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
     app->meditation.duration_mode = mode
     app->meditation.custom_minutes = clampi(app->meditation.custom_minutes, 1, 240)
 
-    Text(GetLocaleText("meditation_duration_setting"), x, *y,
-                  GetUIFontSize(), GetThemeText())
-    *y += ScaleUIPx(30)
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("meditation_duration_setting")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    *y += Scale(30)
 
-    columns = w >= ScaleUIPx(520) ? 3 : 2
+    columns = w >= Scale(520) ? 3 : 2
     btn_w = (w - gap * (columns - 1)) / columns
     for int i = 0; i < meditation_config_preset_count() + 1; i++ {
         col := i % columns
@@ -94,18 +99,24 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
 
     row_y = *y + ((meditation_config_preset_count() + 1 + columns - 1) / columns) *
                  (btn_h + gap)
-    *y = row_y + ScaleUIPx(8)
+    *y = row_y + Scale(8)
 
     custom_row_y = *y
     snprintf(custom_text, sizeof(custom_text), "%s: %d min",
                 GetLocaleText("meditation_custom_minutes"),
                 app->meditation.custom_minutes)
-    Text(custom_text, x, custom_row_y, GetUIFontSize(), GetThemeText())
+    Text((TextProps){
+        .bounds={(x), (custom_row_y), 0, 0},
+        .text=(custom_text),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
 
-    adjust_w := ScaleUIPx(50)
+    adjust_w := Scale(50)
     adjust_total := adjust_w * 4 + gap * 3
     adjust_x := x + (w - adjust_total) / 2
-    adjust_y := custom_row_y + ScaleUIPx(34)
+    adjust_y := custom_row_y + Scale(34)
 
     for int i = 0; i < 4; i++ {
         if StyledButton(adjust_x + i * (adjust_w + gap), adjust_y,
@@ -117,22 +128,32 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
             meditation_config_save(app)
         }
     }
-    *y += ScaleUIPx(96)
+    *y += Scale(108)
 
-    Text(GetLocaleText("meditation_extend_controls_label"), x, *y,
-                  GetUIFontSize(), GetThemeText())
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("meditation_extend_controls_label")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
     toggle_value = app->meditation.show_extend_controls
-    if Toggle(0, x, *y + ScaleUIPx(26), ScaleUIPx(56), ScaleUIPx(30),
+    if Toggle(0, x, *y + Scale(26), Scale(56), Scale(30),
                           &toggle_value, GetLocaleText("toggle_off"),
                           GetLocaleText("toggle_on")) {
         app->meditation.show_extend_controls = toggle_value
         meditation_config_save(app)
     }
-    *y += ScaleUIPx(78)
+    *y += Scale(84)
 
     # interval bell: a soft bell every N minutes (0 = off)
-    Text(GetLocaleText("meditation_interval_bell_label"), x, *y,
-                  GetUIFontSize(), GetThemeText())
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("meditation_interval_bell_label")),
+        .font=(GetFontSize()),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
     bell_labels: [7] const char* = {
         GetLocaleText("meditation_interval_bell_off"),
         "1", "2", "5", "10", "15", "30"
@@ -144,20 +165,24 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
             bell_selected = i
         }
     }
-    bell_w := (w - gap * 6) / 7
-    if bell_w > ScaleUIPx(72) {
-        bell_w = ScaleUIPx(72)
+    bell_columns := w >= Scale(460) ? 7 : 4
+    bell_w := (w - gap * (bell_columns - 1)) / bell_columns
+    if bell_w > Scale(72) {
+        bell_w = Scale(72)
     }
     for int i = 0; i < 7; i++ {
-        bx := x + i * (bell_w + gap)
+        bx := x + (i % bell_columns) * (bell_w + gap)
+        by := *y + Scale(26) + (i / bell_columns) * (btn_h + gap)
         style := i == bell_selected ? ButtonStylePrimary : ButtonStyleSecondary
-        if StyledButton(bx, *y + ScaleUIPx(26), bell_w, btn_h,
+        if StyledButton(bx, by, bell_w, btn_h,
                                bell_labels[i], style, 0, &hover) {
             app->meditation.interval_bell_minutes = bell_values[i]
             meditation_config_save(app)
         }
     }
-    *y += ScaleUIPx(78)
+    bell_rows := (7 + bell_columns - 1) / bell_columns
+    *y += Scale(26) + bell_rows * btn_h +
+          (bell_rows - 1) * gap + Scale(12)
 }
 
 meditation_config_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
@@ -171,8 +196,8 @@ meditation_config_screen_draw :: (app: InbeApp*) {
 
     app->practice_config_tab = 0
 
-    practice_screen_config_layout(app, UIModalPracticeConfig, 0, &layout)
-    practice_screen_handle_config_title(app, GetLocaleText("practice_config_title"),
+    practice_screen_config_layout(app, UIModalPracticeConfig, Scale(18), &layout)
+    practice_screen_handle_config_title(app, GetLocaleText("practice_configure_button"),
                                            UIModalPracticeConfig,
                                            meditation_practice_leave_config)
 
@@ -180,8 +205,8 @@ meditation_config_screen_draw :: (app: InbeApp*) {
     page := BeginUIScrollPage((UIScrollPageSpec){
         .y = layout.scroll_y,
         .height = layout.scroll_h,
-        .max_content_width = ScaleUIPx(CONTENT_MAX_W),
-        .min_content_width = ScaleUIPx(320),
+        .max_content_width = Scale(CONTENT_MAX_W),
+        .min_content_width = Scale(320),
         .scroll_offset = &app->settings_scroll,
         .content_height = meditation_config_scroll_page_content_height,
         .user_data = &page_ctx

@@ -1,9 +1,6 @@
 [results_write_failed]
 Não foi possível salvar as alterações. Tente novamente.
 ---
-[practice_repeat_button]
-Repetir última prática
----
 [app_title]
 Inner Breeze
 ---
@@ -370,12 +367,6 @@ Tempos das rodadas
 [settings_title]
 Configurações
 ---
-[settings_section_breathing]
-Respiração
----
-[settings_section_session]
-Sessão
----
 [settings_tab_device]
 Dispositivo
 ---
@@ -570,12 +561,14 @@ Encontre um ritmo natural: constante e rápido, mas ainda respirando profundamen
 ---
 [tutorial_step_exhale_hold]
 Depois de 30 respirações, expire e segure o máximo que puder.
-
+---
+[tutorial_step_exhale_hold_hint]
 Quando sentir vontade de respirar, pressione o botão RESPIRAR.
 ---
 [tutorial_step_inhale_hold]
 Inspire completamente e segure por 15 segundos.
-
+---
+[tutorial_step_inhale_hold_hint]
 Expire e a próxima rodada começará.
 ---
 [share_sheet_title]
@@ -970,9 +963,6 @@ Toque nos círculos para marcar os dias. Toque num cartão para ver detalhes; ar
 ---
 [habits_today]
 Hoje
----
-[habits_drag_hint]
-Arraste o título para reordenar
 ---
 [habits_guide_meditation_views]
 As vistas semana e calendário mostram este hábito.
@@ -1719,15 +1709,6 @@ Etapa %d de %d
 [tutorial_safety_warning]
 Nunca pratique dirigindo, em pé ou na água.
 ---
-[tutorial_current_speed]
-Velocidade atual: %d
----
-[tutorial_change_in_customize]
-Altere em Personalizar.
----
-[tutorial_during_practice]
-Durante a prática
----
 [back_button]
 Voltar
 ---
@@ -1747,10 +1728,13 @@ Defina repetições e o ritmo inicial e final em Personalizar. Comece devagar en
 Escolha um padrão cujo ritmo combine com seu objetivo. Caixa é equilibrado, 4-7-8 acalma, Coerente é suave e Expiração prolongada prolonga a liberação.
 ---
 [patterns_manual_phases_text]
-Siga Inspirar, Segurar, Expirar e Segurar quando acenderem. Uma fase com duração zero é ignorada automaticamente.
+Leia o ciclo de cima para baixo. O número à direita mostra a duração de cada fase; zero significa que ela é ignorada.
 ---
 [patterns_manual_customize_text]
-Ajuste as durações das fases e da sessão em Personalizar. Respire sem esforço; pare se sentir tontura ou desconforto.
+Escolha a duração da sessão antes de começar. Mantenha a respiração leve; pare se sentir tontura ou desconforto.
+---
+[patterns_ready_label]
+Pronto
 ---
 [habit_color_label]
 Cor
