@@ -1,3 +1,9 @@
+[results_write_failed]
+Změny se nepodařilo uložit. Zkuste to znovu.
+---
+[practice_repeat_button]
+Zopakovat poslední cvičení
+---
 [app_title]
 Inner Breeze
 ---
@@ -115,13 +121,11 @@ Cviceni
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -366,9 +370,6 @@ Ukončit
 [settings_title]
 Nastavení
 ---
-[practice_config_title]
-Cvičení
----
 [settings_section_breathing]
 Dýchání
 ---
@@ -548,12 +549,8 @@ Klávesnice na obrazovce
 ---
 [tutorial_step_intro]
 Toto dechové cvičení vychází z Wim Hofovy metody.
-
 Může být silné. Používejte ho opatrně.
-
 Cvičte vsedě nebo vleže.
-Nikdy ho nepoužívejte při řízení,
-vestoje ani ve vodě.
 ---
 [tutorial_step_method]
 Jednoduše postupujte podle 3 kroků:
@@ -782,11 +779,18 @@ Vzdálená data vymazána
 [sync_clear_remote_data_cancelled]
 Mazání vzdálených dat zrušeno
 ---
-[habit_new_default_name]
-Nový návyk
----
 [habit_new_title]
 Nový návyk
+---
+[habit_focus_week]
+Týden
+---
+[habit_focus_calendar]
+Kalendář
+---
+---
+[habit_complete_today_button]
+Splnit dnes
 ---
 [habit_edit_title]
 Upravit návyk
@@ -795,25 +799,7 @@ Upravit návyk
 Název
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-Podtržení
----
-[habit_practice_list_title]
-Data sezení z
----
-[habit_practice_list_info]
-Vyberte, která cvičební sezení se počítají do tohoto návyku. Odpovídající dny se zobrazí jako splněné a mohou otevřít editor sezení.
----
-[habit_counting_title]
-Počítání
----
-[habit_counting_info]
-Více počtů umožní uložit v jednom dni více než jeden záznam. Nechte vypnuto pro jednoduché sledování splněno nebo nesplněno.
----
-[habit_multiple_counts_label]
-Více počtů
+Popis (volitelný)
 ---
 [habit_delete_title]
 Smazat návyk?
@@ -873,7 +859,6 @@ Celková zádrž
 Nejlepší série
 ---
 ---
----
 
 [theme_picker_title]
 Vybrat motiv
@@ -914,7 +899,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
----
 [practice_background_music_label]
 Hudba na pozadí
 ---
@@ -946,7 +930,7 @@ Jak na to
 Přizpůsobit
 ---
 [practice_guide_carousel]
-Šipkami vyber cvičení.
+Cvičení vyber přejetím doleva či doprava nebo klepnutím na tečku.
 ---
 [practice_guide_start]
 Spusť vybrané cvičení.
@@ -959,9 +943,6 @@ Otevři návod nebo nastavení.
 ---
 [habit_new_button]
 + Nový návyk
----
-[habit_reorder_title]
-Změnit pořadí návyků
 ---
 [habit_mixed_practice_label]
 Smíšené cvičení
@@ -985,7 +966,13 @@ Jógová cvičení.
 Dnešní počet návyků.
 ---
 [habits_guide_overview_grid]
-Klepni na čtverce pro označení dnů.
+Klepnutím na kroužky označíte dny. Klepnutím na kartu otevřete podrobnosti; tažením názvu změníte pořadí.
+---
+[habits_today]
+Dnes
+---
+[habits_drag_hint]
+Pořadí změníte tažením názvu karty
 ---
 [habits_guide_meditation_views]
 Týdenní a kalendářní zobrazení ukazují tento návyk.
@@ -1224,7 +1211,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -1236,9 +1222,6 @@ Health Connect se otevrelo
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1640,7 +1623,6 @@ Sépie
 [theme_sky]
 Nebe
 ---
----
 [theme_style_label]
 Styl
 ---
@@ -1769,4 +1751,46 @@ Sledujte Nádech, Zádrž, Výdech a Zádrž, jak se rozsvěcují. Fáze s nulov
 ---
 [patterns_manual_customize_text]
 V Přizpůsobení upravte délky fází a relace. Dýchejte lehce; při závrati nebo nepohodlí přestaňte.
+---
+[habit_color_label]
+Barva
+---
+[habit_details_title]
+Podrobnosti
+---
+[habit_tracking_title]
+Možnosti sledování
+---
+[habit_tracking_hint]
+Propojená cvičení a počítání
+---
+[habit_every_day]
+Každý den
+---
+[habit_name_required]
+Zadejte název návyku.
+---
+[habit_name_duplicate]
+Tento název se již používá.
+---
+[habit_schedule_custom]
+Vlastní
+---
+[habit_schedule_enabled]
+Použít rozvrh
+---
+[habit_counter_mode]
+Režim počítadla
+---
+[habit_counter_target]
+Denní cíl
+---
+[habit_link_practices]
+Propojit cvičení
+---
+[habit_link_practices_hint]
+Vyberte dokončená cvičení, která se započítají do tohoto návyku.
+---
+[habit_routine_title]
+Rozvrh a připomenutí
 ---

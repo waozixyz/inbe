@@ -1,3 +1,9 @@
+[results_write_failed]
+Änderungen konnten nicht gespeichert werden. Bitte erneut versuchen.
+---
+[practice_repeat_button]
+Letzte Übung wiederholen
+---
 [app_title]
 Inner Breeze
 ---
@@ -115,13 +121,11 @@ Praxis
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -366,9 +370,6 @@ Rundenzeiten
 [settings_title]
 Einstellungen
 ---
-[practice_config_title]
-Praxis
----
 [settings_section_breathing]
 Atmung
 ---
@@ -548,12 +549,8 @@ Bildschirmtastatur
 ---
 [tutorial_step_intro]
 Diese Atemübung basiert auf der Wim Hof-Methode.
-
 Sie kann kraftvoll sein. Nutzen Sie sie mit Vorsicht.
-
 Üben Sie im Sitzen oder Liegen.
-Benutzen Sie sie niemals beim Fahren,
-Stehen oder im Wasser.
 ---
 [tutorial_step_method]
 Folge einfach 3 Schritten:
@@ -782,11 +779,18 @@ Remote-Daten gelöscht
 [sync_clear_remote_data_cancelled]
 Löschen der Remote-Daten abgebrochen
 ---
-[habit_new_default_name]
-Neue Gewohnheit
----
 [habit_new_title]
 Neue Gewohnheit
+---
+[habit_focus_week]
+Woche
+---
+[habit_focus_calendar]
+Kalender
+---
+---
+[habit_complete_today_button]
+Heute abschließen
 ---
 [habit_edit_title]
 Gewohnheit bearbeiten
@@ -795,25 +799,7 @@ Gewohnheit bearbeiten
 Bezeichnung
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-Unterstreichung
----
-[habit_practice_list_title]
-Sitzungsdaten aus
----
-[habit_practice_list_info]
-Wähle, welche Übungssitzungen für diese Gewohnheit zählen. Passende Tage werden als erledigt angezeigt und können den Sitzungseditor öffnen.
----
-[habit_counting_title]
-Zählen
----
-[habit_counting_info]
-Mehrfachzählungen erlauben mehr als einen Eintrag pro Tag. Lass es aus für einfaches Erledigt-oder-nicht-Tracking.
----
-[habit_multiple_counts_label]
-Mehrfachzählungen
+Beschreibung (optional)
 ---
 [habit_delete_title]
 Gewohnheit löschen?
@@ -873,7 +859,6 @@ Gesamte Atemhaltezeit
 Beste Serie
 ---
 ---
----
 
 [theme_picker_title]
 Thema wählen
@@ -914,7 +899,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
----
 [practice_background_music_label]
 Hintergrundmusik
 ---
@@ -946,7 +930,7 @@ Anleitung
 Anpassen
 ---
 [practice_guide_carousel]
-Wähle mit den Pfeilen eine Übung.
+Wische nach links oder rechts oder tippe auf einen Punkt, um eine Übung auszuwählen.
 ---
 [practice_guide_start]
 Starte die ausgewählte Übung.
@@ -959,9 +943,6 @@ Starte die ausgewählte Übung.
 ---
 [habit_new_button]
 + Neue Gewohnheit
----
-[habit_reorder_title]
-Gewohnheiten sortieren
 ---
 [habit_mixed_practice_label]
 Gemischte Übung
@@ -985,7 +966,13 @@ Yoga-Übungssitzungen.
 Heutige Gewohnheiten gesamt.
 ---
 [habits_guide_overview_grid]
-Tippe Kästchen an, um Tage zu markieren.
+Tippe auf Kreise, um Tage abzuhaken. Tippe auf eine Karte für Details; ziehe ihren Titel zum Sortieren.
+---
+[habits_today]
+Heute
+---
+[habits_drag_hint]
+Kartentitel zum Sortieren ziehen
 ---
 [habits_guide_meditation_views]
 Wochen- und Kalenderansicht zeigen diese Gewohnheit.
@@ -1224,7 +1211,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -1236,9 +1222,6 @@ Health Connect geöffnet
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1640,7 +1623,6 @@ Sepia
 [theme_sky]
 Himmel
 ---
----
 [theme_style_label]
 Stil
 ---
@@ -1769,4 +1751,46 @@ Folge Einatmen, Halten, Ausatmen und Halten, wenn sie aufleuchten. Eine Phase mi
 ---
 [patterns_manual_customize_text]
 Passe Phasenlängen und Sitzungsdauer unter Anpassen an. Atme leicht; höre bei Schwindel oder Unwohlsein auf.
+---
+[habit_color_label]
+Farbe
+---
+[habit_details_title]
+Details
+---
+[habit_tracking_title]
+Erfassung
+---
+[habit_tracking_hint]
+Verknüpfte Übungen und Zähler
+---
+[habit_every_day]
+Jeden Tag
+---
+[habit_name_required]
+Gib einen Namen ein.
+---
+[habit_name_duplicate]
+Dieser Name wird bereits verwendet.
+---
+[habit_schedule_custom]
+Benutzerdefiniert
+---
+[habit_schedule_enabled]
+Zeitplan verwenden
+---
+[habit_counter_mode]
+Zählermodus
+---
+[habit_counter_target]
+Tagesziel
+---
+[habit_link_practices]
+Übungen verknüpfen
+---
+[habit_link_practices_hint]
+Wähle abgeschlossene Übungen, die für diese Gewohnheit zählen.
+---
+[habit_routine_title]
+Zeitplan & Erinnerung
 ---

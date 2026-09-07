@@ -99,7 +99,7 @@ tutorial_safety_warning :: (content_w: int) -> ParagraphSpec #private {
 
 tutorial_safety_warning_height :: (content_w: int) -> int #private {
     return GetNodeHeight(NodeParagraph(
-               tutorial_safety_warning(content_w), 0, 0)) + ScaleUIPx(24)
+               tutorial_safety_warning(content_w), 0, 0)) + ScaleUIPx(16)
 }
 
 draw_tutorial_paragraph :: (app: InbeApp*, step: int, content_x: int, y: int*, content_w: int) #private {
@@ -282,7 +282,7 @@ whm_manual_draw_page :: (app: InbeApp*, page: UIScrollPage, step: int, y: int*) 
             Fade(warning_color, 0.64f))
         Icon(0, icon_center_x - icon_size / 2, icon_center_y - icon_size / 2,
              icon_size, UI_ICON_TYPE_WARNING, warning_color)
-        warning_y = *y + ScaleUIPx(12)
+        warning_y = *y + ScaleUIPx(8)
         Paragraph(tutorial_safety_warning(page.content_w),
                   page.content_x + ScaleUIPx(52), &warning_y)
         *y += warning_h + ScaleUIPx(6)

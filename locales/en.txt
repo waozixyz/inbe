@@ -1,3 +1,9 @@
+[results_write_failed]
+Could not save changes. Please try again.
+---
+[practice_repeat_button]
+Repeat last practice
+---
 [app_title]
 Inner Breeze
 ---
@@ -115,13 +121,11 @@ Practice
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -371,9 +375,6 @@ Round times
 ---
 [settings_title]
 Settings
----
-[practice_config_title]
-Practice
 ---
 [settings_section_breathing]
 Breathing
@@ -656,12 +657,8 @@ On-screen keyboard
 ---
 [tutorial_step_intro]
 This breathing practice is based on the Wim Hof Method.
-
 It can be powerful. Use it with care.
-
 Practice sitting or lying down.
-Never use it while driving,
-standing, or in water.
 ---
 [tutorial_step_method]
 Simply follow 3 steps:
@@ -740,7 +737,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -752,9 +748,6 @@ Health Connect opened
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1026,11 +1019,18 @@ Remote data cleared
 [sync_clear_remote_data_cancelled]
 Remote data clear cancelled
 ---
-[habit_new_default_name]
-New Habit
----
 [habit_new_title]
 New Habit
+---
+[habit_focus_week]
+Week
+---
+[habit_focus_calendar]
+Calendar
+---
+---
+[habit_complete_today_button]
+Complete today
 ---
 [habit_edit_title]
 Edit Habit
@@ -1039,25 +1039,7 @@ Edit Habit
 Name
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-Underline
----
-[habit_practice_list_title]
-Session data from
----
-[habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
----
-[habit_counting_title]
-Counting
----
-[habit_counting_info]
-Multiple counts lets one day store more than one count. Leave it off for simple done or not done habit tracking.
----
-[habit_multiple_counts_label]
-Multiple counts
+Description (optional)
 ---
 [habit_delete_title]
 Delete habit?
@@ -1117,7 +1099,6 @@ Total hold
 Best streak
 ---
 ---
----
 [theme_picker_title]
 Choose Theme
 ---
@@ -1134,7 +1115,7 @@ How to
 Customize
 ---
 [practice_guide_carousel]
-Use arrows to choose a practice.
+Swipe left or right, or tap a dot to choose a practice.
 ---
 [practice_guide_start]
 Start the selected practice.
@@ -1147,9 +1128,6 @@ Open the manual or settings.
 ---
 [habit_new_button]
 + New Habit
----
-[habit_reorder_title]
-Reorder habits
 ---
 [habit_mixed_practice_label]
 Mixed practice
@@ -1173,7 +1151,13 @@ Yoga practice sessions.
 Today habit total.
 ---
 [habits_guide_overview_grid]
-Tap squares to mark days done.
+Tap circles to mark days. Tap a card for details; drag its title to reorder.
+---
+[habits_today]
+Today
+---
+[habits_drag_hint]
+Drag a card title to reorder
 ---
 [habits_guide_meditation_views]
 Weekly and calendar views show this habit.
@@ -1662,7 +1646,6 @@ Sepia
 [theme_sky]
 Sky
 ---
----
 [theme_style_label]
 Style
 ---
@@ -1767,4 +1750,46 @@ Follow Inhale, Hold, Exhale, and Hold as they light up. A zero-length phase is s
 ---
 [patterns_manual_customize_text]
 Adjust phase lengths and session duration in Customize. Keep the breath easy; stop if you feel dizzy or uncomfortable.
+---
+[habit_color_label]
+Color
+---
+[habit_details_title]
+Details
+---
+[habit_tracking_title]
+Tracking options
+---
+[habit_tracking_hint]
+Linked practices and counts
+---
+[habit_every_day]
+Every day
+---
+[habit_name_required]
+Enter a habit name.
+---
+[habit_name_duplicate]
+This name is already in use.
+---
+[habit_schedule_custom]
+Custom
+---
+[habit_schedule_enabled]
+Use a schedule
+---
+[habit_counter_mode]
+Counter mode
+---
+[habit_counter_target]
+Daily target
+---
+[habit_link_practices]
+Link practices
+---
+[habit_link_practices_hint]
+Choose which completed practices count toward this habit.
+---
+[habit_routine_title]
+Schedule & reminder
 ---

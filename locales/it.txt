@@ -1,3 +1,9 @@
+[results_write_failed]
+Impossibile salvare le modifiche. Riprova.
+---
+[practice_repeat_button]
+Ripeti l’ultima pratica
+---
 [app_title]
 Inner Breeze
 ---
@@ -115,13 +121,11 @@ Pratica
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -366,9 +370,6 @@ Tempi round
 [settings_title]
 Impostazioni
 ---
-[practice_config_title]
-Pratica
----
 [settings_section_breathing]
 Respirazione
 ---
@@ -581,12 +582,8 @@ Tastiera su schermo
 ---
 [tutorial_step_intro]
 Questa pratica respiratoria si basa sul Metodo Wim Hof.
-
 Può essere potente. Usala con cautela.
-
 Pratica seduto o sdraiato.
-Non usarla mai mentre guidi,
-in piedi o in acqua.
 ---
 [tutorial_step_method]
 Segui 3 passaggi:
@@ -782,11 +779,18 @@ Dati remoti cancellati
 [sync_clear_remote_data_cancelled]
 Cancellazione dei dati remoti annullata
 ---
-[habit_new_default_name]
-Nuova abitudine
----
 [habit_new_title]
 Nuova abitudine
+---
+[habit_focus_week]
+Settimana
+---
+[habit_focus_calendar]
+Calendario
+---
+---
+[habit_complete_today_button]
+Completa oggi
 ---
 [habit_edit_title]
 Modifica abitudine
@@ -795,25 +799,7 @@ Modifica abitudine
 Nome
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-Sottolineatura
----
-[habit_practice_list_title]
-Dati sessione da
----
-[habit_practice_list_info]
-Scegli quali sessioni di pratica contano per questa abitudine. I giorni corrispondenti risultano completati e possono aprire l'editor della sessione.
----
-[habit_counting_title]
-Conteggio
----
-[habit_counting_info]
-Conteggi multipli permette di salvare più di un conteggio nello stesso giorno. Lascialo spento per un tracciamento semplice fatto o non fatto.
----
-[habit_multiple_counts_label]
-Conteggi multipli
+Descrizione (facoltativa)
 ---
 [habit_delete_title]
 Eliminare abitudine?
@@ -873,7 +859,6 @@ Apnea totale
 Migliore serie
 ---
 ---
----
 
 [theme_picker_title]
 Scegli tema
@@ -914,7 +899,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
----
 [practice_background_music_label]
 Musica di sottofondo
 ---
@@ -946,7 +930,7 @@ Come fare
 Personalizza
 ---
 [practice_guide_carousel]
-Usa le frecce per scegliere una pratica.
+Scorri a sinistra o a destra, oppure tocca un punto per scegliere una pratica.
 ---
 [practice_guide_start]
 Avvia la pratica selezionata.
@@ -959,9 +943,6 @@ Apri il manuale o le impostazioni.
 ---
 [habit_new_button]
 + Nuova abitudine
----
-[habit_reorder_title]
-Riordina abitudini
 ---
 [habit_mixed_practice_label]
 Pratica mista
@@ -985,7 +966,13 @@ Sessioni di yoga.
 Totale abitudini di oggi.
 ---
 [habits_guide_overview_grid]
-Tocca i quadrati per segnare i giorni.
+Tocca i cerchi per segnare i giorni. Tocca una scheda per i dettagli; trascina il titolo per riordinare.
+---
+[habits_today]
+Oggi
+---
+[habits_drag_hint]
+Trascina il titolo per riordinare
 ---
 [habits_guide_meditation_views]
 Le viste settimana e calendario mostrano questa abitudine.
@@ -1224,7 +1211,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -1236,9 +1222,6 @@ Health Connect aperto
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1640,7 +1623,6 @@ Seppia
 [theme_sky]
 Cielo
 ---
----
 [theme_style_label]
 Stile
 ---
@@ -1769,4 +1751,46 @@ Segui Inspira, Trattieni, Espira e Trattieni quando si illuminano. Una fase di d
 ---
 [patterns_manual_customize_text]
 Regola durata delle fasi e della sessione in Personalizza. Respira senza sforzo; fermati se avverti vertigini o disagio.
+---
+[habit_color_label]
+Colore
+---
+[habit_details_title]
+Dettagli
+---
+[habit_tracking_title]
+Monitoraggio
+---
+[habit_tracking_hint]
+Pratiche collegate e conteggi
+---
+[habit_every_day]
+Ogni giorno
+---
+[habit_name_required]
+Inserisci un nome.
+---
+[habit_name_duplicate]
+Questo nome è già in uso.
+---
+[habit_schedule_custom]
+Personalizzato
+---
+[habit_schedule_enabled]
+Usa una pianificazione
+---
+[habit_counter_mode]
+Modalità contatore
+---
+[habit_counter_target]
+Obiettivo giornaliero
+---
+[habit_link_practices]
+Collega pratiche
+---
+[habit_link_practices_hint]
+Scegli quali pratiche completate contano per questa abitudine.
+---
+[habit_routine_title]
+Pianificazione e promemoria
 ---

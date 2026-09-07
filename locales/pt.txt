@@ -1,3 +1,9 @@
+[results_write_failed]
+Não foi possível salvar as alterações. Tente novamente.
+---
+[practice_repeat_button]
+Repetir última prática
+---
 [app_title]
 Inner Breeze
 ---
@@ -115,13 +121,11 @@ Pratica
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -366,9 +370,6 @@ Tempos das rodadas
 [settings_title]
 Configurações
 ---
-[practice_config_title]
-Prática
----
 [settings_section_breathing]
 Respiração
 ---
@@ -548,12 +549,8 @@ Teclado na tela
 ---
 [tutorial_step_intro]
 Esta prática de respiração é baseada no Método Wim Hof.
-
 Ela pode ser poderosa. Use com cuidado.
-
 Pratique sentado ou deitado.
-Nunca use enquanto dirige,
-em pé ou na água.
 ---
 [tutorial_step_method]
 Siga 3 passos:
@@ -782,11 +779,18 @@ Dados remotos limpos
 [sync_clear_remote_data_cancelled]
 Limpeza dos dados remotos cancelada
 ---
-[habit_new_default_name]
-Novo hábito
----
 [habit_new_title]
 Novo hábito
+---
+[habit_focus_week]
+Semana
+---
+[habit_focus_calendar]
+Calendário
+---
+---
+[habit_complete_today_button]
+Concluir hoje
 ---
 [habit_edit_title]
 Editar hábito
@@ -795,25 +799,7 @@ Editar hábito
 Nome
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-Sublinhado
----
-[habit_practice_list_title]
-Dados de sessão
----
-[habit_practice_list_info]
-Escolha quais sessões de prática contam para este hábito. Dias correspondentes aparecem como concluídos e podem abrir o editor de sessão.
----
-[habit_counting_title]
-Contagem
----
-[habit_counting_info]
-Contagens múltiplas permitem salvar mais de uma contagem em um dia. Deixe desligado para acompanhar apenas feito ou não feito.
----
-[habit_multiple_counts_label]
-Contagens múltiplas
+Descrição (opcional)
 ---
 [habit_delete_title]
 Excluir hábito?
@@ -873,7 +859,6 @@ Retenção total
 Melhor sequência
 ---
 ---
----
 
 [theme_picker_title]
 Escolher tema
@@ -914,7 +899,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
----
 [practice_background_music_label]
 Música de fundo
 ---
@@ -946,7 +930,7 @@ Como fazer
 Personalizar
 ---
 [practice_guide_carousel]
-Use as setas para escolher uma prática.
+Deslize para a esquerda ou para a direita, ou toque num ponto para escolher uma prática.
 ---
 [practice_guide_start]
 Inicie a prática selecionada.
@@ -959,9 +943,6 @@ Abra o manual ou as configurações.
 ---
 [habit_new_button]
 + Novo hábito
----
-[habit_reorder_title]
-Reordenar hábitos
 ---
 [habit_mixed_practice_label]
 Prática mista
@@ -985,7 +966,13 @@ Sessões de yoga.
 Total de hábitos de hoje.
 ---
 [habits_guide_overview_grid]
-Toque nos quadrados para marcar dias.
+Toque nos círculos para marcar os dias. Toque num cartão para ver detalhes; arraste o título para reordenar.
+---
+[habits_today]
+Hoje
+---
+[habits_drag_hint]
+Arraste o título para reordenar
 ---
 [habits_guide_meditation_views]
 As vistas semana e calendário mostram este hábito.
@@ -1224,7 +1211,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -1236,9 +1222,6 @@ Health Connect aberto
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1640,7 +1623,6 @@ Sépia
 [theme_sky]
 Céu
 ---
----
 [theme_style_label]
 Estilo
 ---
@@ -1769,4 +1751,46 @@ Siga Inspirar, Segurar, Expirar e Segurar quando acenderem. Uma fase com duraç�
 ---
 [patterns_manual_customize_text]
 Ajuste as durações das fases e da sessão em Personalizar. Respire sem esforço; pare se sentir tontura ou desconforto.
+---
+[habit_color_label]
+Cor
+---
+[habit_details_title]
+Detalhes
+---
+[habit_tracking_title]
+Acompanhamento
+---
+[habit_tracking_hint]
+Práticas vinculadas e contagens
+---
+[habit_every_day]
+Todos os dias
+---
+[habit_name_required]
+Digite um nome.
+---
+[habit_name_duplicate]
+Este nome já está em uso.
+---
+[habit_schedule_custom]
+Personalizado
+---
+[habit_schedule_enabled]
+Usar uma programação
+---
+[habit_counter_mode]
+Modo contador
+---
+[habit_counter_target]
+Meta diária
+---
+[habit_link_practices]
+Vincular práticas
+---
+[habit_link_practices_hint]
+Escolha quais práticas concluídas contam para este hábito.
+---
+[habit_routine_title]
+Programação e lembrete
 ---

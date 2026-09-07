@@ -1,3 +1,9 @@
+[results_write_failed]
+変更を保存できませんでした。もう一度お試しください。
+---
+[practice_repeat_button]
+前回の練習を繰り返す
+---
 [app_title]
 インナーブリーズ
 ---
@@ -115,13 +121,11 @@ Enter @alias or a public ID
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -366,9 +370,6 @@ OK
 [settings_title]
 設定
 ---
-[practice_config_title]
-練習
----
 [settings_section_breathing]
 呼吸
 ---
@@ -549,13 +550,9 @@ OK
 [tutorial_step_intro]
 この呼吸法は Wim Hof Method を
 ベースにしています。
-
 強く感じることがあります。
 注意して使ってください。
-
 座るか横になって行ってください。
-運転中、
-立っているとき、水中では行わないでください。
 ---
 [tutorial_step_method]
 3つの手順に従ってください:
@@ -784,11 +781,18 @@ Sync review failed
 [sync_clear_remote_data_cancelled]
 リモートデータのクリアをキャンセルしました
 ---
-[habit_new_default_name]
-新しい習慣
----
 [habit_new_title]
 新しい習慣
+---
+[habit_focus_week]
+週間
+---
+[habit_focus_calendar]
+カレンダー
+---
+---
+[habit_complete_today_button]
+今日を完了
 ---
 [habit_edit_title]
 習慣を編集
@@ -797,25 +801,7 @@ Sync review failed
 名前
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-下線
----
-[habit_practice_list_title]
-セッションデータ
----
-[habit_practice_list_info]
-この習慣に含める練習セッションを選びます。一致する日は完了として表示され、セッション編集画面を開けます。
----
-[habit_counting_title]
-カウント
----
-[habit_counting_info]
-複数カウントを使うと、1日に複数回分を記録できます。単純に完了か未完了だけを追跡する場合はオフのままにしてください。
----
-[habit_multiple_counts_label]
-複数カウント
+説明（任意）
 ---
 [habit_delete_title]
 習慣を削除しますか？
@@ -875,7 +861,6 @@ Description
 最長連続記録
 ---
 ---
----
 
 [theme_picker_title]
 テーマ選択
@@ -916,7 +901,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
----
 [practice_background_music_label]
 バックグラウンド音楽
 ---
@@ -948,7 +932,7 @@ Alias saved
 カスタマイズ
 ---
 [practice_guide_carousel]
-矢印で練習を選びます。
+左右にスワイプするか、点をタップして練習を選びます。
 ---
 [practice_guide_start]
 選んだ練習を開始します。
@@ -961,9 +945,6 @@ Alias saved
 ---
 [habit_new_button]
 + 新しい習慣
----
-[habit_reorder_title]
-習慣を並べ替え
 ---
 [habit_mixed_practice_label]
 混合練習
@@ -987,7 +968,13 @@ Yoga
 今日の習慣合計です。
 ---
 [habits_guide_overview_grid]
-四角をタップして日を記録します。
+丸をタップして日を記録します。カードをタップすると詳細が開き、名前をドラッグすると並べ替えられます。
+---
+[habits_today]
+今日
+---
+[habits_drag_hint]
+カードの名前をドラッグして並べ替え
 ---
 [habits_guide_meditation_views]
 週表示とカレンダー表示でこの習慣を確認します。
@@ -1226,7 +1213,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -1238,9 +1224,6 @@ Health Connectを開きました
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1642,7 +1625,6 @@ Inner Breeze
 [theme_sky]
 空
 ---
----
 [theme_style_label]
 スタイル
 ---
@@ -1771,4 +1753,46 @@ Dismiss forever
 ---
 [patterns_manual_customize_text]
 カスタマイズで各段階とセッションの時間を調整します。楽に呼吸し、めまいや不快感があれば中止してください。
+---
+[habit_color_label]
+色
+---
+[habit_details_title]
+詳細
+---
+[habit_tracking_title]
+記録の設定
+---
+[habit_tracking_hint]
+連携する練習と回数
+---
+[habit_every_day]
+毎日
+---
+[habit_name_required]
+習慣の名前を入力してください。
+---
+[habit_name_duplicate]
+この名前はすでに使われています。
+---
+[habit_schedule_custom]
+カスタム
+---
+[habit_schedule_enabled]
+スケジュールを使用
+---
+[habit_counter_mode]
+カウンターモード
+---
+[habit_counter_target]
+1日の回数
+---
+[habit_link_practices]
+練習を連携
+---
+[habit_link_practices_hint]
+この習慣に反映する完了済みの練習を選択します。
+---
+[habit_routine_title]
+スケジュールとリマインダー
 ---

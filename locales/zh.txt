@@ -1,3 +1,9 @@
+[results_write_failed]
+无法保存更改，请重试。
+---
+[practice_repeat_button]
+重复上次练习
+---
 [app_title]
 内息清风
 ---
@@ -115,13 +121,11 @@ Enter @alias or a public ID
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -366,9 +370,6 @@ Finish
 [settings_title]
 设置
 ---
-[practice_config_title]
-练习
----
 [settings_section_breathing]
 呼吸
 ---
@@ -548,12 +549,8 @@ Finish
 ---
 [tutorial_step_intro]
 这项呼吸练习基于 Wim Hof Method。
-
 它可能很强烈，请谨慎使用。
-
 请坐着或躺下练习。
-切勿在驾驶、
-站立或水中时进行。
 ---
 [tutorial_step_method]
 只需按照 3 个步骤:
@@ -782,11 +779,18 @@ Sync review failed
 [sync_clear_remote_data_cancelled]
 已取消清除远程数据
 ---
-[habit_new_default_name]
-新习惯
----
 [habit_new_title]
 新习惯
+---
+[habit_focus_week]
+本周
+---
+[habit_focus_calendar]
+日历
+---
+---
+[habit_complete_today_button]
+完成今天
 ---
 [habit_edit_title]
 编辑习惯
@@ -795,25 +799,7 @@ Sync review failed
 名称
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-下划线
----
-[habit_practice_list_title]
-会话数据来自
----
-[habit_practice_list_info]
-选择哪些练习会话计入此习惯。匹配的日期会显示为已完成，并可打开会话编辑器。
----
-[habit_counting_title]
-计数
----
-[habit_counting_info]
-多次计数允许一天保存多个次数。若只需要简单记录完成或未完成，请保持关闭。
----
-[habit_multiple_counts_label]
-多次计数
+描述（选填）
 ---
 [habit_delete_title]
 删除习惯？
@@ -873,7 +859,6 @@ Wim Hof 屏息轮次
 最佳连续记录
 ---
 ---
----
 
 [theme_picker_title]
 选择主题
@@ -914,7 +899,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
----
 [practice_background_music_label]
 背景音乐
 ---
@@ -946,7 +930,7 @@ Alias saved
 自定义
 ---
 [practice_guide_carousel]
-用箭头选择练习。
+左右滑动或点按圆点来选择练习。
 ---
 [practice_guide_start]
 开始所选练习。
@@ -959,9 +943,6 @@ Alias saved
 ---
 [habit_new_button]
 + 新习惯
----
-[habit_reorder_title]
-重新排序习惯
 ---
 [habit_mixed_practice_label]
 混合练习
@@ -985,7 +966,13 @@ Yoga
 今天的习惯总数。
 ---
 [habits_guide_overview_grid]
-点击方块标记完成日期。
+点击圆圈标记日期。点击卡片查看详情，拖动标题调整顺序。
+---
+[habits_today]
+今天
+---
+[habits_drag_hint]
+拖动卡片标题可排序
 ---
 [habits_guide_meditation_views]
 周视图和日历视图显示此习惯。
@@ -1224,7 +1211,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -1236,9 +1222,6 @@ Export CSV
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1640,7 +1623,6 @@ Inner Breeze
 [theme_sky]
 天空
 ---
----
 [theme_style_label]
 样式
 ---
@@ -1769,4 +1751,46 @@ Dismiss forever
 ---
 [patterns_manual_customize_text]
 在自定义中调整各阶段和练习时长。轻松呼吸；如果感到头晕或不适，请停止。
+---
+[habit_color_label]
+颜色
+---
+[habit_details_title]
+详情
+---
+[habit_tracking_title]
+记录选项
+---
+[habit_tracking_hint]
+关联练习与次数
+---
+[habit_every_day]
+每天
+---
+[habit_name_required]
+请输入习惯名称。
+---
+[habit_name_duplicate]
+此名称已被使用。
+---
+[habit_schedule_custom]
+自定义
+---
+[habit_schedule_enabled]
+使用计划
+---
+[habit_counter_mode]
+计数模式
+---
+[habit_counter_target]
+每日目标
+---
+[habit_link_practices]
+关联练习
+---
+[habit_link_practices_hint]
+选择要计入此习惯的已完成练习。
+---
+[habit_routine_title]
+计划与提醒
 ---

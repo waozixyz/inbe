@@ -1,3 +1,9 @@
+[results_write_failed]
+Perubahan tidak dapat disimpan. Silakan coba lagi.
+---
+[practice_repeat_button]
+Ulangi latihan terakhir
+---
 [app_title]
 Inner Breeze
 ---
@@ -115,13 +121,11 @@ Latihan
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -366,9 +370,6 @@ Waktu ronde
 [settings_title]
 Pengaturan
 ---
-[practice_config_title]
-Latihan
----
 [settings_section_breathing]
 Pernapasan
 ---
@@ -548,12 +549,8 @@ Keyboard di layar
 ---
 [tutorial_step_intro]
 Latihan pernapasan ini didasarkan pada Metode Wim Hof.
-
 Dapat sangat kuat. Gunakan dengan hati-hati.
-
 Latih sambil duduk atau berbaring.
-Jangan gunakan saat mengemudi,
-berdiri, atau di dalam air.
 ---
 [tutorial_step_method]
 Ikuti 3 langkah:
@@ -782,11 +779,18 @@ Data jarak jauh dihapus
 [sync_clear_remote_data_cancelled]
 Penghapusan data jarak jauh dibatalkan
 ---
-[habit_new_default_name]
-Kebiasaan baru
----
 [habit_new_title]
 Kebiasaan baru
+---
+[habit_focus_week]
+Minggu
+---
+[habit_focus_calendar]
+Kalender
+---
+---
+[habit_complete_today_button]
+Selesaikan hari ini
 ---
 [habit_edit_title]
 Edit kebiasaan
@@ -795,25 +799,7 @@ Edit kebiasaan
 Nama
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-Garis bawah
----
-[habit_practice_list_title]
-Data sesi dari
----
-[habit_practice_list_info]
-Pilih sesi latihan mana yang dihitung untuk kebiasaan ini. Hari yang cocok ditandai selesai dan dapat membuka editor sesi.
----
-[habit_counting_title]
-Penghitungan
----
-[habit_counting_info]
-Beberapa hitungan memungkinkan satu hari menyimpan lebih dari satu hitungan. Matikan untuk pelacakan sederhana selesai atau belum.
----
-[habit_multiple_counts_label]
-Beberapa hitungan
+Deskripsi (opsional)
 ---
 [habit_delete_title]
 Hapus kebiasaan?
@@ -873,7 +859,6 @@ Total tahan
 Rangkaian terbaik
 ---
 ---
----
 
 [theme_picker_title]
 Pilih Tema
@@ -914,7 +899,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
----
 [practice_background_music_label]
 Musik latar
 ---
@@ -946,7 +930,7 @@ Cara pakai
 Sesuaikan
 ---
 [practice_guide_carousel]
-Gunakan panah untuk memilih latihan.
+Geser ke kiri atau kanan, atau ketuk titik untuk memilih latihan.
 ---
 [practice_guide_start]
 Mulai latihan yang dipilih.
@@ -959,9 +943,6 @@ Buka panduan atau pengaturan.
 ---
 [habit_new_button]
 + Kebiasaan Baru
----
-[habit_reorder_title]
-Urutkan kebiasaan
 ---
 [habit_mixed_practice_label]
 Latihan campuran
@@ -985,7 +966,13 @@ Sesi latihan yoga.
 Total kebiasaan hari ini.
 ---
 [habits_guide_overview_grid]
-Ketuk kotak untuk menandai hari.
+Ketuk lingkaran untuk menandai hari. Ketuk kartu untuk detail; seret judulnya untuk mengubah urutan.
+---
+[habits_today]
+Hari ini
+---
+[habits_drag_hint]
+Seret judul kartu untuk mengurutkan
 ---
 [habits_guide_meditation_views]
 Tampilan mingguan dan kalender menunjukkan kebiasaan ini.
@@ -1224,7 +1211,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -1236,9 +1222,6 @@ Health Connect dibuka
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1640,7 +1623,6 @@ Sepia
 [theme_sky]
 Langit
 ---
----
 [theme_style_label]
 Gaya
 ---
@@ -1769,4 +1751,46 @@ Ikuti Tarik napas, Tahan, Buang napas, dan Tahan saat menyala. Fase berdurasi no
 ---
 [patterns_manual_customize_text]
 Atur panjang fase dan durasi sesi di Sesuaikan. Bernapaslah dengan ringan; berhenti jika pusing atau tidak nyaman.
+---
+[habit_color_label]
+Warna
+---
+[habit_details_title]
+Detail
+---
+[habit_tracking_title]
+Opsi pelacakan
+---
+[habit_tracking_hint]
+Latihan tertaut dan hitungan
+---
+[habit_every_day]
+Setiap hari
+---
+[habit_name_required]
+Masukkan nama kebiasaan.
+---
+[habit_name_duplicate]
+Nama ini sudah digunakan.
+---
+[habit_schedule_custom]
+Kustom
+---
+[habit_schedule_enabled]
+Gunakan jadwal
+---
+[habit_counter_mode]
+Mode penghitung
+---
+[habit_counter_target]
+Target harian
+---
+[habit_link_practices]
+Tautkan latihan
+---
+[habit_link_practices_hint]
+Pilih latihan selesai yang dihitung untuk kebiasaan ini.
+---
+[habit_routine_title]
+Jadwal & pengingat
 ---

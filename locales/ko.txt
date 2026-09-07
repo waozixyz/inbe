@@ -1,3 +1,9 @@
+[results_write_failed]
+변경 사항을 저장하지 못했습니다. 다시 시도해 주세요.
+---
+[practice_repeat_button]
+마지막 수련 반복
+---
 [app_title]
 Inner Breeze
 ---
@@ -115,13 +121,11 @@ Enter @alias or a public ID
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -366,9 +370,6 @@ Finish
 [settings_title]
 설정
 ---
-[practice_config_title]
-연습
----
 [settings_section_breathing]
 호흡
 ---
@@ -581,11 +582,8 @@ Trocador
 ---
 [tutorial_step_intro]
 이 호흡법은 윔 호프 메서드를 기반으로 합니다.
-
 강력한 효과가 있을 수 있습니다. 주의해서 사용하세요.
-
 앉거나 누운 상태에서 연습하세요.
-운전 중, 서 있거나 물속에서는 사용하지 마세요.
 ---
 [tutorial_step_method]
 3단계를 따라 하세요:
@@ -781,11 +779,18 @@ Sync review failed
 [sync_clear_remote_data_cancelled]
 원격 데이터 지우기가 취소되었습니다
 ---
-[habit_new_default_name]
-새 습관
----
 [habit_new_title]
 새 습관
+---
+[habit_focus_week]
+주간
+---
+[habit_focus_calendar]
+달력
+---
+---
+[habit_complete_today_button]
+오늘 완료
 ---
 [habit_edit_title]
 습관 편집
@@ -794,25 +799,7 @@ Sync review failed
 이름
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-밑줄
----
-[habit_practice_list_title]
-세션 데이터
----
-[habit_practice_list_info]
-이 습관에 포함할 연습 세션을 선택하세요. 일치하는 날은 완료로 표시되며 세션 편집기를 열 수 있습니다.
----
-[habit_counting_title]
-횟수
----
-[habit_counting_info]
-여러 횟수를 켜면 하루에 둘 이상의 횟수를 저장할 수 있습니다. 단순히 완료 여부만 추적하려면 꺼 두세요.
----
-[habit_multiple_counts_label]
-여러 횟수
+설명 (선택 사항)
 ---
 [habit_delete_title]
 습관을 삭제할까요?
@@ -872,7 +859,6 @@ Description
 최고 연속 기록
 ---
 ---
----
 
 [theme_picker_title]
 테마 선택
@@ -913,7 +899,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
----
 [practice_background_music_label]
 배경 음악
 ---
@@ -945,7 +930,7 @@ Alias saved
 맞춤 설정
 ---
 [practice_guide_carousel]
-화살표로 연습을 선택합니다.
+좌우로 스와이프하거나 점을 눌러 연습을 선택하세요.
 ---
 [practice_guide_start]
 선택한 연습을 시작합니다.
@@ -958,9 +943,6 @@ Alias saved
 ---
 [habit_new_button]
 + 새 습관
----
-[habit_reorder_title]
-습관 순서 변경
 ---
 [habit_mixed_practice_label]
 혼합 연습
@@ -984,7 +966,13 @@ Yoga
 오늘의 습관 합계입니다.
 ---
 [habits_guide_overview_grid]
-칸을 눌러 완료한 날을 표시합니다.
+원을 눌러 날짜를 기록하세요. 카드를 누르면 상세 정보가 열리고, 제목을 끌면 순서를 바꿀 수 있습니다.
+---
+[habits_today]
+오늘
+---
+[habits_drag_hint]
+카드 제목을 끌어 순서 변경
 ---
 [habits_guide_meditation_views]
 주간 보기와 달력 보기에 이 습관이 표시됩니다.
@@ -1223,7 +1211,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -1235,9 +1222,6 @@ Health Connect를 열었습니다
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1639,7 +1623,6 @@ Inner Breeze
 [theme_sky]
 하늘
 ---
----
 [theme_style_label]
 스타일
 ---
@@ -1768,4 +1751,46 @@ Dismiss forever
 ---
 [patterns_manual_customize_text]
 사용자 지정에서 단계 길이와 세션 시간을 조절하세요. 편하게 호흡하고 어지럽거나 불편하면 멈추세요.
+---
+[habit_color_label]
+색상
+---
+[habit_details_title]
+세부 정보
+---
+[habit_tracking_title]
+기록 설정
+---
+[habit_tracking_hint]
+연결된 연습 및 횟수
+---
+[habit_every_day]
+매일
+---
+[habit_name_required]
+습관 이름을 입력하세요.
+---
+[habit_name_duplicate]
+이미 사용 중인 이름입니다.
+---
+[habit_schedule_custom]
+맞춤
+---
+[habit_schedule_enabled]
+일정 사용
+---
+[habit_counter_mode]
+카운터 모드
+---
+[habit_counter_target]
+일일 목표
+---
+[habit_link_practices]
+연습 연결
+---
+[habit_link_practices_hint]
+이 습관에 반영할 완료된 연습을 선택하세요.
+---
+[habit_routine_title]
+일정 및 알림
 ---

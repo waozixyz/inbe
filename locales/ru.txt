@@ -1,3 +1,9 @@
+[results_write_failed]
+Не удалось сохранить изменения. Повторите попытку.
+---
+[practice_repeat_button]
+Повторить последнюю практику
+---
 [app_title]
 Inner Breeze
 ---
@@ -115,13 +121,11 @@ Enter @alias or a public ID
 [profile_my_habits_title]
 My habits
 ---
----
 [move_up_button]
 Up
 ---
 [move_down_button]
 Down
----
 ---
 [tab_stack]
 Stack
@@ -369,9 +373,6 @@ OK
 [settings_title]
 Настройки
 ---
-[practice_config_title]
-Практика
----
 [settings_section_breathing]
 Дыхание
 ---
@@ -584,12 +585,8 @@ Trocador
 ---
 [tutorial_step_intro]
 Эта дыхательная практика основана на методе Вима Хофа.
-
 Она может быть мощной. Выполняйте ее осторожно.
-
 Практикуйте сидя или лежа.
-Никогда не выполняйте ее за рулем,
-стоя или в воде.
 ---
 [tutorial_step_method]
 Просто следуйте 3 шагам:
@@ -782,11 +779,18 @@ Sync review failed
 [sync_clear_remote_data_cancelled]
 Очистка удалённых данных отменена
 ---
-[habit_new_default_name]
-Новая привычка
----
 [habit_new_title]
 Новая привычка
+---
+[habit_focus_week]
+Неделя
+---
+[habit_focus_calendar]
+Календарь
+---
+---
+[habit_complete_today_button]
+Выполнить сегодня
 ---
 [habit_edit_title]
 Изменить привычку
@@ -795,25 +799,7 @@ Sync review failed
 Название
 ---
 [habit_description_label]
-Description
----
-[habit_underline_label]
-Подчеркивание
----
-[habit_practice_list_title]
-Данные сессий из
----
-[habit_practice_list_info]
-Выберите, какие сессии практик учитываются для этой привычки. Совпадающие дни отмечаются как выполненные и могут открыть редактор сессии.
----
-[habit_counting_title]
-Подсчет
----
-[habit_counting_info]
-Несколько счетчиков позволяют сохранить больше одного значения за день. Оставьте выключенным для простого отслеживания выполнено или не выполнено.
----
-[habit_multiple_counts_label]
-Несколько счетчиков
+Описание (необязательно)
 ---
 [habit_delete_title]
 Удалить привычку?
@@ -873,7 +859,6 @@ Description
 Лучшая серия
 ---
 ---
----
 
 [theme_picker_title]
 Выбор темы
@@ -914,7 +899,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
----
 [practice_background_music_label]
 Фоновая музыка
 ---
@@ -946,7 +930,7 @@ Alias saved
 Настроить
 ---
 [practice_guide_carousel]
-Используйте стрелки для выбора практики.
+Смахните влево или вправо либо нажмите на точку, чтобы выбрать практику.
 ---
 [practice_guide_start]
 Начните выбранную практику.
@@ -959,9 +943,6 @@ Alias saved
 ---
 [habit_new_button]
 + Новая привычка
----
-[habit_reorder_title]
-Изменить порядок привычек
 ---
 [habit_mixed_practice_label]
 Смешанная практика
@@ -985,7 +966,13 @@ Yoga
 Итог привычек за сегодня.
 ---
 [habits_guide_overview_grid]
-Нажимайте квадраты, чтобы отмечать дни.
+Нажимайте на кружки, чтобы отмечать дни. Нажмите на карточку для подробностей; перетащите её название, чтобы изменить порядок.
+---
+[habits_today]
+Сегодня
+---
+[habits_drag_hint]
+Перетащите название для сортировки
 ---
 [habits_guide_meditation_views]
 Неделя и календарь показывают эту привычку.
@@ -1224,7 +1211,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
----
 [export_csv_button]
 Export CSV
 ---
@@ -1236,9 +1222,6 @@ Health Connect открыт
 ---
 [export_csv_dialog_title]
 Export sessions as CSV
----
-[habit_schedule_title]
-Schedule
 ---
 [habit_day_mon]
 Mon
@@ -1640,7 +1623,6 @@ Inner Breeze
 [theme_sky]
 Небо
 ---
----
 [theme_style_label]
 Стиль
 ---
@@ -1769,4 +1751,46 @@ Dismiss forever
 ---
 [patterns_manual_customize_text]
 Настройте длину фаз и сеанса в разделе Настроить. Дышите легко; остановитесь при головокружении или дискомфорте.
+---
+[habit_color_label]
+Цвет
+---
+[habit_details_title]
+Подробности
+---
+[habit_tracking_title]
+Учёт
+---
+[habit_tracking_hint]
+Связанные практики и счётчики
+---
+[habit_every_day]
+Каждый день
+---
+[habit_name_required]
+Введите название привычки.
+---
+[habit_name_duplicate]
+Это название уже используется.
+---
+[habit_schedule_custom]
+Особый
+---
+[habit_schedule_enabled]
+Использовать расписание
+---
+[habit_counter_mode]
+Режим счётчика
+---
+[habit_counter_target]
+Цель на день
+---
+[habit_link_practices]
+Связать практики
+---
+[habit_link_practices_hint]
+Выберите завершённые практики, которые учитываются в этой привычке.
+---
+[habit_routine_title]
+Расписание и напоминание
 ---
