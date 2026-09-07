@@ -14,7 +14,7 @@ WEB :: #defined(PLATFORM_WEB)
 DESKTOP :: !ANDROID && !WEB
 
 #enum {
-    APP_BOTTOM_NAV_CONFIGURABLE_COUNT = 2
+    APP_BOTTOM_NAV_CONFIGURABLE_COUNT = 4
     APP_NAV_CONFIG_ACTION_NONE,
     APP_NAV_CONFIG_ACTION_MOVE,
     APP_NAV_CONFIG_ACTION_REMOVE,
@@ -104,7 +104,11 @@ app_nav_sidebar_width :: () -> int #private {
     sidebar_w: int
 
     if view_width <= Scale(480) {
-        return view_width
+        sidebar_w = view_width - Scale(48)
+        if sidebar_w < Scale(292) {
+            sidebar_w = view_width
+        }
+        return sidebar_w
     }
     sidebar_w = Scale(292)
     if sidebar_w > view_width - Scale(36) {
@@ -160,7 +164,9 @@ app_nav_desktop_rail_enabled :: (app: const InbeApp*) -> int {
 
 app_bottom_nav_configurable_route :: (route: int) -> int #private {
     return route == APP_NAV_ROUTE_HABITS ||
-           route == APP_NAV_ROUTE_PRACTICE
+           route == APP_NAV_ROUTE_PRACTICE ||
+           route == APP_NAV_ROUTE_PROFILE ||
+           route == APP_NAV_ROUTE_SETTINGS
 }
 
 app_main_tab_route :: (main_tab: int) -> int #private {
@@ -261,16 +267,17 @@ app_reset_bottom_nav_routes :: (app: InbeApp*) {
     }
     app->bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS
     app->bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE
-    for int i = 2; i < APP_BOTTOM_NAV_CONTENT_MAX; i++ {
-        app->bottom_nav_routes[i] = APP_NAV_ROUTE_NONE
-    }
-    app->bottom_nav_route_count = 2
+    app->bottom_nav_routes[2] = APP_NAV_ROUTE_PROFILE
+    app->bottom_nav_routes[3] = APP_NAV_ROUTE_SETTINGS
+    app->bottom_nav_route_count = 4
 }
 
 app_sanitize_bottom_nav_routes :: (app: InbeApp*) {
     allowed: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const int = {
         APP_NAV_ROUTE_HABITS,
-        APP_NAV_ROUTE_PRACTICE
+        APP_NAV_ROUTE_PRACTICE,
+        APP_NAV_ROUTE_PROFILE,
+        APP_NAV_ROUTE_SETTINGS
     }
 
     if app == NULL {
@@ -288,6 +295,20 @@ app_sanitize_bottom_nav_routes :: (app: InbeApp*) {
             .capacity = APP_BOTTOM_NAV_CONTENT_MAX,
             .empty_route = APP_NAV_ROUTE_NONE
         }, allowed, APP_BOTTOM_NAV_CONFIGURABLE_COUNT)
+    if !KryRouteListContains(app->bottom_nav_routes,
+                             app->bottom_nav_route_count,
+                             APP_NAV_ROUTE_PROFILE) &&
+       app->bottom_nav_route_count < APP_BOTTOM_NAV_CONTENT_MAX {
+        app->bottom_nav_routes[app->bottom_nav_route_count] = APP_NAV_ROUTE_PROFILE
+        app->bottom_nav_route_count += 1
+    }
+    if !KryRouteListContains(app->bottom_nav_routes,
+                             app->bottom_nav_route_count,
+                             APP_NAV_ROUTE_SETTINGS) &&
+       app->bottom_nav_route_count < APP_BOTTOM_NAV_CONTENT_MAX {
+        app->bottom_nav_routes[app->bottom_nav_route_count] = APP_NAV_ROUTE_SETTINGS
+        app->bottom_nav_route_count += 1
+    }
 }
 
 app_reconcile_bottom_nav_selection :: (app: InbeApp*) #private {
@@ -404,6 +425,8 @@ app_apply_nav_route :: (app: InbeApp*, route: int) {
         } else {
             app_open_nav_sidebar(app)
         }
+    } else if route == APP_NAV_ROUTE_SETTINGS {
+        app_open_settings_tab(app, SETTINGS_TAB_DEVICE)
     }
 }
 
@@ -489,6 +512,9 @@ app_nav_route_label :: (route: int) -> const char* {
     if route == APP_NAV_ROUTE_STACK {
         return GetLocaleText("tab_stack")
     }
+    if route == APP_NAV_ROUTE_SETTINGS {
+        return GetLocaleText("settings_title")
+    }
     return ""
 }
 
@@ -497,7 +523,10 @@ app_current_nav_route :: (app: const InbeApp*) -> int {
         return APP_NAV_ROUTE_NONE
     }
     if app->inbe.screen == InbeScreenProfile {
-        return APP_NAV_ROUTE_NONE
+        return APP_NAV_ROUTE_PROFILE
+    }
+    if app->inbe.screen == InbeScreenSettings {
+        return APP_NAV_ROUTE_SETTINGS
     }
     if app->inbe.screen == InbeScreenStart {
         if app_is_practice_fullscreen_subview(app) {
@@ -758,7 +787,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     }
 
     sidebar_w = app_nav_sidebar_width()
-    sidebar_x = view_width - sidebar_w
+    sidebar_x = 0
     pad = Scale(16)
     close_h = Scale(40)
     footer_gap = Scale(14)
@@ -786,10 +815,16 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
         .scrim = scrim,
         .dismiss_disabled = app->modal.active
     })
-    DrawRectangle(sidebar_x, 0, sidebar_w, view_height, GetThemeSurface())
-    if sidebar_x > 0 {
-        DrawLine(sidebar_x, 0, sidebar_x, view_height,
-                    app_nav_sidebar_separator())
+    DrawRectangle(sidebar_x, 0, sidebar_w, view_height,
+                  DarkenUIColor(GetThemeBackground(), 8))
+    DrawRectangleGradientH(sidebar_x, 0, sidebar_w, view_height,
+                           DarkenUIColor(GetThemeBackground(), 4),
+                           DarkenUIColor(GetThemeBackground(), 12))
+    DrawLine(sidebar_x + sidebar_w - 1, 0, sidebar_x + sidebar_w - 1,
+             view_height, Fade(GetThemeText(), 0.18f))
+    if sidebar_x + sidebar_w < view_width {
+        DrawRectangleGradientH(sidebar_x + sidebar_w, 0, Scale(36), view_height,
+                               Fade(BLACK, 0.36f), Fade(BLACK, 0.0f))
     }
 
     if app->nav_sidebar_open_frame == app->inbe.frame {
@@ -852,7 +887,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     EndUIScrollContainer(area, view)
 
     DrawRectangle(sidebar_x, footer_y, sidebar_w, view_height - footer_y,
-                  GetThemeSurface())
+                  DarkenUIColor(GetThemeBackground(), 10))
     if StyledButton(sidebar_x + pad, close_y, sidebar_w - pad * 2,
                            close_h, GetLocaleText("close_button"),
                            ButtonStyleSecondary, app->modal.active,
@@ -868,13 +903,21 @@ app_nav_option_index :: (route: int) -> int #private {
     if route == APP_NAV_ROUTE_PRACTICE {
         return 1
     }
+    if route == APP_NAV_ROUTE_PROFILE {
+        return 2
+    }
+    if route == APP_NAV_ROUTE_SETTINGS {
+        return 3
+    }
     return 0
 }
 
 app_nav_route_for_option :: (option: int) -> int #private {
     routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const int = {
         APP_NAV_ROUTE_HABITS,
-        APP_NAV_ROUTE_PRACTICE
+        APP_NAV_ROUTE_PRACTICE,
+        APP_NAV_ROUTE_PROFILE,
+        APP_NAV_ROUTE_SETTINGS
     }
 
     if option < 0 || option >= APP_BOTTOM_NAV_CONFIGURABLE_COUNT {
@@ -913,7 +956,9 @@ app_move_bottom_nav_config_route :: (app: InbeApp*, from_index: int,
 app_first_unused_bottom_nav_route :: (app: const InbeApp*) -> int #private {
     routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const int = {
         APP_NAV_ROUTE_HABITS,
-        APP_NAV_ROUTE_PRACTICE
+        APP_NAV_ROUTE_PRACTICE,
+        APP_NAV_ROUTE_PROFILE,
+        APP_NAV_ROUTE_SETTINGS
     }
 
     return KryRouteListFirstUnused(app != NULL ? app->bottom_nav_config_routes : nil,

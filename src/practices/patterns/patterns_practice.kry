@@ -1,4 +1,5 @@
 #import "app.h"
+#import "app_nav.h" #private
 #import "data.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/patterns/patterns_practice.h"

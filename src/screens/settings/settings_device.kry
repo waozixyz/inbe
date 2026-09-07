@@ -74,8 +74,8 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
         .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
-    if LocaleDropdown(101, x, *y + Scale(26), w,
-                                  Scale(36), &app->language_index) {
+    if app_locale_dropdown(101, x, *y + Scale(26), w,
+                           Scale(36), &app->language_index) {
         state->language_menu_changed = 1
     }
     state->draw_language_menu = 1

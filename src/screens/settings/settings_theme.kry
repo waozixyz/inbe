@@ -37,7 +37,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         .theme_source = &app->theme_source,
         .theme_mode = &app->theme_mode,
         .theme_id = &app->theme_id,
-        .theme_style = &app->theme_style,
+        .theme_style = nil,
         .allow_system_source = 1,
         .allow_system_mode = ANDROID_BUILD,
         .system_theme_label = GetSystemThemeNameCached()

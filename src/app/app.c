@@ -84,12 +84,6 @@ TextButton(int id, int x, int y, const char *label, int *hover)
     return RenderTextButton(x, y, label, hover);
 }
 
-int
-LocaleDropdown(int id, int x, int y, int w, int h, int *selected_index)
-{
-    return DrawUILocaleDropdown(id, x, y, w, h, selected_index);
-}
-
 void
 ReadonlyTextBox(ReadonlyTextBoxProps props)
 {
@@ -2825,6 +2819,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
         app_profile_accum(&g_app_profile.update_total,
                           &g_app_profile.update_max,
                           profile_update_start);
+        EndUIFrame();
     } else {
     BeginUIClip((int)viewport.x + content_x, (int)viewport.y, content_w, full_height);
         BeginMode2D(app->camera);
@@ -2835,6 +2830,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
             app_profile_accum(&g_app_profile.update_total,
                               &g_app_profile.update_max,
                               profile_update_start);
+            EndUIFrame();
         EndMode2D();
     EndUIClip();
     }

@@ -1,5 +1,6 @@
 #import "app/app_notifications"
 #import "app.h"
+#import "app_nav.h" #private
 #import "data.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/meditation/meditation_practice.h"

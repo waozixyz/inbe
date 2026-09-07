@@ -303,11 +303,13 @@ target_compile_options(main PRIVATE
 
 target_link_options(main PRIVATE
     -Wl,--gc-sections
-    -Wl,--strip-all
     -Wl,-z,max-page-size=16384
     -Wl,-z,common-page-size=16384
     -Wl,--wrap=fopen
 )
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_link_options(main PRIVATE -Wl,--strip-all)
+endif()
 
 target_link_libraries(main
     raylib

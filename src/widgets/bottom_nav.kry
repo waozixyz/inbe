@@ -8,6 +8,9 @@ bottom_nav_route_icon :: (app: InbeApp*, route: int) -> Texture2D #private {
     if route == APP_NAV_ROUTE_PROFILE || route == APP_NAV_ROUTE_ACCOUNT {
         return app->icons[UI_ICON_TYPE_PROFILE]
     }
+    if route == APP_NAV_ROUTE_SETTINGS {
+        return app->icons[UI_ICON_TYPE_GEAR]
+    }
     if route == APP_NAV_ROUTE_DATA {
         return app->icons[UI_ICON_TYPE_SAVE]
     }
@@ -243,8 +246,6 @@ app_draw_bottom_nav :: (app: InbeApp*) {
         for int i = 0; i < route_count; i++ {
             routes[i] = app->bottom_nav_routes[i]
         }
-        routes[route_count++] = APP_NAV_ROUTE_STACK
-
         if app->blocked_input_frame != app->inbe.frame || !IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
             for int i = 0; i < route_count; i++ {
                 route := routes[i]

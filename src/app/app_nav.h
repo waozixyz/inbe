@@ -12,6 +12,9 @@ int app_screen_for_main_tab(int main_tab);
 const char *app_nav_route_label(int route);
 int app_nav_desktop_rail_width(void);
 int app_nav_desktop_rail_enabled(const InbeApp *app);
+int app_active_practice_title_height(void);
+int app_draw_active_practice_title_bar(InbeApp *app, const char *title,
+                                       int height);
 int app_page_height(const InbeApp *app, int full_height);
 int app_content_left_reserved(const InbeApp *app);
 int app_content_bottom_reserved(const InbeApp *app);

@@ -844,16 +844,6 @@ profile_screen_draw :: (app: InbeApp*) -> int {
         settings_sync_account_draw_config(app, page.content_x, page.content_w, &y)
     }
     EndUIScrollPage(page)
-    SetUIDropdownClipTop(content_y)
-    SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
-    SetUIDropdownClipTop(0)
-    SetUIDropdownClipBottom(0)
-    if app->profile_view == PROFILE_VIEW_MAIN && (app->profile_tab == PROFILE_TAB_LEADERBOARD || app->profile_tab == PROFILE_TAB_FRIENDS) {
-        SetUIDropdownClipTop(content_y)
-        SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
-        SetUIDropdownClipTop(0)
-        SetUIDropdownClipBottom(0)
-    }
 
     return 0
 }
