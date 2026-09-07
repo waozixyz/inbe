@@ -178,10 +178,10 @@ desktop_rail_profile_button :: (app: InbeApp*, rail_x: int, y: int,
                                 rail_w: int) -> int #private {
     margin := Scale(6)
     item_w := rail_w - margin * 2
-    item_h := Scale(150)
-    avatar_size := Scale(58)
+    item_h := Scale(128)
+    avatar_size := Scale(52)
     avatar_x := rail_x + (rail_w - avatar_size) / 2
-    avatar_y := y
+    avatar_y: int
     label: [96] char
     subtitle: [96] char
     mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
@@ -199,6 +199,14 @@ desktop_rail_profile_button :: (app: InbeApp*, rail_x: int, y: int,
     sub_font := Text12
     label_w: int
     sub_w: int
+    label_h := Scale(18)
+    sub_h := Scale(16)
+    label_gap := Scale(11)
+    sub_gap := Scale(3)
+    content_h: int
+    content_y: int
+    label_y: int
+    sub_y: int
 
     app_nav_profile_identity(app, label, sizeof(label), subtitle, sizeof(subtitle))
     label_w = TextWidth(label, label_font)
@@ -211,6 +219,14 @@ desktop_rail_profile_button :: (app: InbeApp*, rail_x: int, y: int,
         sub_font--
         sub_w = TextWidth(subtitle, sub_font)
     }
+    content_h = avatar_size + label_gap + label_h
+    if subtitle[0] != '\0' {
+        content_h += sub_gap + sub_h
+    }
+    content_y = y + (item_h - content_h) / 2
+    avatar_y = content_y
+    label_y = avatar_y + avatar_size + label_gap
+    sub_y = label_y + label_h + sub_gap
 
     if active || hover {
         DrawRectangleRounded(bounds, 0.07f, 10, fill)
@@ -225,7 +241,8 @@ desktop_rail_profile_button :: (app: InbeApp*, rail_x: int, y: int,
                          WHITE)
     Text((TextProps){
         .bounds = {(float)(rail_x + margin + (item_w - label_w) / 2),
-                   (float)(y + Scale(74)), 0, 0},
+                   (float)GetUIControlTextY(label, label_y, label_h, label_font),
+                   0, 0},
         .text = label,
         .font = label_font,
         .color = tint,
@@ -234,7 +251,8 @@ desktop_rail_profile_button :: (app: InbeApp*, rail_x: int, y: int,
     if subtitle[0] != '\0' {
         Text((TextProps){
             .bounds = {(float)(rail_x + margin + (item_w - sub_w) / 2),
-                       (float)(y + Scale(96)), 0, 0},
+                       (float)GetUIControlTextY(subtitle, sub_y, sub_h, sub_font),
+                       0, 0},
             .text = subtitle,
             .font = sub_font,
             .color = Fade(tint, 0.70f),
