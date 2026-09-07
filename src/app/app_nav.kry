@@ -433,7 +433,17 @@ app_apply_nav_route :: (app: InbeApp*, route: int) {
             app_open_nav_sidebar(app)
         }
     } else if route == APP_NAV_ROUTE_SETTINGS {
-        app_open_settings_tab(app, SETTINGS_TAB_DEVICE)
+        #if DESKTOP {
+            app_open_settings_tab(app, SETTINGS_TAB_DEVICE)
+        } #else {
+            next := app_current_route(app)
+            app->nav_sidebar_open = 0
+            next.screen = InbeScreenSettings
+            next.settings_tab = SETTINGS_TAB_COUNT
+            app->settings_scroll = 0
+            settings_screen_clear_status()
+            app_switch_route(app, next)
+        }
     }
 }
 

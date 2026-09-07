@@ -16,6 +16,14 @@ SettingsScrollPageContext :: struct {
     tab: int
 }
 
+SettingsMobileHubRow :: struct {
+    label: const char*
+    value: const char*
+    icon: int
+    tab: int
+    route: int
+}
+
 theme_panel :: #import "src/screens/settings/settings_theme"
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
@@ -25,6 +33,15 @@ state {
     unified_status: [256] char = ""
     unified_detail: [256] char = ""
     unified_status_type: int = 0
+}
+
+settings_mobile_hub_active :: (app: InbeApp*) -> int #private {
+    #if DESKTOP {
+        unused app
+        return 0
+    } #else {
+        return app != NULL && app->settings_tab == SETTINGS_TAB_MOBILE_HUB
+    }
 }
 
 settings_screen_set_status_success :: (message: const char*, detail: const char*) {
@@ -97,6 +114,10 @@ settings_screen_draw_status_reserved :: (x: int, y: int*, reserved_h: int) {
 }
 
 settings_tab_content_height :: (app: InbeApp*, tab: int, content_w: int) -> int #private {
+    if tab == SETTINGS_TAB_MOBILE_HUB {
+        return Scale(92) + settings_desktop_tab_count() * Scale(58) +
+               Scale(42)
+    }
     if tab == SETTINGS_TAB_THEME {
         return theme_panel.content_height(content_w)
     }
@@ -128,6 +149,9 @@ settings_scroll_page_content_height :: (content_w: int, user_data: void*) -> int
 }
 
 settings_screen_tab_label :: (tab: int) -> const char* {
+    if tab == SETTINGS_TAB_MOBILE_HUB {
+        return GetLocaleText("settings_title")
+    }
     if tab == SETTINGS_TAB_DEVICE {
         return GetLocaleText("settings_tab_device")
     }
@@ -165,6 +189,15 @@ settings_scaffold_title :: (title: const char*, height: int, user_data: void*) -
             app_close_modal(app)
         }
         settings_screen_clear_status()
+        #if !DESKTOP {
+            if app->settings_tab != SETTINGS_TAB_MOBILE_HUB {
+                route := app_current_route(app)
+                route.screen = InbeScreenSettings
+                route.settings_tab = SETTINGS_TAB_MOBILE_HUB
+                app_switch_route(app, route)
+                return 1
+            }
+        }
         if !app_return_to_nav_sidebar_if_needed(app) {
             app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? InbeScreenHabits : InbeScreenStart)
         }
@@ -211,6 +244,194 @@ settings_desktop_tab_at :: (index: int) -> int #private {
 settings_tab_subtitle :: (tab: int) -> const char* #private {
     unused tab
     return ""
+}
+
+settings_mobile_row_value :: (app: InbeApp*, tab: int, route: int) -> const char* #private {
+    unused app
+    if route == APP_NAV_ROUTE_DATA {
+        return GetLocaleText("sync_status_ready")
+    }
+    if tab == SETTINGS_TAB_THEME {
+        return app != NULL && app->dark_mode ? GetLocaleText("theme_dark")
+                                             : GetLocaleText("theme_light")
+    }
+    if tab == SETTINGS_TAB_AUDIO {
+        return GetLocaleText("audio_music_title")
+    }
+    return ""
+}
+
+settings_mobile_hub_row :: (app: InbeApp*, row: SettingsMobileHubRow,
+                            x: int, y: int, w: int, id: int) -> int #private {
+    h := Scale(56)
+    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
+    mouse := GetMousePosition()
+    hover := CheckCollisionPointRec(mouse, bounds) && !UIInputCapturesClick(mouse)
+    icon_size := Scale(24)
+    icon_x := x + Scale(14)
+    text_x := icon_x + icon_size + Scale(14)
+    chevron_w := Scale(18)
+    value_w := TextWidth(row.value, Text14)
+    title_w := w - (text_x - x) - value_w - chevron_w - Scale(30)
+
+    DrawRectangleRounded(bounds, 0.05f, 10,
+                         hover ? Fade(GetThemeSurface(), 0.34f)
+                               : Fade(GetThemeSurface(), 0.14f))
+    DrawRectangleRoundedLinesEx(bounds, 0.05f, 10, 1.0f,
+                                Fade(GetThemeText(), hover ? 0.13f : 0.06f))
+    Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
+         row.icon, LightenUIColor(GetThemeButtonHover(), 54))
+    Text((TextProps){
+        .bounds={(float)text_x,
+                 (float)GetUIControlTextY(row.label, y, h, Text18),
+                 (float)title_w, (float)Scale(24)},
+        .text=(row.label),
+        .font=(Text18),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    if row.value != NULL && row.value[0] != '\0' {
+        Text((TextProps){
+            .bounds={(float)(x + w - value_w - chevron_w - Scale(18)),
+                     (float)GetUIControlTextY(row.value, y, h, Text14),
+                     (float)value_w, (float)Scale(20)},
+            .text=(row.value),
+            .font=(Text14),
+            .color=(Fade(GetThemeText(), 0.62f)),
+            .wrap=TextWrapNone
+        })
+    }
+    Text((TextProps){
+        .bounds={(float)(x + w - chevron_w - Scale(12)),
+                 (float)GetUIControlTextY(">", y, h, Text18),
+                 0, 0},
+        .text=(">"),
+        .font=(Text18),
+        .color=(Fade(GetThemeText(), 0.66f)),
+        .wrap=TextWrapNone
+    })
+    if InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = id}) {
+        if row.route != APP_NAV_ROUTE_NONE {
+            app_apply_nav_route(app, row.route)
+        } else {
+            app->settings_tab = row.tab
+            app->settings_scroll = 0
+            settings_screen_clear_status()
+        }
+        return 1
+    }
+    return 0
+}
+
+settings_mobile_profile_strip :: (app: InbeApp*, x: int, y: int, w: int) -> int #private {
+    label: [96] char
+    subtitle: [96] char
+    h := Scale(76)
+    avatar := Scale(52)
+    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
+    mouse := GetMousePosition()
+    hover := CheckCollisionPointRec(mouse, bounds) && !UIInputCapturesClick(mouse)
+    avatar_x := x + Scale(12)
+    avatar_y := y + (h - avatar) / 2
+    text_x := avatar_x + avatar + Scale(14)
+
+    app_nav_profile_identity(app, label, sizeof(label), subtitle, sizeof(subtitle))
+    DrawRectangleRounded(bounds, 0.06f, 10,
+                         hover ? Fade(GetThemeSurface(), 0.36f)
+                               : Fade(GetThemeSurface(), 0.18f))
+    DrawRectangleRoundedLinesEx(bounds, 0.06f, 10, 1.0f,
+                                Fade(GetThemeText(), hover ? 0.14f : 0.07f))
+    DrawCircle(avatar_x + avatar / 2, avatar_y + avatar / 2, avatar / 2,
+               LightenUIColor(GetThemeButton(), 30))
+    DrawTexturePro(app->icons[app->profile_picture_icon],
+                   (Rectangle){0.0f, 0.0f,
+                               (float)app->icons[app->profile_picture_icon].width,
+                               (float)app->icons[app->profile_picture_icon].height},
+                   (Rectangle){(float)avatar_x, (float)avatar_y,
+                               (float)avatar, (float)avatar},
+                   (Vector2){0.0f, 0.0f}, 0.0f, WHITE)
+    Text((TextProps){
+        .bounds={(float)text_x, (float)(y + Scale(17)),
+                 (float)(w - (text_x - x) - Scale(14)), (float)Scale(24)},
+        .text=(label),
+        .font=(Text20),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    if subtitle[0] != '\0' {
+        Text((TextProps){
+            .bounds={(float)text_x, (float)(y + Scale(42)),
+                     (float)(w - (text_x - x) - Scale(14)), (float)Scale(18)},
+            .text=(subtitle),
+            .font=(Text14),
+            .color=(Fade(GetThemeText(), 0.66f)),
+            .wrap=TextWrapNone
+        })
+    }
+    if InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = 7350}) {
+        app_apply_nav_route(app, APP_NAV_ROUTE_PROFILE)
+        return 1
+    }
+    return 0
+}
+
+settings_mobile_hub_content_height :: (content_w: int, user_data: void*) -> int #private {
+    unused content_w
+    unused user_data
+
+    return Scale(76) + Scale(18) + settings_desktop_tab_count() * Scale(64) +
+           Scale(16)
+}
+
+settings_mobile_hub_draw_content :: (content_x: int, content_y: int,
+                                     content_w: int, user_data: void*) #private {
+    app := (InbeApp*)user_data
+    y := content_y
+    rows: [6] SettingsMobileHubRow = {
+        {GetLocaleText("settings_tab_device"), "", UI_ICON_TYPE_GEAR,
+         SETTINGS_TAB_DEVICE, APP_NAV_ROUTE_NONE},
+        {GetLocaleText("settings_section_appearance"), "", UI_ICON_TYPE_LIGHTON,
+         SETTINGS_TAB_THEME, APP_NAV_ROUTE_NONE},
+        {GetLocaleText("settings_tab_audio"), "", UI_ICON_TYPE_SOUND,
+         SETTINGS_TAB_AUDIO, APP_NAV_ROUTE_NONE},
+        {GetLocaleText("settings_tab_notifications"), "", UI_ICON_TYPE_ROUTINE,
+         SETTINGS_TAB_NOTIFICATIONS, APP_NAV_ROUTE_NONE},
+        {GetLocaleText("profile_data"), "", UI_ICON_TYPE_SAVE,
+         SETTINGS_TAB_DEVICE, APP_NAV_ROUTE_DATA},
+        {GetLocaleText("settings_tab_about"), "", UI_ICON_TYPE_TEXT,
+         SETTINGS_TAB_ABOUT, APP_NAV_ROUTE_NONE}
+    }
+
+    if settings_mobile_profile_strip(app, content_x, y, content_w) {
+        return
+    }
+    y += Scale(94)
+    for int i = 0; i < 6; i++ {
+        rows[i].value = settings_mobile_row_value(app, rows[i].tab, rows[i].route)
+        if settings_mobile_hub_row(app, rows[i], content_x, y, content_w, 7600 + i) {
+            return
+        }
+        y += Scale(64)
+    }
+}
+
+settings_screen_draw_mobile_hub :: (app: InbeApp*) -> int #private {
+    scaffold := BeginUIScreenScaffold((UIScreenScaffoldSpec){
+        .title = GetLocaleText("settings_title"),
+        .top_gap = Scale(8),
+        .bottom_reserved = app_content_bottom_reserved(app),
+        .max_content_width = Scale(CONTENT_MAX_W),
+        .min_content_width = Scale(280),
+        .scroll_offset = &app->settings_scroll,
+        .content_height = settings_mobile_hub_content_height,
+        .user_data = app,
+        .draw_title = nil
+    })
+    settings_mobile_hub_draw_content(scaffold.page.content_x,
+                                     scaffold.page.content_y,
+                                     scaffold.page.content_w, app)
+    EndUIScreenScaffold(scaffold)
+    return 1
 }
 
 settings_draw_tab_content :: (app: InbeApp*, tab: int, x: int, w: int,
@@ -431,8 +652,18 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         app->settings_drag_slider = 0
     }
 
-    if app->settings_tab < 0 || app->settings_tab >= SETTINGS_TAB_COUNT {
-        app->settings_tab = SETTINGS_TAB_DEVICE
+    #if !DESKTOP {
+        if app->settings_tab < 0 || app->settings_tab > SETTINGS_TAB_MOBILE_HUB {
+            app->settings_tab = SETTINGS_TAB_MOBILE_HUB
+        }
+        if app->settings_tab == SETTINGS_TAB_MOBILE_HUB {
+            settings_screen_draw_mobile_hub(app)
+            return 0
+        }
+    } #else {
+        if app->settings_tab < 0 || app->settings_tab >= SETTINGS_TAB_COUNT {
+            app->settings_tab = SETTINGS_TAB_DEVICE
+        }
     }
     #if !DESKTOP {
         if app->settings_tab == SETTINGS_TAB_BREAKS {
