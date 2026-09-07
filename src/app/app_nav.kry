@@ -48,11 +48,13 @@ app_draw_active_practice_title_bar :: (app: InbeApp*, title: const char*, height
     button_size := Scale(24)
     padding := Scale(10)
     button_total := button_size + padding * 2
+    content_x := app_nav_desktop_rail_enabled(app) ? app_nav_desktop_content_offset() : 0
+    content_w := view_width - content_x
     close_x := view_width - button_total - Scale(12)
     close_y := (height - button_total) / 2
     side_reserved := view_width - close_x + Scale(8)
     font := Text32
-    max_w := view_width - side_reserved * 2
+    max_w := content_w - side_reserved * 2
     title_w: int
 
     if title == NULL {
@@ -64,8 +66,12 @@ app_draw_active_practice_title_bar :: (app: InbeApp*, title: const char*, height
     if close_y < 0 {
         close_y = 0
     }
+    if content_w < Scale(120) {
+        content_w = view_width
+        content_x = 0
+    }
     if max_w < Scale(80) {
-        max_w = view_width - Scale(24)
+        max_w = content_w - Scale(24)
     }
 
     title_w = TextWidth(title, font)
@@ -77,7 +83,7 @@ app_draw_active_practice_title_bar :: (app: InbeApp*, title: const char*, height
     TitleBar("", height)
     Text((TextProps){
         .bounds = {
-            (float)((view_width - title_w) / 2),
+            (float)(content_x + (content_w - title_w) / 2),
             (float)GetUIControlTextY(title, 0, height, font),
             0.0f,
             0.0f
@@ -166,6 +172,14 @@ app_bottom_nav_configurable_route :: (route: int) -> int #private {
            route == APP_NAV_ROUTE_PRACTICE ||
            route == APP_NAV_ROUTE_PROFILE ||
            route == APP_NAV_ROUTE_SETTINGS
+}
+
+app_nav_bottom_profile_enabled :: () -> int #private {
+    #if DESKTOP {
+        return IsUIDesktopMode()
+    } #else {
+        return 0
+    }
 }
 
 app_main_tab_route :: (main_tab: int) -> int #private {
@@ -273,22 +287,33 @@ app_reset_bottom_nav_routes :: (app: InbeApp*) {
     }
     app->bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS
     app->bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE
-    app->bottom_nav_routes[2] = APP_NAV_ROUTE_PROFILE
-    app->bottom_nav_routes[3] = APP_NAV_ROUTE_SETTINGS
-    app->bottom_nav_route_count = 4
+    if app_nav_bottom_profile_enabled() {
+        app->bottom_nav_routes[2] = APP_NAV_ROUTE_PROFILE
+        app->bottom_nav_routes[3] = APP_NAV_ROUTE_SETTINGS
+        app->bottom_nav_route_count = 4
+    } else {
+        app->bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS
+        app->bottom_nav_route_count = 3
+    }
 }
 
 app_sanitize_bottom_nav_routes :: (app: InbeApp*) {
-    allowed: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const int = {
-        APP_NAV_ROUTE_HABITS,
-        APP_NAV_ROUTE_PRACTICE,
-        APP_NAV_ROUTE_PROFILE,
-        APP_NAV_ROUTE_SETTINGS
-    }
+    allowed: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] int
+    allowed_count := 0
 
     if app == NULL {
         return
     }
+    allowed[allowed_count] = APP_NAV_ROUTE_HABITS
+    allowed_count += 1
+    allowed[allowed_count] = APP_NAV_ROUTE_PRACTICE
+    allowed_count += 1
+    if app_nav_bottom_profile_enabled() {
+        allowed[allowed_count] = APP_NAV_ROUTE_PROFILE
+        allowed_count += 1
+    }
+    allowed[allowed_count] = APP_NAV_ROUTE_SETTINGS
+    allowed_count += 1
     if app->bottom_nav_route_count < 0 ||
        app->bottom_nav_route_count > APP_BOTTOM_NAV_CONTENT_MAX {
         app_reset_bottom_nav_routes(app)
@@ -300,14 +325,7 @@ app_sanitize_bottom_nav_routes :: (app: InbeApp*) {
             .count = app->bottom_nav_route_count,
             .capacity = APP_BOTTOM_NAV_CONTENT_MAX,
             .empty_route = APP_NAV_ROUTE_NONE
-        }, allowed, APP_BOTTOM_NAV_CONFIGURABLE_COUNT)
-    if !KryRouteListContains(app->bottom_nav_routes,
-                             app->bottom_nav_route_count,
-                             APP_NAV_ROUTE_PROFILE) &&
-       app->bottom_nav_route_count < APP_BOTTOM_NAV_CONTENT_MAX {
-        app->bottom_nav_routes[app->bottom_nav_route_count] = APP_NAV_ROUTE_PROFILE
-        app->bottom_nav_route_count += 1
-    }
+        }, allowed, allowed_count)
     if !KryRouteListContains(app->bottom_nav_routes,
                              app->bottom_nav_route_count,
                              APP_NAV_ROUTE_SETTINGS) &&
@@ -507,7 +525,7 @@ app_nav_route_label :: (route: int) -> const char* {
         return GetLocaleText("tab_profile")
     }
     if route == APP_NAV_ROUTE_ACCOUNT {
-        return GetLocaleText("sync_configure_account_button")
+        return GetLocaleText("sync_account_title")
     }
     if route == APP_NAV_ROUTE_DATA {
         return GetLocaleText("profile_data")
@@ -940,24 +958,39 @@ app_nav_option_index :: (route: int) -> int #private {
     if route == APP_NAV_ROUTE_PRACTICE {
         return 1
     }
-    if route == APP_NAV_ROUTE_PROFILE {
+    if route == APP_NAV_ROUTE_SETTINGS {
+        if app_nav_bottom_profile_enabled() {
+            return 3
+        }
         return 2
     }
-    if route == APP_NAV_ROUTE_SETTINGS {
-        return 3
+    if app_nav_bottom_profile_enabled() && route == APP_NAV_ROUTE_PROFILE {
+        return 2
     }
     return 0
 }
 
+app_nav_config_option_count :: () -> int #private {
+    if app_nav_bottom_profile_enabled() {
+        return APP_BOTTOM_NAV_CONFIGURABLE_COUNT
+    }
+    return 3
+}
+
 app_nav_route_for_option :: (option: int) -> int #private {
-    routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const int = {
-        APP_NAV_ROUTE_HABITS,
-        APP_NAV_ROUTE_PRACTICE,
-        APP_NAV_ROUTE_PROFILE,
-        APP_NAV_ROUTE_SETTINGS
+    routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] int
+    count := app_nav_config_option_count()
+
+    routes[0] = APP_NAV_ROUTE_HABITS
+    routes[1] = APP_NAV_ROUTE_PRACTICE
+    if app_nav_bottom_profile_enabled() {
+        routes[2] = APP_NAV_ROUTE_PROFILE
+        routes[3] = APP_NAV_ROUTE_SETTINGS
+    } else {
+        routes[2] = APP_NAV_ROUTE_SETTINGS
     }
 
-    if option < 0 || option >= APP_BOTTOM_NAV_CONFIGURABLE_COUNT {
+    if option < 0 || option >= count {
         return APP_NAV_ROUTE_HABITS
     }
     return routes[option]
@@ -991,16 +1024,21 @@ app_move_bottom_nav_config_route :: (app: InbeApp*, from_index: int,
 }
 
 app_first_unused_bottom_nav_route :: (app: const InbeApp*) -> int #private {
-    routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const int = {
-        APP_NAV_ROUTE_HABITS,
-        APP_NAV_ROUTE_PRACTICE,
-        APP_NAV_ROUTE_PROFILE,
-        APP_NAV_ROUTE_SETTINGS
+    routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] int
+    count := app_nav_config_option_count()
+
+    routes[0] = APP_NAV_ROUTE_HABITS
+    routes[1] = APP_NAV_ROUTE_PRACTICE
+    if app_nav_bottom_profile_enabled() {
+        routes[2] = APP_NAV_ROUTE_PROFILE
+        routes[3] = APP_NAV_ROUTE_SETTINGS
+    } else {
+        routes[2] = APP_NAV_ROUTE_SETTINGS
     }
 
     return KryRouteListFirstUnused(app != NULL ? app->bottom_nav_config_routes : nil,
                                    app != NULL ? app->bottom_nav_config_route_count : 0,
-                                   routes, APP_BOTTOM_NAV_CONFIGURABLE_COUNT,
+                                   routes, count,
                                    APP_NAV_ROUTE_HABITS)
 }
 
@@ -1033,6 +1071,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
     action_index := -1
     action_to_index := -1
     action_route := APP_NAV_ROUTE_NONE
+    option_count := app_nav_config_option_count()
 
     if app == NULL {
         return 0
@@ -1049,6 +1088,12 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
 
     options[0] = app_nav_route_label(APP_NAV_ROUTE_HABITS)
     options[1] = app_nav_route_label(APP_NAV_ROUTE_PRACTICE)
+    if app_nav_bottom_profile_enabled() {
+        options[2] = app_nav_route_label(APP_NAV_ROUTE_PROFILE)
+        options[3] = app_nav_route_label(APP_NAV_ROUTE_SETTINGS)
+    } else {
+        options[2] = app_nav_route_label(APP_NAV_ROUTE_SETTINGS)
+    }
 
     scaffold = BeginUIScreenScaffold((UIScreenScaffoldSpec){
         .title = GetLocaleText("customize_nav_title"),
@@ -1119,7 +1164,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
                                reorder.active && i == reorder.active_index)
         if Dropdown(740 + i, dropdown_x, dropdown_y,
                                 dropdown_w, button_h, options,
-                                APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i]) &&
+                                option_count, &selected[i]) &&
            action == APP_NAV_CONFIG_ACTION_NONE {
             action = APP_NAV_CONFIG_ACTION_SET
             action_index = i
@@ -1158,7 +1203,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
         ReorderHandle(0, scaffold.page.content_x, overlay_y, handle_w, row_h, 1)
         Dropdown(740 + i, dropdown_x, dropdown_y,
                                 dropdown_w, button_h, options,
-                                APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i])
+                                option_count, &selected[i])
         app_nav_mark_int_used(trash_hover)
         Icon(0, trash_x + Scale(8), dropdown_y + Scale(6),
              Scale(20), UI_ICON_TYPE_TRASH, GetThemeIcon())
@@ -1166,7 +1211,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
 
     y += row_h * draw_count
 
-    if draw_count < APP_BOTTOM_NAV_CONFIGURABLE_COUNT {
+    if draw_count < option_count {
         add_hover := 0
         if StyledButton(scaffold.page.content_x, y, scaffold.page.content_w, button_h,
                                GetLocaleText("customize_nav_add"),
@@ -1193,7 +1238,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
             changed = 1
         }
     } else if action == APP_NAV_CONFIG_ACTION_ADD {
-        if app->bottom_nav_config_route_count < APP_BOTTOM_NAV_CONFIGURABLE_COUNT {
+        if app->bottom_nav_config_route_count < option_count {
             app->bottom_nav_config_routes[app->bottom_nav_config_route_count++] =
                 app_first_unused_bottom_nav_route(app)
             changed = 1

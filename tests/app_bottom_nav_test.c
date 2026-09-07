@@ -21,11 +21,14 @@ static int save_settings_count = 0;
 static int reset_settings_preview_count = 0;
 static int settings_status_clear_count = 0;
 static const char *generic_button_clicked_label = NULL;
+static int invisible_button_clicked_id = -1;
 static int padded_icon_click_index = -1;
 static int padded_icon_draw_count = 0;
 static int scroll_page_content_w_override = 0;
 static int pointer_release_consumed = 0;
 static Vector2 mouse_position = {0};
+
+#define Text TestText
 
 static void
 expect(int condition, const char *message)
@@ -48,6 +51,7 @@ reset_state(void)
     reset_settings_preview_count = 0;
     settings_status_clear_count = 0;
     generic_button_clicked_label = NULL;
+    invisible_button_clicked_id = -1;
     padded_icon_click_index = -1;
     padded_icon_draw_count = 0;
     scroll_page_content_w_override = 0;
@@ -105,6 +109,41 @@ DrawRectangleRounded(Rectangle rec, float roundness, int segments, Color color)
 }
 
 void
+DrawRectangleRoundedLinesEx(Rectangle rec, float roundness, int segments,
+                            float lineThick, Color color)
+{
+    (void)rec;
+    (void)roundness;
+    (void)segments;
+    (void)lineThick;
+    (void)color;
+}
+
+void
+DrawRectangleGradientH(int posX, int posY, int width, int height,
+                       Color left, Color right)
+{
+    (void)posX;
+    (void)posY;
+    (void)width;
+    (void)height;
+    (void)left;
+    (void)right;
+}
+
+void
+DrawTexturePro(Texture2D texture, Rectangle source, Rectangle dest,
+               Vector2 origin, float rotation, Color tint)
+{
+    (void)texture;
+    (void)source;
+    (void)dest;
+    (void)origin;
+    (void)rotation;
+    (void)tint;
+}
+
+void
 DrawCircle(int centerX, int centerY, float radius, Color color)
 {
     (void)centerX;
@@ -141,6 +180,12 @@ GetThemeButton(void)
 }
 
 Color
+GetThemeButtonHover(void)
+{
+    return (Color){0};
+}
+
+Color
 GetThemeIcon(void)
 {
     return (Color){0};
@@ -163,6 +208,14 @@ Color
 LightenUIColor(Color color, int amount)
 {
     (void)amount;
+    return color;
+}
+
+Color
+Fade(Color color, float alpha)
+{
+    color.a = (unsigned char)(alpha <= 0.0f ? 0.0f :
+                              alpha >= 1.0f ? 255.0f : alpha * 255.0f);
     return color;
 }
 
@@ -238,11 +291,32 @@ UIText(const char *text, int x, int y, int fontSize, Color color)
     (void)color;
 }
 
+void TestText(TextProps props) __asm__("Text");
+
+void
+TestText(TextProps props)
+{
+    (void)props;
+}
+
+void
+TitleBar(const char *title, int height)
+{
+    (void)title;
+    (void)height;
+}
+
 int
 MeasureUIText(const char *text, int font_size)
 {
     (void)font_size;
     return text != NULL ? (int)strlen(text) * 8 : 0;
+}
+
+int
+TextWidth(const char *text, int font)
+{
+    return MeasureUIText(text, font);
 }
 
 int
@@ -292,6 +366,34 @@ IsMouseButtonPressed(int button)
 {
     (void)button;
     return false;
+}
+
+int
+IsUIDesktopMode(void)
+{
+    return 0;
+}
+
+int
+UIInputCapturesClick(Vector2 point)
+{
+    (void)point;
+    return 0;
+}
+
+int
+InvisibleButton(InvisibleButtonProps props)
+{
+    if((int)props.id == invisible_button_clicked_id) {
+        invisible_button_clicked_id = -1;
+        return 1;
+    }
+    return 0;
+}
+
+void
+MarkUIClickable(void)
+{
 }
 
 BottomNavResult
@@ -756,7 +858,7 @@ test_app(void)
 }
 
 static void
-test_default_bottom_nav_routes_are_habits_practice_stack(void)
+test_default_bottom_nav_routes_are_habits_practice_settings(void)
 {
     InbeApp app = test_app();
 
@@ -771,8 +873,8 @@ test_default_bottom_nav_routes_are_habits_practice_stack(void)
            "default first bottom nav item should be habits");
     expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_PRACTICE,
            "default second bottom nav item should be practice");
-    expect(bottom_nav_last.items[2].route == APP_NAV_ROUTE_STACK,
-           "default third bottom nav item should be stack");
+    expect(bottom_nav_last.items[2].route == APP_NAV_ROUTE_SETTINGS,
+           "default third bottom nav item should be settings");
 }
 
 static void
@@ -876,24 +978,31 @@ test_edge_bottom_nav_routes_are_applied(void)
 }
 
 static void
-test_profile_hides_bottom_nav(void)
+test_profile_draws_mobile_nav_without_profile_item(void)
 {
     InbeApp app = test_app();
 
     reset_state();
     app.inbe.screen = InbeScreenProfile;
-    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
     app_draw_bottom_nav(&app);
 
-    expect(bottom_nav_draw_count == 0,
-           "profile should not draw bottom nav");
-    expect(app_current_nav_route(&app) == APP_NAV_ROUTE_NONE,
-           "profile should not expose a bottom nav route");
-    expect(app_content_bottom_reserved(&app) == 0,
-           "profile should not reserve bottom nav height");
+    expect(bottom_nav_draw_count == 1,
+           "profile should keep mobile bottom nav available");
+    expect(bottom_nav_last.count == 3,
+           "profile mobile bottom nav should have three items");
+    expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_HABITS,
+           "profile mobile nav first item should be habits");
+    expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_PRACTICE,
+           "profile mobile nav second item should be practice");
+    expect(bottom_nav_last.items[2].route == APP_NAV_ROUTE_SETTINGS,
+           "profile mobile nav third item should be settings");
+    expect(app_current_nav_route(&app) == APP_NAV_ROUTE_PROFILE,
+           "profile should still expose its route for state tracking");
+    expect(app_content_bottom_reserved(&app) == 80,
+           "profile should reserve mobile bottom nav height");
     expect(app.inbe.screen == InbeScreenProfile,
-           "profile hidden nav should not route clicks");
+           "profile mobile nav should not route without a click");
 }
 
 static void
@@ -956,7 +1065,7 @@ test_file_dialog_hides_bottom_nav(void)
 }
 
 static void
-test_empty_bottom_nav_draws_stack_only_bar(void)
+test_empty_bottom_nav_recovers_settings_item(void)
 {
     InbeApp app = test_app();
 
@@ -966,23 +1075,20 @@ test_empty_bottom_nav_draws_stack_only_bar(void)
     app.bottom_nav_route_count = 0;
     for(int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++)
         app.bottom_nav_routes[i] = APP_NAV_ROUTE_NONE;
-    bottom_nav_clicked_route = APP_NAV_ROUTE_STACK;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
 
     app_draw_bottom_nav(&app);
 
     expect(bottom_nav_draw_count == 1,
-           "empty bottom nav should draw stack-only nav bar");
+           "empty bottom nav should recover mandatory settings nav bar");
     expect(bottom_nav_last.count == 1,
-           "empty bottom nav should contain only stack");
-    expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_STACK,
-           "empty bottom nav only item should be stack");
-    expect(app.nav_sidebar_open == 1,
-           "empty bottom nav stack should open sidebar");
-    expect(app.inbe.screen == InbeScreenStart &&
-           app.main_tab == APP_MAIN_TAB_NONE,
-           "empty bottom nav should stay on blank start screen");
+           "empty bottom nav should contain only settings");
+    expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_SETTINGS,
+           "empty bottom nav only item should be settings");
+    expect(app.inbe.screen == InbeScreenSettings,
+           "empty bottom nav settings should open settings");
     expect(app_content_bottom_reserved(&app) == 80,
-           "empty bottom nav should reserve stack bar space");
+           "empty bottom nav should reserve settings bar space");
 }
 
 
@@ -1005,8 +1111,9 @@ test_customize_nav_delete_last_does_not_add_same_frame(void)
 
     expect(app.bottom_nav_config_route_count == 0,
            "deleting last customize nav row should not also add a row");
-    expect(app.bottom_nav_route_count == 0,
-           "deleting last customize nav row should save an empty config");
+    expect(app.bottom_nav_route_count == 1 &&
+           app.bottom_nav_routes[0] == APP_NAV_ROUTE_SETTINGS,
+           "deleting last customize nav row should keep mandatory settings route");
     expect(save_settings_count == 1,
            "deleting last customize nav row should save exactly once");
     expect(generic_button_clicked_label == NULL,
@@ -1051,9 +1158,10 @@ test_bottom_nav_config_save_stays_on_customize_screen(void)
            "adding first nav item should stay on customize nav screen");
     expect(app.main_tab == APP_MAIN_TAB_HABITS,
            "adding first nav item should select a valid main tab");
-    expect(app.bottom_nav_route_count == 1 &&
-           app.bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS,
-           "adding first nav item should save configured route");
+    expect(app.bottom_nav_route_count == 2 &&
+           app.bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
+           app.bottom_nav_routes[1] == APP_NAV_ROUTE_SETTINGS,
+           "adding first nav item should save configured route plus settings");
     expect(save_settings_count == 1,
            "adding first nav item should save settings once");
 }
@@ -1084,7 +1192,7 @@ test_compact_sidebar_close_footer_closes_to_home(void)
     app.inbe.screen = InbeScreenNavSidebar;
     app.nav_sidebar_open = 1;
     app.nav_sidebar_open_frame = app.inbe.frame - 1;
-    generic_button_clicked_label = "close_button";
+    invisible_button_clicked_id = 9199;
 
     app_draw_bottom_nav(&app);
 
@@ -1106,7 +1214,7 @@ test_overlay_sidebar_outside_release_blocks_bottom_nav(void)
     app.nav_sidebar_open = 1;
     app.nav_sidebar_open_frame = app.inbe.frame - 1;
     mouse_released = 1;
-    mouse_position = (Vector2){100, 20};
+    mouse_position = (Vector2){520, 20};
 
     app_draw_bottom_nav(&app);
 
@@ -1200,17 +1308,17 @@ test_sidebar_screen_becomes_overlay_when_width_expands(void)
 int
 main(void)
 {
-    test_default_bottom_nav_routes_are_habits_practice_stack();
+    test_default_bottom_nav_routes_are_habits_practice_settings();
     test_stack_opens_sidebar_without_routing();
     test_compact_stack_opens_sidebar_screen();
     test_same_frame_modal_close_consumes_bottom_nav_click();
     test_unblocked_bottom_nav_click_still_routes();
     test_edge_bottom_nav_routes_are_applied();
-    test_profile_hides_bottom_nav();
+    test_profile_draws_mobile_nav_without_profile_item();
     test_practice_manual_hides_bottom_nav();
     test_practice_config_hides_bottom_nav();
     test_file_dialog_hides_bottom_nav();
-    test_empty_bottom_nav_draws_stack_only_bar();
+    test_empty_bottom_nav_recovers_settings_item();
     test_bottom_nav_config_save_stays_on_customize_screen();
     test_customize_nav_delete_last_does_not_add_same_frame();
     test_customize_nav_delete_icon_draws_on_narrow_rows();

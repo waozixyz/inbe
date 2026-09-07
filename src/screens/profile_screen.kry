@@ -441,7 +441,7 @@ profile_draw_hub_identity :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     if StyledButton(text_x, *y + Scale(108),
                     w - (text_x - x) - Scale(18),
                     Scale(38),
-                    GetLocaleText(has_account ? "sync_configure_account_button"
+                    GetLocaleText(has_account ? "sync_account_title"
                                                : "sync_create_account_button"),
                     ButtonStylePrimary, 0, &hover) {
         profile_open_tab_card(app, PROFILE_TAB_SYNC)
