@@ -173,6 +173,253 @@ settings_scaffold_title :: (title: const char*, height: int, user_data: void*) -
     return 0
 }
 
+settings_desktop_tab_count :: () -> int #private {
+    #if DESKTOP {
+        return 6
+    } #else {
+        return 5
+    }
+}
+
+settings_desktop_tab_at :: (index: int) -> int #private {
+    #if DESKTOP {
+        tabs: [6] const int = {
+            SETTINGS_TAB_DEVICE,
+            SETTINGS_TAB_AUDIO,
+            SETTINGS_TAB_BREAKS,
+            SETTINGS_TAB_NOTIFICATIONS,
+            SETTINGS_TAB_THEME,
+            SETTINGS_TAB_ABOUT
+        }
+    } #else {
+        tabs: [5] const int = {
+            SETTINGS_TAB_DEVICE,
+            SETTINGS_TAB_AUDIO,
+            SETTINGS_TAB_NOTIFICATIONS,
+            SETTINGS_TAB_THEME,
+            SETTINGS_TAB_ABOUT
+        }
+    }
+    count := settings_desktop_tab_count()
+
+    if index < 0 || index >= count {
+        return SETTINGS_TAB_DEVICE
+    }
+    return tabs[index]
+}
+
+settings_tab_subtitle :: (tab: int) -> const char* #private {
+    unused tab
+    return ""
+}
+
+settings_draw_tab_content :: (app: InbeApp*, tab: int, x: int, w: int,
+                              y: int*, device_state: SettingsDeviceState*,
+                              drawn: int*) #private {
+    if drawn != NULL {
+        *drawn = 1
+    }
+    if tab == SETTINGS_TAB_THEME {
+        theme_panel.draw(app, x, w, y, &app->theme_state)
+        return
+    }
+    if tab == SETTINGS_TAB_AUDIO {
+        settings_audio_draw(app, x, w, y)
+        return
+    }
+    if tab == SETTINGS_TAB_DEVICE {
+        settings_device_draw(app, x, w, y, device_state)
+        return
+    }
+    #if DESKTOP {
+        if tab == SETTINGS_TAB_BREAKS {
+            settings_breaks_draw(app, x, w, y)
+            return
+        }
+    }
+    if tab == SETTINGS_TAB_NOTIFICATIONS {
+        settings_notifications_draw(app, x, w, y)
+        return
+    }
+    settings_about_draw(app, x, w, y)
+}
+
+settings_desktop_category_button :: (app: InbeApp*, tab: int, x: int, y: int,
+                                     w: int, h: int, id: int) -> int #private {
+    active := app != NULL && app->settings_tab == tab
+    mouse := GetMousePosition()
+    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
+    hover := CheckCollisionPointRec(mouse, bounds) && !UIInputCapturesClick(mouse)
+    fill := active ? Fade(GetThemeButton(), 0.34f) :
+            (hover ? Fade(GetThemeSurface(), 0.72f) : Fade(GetThemeSurface(), 0.24f))
+    border := active ? Fade(GetThemeButtonHover(), 0.88f) :
+              Fade(GetThemeText(), hover ? 0.18f : 0.08f)
+    text_color := active ? WHITE : GetThemeText()
+    icon_color := active ? LightenUIColor(GetThemeButtonHover(), 64) : GetThemeText()
+    subtitle_color := active ? Fade(WHITE, 0.72f) : Fade(GetThemeText(), 0.62f)
+    icon_size := Scale(24)
+    icon_x := x + Scale(14)
+    text_x := icon_x + icon_size + Scale(12)
+    title_y := y + Scale(16)
+    subtitle_y := y + Scale(40)
+
+    DrawRectangleRounded(bounds, 0.08f, 10, fill)
+    DrawRectangleRoundedLinesEx(bounds, 0.08f, 10, active ? 2.0f : 1.0f, border)
+    Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
+         tab == SETTINGS_TAB_ABOUT ? UI_ICON_TYPE_TEXT :
+         tab == SETTINGS_TAB_AUDIO ? UI_ICON_TYPE_SOUND :
+         tab == SETTINGS_TAB_NOTIFICATIONS ? UI_ICON_TYPE_ROUTINE :
+         tab == SETTINGS_TAB_THEME ? UI_ICON_TYPE_LIGHTON :
+         tab == SETTINGS_TAB_BREAKS ? UI_ICON_TYPE_ACTIVITY :
+         UI_ICON_TYPE_GEAR,
+         icon_color)
+    Text((TextProps){
+        .bounds={(float)text_x, (float)title_y,
+                 (float)(w - (text_x - x) - Scale(12)), (float)Scale(22)},
+        .text=(settings_screen_tab_label(tab)),
+        .font=(Text18),
+        .color=(text_color),
+        .wrap=TextWrapNone
+    })
+    if settings_tab_subtitle(tab)[0] != '\0' {
+        Text((TextProps){
+            .bounds={(float)text_x, (float)subtitle_y,
+                     (float)(w - (text_x - x) - Scale(12)), (float)Scale(18)},
+            .text=(settings_tab_subtitle(tab)),
+            .font=(Text12),
+            .color=(subtitle_color),
+            .wrap=TextWrapNone
+        })
+    }
+    if InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = id}) {
+        if app != NULL && app->settings_tab != tab {
+            app->settings_tab = tab
+            app->settings_scroll = 0
+            settings_screen_clear_status()
+        }
+        return 1
+    }
+    return 0
+}
+
+settings_screen_draw_desktop :: (app: InbeApp*) -> int #private {
+    device_state := (SettingsDeviceState){0}
+    page_ctx := (SettingsScrollPageContext){app, app != NULL ? app->settings_tab : SETTINGS_TAB_DEVICE}
+    outer_pad := Scale(24)
+    header_h := Scale(70)
+    gap := Scale(18)
+    list_w := Scale(250)
+    content_x := outer_pad
+    content_y := outer_pad
+    content_w := view_width - outer_pad * 2
+    content_h := view_height - outer_pad * 2
+    list_x := content_x
+    list_y := content_y + header_h
+    list_h := content_h - header_h
+    panel_x := list_x + list_w + gap
+    panel_y := list_y
+    panel_w := content_w - list_w - gap
+    panel_h := list_h
+    panel_pad := Scale(24)
+    y := panel_y + panel_pad
+    title := settings_screen_tab_label(app->settings_tab)
+    subtitle := settings_tab_subtitle(app->settings_tab)
+    row_h := Scale(72)
+    row_gap := Scale(10)
+    area: UIScrollArea
+    view: UIScrollView
+    drawn := 0
+
+    if content_w < Scale(640) || panel_w < Scale(320) {
+        return 0
+    }
+
+    Text((TextProps){
+        .bounds={(float)content_x, (float)content_y, 0, 0},
+        .text=(GetLocaleText("settings_title")),
+        .font=(Text32),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    if subtitle[0] != '\0' {
+        Text((TextProps){
+            .bounds={(float)content_x, (float)(content_y + Scale(40)), 0, 0},
+            .text=(subtitle),
+            .font=(Text14),
+            .color=(Fade(GetThemeText(), 0.66f)),
+            .wrap=TextWrapNone
+        })
+    }
+
+    DrawRectangleRounded((Rectangle){(float)list_x, (float)list_y,
+                         (float)list_w, (float)list_h},
+                         0.04f, 10, DarkenUIColor(GetThemeBackground(), 6))
+    DrawRectangleRoundedLinesEx((Rectangle){(float)list_x, (float)list_y,
+                                (float)list_w, (float)list_h},
+                                0.04f, 10, 1.0f, Fade(GetThemeText(), 0.12f))
+    for int i = 0; i < settings_desktop_tab_count(); i++ {
+        tab := settings_desktop_tab_at(i)
+        settings_desktop_category_button(app, tab,
+            list_x + Scale(10), list_y + Scale(10) + i * (row_h + row_gap),
+            list_w - Scale(20), row_h, 7400 + i)
+    }
+
+    DrawRectangleRounded((Rectangle){(float)panel_x, (float)panel_y,
+                         (float)panel_w, (float)panel_h},
+                         0.025f, 10, DarkenUIColor(GetThemeBackground(), 5))
+    DrawRectangleRoundedLinesEx((Rectangle){(float)panel_x, (float)panel_y,
+                                (float)panel_w, (float)panel_h},
+                                0.025f, 10, 1.0f, Fade(GetThemeText(), 0.12f))
+    Text((TextProps){
+        .bounds={(float)(panel_x + panel_pad), (float)y,
+                 (float)(panel_w - panel_pad * 2), (float)Scale(30)},
+        .text=(title),
+        .font=(Text24),
+        .color=(GetThemeText()),
+        .wrap=TextWrapNone
+    })
+    y += Scale(34)
+    if subtitle[0] != '\0' {
+        Text((TextProps){
+            .bounds={(float)(panel_x + panel_pad), (float)y,
+                     (float)(panel_w - panel_pad * 2), (float)Scale(22)},
+            .text=(subtitle),
+            .font=(Text14),
+            .color=(Fade(GetThemeText(), 0.68f)),
+            .wrap=TextWrapNone
+        })
+        y += Scale(36)
+    } else {
+        y += Scale(18)
+    }
+
+    page_ctx.tab = app->settings_tab
+    area = (UIScrollArea){
+        .bounds = {(float)(panel_x + panel_pad), (float)y,
+                   (float)(panel_w - panel_pad * 2),
+                   (float)(panel_y + panel_h - panel_pad - y)},
+        .content_height = settings_scroll_page_content_height(panel_w - panel_pad * 2, &page_ctx),
+        .content_x = panel_x + panel_pad,
+        .content_width = panel_w - panel_pad * 2,
+        .scroll_offset = &app->settings_scroll,
+        .wheel_step = Scale(42),
+        .scrollbar_x = panel_x + panel_w - Scale(14)
+    }
+    view = BeginUIScrollContainer(area)
+    y = view.content_y
+    settings_draw_tab_content(app, app->settings_tab, view.content_x,
+                              view.content_w, &y, &device_state, &drawn)
+    EndUIScrollContainer(area, view)
+
+    if app->settings_tab == SETTINGS_TAB_DEVICE {
+        settings_device_handle_overlays(app, &device_state)
+    }
+    if app->settings_tab == SETTINGS_TAB_NOTIFICATIONS {
+        settings_notifications_handle_overlays(app)
+    }
+    return 1
+}
+
 settings_screen_draw :: (app: InbeApp*) -> int {
     device_state := (SettingsDeviceState){0}
     page_ctx := (SettingsScrollPageContext){0}
@@ -204,6 +451,17 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         meditation_music_update(app)
     }
 
+    #if DESKTOP {
+        if app_nav_desktop_rail_enabled(app) &&
+           settings_screen_draw_desktop(app) {
+            if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+               app->settings_dirty && app->settings_save_delay_ticks <= 0 {
+                save_settings(app)
+            }
+            return 0
+        }
+    }
+
     title = settings_screen_tab_label(app->settings_tab)
     page_ctx = (SettingsScrollPageContext){app, app->settings_tab}
     scaffold = BeginUIScreenScaffold((UIScreenScaffoldSpec){
@@ -220,32 +478,9 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     })
     y = scaffold.page.content_y
 
-    if app->settings_tab == SETTINGS_TAB_THEME {
-        theme_panel.draw(app, scaffold.page.content_x, scaffold.page.content_w,
-                            &y, &app->theme_state)
-        drawn = 1
-    }
-    if drawn == 0 && app->settings_tab == SETTINGS_TAB_AUDIO {
-        settings_audio_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y)
-        drawn = 1
-    }
-    if drawn == 0 && app->settings_tab == SETTINGS_TAB_DEVICE {
-        settings_device_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y, &device_state)
-        drawn = 1
-    }
-    #if DESKTOP {
-        if drawn == 0 && app->settings_tab == SETTINGS_TAB_BREAKS {
-            settings_breaks_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y)
-            drawn = 1
-        }
-    }
-    if drawn == 0 && app->settings_tab == SETTINGS_TAB_NOTIFICATIONS {
-        settings_notifications_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y)
-        drawn = 1
-    }
-    if drawn == 0 {
-        settings_about_draw(app, scaffold.page.content_x, scaffold.page.content_w, &y)
-    }
+    settings_draw_tab_content(app, app->settings_tab, scaffold.page.content_x,
+                              scaffold.page.content_w, &y, &device_state,
+                              &drawn)
 
     EndUIScreenScaffold(scaffold)
     if app->settings_tab == SETTINGS_TAB_DEVICE {

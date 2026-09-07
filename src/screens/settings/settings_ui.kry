@@ -7,16 +7,37 @@ label_paragraph :: (label: const char*, w: int) -> ParagraphSpec #private {
 }
 
 toggle_switch_width :: () -> int {
-    if GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL {
-        return Scale(52)
+    return Scale(50)
+}
+
+toggle_switch :: (id: int, x: int, y: int, value: int*) -> int {
+    w := toggle_switch_width()
+    h := Scale(28)
+    knob := Scale(22)
+    pad := (h - knob) / 2
+    on := value != NULL && *value != 0
+    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
+    hot := CheckCollisionPointRec(GetMousePosition(), bounds) &&
+           !UIInputCapturesClick(GetMousePosition())
+    fill := on ? LightenUIColor(GetThemeButton(), 18) : DarkenUIColor(GetThemeBackground(), 10)
+    border := on ? Fade(GetThemeButtonHover(), 0.82f) : Fade(GetThemeText(), 0.16f)
+    knob_x := x + (on ? w - knob - pad : pad)
+
+    if hot {
+        fill = on ? LightenUIColor(fill, 12) : LightenUIColor(fill, 8)
+        border = on ? GetThemeButtonHover() : Fade(GetThemeText(), 0.28f)
     }
-
-    font := GetFontSize()
-    off_w := TextWidth(GetLocaleText("toggle_off"), font)
-    on_w := TextWidth(GetLocaleText("toggle_on"), font)
-    half := (off_w > on_w ? off_w : on_w) + Scale(16)
-
-    return half * 2 + Scale(6)
+    DrawRectangleRounded(bounds, 0.5f, 16, fill)
+    DrawRectangleRoundedLinesEx(bounds, 0.5f, 16, 1.0f, border)
+    DrawCircle(knob_x + knob / 2, y + h / 2, knob / 2,
+               on ? WHITE : Fade(GetThemeText(), 0.72f))
+    if InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = id}) {
+        if value != NULL {
+            *value = !*value
+            return 1
+        }
+    }
+    return 0
 }
 
 toggle_row_height :: (label: const char*, w: int) -> int {
@@ -25,9 +46,8 @@ toggle_row_height :: (label: const char*, w: int) -> int {
     }
 
     toggle_w := toggle_switch_width()
-    toggle_h := Scale(30)
-    material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
-    gap := Scale(material ? 22 : 16)
+    toggle_h := Scale(28)
+    gap := Scale(18)
     label_w := w - toggle_w - gap
 
     if label_w < Scale(120) {
@@ -40,17 +60,16 @@ toggle_row_height :: (label: const char*, w: int) -> int {
         if row_h < toggle_h {
             row_h = toggle_h
         }
-        row_h += Scale(material ? 32 : 24)
-        if row_h < Scale(material ? 66 : 58) {
-            row_h = Scale(material ? 66 : 58)
+        row_h += Scale(24)
+        if row_h < Scale(60) {
+            row_h = Scale(60)
         }
         return row_h
     }
 
-    row_h := label_h + Scale(material ? 14 : 10) + toggle_h +
-        Scale(material ? 30 : 22)
-    if row_h < Scale(material ? 86 : 76) {
-        row_h = Scale(material ? 86 : 76)
+    row_h := label_h + Scale(10) + toggle_h + Scale(22)
+    if row_h < Scale(76) {
+        row_h = Scale(76)
     }
     return row_h
 }
@@ -63,26 +82,31 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
     row_h := toggle_row_height(label, w)
     label_y := *y
     toggle_w := toggle_switch_width()
-    toggle_h := Scale(30)
-    material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
-    gap := Scale(material ? 22 : 16)
+    toggle_h := Scale(28)
+    gap := Scale(18)
     label_w := w - toggle_w - gap
+    row_bounds := (Rectangle){(float)x, (float)*y, (float)w, (float)row_h}
 
     if label_w < Scale(120) {
         label_w = w
     }
 
+    DrawRectangleRounded(row_bounds, 0.025f, 8,
+                         Fade(GetThemeSurface(), 0.18f))
+    DrawRectangleRoundedLinesEx(row_bounds, 0.025f, 8, 1.0f,
+                                Fade(GetThemeText(), 0.07f))
+    label_y += Scale(14)
     Paragraph(label_paragraph(label, label_w), x, &label_y)
     label_h := label_y - *y
     toggle_x := x
-    toggle_y := *y + label_h + Scale(material ? 14 : 10)
+    toggle_y := *y + label_h + Scale(10)
 
     if label_w < w {
         toggle_x = x + w - toggle_w
         toggle_y = *y + (row_h - toggle_h) / 2
     }
 
-    if Toggle(0, toggle_x, toggle_y, toggle_w, toggle_h, value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
+    if toggle_switch(62000 + *y, toggle_x, toggle_y, value) {
         *y += row_h
         return 1
     }

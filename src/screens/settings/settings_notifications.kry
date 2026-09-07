@@ -96,9 +96,9 @@ draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #priva
     stepper_w := btn * 2 + TextWidth(time_buf, GetFontSize()) + Scale(24)
     enabled := r->enabled
 
-    if Toggle(0, x, *y + (btn - Scale(30)) / 2,
-              settings_ui_toggle_switch_width(), Scale(30), &enabled,
-              GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
+    if settings_ui_toggle_switch(4010 + index,
+                                 x, *y + (btn - Scale(28)) / 2,
+                                 &enabled) {
         r->enabled = enabled
         app->settings_dirty = 1
         save_settings(app)
