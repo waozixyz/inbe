@@ -468,9 +468,7 @@ app_content_bottom_reserved :: (app: const InbeApp*) -> int {
 }
 
 app_content_left_reserved :: (app: const InbeApp*) -> int {
-    if app_nav_desktop_rail_enabled(app) {
-        return app_nav_desktop_rail_width()
-    }
+    unused app
     return 0
 }
 

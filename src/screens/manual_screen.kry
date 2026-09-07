@@ -1,4 +1,5 @@
 #import "app.h"
+#import "app_nav.h"
 #import "core/breath_engine.h"
 #import "practices/practice_registry.h"
 #import "stdio.h"
@@ -136,6 +137,9 @@ manual_screen_draw_hero_progress :: (bounds: Rectangle, page: int,
 manual_screen_draw_title_bar :: (app: InbeApp*, title: const char*,
                                  title_h: int, close: ManualGuideCloseFn) -> int {
     if app == NULL || close == NULL {
+        return 0
+    }
+    if app_nav_desktop_rail_enabled(app) {
         return 0
     }
     if !ReturnTitleBar(app->icons[UI_ICON_TYPE_LEFT], title, title_h) {

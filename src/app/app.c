@@ -2744,6 +2744,9 @@ app_update_draw(void *vapp, Rectangle viewport) {
         InitUIDPI();
         UpdateUIDPI(view_width, view_height);
     }
+    content_x = app_nav_desktop_rail_enabled(app) ? app_nav_desktop_rail_width() : 0;
+    if(content_x >= full_width)
+        content_x = 0;
     layout_width = GetLayoutWidth();
     layout_height = GetLayoutHeight();
     render_scale = GetRenderScale();
@@ -2821,7 +2824,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
                           profile_update_start);
         EndUIFrame();
     } else {
-    BeginUIClip((int)viewport.x + content_x, (int)viewport.y, content_w, full_height);
+    BeginUIClip((int)viewport.x, (int)viewport.y, full_width, full_height);
         BeginMode2D(app->camera);
             DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
             profile_update_start = app_profile_now();

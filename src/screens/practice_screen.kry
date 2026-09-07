@@ -68,7 +68,8 @@ practice_screen_config_layout :: (app: InbeApp*, modal_type: int, content_top_ga
 
 practice_screen_manual_layout :: (app: InbeApp*, modal_type: int, page_count: int, content_top_gap: int, content_bottom_gap: int, min_content_h: int, layout: PracticeManualLayout*) {
     integrated := practice_screen_subscreen_integrated(app, modal_type)
-    title_h := integrated ? app_content_top_reserved(app) : GetNodeHeight(NodeTitleBar(0))
+    title_h := app_nav_desktop_rail_enabled(app) ? 0 :
+               (integrated ? app_content_top_reserved(app) : GetNodeHeight(NodeTitleBar(0)))
     nav_h := page_count > 1 ? manual_screen_guide_nav_height() : 0
     bottom_reserved := integrated ? app_content_bottom_reserved(app) : 0
     content_y := title_h + content_top_gap
