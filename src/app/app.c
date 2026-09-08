@@ -11,6 +11,7 @@
 #include "app_internal.h"
 #include "app_runtime.h"
 #include "app/app_sync.h"
+#include "app/app_route_state.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -91,7 +92,6 @@ ReadonlyTextBox(ReadonlyTextBoxProps props)
     DrawUIReadonlyTextBox(props);
 }
 
-static void app_apply_route(InnerBreeze*app, AppRoute route);
 static void app_restore_habits_view_settings(InnerBreeze*app);
 
 typedef struct RouteBinding {
@@ -623,121 +623,10 @@ app_leave_practice_config(InnerBreeze*app)
     app->settings_scroll = 0;
 }
 
-AppRoute
-app_current_route(const InnerBreeze*app)
-{
-    AppRoute route = {0};
-
-    if(app == NULL)
-        return route;
-    route.screen = app->breathing.screen;
-    route.exercise_type = app->exercise_type;
-    route.practice_tab = app->practice_tab;
-    route.practice_config_tab = app->practice_config_tab;
-    route.settings_tab = app->settings_tab;
-    route.profile_view = app->profile_view;
-    route.profile_tab = app->profile_tab;
-    route.habits_screen_mode = app->habits.screen_mode;
-    route.habits_tab = app->habits.tab;
-    return route;
-}
-
-static int
-app_route_uses_habit_state(int screen)
-{
-    return screen == ScreenHabits ||
-           screen == ScreenHabitEdit ||
-           screen == ScreenHabitSessionEdit;
-}
-
-static int
-app_route_equal(AppRoute a, AppRoute b)
-{
-    if(a.screen != b.screen)
-        return 0;
-    if(app_route_uses_habit_state(a.screen))
-        return a.habits_screen_mode == b.habits_screen_mode &&
-               a.habits_tab == b.habits_tab;
-    switch(a.screen) {
-    case ScreenStart:
-        return a.exercise_type == b.exercise_type &&
-               a.practice_tab == b.practice_tab &&
-               (a.practice_tab != PRACTICE_TAB_CONFIG ||
-                a.practice_config_tab == b.practice_config_tab);
-    case ScreenSettings:
-        return a.settings_tab == b.settings_tab;
-    case ScreenProfile:
-        return a.profile_view == b.profile_view &&
-               a.profile_tab == b.profile_tab;
-    default:
-        break;
-    }
-    return 1;
-}
-
-static void
-app_enter_route(InnerBreeze*app, AppRoute route)
-{
-    if(app == NULL)
-        return;
-    if(route.screen == ScreenProfile) {
-        if(route.profile_tab == PROFILE_TAB_FRIENDS) {
-            profile_social_load_friends_cache(app);
-            app_request_social_refresh(app);
-        } else if(route.profile_tab == PROFILE_TAB_LEADERBOARD) {
-            profile_social_load_leaderboard_cache(app);
-            app_request_social_refresh(app);
-        }
-    }
-}
-
-static void
-app_apply_route(InnerBreeze*app, AppRoute route)
-{
-    if(app == NULL)
-        return;
-    app->breathing.screen = route.screen;
-    app->exercise_type = route.exercise_type;
-    app->practice_tab = route.practice_tab;
-    app->practice_config_tab = route.practice_config_tab;
-    app->settings_tab = route.settings_tab;
-    app->profile_view = route.profile_view;
-    app->profile_tab = route.profile_tab;
-    app->habits.screen_mode = route.habits_screen_mode;
-    app->habits.tab = route.habits_tab;
-}
-
-void
-app_switch_route(InnerBreeze*app, AppRoute route)
-{
-    if(app == NULL)
-        return;
-    if(app_route_equal(app_current_route(app), route))
-        return;
-
-    if(route.screen == ScreenHabits && app->breathing.screen != ScreenHabits)
-        app->habits.focus_selected_tab = 1;
-
-    app_apply_route(app, route);
-    app_enter_route(app, app_current_route(app));
-}
-
-void
-app_switch_screen(InnerBreeze*app, int screen)
-{
-    AppRoute route;
-
-    if(app == NULL)
-        return;
-    route = app_current_route(app);
-    route.screen = screen;
-    app_switch_route(app, route);
-}
-
 static void
 app_observe_direct_route_change(InnerBreeze*app, AppRoute before_route)
 {
-    if(app == NULL || app_route_equal(before_route, app_current_route(app)))
+    if(app == NULL || routes_equal(before_route, app_current_route(app)))
         return;
     if(app->breathing.screen == ScreenHabits && before_route.screen != ScreenHabits)
         app->habits.focus_selected_tab = 1;
