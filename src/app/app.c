@@ -13,6 +13,7 @@
 #include "app/app_sync.h"
 #include "app/app_route_state.h"
 #include "app/app_route_url.h"
+#include "app/app_donation.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -110,78 +111,6 @@ static double
 app_profile_now(void)
 {
     return app_profile_enabled() ? GetTime() : 0.0;
-}
-
-const char *
-app_bitcoin_donation_address(void)
-{
-    return "bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5";
-}
-
-const char *
-app_monero_donation_address(void)
-{
-    return "86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH";
-}
-
-const char *
-app_bitcoin_wallet_url(void)
-{
-    return "bitcoin:bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5"
-           "?amount=0.001";
-}
-
-const char *
-app_monero_wallet_url(void)
-{
-    return "monero:86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH"
-           "?tx_amount=0.1";
-}
-
-const char *
-app_bitcoin_trocador_url(void)
-{
-    return "https://trocador.app/en/anonpay/?ticker_to=btc&network_to=Mainnet"
-           "&address=bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5"
-           "&donation=True&simple_mode=True&amount=0.001&name=Inner+Breeze"
-           "&email=waotzi@proton.me&ticker_from=btc&network_from=Mainnet"
-           "&buttonbgcolor=23657d&textcolor=fffdf8&bgcolor=f3f1eaff";
-}
-
-const char *
-app_monero_trocador_url(void)
-{
-    return "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet"
-           "&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH"
-           "&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze"
-           "&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet"
-           "&buttonbgcolor=23657d&textcolor=fffdf8&bgcolor=f3f1eaff";
-}
-
-const char *
-app_bitcoin_donation_url(void)
-{
-#if defined(PLATFORM_WEB)
-    return app_bitcoin_trocador_url();
-#else
-    return app_bitcoin_wallet_url();
-#endif
-}
-
-const char *
-app_monero_donation_url(void)
-{
-#if defined(PLATFORM_WEB)
-    return app_monero_trocador_url();
-#else
-    return app_monero_wallet_url();
-#endif
-}
-
-const char *
-app_donation_url(void)
-{
-    return app_monero_donation_url();
 }
 
 static void
