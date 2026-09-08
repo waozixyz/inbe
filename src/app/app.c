@@ -14,6 +14,7 @@
 #include "app/app_route_state.h"
 #include "app/app_route_url.h"
 #include "app/app_donation.h"
+#include "app/app_donation_reminder.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -111,88 +112,6 @@ static double
 app_profile_now(void)
 {
     return app_profile_enabled() ? GetTime() : 0.0;
-}
-
-static void
-app_save_donation_reminder(InnerBreeze*app)
-{
-    if(app != NULL)
-        save_settings(app);
-}
-
-static void
-app_record_donation_reminder_seen(InnerBreeze*app)
-{
-    int practice_count;
-
-    if(app == NULL)
-        return;
-    practice_count = storage_session_count();
-    if(practice_count < DONATION_REMINDER_PRACTICE_INTERVAL)
-        practice_count = DONATION_REMINDER_PRACTICE_INTERVAL;
-    app->donation_reminder_last_prompt_practice_count = practice_count;
-    app->donation_reminder_next_prompt_practice_count =
-        practice_count + DONATION_REMINDER_PRACTICE_INTERVAL;
-    app_save_donation_reminder(app);
-}
-
-static int
-app_donation_reminder_practice_home(const InnerBreeze*app)
-{
-    return app != NULL &&
-           app->breathing.screen == ScreenStart &&
-           app->main_tab == APP_MAIN_TAB_PRACTICE &&
-           app->practice_tab == PRACTICE_TAB_PLAY;
-}
-
-static void
-app_init_donation_reminder_observed_practice_count(InnerBreeze*app)
-{
-    if(app == NULL ||
-       app->donation_reminder_observed_practice_count_initialized)
-        return;
-    app->donation_reminder_observed_practice_count = storage_session_count();
-    app->donation_reminder_observed_practice_count_initialized = 1;
-}
-
-static int
-app_donation_reminder_next_threshold(const InnerBreeze*app, int observed_count)
-{
-    int next_prompt_count;
-
-    if(app == NULL)
-        return DONATION_REMINDER_PRACTICE_INTERVAL;
-    next_prompt_count = app->donation_reminder_last_prompt_practice_count +
-                        DONATION_REMINDER_PRACTICE_INTERVAL;
-    if(next_prompt_count < DONATION_REMINDER_PRACTICE_INTERVAL)
-        next_prompt_count = DONATION_REMINDER_PRACTICE_INTERVAL;
-    while(next_prompt_count <= observed_count)
-        next_prompt_count += DONATION_REMINDER_PRACTICE_INTERVAL;
-    return next_prompt_count;
-}
-
-static void
-app_handle_donation_reminder_action(InnerBreeze*app, int action)
-{
-    if(app == NULL)
-        return;
-    switch(action) {
-    case 1:
-        app_record_donation_reminder_seen(app);
-        app_open_modal(app, UIModalAboutDonation);
-        break;
-    case 2:
-        app_record_donation_reminder_seen(app);
-        app_close_modal(app);
-        break;
-    case 3:
-        app->donation_reminder_dismissed = 1;
-        app_record_donation_reminder_seen(app);
-        app_close_modal(app);
-        break;
-    default:
-        break;
-    }
 }
 
 static void
@@ -564,81 +483,6 @@ app_clear_invalid_screen_local_modal(InnerBreeze*app)
     if(app_screen_local_modal_valid(app, app->modal.type))
         return;
     app_clear_modal_state(app);
-}
-
-static int
-app_donation_reminder_safe(const InnerBreeze*app, int first_run_guide_active,
-                           int habits_guide_active)
-{
-    if(app == NULL)
-        return 0;
-    if(app->donation_reminder_dismissed)
-        return 0;
-    if(app->modal.active || app->close_prompt_open || app->nav_sidebar_open)
-        return 0;
-    if(first_run_guide_active || habits_guide_active)
-        return 0;
-    if(app->file_dialog_active || app->backgrounded)
-        return 0;
-    if(app->habit_edit.active || app->habit_session_edit.active)
-        return 0;
-    if(app->sync_server_url_focused || app->sync_alias_focused ||
-       app->profile_friend_input_focused || app->profile_name_focused ||
-       app->profile_intention_focused)
-        return 0;
-
-    switch(app->breathing.screen) {
-    case ScreenSession:
-    case ScreenMeditation:
-    case ScreenSunSalutation:
-    case ScreenPatterns:
-    case ScreenResults:
-    case ScreenBreak:
-    case ScreenHabitEdit:
-    case ScreenHabitSessionEdit:
-        return 0;
-    default:
-        break;
-    }
-    return 1;
-}
-
-static void
-app_maybe_open_donation_reminder(InnerBreeze*app, int first_run_guide_active,
-                                 int habits_guide_active)
-{
-    int practice_count;
-    int next_prompt_count;
-
-    if(!app_donation_reminder_safe(app, first_run_guide_active,
-                                   habits_guide_active))
-        return;
-    practice_count = storage_session_count();
-    if(!app->donation_reminder_observed_practice_count_initialized) {
-        app->donation_reminder_observed_practice_count = practice_count;
-        app->donation_reminder_observed_practice_count_initialized = 1;
-        return;
-    }
-    if(practice_count < app->donation_reminder_observed_practice_count) {
-        app->donation_reminder_observed_practice_count = practice_count;
-        return;
-    }
-    if(practice_count <= app->donation_reminder_observed_practice_count)
-        return;
-    if(!app_donation_reminder_practice_home(app))
-        return;
-    next_prompt_count = app_donation_reminder_next_threshold(
-        app, app->donation_reminder_observed_practice_count);
-    if(app->donation_reminder_next_prompt_practice_count != next_prompt_count) {
-        app->donation_reminder_next_prompt_practice_count = next_prompt_count;
-        app_save_donation_reminder(app);
-    }
-    if(practice_count < next_prompt_count) {
-        app->donation_reminder_observed_practice_count = practice_count;
-        return;
-    }
-    app->donation_reminder_observed_practice_count = practice_count;
-    app_open_modal(app, UIModalDonationReminder);
 }
 
 void
