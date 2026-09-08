@@ -1087,7 +1087,11 @@ inbe_native_after_app_init(InbeApp *app, int argc, char **argv)
     #if ANDROID_BUILD
     app->fullscreen_enabled = 0;
     #endif
+#if ANDROID_BUILD
+    SetTargetFPS(30);
+#else
     SetTargetFPS(60);
+#endif
 }
 
 #if defined(PLATFORM_WEB)

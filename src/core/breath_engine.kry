@@ -85,7 +85,7 @@ inbeinit :: (l: Inbe*) {
     l->progressive_speed = 1
     l->progressive_start_speed = DefaultProgressiveStartSpeed
     l->breath_animation = InbeBreathAnimationLinear
-    l->play_in_background = 1
+    l->play_in_background = 0
 
     for int i = 0; i < MaxRounds; i++ {
         cpcount(l->results[i], "000")

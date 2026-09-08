@@ -306,6 +306,7 @@ save_settings :: (app: InbeApp*) {
         save_setting_int(track_key, app->meditation.music_practice_tracks[i])
     }
     save_setting_int("play_in_background", app->inbe.play_in_background)
+    save_setting_int("play_in_background_default_migrated", 1)
     save_setting_int("practice_category_tab", app->practice_category_tab)
     save_setting_int("patterns_preset", app->patterns.preset)
     save_setting_int("patterns_custom_in", app->patterns.custom[0])
@@ -756,8 +757,14 @@ app_load_settings :: (app: InbeApp*) -> int {
     if getenv("INBE_FORCE_DARK_MODE") != nil {
         app->theme_mode = APP_THEME_DARK
     }
-    app->inbe.play_in_background =
-        settings_cache_get_int(&settings_cache, "play_in_background", 1) != 0
+    if settings_cache_get(&settings_cache, "play_in_background_default_migrated") == nil {
+        app->inbe.play_in_background = 0
+        storage_set_setting_int("play_in_background", 0)
+        storage_set_setting_int("play_in_background_default_migrated", 1)
+    } else {
+        app->inbe.play_in_background =
+            settings_cache_get_int(&settings_cache, "play_in_background", 0) != 0
+    }
     TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",
                 app->inbe.play_in_background)
     app->backgrounded = 0

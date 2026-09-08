@@ -435,6 +435,30 @@ app_profile_frame_end(double frame_start)
     }
 }
 
+static void
+app_update_android_target_fps(InbeApp *app)
+{
+#if ANDROID_BUILD
+    static int current_target_fps = 0;
+    int target_fps = 15;
+
+    if(app != NULL &&
+       (practice_active(app) != NULL ||
+        app->modal.active ||
+        app->file_dialog_active ||
+        IsMouseButtonDown(MOUSE_BUTTON_LEFT) ||
+        IsMouseButtonReleased(MOUSE_BUTTON_LEFT))) {
+        target_fps = 30;
+    }
+    if(current_target_fps != target_fps) {
+        SetTargetFPS(target_fps);
+        current_target_fps = target_fps;
+    }
+#else
+    (void)app;
+#endif
+}
+
 InbeConfig config = {
     .title = "Inner Breeze",
     .width = INBE_DEFAULT_WIDTH,
@@ -2728,6 +2752,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
 
     if(app == 0 || viewport.width <= 0 || viewport.height <= 0)
         return;
+    app_update_android_target_fps(app);
 
     app_reload_graphics_resources(app);
 
