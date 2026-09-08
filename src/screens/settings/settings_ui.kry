@@ -60,16 +60,16 @@ toggle_row_height :: (label: const char*, w: int) -> int {
         if row_h < toggle_h {
             row_h = toggle_h
         }
-        row_h += Scale(24)
-        if row_h < Scale(60) {
-            row_h = Scale(60)
+        row_h += Scale(16)
+        if row_h < Scale(52) {
+            row_h = Scale(52)
         }
         return row_h
     }
 
-    row_h := label_h + Scale(10) + toggle_h + Scale(22)
-    if row_h < Scale(76) {
-        row_h = Scale(76)
+    row_h := label_h + Scale(8) + toggle_h + Scale(18)
+    if row_h < Scale(70) {
+        row_h = Scale(70)
     }
     return row_h
 }
@@ -80,31 +80,29 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
     }
 
     row_h := toggle_row_height(label, w)
-    label_y := *y
     toggle_w := toggle_switch_width()
     toggle_h := Scale(28)
     gap := Scale(18)
     label_w := w - toggle_w - gap
-    row_bounds := (Rectangle){(float)x, (float)*y, (float)w, (float)row_h}
+    label_h: int
+    label_y: int
 
     if label_w < Scale(120) {
         label_w = w
     }
 
-    DrawRectangleRounded(row_bounds, 0.025f, 8,
-                         Fade(GetThemeSurface(), 0.18f))
-    DrawRectangleRoundedLinesEx(row_bounds, 0.025f, 8, 1.0f,
-                                Fade(GetThemeText(), 0.07f))
-    label_y += Scale(14)
-    Paragraph(label_paragraph(label, label_w), x, &label_y)
-    label_h := label_y - *y
+    label_h = GetNodeHeight(NodeParagraph(label_paragraph(label, label_w), 0, 0))
     toggle_x := x
-    toggle_y := *y + label_h + Scale(10)
+    toggle_y := *y + (row_h - toggle_h) / 2
 
     if label_w < w {
+        label_y = *y + (row_h - label_h) / 2
         toggle_x = x + w - toggle_w
-        toggle_y = *y + (row_h - toggle_h) / 2
+    } else {
+        label_y = *y + Scale(8)
+        toggle_y = label_y + label_h + Scale(8)
     }
+    Paragraph(label_paragraph(label, label_w), x, &label_y)
 
     if toggle_switch(62000 + *y, toggle_x, toggle_y, value) {
         *y += row_h
