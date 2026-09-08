@@ -20,6 +20,7 @@
 #include "app/app_lifecycle.h"
 #include "app/app_persistence.h"
 #include "app/app_modal_state.h"
+#include "app/app_chrome.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -99,66 +100,6 @@ int view_height = APP_DEFAULT_HEIGHT;
 static int app_full_view_width = APP_DEFAULT_WIDTH;
 /* Theme colors are now accessed via theme accessor functions */
 
-int
-app_draw_close_title_bar(InnerBreeze*app, const char *title, int height)
-{
-    int hover = 0;
-    int button_size = Scale(22);
-    int padding = Scale(11);
-    int button_total = button_size + padding * 2;
-    int x = view_width - button_total - Scale(8);
-    int y = (height - button_total) / 2;
-
-    if(y < 0)
-        y = 0;
-    TitleBar(title, height);
-    if(app != NULL && !app->modal.active &&
-       PaddedIconBtn(0, x, y, button_size, padding,
-                           app->icons[UI_ICON_TYPE_X], &hover))
-        return 1;
-    return 0;
-}
-
-int
-app_scaffold_close_title(const char *title, int height, void *user_data)
-{
-    return app_draw_close_title_bar((InnerBreeze*)user_data, title, height);
-}
-
-int
-app_draw_close_dropdown_title_bar(InnerBreeze*app, UITitleBarDropdown dropdown,
-                                  int height)
-{
-    int hover = 0;
-    int button_size = Scale(22);
-    int padding = Scale(11);
-    int button_total = button_size + padding * 2;
-    int close_x = view_width - button_total - Scale(8);
-    int close_y = (height - button_total) / 2;
-    int dropdown_x = Scale(8);
-    int dropdown_h = dropdown.height > 0 ? dropdown.height : Scale(32);
-    int dropdown_y = (height - dropdown_h) / 2;
-    int dropdown_w = close_x - dropdown_x - Scale(8);
-
-    if(close_y < 0)
-        close_y = 0;
-    if(dropdown_y < 0)
-        dropdown_y = 0;
-    if(dropdown_w < 1)
-        dropdown_w = 1;
-    DrawRectangle(0, 0, view_width, height, GetThemeBackground());
-    DrawLine(0, height - 1, view_width, height - 1,
-             DarkenUIColor(GetThemeButton(), 18));
-    Dropdown(dropdown.id, dropdown_x, dropdown_y, dropdown_w,
-                         dropdown_h, dropdown.options, dropdown.option_count,
-                         dropdown.selected_index);
-    if(app != NULL && !app->modal.active &&
-       PaddedIconBtn(0, close_x, close_y, button_size, padding,
-                           app->icons[UI_ICON_TYPE_X], &hover))
-        return 1;
-    return 0;
-}
-
 void
 app_leave_practice_config(InnerBreeze*app)
 {
@@ -172,24 +113,6 @@ app_leave_practice_config(InnerBreeze*app)
             practice->leave_config(app);
     }
     app->settings_scroll = 0;
-}
-
-int
-app_toolbar_height(void)
-{
-    return Scale(58);
-}
-
-int
-app_content_top_reserved(const InnerBreeze*app)
-{
-    TabBarProps tabs;
-
-    if(app != NULL && app->breathing.screen == ScreenStart) {
-        memset(&tabs, 0, sizeof(tabs));
-        return GetNodeHeight(NodeTabBar(tabs));
-    }
-    return app_toolbar_height();
 }
 
 void
