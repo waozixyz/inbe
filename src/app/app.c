@@ -16,6 +16,7 @@
 #include "app/app_donation.h"
 #include "app/app_donation_reminder.h"
 #include "app/app_profile.h"
+#include "app/app_frame_pacing.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -81,27 +82,6 @@ ReadonlyTextBox(ReadonlyTextBoxProps props)
 }
 
 static void app_restore_habits_view_settings(InnerBreeze*app);
-
-static void
-app_update_frame_pacing(InnerBreeze*app)
-{
-#if ANDROID_BUILD
-    int active = 0;
-
-    if(app != NULL &&
-       (practice_active(app) != NULL ||
-        app->modal.active ||
-        app->file_dialog_active ||
-        IsMouseButtonDown(MOUSE_BUTTON_LEFT) ||
-        IsMouseButtonReleased(MOUSE_BUTTON_LEFT))) {
-        active = 1;
-    }
-    SetFramePacingActive(active);
-    UpdateFramePacing();
-#else
-    (void)app;
-#endif
-}
 
 AppConfig config = {
     .title = "Inner Breeze",

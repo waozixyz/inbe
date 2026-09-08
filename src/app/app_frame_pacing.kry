@@ -1,0 +1,23 @@
+#module "app.frame_pacing"
+
+#import "app.h"
+#import "practices/practice_registry.h" #private
+
+ANDROID :: ANDROID_BUILD
+
+app_update_frame_pacing :: (app: InnerBreeze*) #export {
+    #if ANDROID {
+        active := 0
+        if app != nil &&
+           (practice_active(app) != nil || app->modal.active ||
+            app->file_dialog_active ||
+            IsMouseButtonDown(MOUSE_BUTTON_LEFT) ||
+            IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            active = 1
+        }
+        SetFramePacingActive(active)
+        UpdateFramePacing()
+    } #else {
+        unused app
+    }
+}
