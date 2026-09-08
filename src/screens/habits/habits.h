@@ -31,6 +31,8 @@ void habit_format_date(int day_index, char *out, size_t out_size);
 void habit_format_duration(int seconds, char *out, size_t out_size);
 int habit_tm_date_index(const struct tm *tm);
 void habit_collect_linked_entries(const InbeHabit *habit, int day_filter, HabitLinkedContext *ctx);
+void habit_linked_cache_clear(InbeHabits *habits);
+HabitLinkedContext *habit_cached_linked_entries(InbeApp *app, int habit_index, int day_filter);
 int habit_linked_has_day(const HabitLinkedContext *ctx, int day_index);
 int habit_linked_session_count_for_day(const HabitLinkedContext *ctx, int day_index);
 int habit_effective_day_count(const InbeHabit *habit, int day_index, const HabitLinkedContext *linked_ctx);

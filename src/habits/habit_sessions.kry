@@ -4,6 +4,7 @@
 #import "data.h"
 #import "storage.h"
 #import "stdio.h"
+#import "stdlib.h"
 #import "string.h"
 
 habit_linked_session_callback :: (path: const char*, year: int, month: int,
@@ -67,6 +68,66 @@ habit_collect_linked_entries :: (habit: const InbeHabit*, day_filter: int,
     ctx->sync_mode = habit != nil ? habit->sync_mode : INBE_HABIT_SYNC_NONE
     ctx->sync_activity = habit != nil ? habit->sync_activity : EXERCISE_WIM_HOF
     data_list_session_records(habit_linked_session_callback, ctx)
+}
+
+habit_linked_cache_clear :: (habits: InbeHabits*) {
+    if habits == nil {
+        return
+    }
+    free(habits->linked_cache)
+    habits->linked_cache = nil
+    habits->linked_cache_habit_id[0] = '\0'
+    habits->linked_cache_valid = 0
+    habits->linked_cache_index = -1
+    habits->linked_cache_day_filter = 0
+    habits->linked_cache_session_clock = 0
+    habits->linked_cache_sync_mode = INBE_HABIT_SYNC_NONE
+    habits->linked_cache_sync_activity = 0
+}
+
+habit_cached_linked_entries :: (app: InbeApp*, habit_index: int,
+                                day_filter: int) -> HabitLinkedContext* {
+    habits: InbeHabits*
+    habit: InbeHabit*
+    session_clock: long long
+
+    if app == nil || habit_index < 0 ||
+       habit_index >= app->habits.count {
+        return nil
+    }
+    habits = &app->habits
+    habit = &habits->items[habit_index]
+    if !habit_is_linked(habit) {
+        return nil
+    }
+    if habits->linked_cache == nil {
+        habits->linked_cache = calloc(1, sizeof(*habits->linked_cache))
+        if habits->linked_cache == nil {
+            return nil
+        }
+    }
+
+    session_clock = storage_session_change_clock()
+    if habits->linked_cache_valid &&
+       habits->linked_cache_index == habit_index &&
+       habits->linked_cache_day_filter == day_filter &&
+       habits->linked_cache_session_clock == session_clock &&
+       habits->linked_cache_sync_mode == habit->sync_mode &&
+       habits->linked_cache_sync_activity == habit->sync_activity &&
+       strcmp(habits->linked_cache_habit_id, habit->id) == 0 {
+        return habits->linked_cache
+    }
+
+    habit_collect_linked_entries(habit, day_filter, habits->linked_cache)
+    habits->linked_cache_index = habit_index
+    habits->linked_cache_day_filter = day_filter
+    habits->linked_cache_session_clock = session_clock
+    habits->linked_cache_sync_mode = habit->sync_mode
+    habits->linked_cache_sync_activity = habit->sync_activity
+    snprintf(habits->linked_cache_habit_id,
+             sizeof(habits->linked_cache_habit_id), "%s", habit->id)
+    habits->linked_cache_valid = 1
+    return habits->linked_cache
 }
 
 habit_session_cancel_edit :: (app: InbeApp*) {

@@ -114,6 +114,7 @@ int storage_mood_stats(int activity_mask, int days,
 void storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user);
 int storage_has_any(void);
 int storage_session_count(void);
+long long storage_session_change_clock(void);
 int storage_habit_count(void);
 long long storage_total_size(void);
 int storage_profile_activity_stats(int activity, int today_date,

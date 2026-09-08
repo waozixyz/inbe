@@ -83,10 +83,20 @@ typedef struct InbeHabitDaySave {
     int count;
 } InbeHabitDaySave;
 
+typedef struct HabitLinkedContext HabitLinkedContext;
+
 typedef struct InbeHabits {
     InbeHabit items[INBE_HABIT_MAX];
     char loaded_ids[INBE_HABIT_MAX][INBE_HABIT_ID_SIZE];
     InbeHabitDaySave pending_day_saves[INBE_HABIT_PENDING_DAY_SAVE_MAX];
+    HabitLinkedContext *linked_cache;
+    char linked_cache_habit_id[INBE_HABIT_ID_SIZE];
+    long long linked_cache_session_clock;
+    int linked_cache_index;
+    int linked_cache_day_filter;
+    int linked_cache_sync_mode;
+    int linked_cache_sync_activity;
+    int linked_cache_valid;
     int count;
     int loaded_count;
     int pending_day_save_count;
@@ -121,7 +131,7 @@ typedef struct HabitLinkedEntry {
     int best_seconds;
 } HabitLinkedEntry;
 
-typedef struct HabitLinkedContext {
+struct HabitLinkedContext {
     HabitLinkedEntry entries[HABIT_LINKED_ENTRY_MAX];
     int count;
     int day_filter;
@@ -129,7 +139,7 @@ typedef struct HabitLinkedContext {
     int sync_activity;
     int total_seconds;
     int best_seconds;
-} HabitLinkedContext;
+};
 
 /* Core habits functions */
 void habits_init(InbeHabits *habits);

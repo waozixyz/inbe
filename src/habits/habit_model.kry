@@ -76,6 +76,7 @@ habits_free :: (habits: InbeHabits*) {
         habits->items[i].day_count = 0
         habits->items[i].day_capacity = 0
     }
+    habit_linked_cache_clear(habits)
 }
 
 habits_today_index :: () -> int {

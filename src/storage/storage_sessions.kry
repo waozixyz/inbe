@@ -621,6 +621,10 @@ storage_session_count :: () -> int {
     return db_select_int("SELECT COUNT(*) FROM sessions WHERE deleted_at=0", 0)
 }
 
+storage_session_change_clock :: () -> long long {
+    return db_select_int64("SELECT COALESCE(MAX(updated_at),0) FROM sessions", 0)
+}
+
 storage_total_size :: () -> long long {
     st: struct stat
 

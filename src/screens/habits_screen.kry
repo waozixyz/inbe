@@ -1623,7 +1623,7 @@ habits_focus_draw_week :: (app: InbeApp*, habit: InbeHabit*, selected: int,
 habits_focus_draw_card :: (app: InbeApp*, selected: int,
                            x: int, y: int, w: int) #private {
     habit := &app->habits.items[selected]
-    linked_ctx: HabitLinkedContext* = nil
+    linked_ctx := habit_cached_linked_entries(app, selected, 0)
     surface := GetThemeSurface()
     foreground := GetThemeReadableText(surface)
     muted := Fade(foreground, 0.68f)
@@ -1636,12 +1636,6 @@ habits_focus_draw_card :: (app: InbeApp*, selected: int,
     action_gap := Scale(8)
     action_w := (w - Scale(28) - action_gap * 2) / 3
 
-    if habit_is_linked(habit) {
-        linked_ctx = calloc(1, sizeof(*linked_ctx))
-        if linked_ctx != nil {
-            habit_collect_linked_entries(habit, 0, linked_ctx)
-        }
-    }
     DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)card_h},
                          0.08f, 10, surface)
     DrawRectangle(x + Scale(16), y + Scale(20),
@@ -1674,7 +1668,6 @@ habits_focus_draw_card :: (app: InbeApp*, selected: int,
         .icon_color = foreground, .radius = 0.18f
     }) {
         habits_open_history(app)
-        free(linked_ctx)
         return
     }
     if IconButton((IconButtonProps){
@@ -1688,7 +1681,6 @@ habits_focus_draw_card :: (app: InbeApp*, selected: int,
         .icon_color = foreground, .radius = 0.18f
     }) {
         habits_open_statistics(app)
-        free(linked_ctx)
         return
     }
     if IconButton((IconButtonProps){
@@ -1702,7 +1694,6 @@ habits_focus_draw_card :: (app: InbeApp*, selected: int,
         .icon_color = foreground, .radius = 0.18f
     }) {
         habit_edit_begin(app, selected)
-        free(linked_ctx)
         return
     }
     # The selected card behaves like the collapsed cards: tapping its
@@ -1713,7 +1704,6 @@ habits_focus_draw_card :: (app: InbeApp*, selected: int,
         .id = 24090
     }) {
         habits_return_to_overview(app)
-        free(linked_ctx)
         return
     }
     Text((TextProps){
@@ -1726,7 +1716,6 @@ habits_focus_draw_card :: (app: InbeApp*, selected: int,
     habits_focus_draw_week(app, habit, selected, linked_ctx,
                            x + Scale(14), body_y,
                            w - Scale(28))
-    free(linked_ctx)
 }
 
 habits_focus_draw_collapsed :: (app: InbeApp*, index: int,
@@ -2210,12 +2199,7 @@ draw_habits_screen :: (app: InbeApp*) {
     days_in_month = next_month.tm_mday
     strftime(month_label, sizeof(month_label), "%B %Y", &month)
 
-    if active_is_linked {
-        linked_ctx = calloc(1, sizeof(*linked_ctx))
-        if linked_ctx != nil {
-            habit_collect_linked_entries(active, 0, linked_ctx)
-        }
-    }
+    linked_ctx = active_is_linked ? habit_cached_linked_entries(app, selected, 0) : nil
 
     scroll_y = content_top + Scale(4)
     scroll_h = viewport_h - Scale(4)
@@ -2246,7 +2230,6 @@ draw_habits_screen :: (app: InbeApp*) {
         draw_habits_weekly_view(app, active, selected, linked_ctx,
                                    content_x, content_w, y, weekly_days)
         EndUIScrollPage(page)
-        free(linked_ctx)
         draw_habits_top_bar(app, 0)
         if app->inbe.screen == InbeScreenHabits {
             draw_habits_top_bar(app, 1)
@@ -2389,7 +2372,6 @@ draw_habits_screen :: (app: InbeApp*) {
 
     EndUIScrollPage(page)
 
-    free(linked_ctx)
     draw_habits_top_bar(app, 0)
     if app->inbe.screen == InbeScreenHabits {
         draw_habits_top_bar(app, 1)

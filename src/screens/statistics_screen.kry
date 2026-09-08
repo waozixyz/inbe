@@ -602,12 +602,7 @@ draw_statistics_content :: (app: InbeApp*, content_top: int) {
     }
 
     active = &app->habits.items[app->habits.selected]
-    if habit_is_linked(active) {
-        linked_ctx = calloc(1, sizeof(*linked_ctx))
-        if linked_ctx != NULL {
-            habit_collect_linked_entries(active, 0, linked_ctx)
-        }
-    }
+    linked_ctx = habit_cached_linked_entries(app, app->habits.selected, 0)
 
     if scroll_h < 0 {
         scroll_h = 0
@@ -622,5 +617,4 @@ draw_statistics_content :: (app: InbeApp*, content_top: int) {
     page = BeginUIScrollPage((UIScrollPageSpec){.y = scroll_y, .height = scroll_h, .max_content_width = max_w, .scroll_offset = &app->habits.scroll, .content_height = statistics_scroll_page_content_height, .user_data = &page_ctx})
     statistics_draw_view(app, active, linked_ctx, page.content_x, page.content_w, page.content_y + Scale(8))
     EndUIScrollPage(page)
-    free(linked_ctx)
 }
