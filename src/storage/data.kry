@@ -98,7 +98,7 @@ data_root :: () -> const char* {
             snprintf(g_data_root, sizeof(g_data_root), "BreathSession")
         }
     } #else {
-        root: const char* = KryAppDataRoot("breathing")
+        root: const char* = AppDataRoot("breathing")
         snprintf(g_data_root, sizeof(g_data_root), "%s", root != nil && root[0] != '\0' ? root : ".local/breathing")
     }
 

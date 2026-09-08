@@ -69,7 +69,7 @@ static g_sync: SyncCoordinator = {0}
 static g_sync_events_url: [256] char
 
 #if !WEB {
-    static g_sync_mutex: KryMutex = KRY_MUTEX_INIT
+    static g_sync_mutex: Mutex = MUTEX_INIT
     static g_sync_result: SyncWorkerResult = {0, SYNC_OK, 0}
     static g_social_result: SocialWorkerResult = {0, SYNC_OK, "", "", "", "", "", ""}
     static g_sync_events_running: int = 0
@@ -79,13 +79,13 @@ static g_sync_events_url: [256] char
 
 sync_lock :: () #private {
     #if !WEB {
-        KryMutexLock(&g_sync_mutex)
+        MutexLock(&g_sync_mutex)
     }
 }
 
 sync_unlock :: () #private {
     #if !WEB {
-        KryMutexUnlock(&g_sync_mutex)
+        MutexUnlock(&g_sync_mutex)
     }
 }
 
@@ -412,7 +412,7 @@ app_social_apply_result :: (app: InnerBreeze*, requests_json: const char*,
             sync_lock()
             if g_sync.sync_running {
                 sync_unlock()
-                KrySleepSeconds(1)
+                SleepSeconds(1)
                 continue
             }
             sync_unlock()
@@ -424,7 +424,7 @@ app_social_apply_result :: (app: InnerBreeze*, requests_json: const char*,
             }
             sync_unlock()
             if result != SYNC_OK {
-                KrySleepSeconds(2)
+                SleepSeconds(2)
             }
         }
         return nil
@@ -477,7 +477,7 @@ app_collect_finished_sync :: () #private {
 
 app_ensure_sync_events :: (url: const char*) #private {
     #if !WEB {
-        thread: KryThread
+        thread: Thread
         args: SyncWorkerArgs*
 
         if url == nil || url[0] == '\0' {
@@ -506,7 +506,7 @@ app_ensure_sync_events :: (url: const char*) #private {
             return
         }
         snprintf(args->url, sizeof(args->url), "%s", url)
-        if !KryThreadStart(&thread, app_sync_events_worker, args) {
+        if !ThreadStart(&thread, app_sync_events_worker, args) {
             free(args)
             sync_lock()
             g_sync_events_running = 0
@@ -515,7 +515,7 @@ app_ensure_sync_events :: (url: const char*) #private {
             TraceLog(LOG_WARNING, "SYNC: failed to start websocket event thread")
             return
         }
-        KryThreadDetach(&thread)
+        ThreadDetach(&thread)
         TraceLog(LOG_INFO, "SYNC: websocket event listener started")
     } #else {
         now: double
@@ -731,7 +731,7 @@ app_apply_pending_social_refresh :: (app: InnerBreeze*) #private {
         return
     }
     #if !WEB {
-        thread: KryThread
+        thread: Thread
         args: SocialWorkerArgs*
 
         if !app_sync_url(url, sizeof(url)) {
@@ -772,7 +772,7 @@ app_apply_pending_social_refresh :: (app: InnerBreeze*) #private {
         snprintf(args->action, sizeof(args->action), "%s", action)
         snprintf(args->action_value, sizeof(args->action_value), "%s", action_value)
         TraceLog(LOG_INFO, "SYNC: starting background social refresh")
-        if !KryThreadStart(&thread, app_social_worker, args) {
+        if !ThreadStart(&thread, app_social_worker, args) {
             free(args)
             sync_lock()
             g_sync.social_refresh_running = 0
@@ -785,7 +785,7 @@ app_apply_pending_social_refresh :: (app: InnerBreeze*) #private {
         app_social_pop_action(action, sizeof(action), action_value,
                                  sizeof(action_value))
         sync_unlock()
-        KryThreadDetach(&thread)
+        ThreadDetach(&thread)
     } #else {
         if !app_sync_url(url, sizeof(url)) {
             app_clear_disconnected_sync_work()
@@ -968,7 +968,7 @@ app_sync_now :: (app: InnerBreeze*) -> int #private {
         return 0
     }
     #if !WEB {
-        thread: KryThread
+        thread: Thread
         args: SyncWorkerArgs*
 
         sync_lock()
@@ -988,7 +988,7 @@ app_sync_now :: (app: InnerBreeze*) -> int #private {
         }
         snprintf(args->url, sizeof(args->url), "%s", url)
         TraceLog(LOG_INFO, "SYNC: starting background sync")
-        if !KryThreadStart(&thread, app_sync_worker, args) {
+        if !ThreadStart(&thread, app_sync_worker, args) {
             free(args)
             sync_lock()
             g_sync.sync_running = 0
@@ -996,7 +996,7 @@ app_sync_now :: (app: InnerBreeze*) -> int #private {
             TraceLog(LOG_WARNING, "SYNC: failed to start background sync thread")
             return 0
         }
-        KryThreadDetach(&thread)
+        ThreadDetach(&thread)
         return 1
     } #else {
         if g_sync.sync_running {

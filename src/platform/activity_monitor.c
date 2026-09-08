@@ -5,35 +5,35 @@
 void
 activity_monitor_init(void)
 {
-    KryActivityMonitorInit();
+    ActivityMonitorInit();
 }
 
 int
 activity_is_wayland(void)
 {
-    return KryActivityIsWayland();
+    return ActivityIsWayland();
 }
 
 int
 activity_available(void)
 {
-    return KryActivityAvailable();
+    return ActivityAvailable();
 }
 
 long
 activity_get_idle_ms(void)
 {
-    return KryActivityGetIdleMilliseconds();
+    return ActivityGetIdleMilliseconds();
 }
 
 int
 break_set_input_blocked(int on)
 {
-    return KryActivitySetInputBlocked(on);
+    return ActivitySetInputBlocked(on);
 }
 
 int
 break_input_blocked(void)
 {
-    return KryActivityInputBlocked();
+    return ActivityInputBlocked();
 }
