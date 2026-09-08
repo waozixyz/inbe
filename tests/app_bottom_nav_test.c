@@ -878,7 +878,7 @@ test_default_bottom_nav_routes_are_habits_practice_settings(void)
 }
 
 static void
-test_stack_opens_sidebar_without_routing(void)
+test_stack_route_does_not_open_sidebar(void)
 {
     InbeApp app = test_app();
 
@@ -890,8 +890,8 @@ test_stack_opens_sidebar_without_routing(void)
 
     expect(bottom_nav_draw_count == 1,
            "stack route should draw bottom nav");
-    expect(app.nav_sidebar_open == 1,
-           "stack route should open sidebar");
+    expect(app.nav_sidebar_open == 0,
+           "stack route should not open sidebar");
     expect(app.inbe.screen == InbeScreenStart,
            "stack route should not change screens");
     expect(reset_settings_preview_count == 0,
@@ -899,7 +899,7 @@ test_stack_opens_sidebar_without_routing(void)
 }
 
 static void
-test_compact_stack_opens_sidebar_screen(void)
+test_compact_stack_route_does_not_open_sidebar_screen(void)
 {
     InbeApp app = test_app();
 
@@ -909,10 +909,10 @@ test_compact_stack_opens_sidebar_screen(void)
 
     app_draw_bottom_nav(&app);
 
-    expect(app.nav_sidebar_open == 1,
-           "compact stack route should open sidebar");
-    expect(app.inbe.screen == InbeScreenNavSidebar,
-           "compact stack route should switch to sidebar screen");
+    expect(app.nav_sidebar_open == 0,
+           "compact stack route should not open sidebar");
+    expect(app.inbe.screen == InbeScreenStart,
+           "compact stack route should not switch to sidebar screen");
 }
 
 static void
@@ -1287,7 +1287,7 @@ test_sidebar_child_back_returns_to_compact_sidebar(void)
 }
 
 static void
-test_sidebar_screen_becomes_overlay_when_width_expands(void)
+test_sidebar_screen_closes_when_width_expands(void)
 {
     InbeApp app = test_app();
 
@@ -1299,18 +1299,18 @@ test_sidebar_screen_becomes_overlay_when_width_expands(void)
     view_width = 720;
     app_update_nav_sidebar_mode(&app);
 
-    expect(app.nav_sidebar_open == 1,
-           "expanded sidebar should remain open as overlay");
+    expect(app.nav_sidebar_open == 0,
+           "expanded sidebar should close instead of becoming overlay");
     expect(app.inbe.screen == InbeScreenStart,
-           "expanded sidebar should return to home screen behind overlay");
+           "expanded sidebar should return to home screen");
 }
 
 int
 main(void)
 {
     test_default_bottom_nav_routes_are_habits_practice_settings();
-    test_stack_opens_sidebar_without_routing();
-    test_compact_stack_opens_sidebar_screen();
+    test_stack_route_does_not_open_sidebar();
+    test_compact_stack_route_does_not_open_sidebar_screen();
     test_same_frame_modal_close_consumes_bottom_nav_click();
     test_unblocked_bottom_nav_click_still_routes();
     test_edge_bottom_nav_routes_are_applied();
@@ -1328,7 +1328,7 @@ main(void)
     test_stack_toggle_close_blocks_bottom_nav();
     test_consumed_pfp_release_does_not_close_sidebar();
     test_sidebar_child_back_returns_to_compact_sidebar();
-    test_sidebar_screen_becomes_overlay_when_width_expands();
+    test_sidebar_screen_closes_when_width_expands();
 
     if(failures > 0) {
         fprintf(stderr, "%d app bottom nav test failure(s)\n", failures);

@@ -257,16 +257,18 @@ app_update_nav_sidebar_mode :: (app: InbeApp*) {
     if app == NULL {
         return
     }
-    if app_nav_desktop_rail_enabled(app) &&
-       app->inbe.screen == InbeScreenSettings {
+    if !app_nav_sidebar_compact() && app_nav_sidebar_screen_active(app) {
+        app->nav_sidebar_open = 0
+        app->nav_sidebar_return_on_back = 0
+        app->nav_sidebar_prior_screen = 0
+        app_switch_screen(app, app_screen_for_main_tab(app->main_tab))
+        return
+    }
+    if app_nav_desktop_rail_enabled(app) {
         app->nav_sidebar_open = 0
         app->nav_sidebar_return_on_back = 0
         app->nav_sidebar_prior_screen = 0
         return
-    }
-    if app_nav_sidebar_screen_active(app) && !app_nav_sidebar_compact() {
-        app->nav_sidebar_open = 1
-        app_switch_screen(app, app_screen_for_main_tab(app->main_tab))
     }
 }
 
@@ -447,8 +449,6 @@ app_apply_nav_route :: (app: InbeApp*, route: int) {
     } else if route == APP_NAV_ROUTE_STACK {
         if app_nav_sidebar_screen_active(app) || app->nav_sidebar_open {
             app_close_nav_sidebar(app)
-        } else {
-            app_open_nav_sidebar(app)
         }
     } else if route == APP_NAV_ROUTE_SETTINGS {
         #if DESKTOP {
