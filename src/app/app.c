@@ -18,6 +18,7 @@
 #include "app/app_profile.h"
 #include "app/app_frame_pacing.h"
 #include "app/app_lifecycle.h"
+#include "app/app_persistence.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -170,48 +171,6 @@ app_leave_practice_config(InnerBreeze*app)
             practice->leave_config(app);
     }
     app->settings_scroll = 0;
-}
-
-static void
-app_flush_deferred_settings(InnerBreeze*app)
-{
-    if(app == NULL || app->settings_save_delay_ticks <= 0)
-        return;
-
-    app->settings_save_delay_ticks--;
-    if(app->settings_save_delay_ticks <= 0 && app->settings_dirty)
-        save_settings(app);
-}
-
-static int
-app_habits_save_pending(const InnerBreeze*app)
-{
-    return app != NULL &&
-           (app->habits.dirty || app->habits.pending_day_save_count > 0);
-}
-
-static void
-app_flush_habits_post_frame(void *userdata)
-{
-    InnerBreeze*app = userdata;
-
-    if(app == NULL)
-        return;
-    app->habits_flush_post_frame_scheduled = 0;
-    habits_flush_save(app);
-}
-
-static void
-app_schedule_habits_post_frame_flush(InnerBreeze*app)
-{
-    if(!app_habits_save_pending(app) ||
-       app->habits_flush_post_frame_scheduled)
-        return;
-    app->habits_flush_post_frame_scheduled = 1;
-    if(!SchedulePostFrameCallback(app_flush_habits_post_frame, app)) {
-        app->habits_flush_post_frame_scheduled = 0;
-        habits_flush_save(app);
-    }
 }
 
 int
