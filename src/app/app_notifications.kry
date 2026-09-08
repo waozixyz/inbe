@@ -9,8 +9,8 @@ hb :: #import "screens/habits_screen"
 #import "notification_schedule.h" #private
 #import <time.h>
 
-init :: (app: InbeApp*) {
-    SetNotificationAppName("xyz.waozi.inbe")
+init :: (app: InnerBreeze*) {
+    SetNotificationAppName("xyz.waozi.breathing")
     #if !WEB {
         RequestNotificationPermission()
     }
@@ -19,14 +19,14 @@ init :: (app: InbeApp*) {
     }
 }
 
-allowed :: (app: InbeApp*) -> int {
+allowed :: (app: InnerBreeze*) -> int {
     if app == nil {
         return 0
     }
     return IsNotificationPermissionGranted()
 }
 
-send_test_notification :: (app: InbeApp*) -> int {
+send_test_notification :: (app: InnerBreeze*) -> int {
     #if WEB {
         RequestNotificationPermission()
     }
@@ -35,10 +35,10 @@ send_test_notification :: (app: InbeApp*) -> int {
     }
     return SendNotificationEx(GetLocaleText("notification_test_title"),
                               GetLocaleText("notification_test_body"),
-                              "inbe.test", 2, NOTIFICATION_PRIORITY_DEFAULT)
+                              "breathing.test", 2, NOTIFICATION_PRIORITY_DEFAULT)
 }
 
-send_session_complete :: (app: InbeApp*) {
+send_session_complete :: (app: InnerBreeze*) {
     if !allowed(app) {
         return
     }
@@ -49,7 +49,7 @@ send_session_complete :: (app: InbeApp*) {
     }
     SendNotificationEx(GetLocaleText("notification_session_done_title"),
                        GetLocaleText("notification_session_done_body"),
-                       "inbe.session", 3, NOTIFICATION_PRIORITY_DEFAULT)
+                       "breathing.session", 3, NOTIFICATION_PRIORITY_DEFAULT)
 }
 
 practice_label :: (practice: int) -> const char* {
@@ -65,7 +65,7 @@ practice_label :: (practice: int) -> const char* {
     return GetLocaleText("exercise_wim_hof")
 }
 
-tick :: (app: InbeApp*) {
+tick :: (app: InnerBreeze*) {
     t: time_t
     tm: struct tm*
     day := 0
@@ -91,7 +91,7 @@ tick :: (app: InbeApp*) {
             .enabled = r->enabled,
             .hour = r->hour,
             .last_day = r->last_day,
-            .tag = "inbe.reminder",
+            .tag = "breathing.reminder",
             .id = 100 + i,
             .priority = NOTIFICATION_PRIORITY_DEFAULT
         }
@@ -111,8 +111,8 @@ tick :: (app: InbeApp*) {
             app->habit_reminded_mask = 0
         }
         today := hb.habits_today_index()
-        for int i = 0; i < app->habits.count && i < INBE_HABIT_MAX; i++ {
-            habit: InbeHabit* = &app->habits.items[i]
+        for int i = 0; i < app->habits.count && i < HABIT_MAX; i++ {
+            habit: Habit* = &app->habits.items[i]
             if habit->reminder_hour < 0 || habit->reminder_hour != hour {
                 continue
             }
@@ -127,7 +127,7 @@ tick :: (app: InbeApp*) {
             }
             if SendNotificationEx(GetLocaleText("habit_reminder_title"),
                                   habit->name,
-                                  "inbe.habit_reminder", 200 + i,
+                                  "breathing.habit_reminder", 200 + i,
                                   NOTIFICATION_PRIORITY_DEFAULT) {
                 app->habit_reminded_mask = app->habit_reminded_mask | (1 << i)
             }
@@ -135,7 +135,7 @@ tick :: (app: InbeApp*) {
     }
 }
 
-on_friends_synced :: (app: InbeApp*) {
+on_friends_synced :: (app: InnerBreeze*) {
     count := 0
 
     if app == nil {
@@ -153,13 +153,13 @@ on_friends_synced :: (app: InbeApp*) {
                     SendNotificationEx(
                         GetLocaleText("notifications_friend_request_title"),
                         GetLocaleText("notifications_friend_request_body"),
-                        "inbe.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
+                        "breathing.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
                 }
             } #else {
                 SendNotificationEx(
                     GetLocaleText("notifications_friend_request_title"),
                     GetLocaleText("notifications_friend_request_body"),
-                    "inbe.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
+                    "breathing.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
             }
         }
     }

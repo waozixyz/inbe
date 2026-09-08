@@ -11,7 +11,7 @@ MeditationManualPageContext :: struct {
     page: int
 }
 
-meditation_manual_start :: (app: InbeApp*) #private {
+meditation_manual_start :: (app: InnerBreeze*) #private {
     mark_exercise_manual_seen(app, EXERCISE_MEDITATION)
     app->tutorial_step = 0
     app->manual_scroll = 0
@@ -19,7 +19,7 @@ meditation_manual_start :: (app: InbeApp*) #private {
     meditation_practice_start(app)
 }
 
-meditation_manual_close :: (app: InbeApp*, mark_seen: int) {
+meditation_manual_close :: (app: InnerBreeze*, mark_seen: int) {
     if app == NULL {
         return
     }
@@ -33,7 +33,7 @@ meditation_manual_close :: (app: InbeApp*, mark_seen: int) {
     app->tutorial_step = 0
     app->manual_scroll = 0
     app->practice_tab = PRACTICE_TAB_PLAY
-    app_switch_screen(app, InbeScreenStart)
+    app_switch_screen(app, ScreenStart)
 }
 
 meditation_manual_paragraph :: (key: const char*, content_w: int) -> ParagraphSpec #private {
@@ -54,7 +54,7 @@ meditation_manual_content_height :: (content_w: int, user_data: void*) -> int #p
            GetNodeHeight(NodeParagraph(paragraph, 0, 0))
 }
 
-meditation_manual_draw_page :: (app: InbeApp*, page: UIScrollPage,
+meditation_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage,
                                 step: int, y: int*) #private {
     title_key := step == 0 ? "meditation_title" : "practice_configure_button"
     paragraph_key := step == 0 ? "meditation_manual_intro_text" :
@@ -97,7 +97,7 @@ meditation_manual_draw_page :: (app: InbeApp*, page: UIScrollPage,
               page.content_x, y)
 }
 
-meditation_manual_draw :: (app: InbeApp*) {
+meditation_manual_draw :: (app: InnerBreeze*) {
     layout := (PracticeManualLayout){0}
     responsive_max_w := (int)(view_width * 0.96f)
     step := clampi(app->tutorial_step, 0, MEDITATION_MANUAL_PAGES - 1)

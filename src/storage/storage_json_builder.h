@@ -1,5 +1,5 @@
-#ifndef INBE_STORAGE_JSON_BUILDER_H
-#define INBE_STORAGE_JSON_BUILDER_H
+#ifndef STORAGE_JSON_BUILDER_H
+#define STORAGE_JSON_BUILDER_H
 
 #include <stddef.h>
 

@@ -26,7 +26,7 @@ static step_label_keys: [SUN_SALUTATION_STEP_COUNT] const char* = {
 }
 
 ConfigScrollPageContext :: struct {
-    app: InbeApp*
+    app: InnerBreeze*
 }
 
 sun_salutation_clampi :: (value: int, min_value: int, max_value: int) -> int #private {
@@ -49,7 +49,7 @@ sun_salutation_step_label :: (step: int) -> const char* {
     return GetLocaleText(step_label_keys[step])
 }
 
-normalize_settings :: (app: InbeApp*) #private {
+normalize_settings :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -73,7 +73,7 @@ normalize_settings :: (app: InbeApp*) #private {
                               SUN_SALUTATION_ACTIVE_FIGURE_COUNT - 1)
 }
 
-sun_salutation_practice_init :: (app: InbeApp*) {
+sun_salutation_practice_init :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -109,7 +109,7 @@ sun_salutation_practice_init :: (app: InbeApp*) {
     normalize_settings(app)
 }
 
-sun_salutation_practice_destroy :: (app: InbeApp*) {
+sun_salutation_practice_destroy :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -178,7 +178,7 @@ preview_height :: (content_w: int) -> int #private {
     return thumb_w * 2 + Scale(56)
 }
 
-draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
+draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
     label_font := GetFontSize()
     small_font := GetSmallFontSize()
     label_w: int
@@ -213,7 +213,7 @@ draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
     if preview_step_ticks <= 0 {
         preview_step_ticks = SUN_SALUTATION_DEFAULT_START_SECONDS * 60
     }
-    active_step = (app->inbe.frame / preview_step_ticks) %
+    active_step = (app->breathing.frame / preview_step_ticks) %
                   SUN_SALUTATION_STEP_COUNT
 
     for int i = 0; i < SUN_SALUTATION_STEP_COUNT; i++ {
@@ -267,7 +267,7 @@ draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
     }
 }
 
-draw_figure_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private {
+draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #private {
     label_font := GetFontSize()
     small_font := GetSmallFontSize()
     label_w: int
@@ -373,7 +373,7 @@ config_content_height :: (content_w: int, user_data: void*) -> int #private {
            bottom_padding
 }
 
-sun_salutation_config_screen_draw :: (app: InbeApp*) {
+sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
     layout := (PracticeSubscreenLayout){0}
     repetitions: int
     start_seconds: int

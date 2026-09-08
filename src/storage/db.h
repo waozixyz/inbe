@@ -1,5 +1,5 @@
-#ifndef INBE_STORAGE_DB_H
-#define INBE_STORAGE_DB_H
+#ifndef STORAGE_DB_H
+#define STORAGE_DB_H
 
 #include "storage.h"
 
@@ -8,9 +8,9 @@
 
 typedef struct StorageState {
     sqlite3 *db;
-    char root[INBE_STORAGE_PATH_SIZE];
-    char db_path[INBE_STORAGE_PATH_SIZE];
-    char user_id[INBE_STORAGE_ID_SIZE];
+    char root[STORAGE_PATH_SIZE];
+    char db_path[STORAGE_PATH_SIZE];
+    char user_id[STORAGE_ID_SIZE];
     char text_value[8192];
     int last_sync_changed;
     int materialize_defer;
@@ -47,6 +47,8 @@ void storage_enqueue_all_sync_state(void);
 int storage_enqueue_sync_habit(const char *habit_id);
 int storage_enqueue_sync_habit_day(const char *habit_id, int local_date);
 int storage_enqueue_sync_session(const char *session_id);
+int storage_enqueue_sync_elist_list(const char *list_id);
+int storage_enqueue_sync_elist_item(const char *item_id);
 int storage_has_sync_account(void);
 int storage_materialize_session_habit_days(void);
 int storage_exec_json_user_sql(const char *sql, const char *json);
@@ -54,6 +56,8 @@ int storage_reconcile_remote_habit_ids(const char *response_json);
 int storage_merge_duplicate_habit_names(void);
 int storage_apply_sync_habits_json(const char *response_json);
 int storage_apply_sync_habit_days_json(const char *response_json);
+int storage_apply_sync_elist_lists_json(const char *response_json);
+int storage_apply_sync_elist_items_json(const char *response_json);
 int storage_migrate_default_habit_ids(void);
 int storage_migrate_default_meditation_activity_mask(void);
 int storage_migrate_habit_ids_to_uuid(void);

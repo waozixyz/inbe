@@ -32,7 +32,7 @@ static void synchronize(const char *url) {
         assert(storage_sync_review_apply_remote_if_local_empty());
         assert(!storage_sync_review_pending());
     }
-    InbeStorageSyncStatus status;
+    StorageSyncStatus status;
     assert(storage_sync_status(&status));
     if(!status.queued_changes && !status.secure_migration_pending) return;
     }
@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     SyncAccount account = {0};
     char a[1024], b[1024], backup[1024], restored[1024], id[256], other_id[256];
     int duration = 60;
-    InbeStorageSessionCheckin checkin = {0}, loaded = {0};
+    StorageSessionCheckin checkin = {0}, loaded = {0};
     assert(argc == 4);
     /* The runner supplies a fresh loopback server and disposable data root. */
     assert(strncmp(argv[1], "http://127.0.0.1:", 17) == 0);
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     snprintf(backup, sizeof(backup), "%s/backup.zip", argv[2]);
     open_client(a);
     assert(sync_account_generate(&account));
-    assert(sync_account_save(&account, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+    assert(sync_account_save(&account, 0) == SYNC_ACCOUNT_SAVE_OK);
     assert(storage_save_session_for_activity(&duration, 1, 0, 1, id, sizeof(id)));
     checkin.mood_after = 4;
     assert(storage_save_session_checkin(id, &checkin));
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     open_client(a);
     synchronize(argv[1]);
     open_client(b);
-    assert(sync_account_save(&account, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+    assert(sync_account_save(&account, 0) == SYNC_ACCOUNT_SAVE_OK);
     synchronize(argv[1]);
     assert(storage_session_count() == 1);
     assert(storage_load_session_checkin(id, &loaded) && loaded.mood_after == 4);

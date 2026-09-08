@@ -64,7 +64,7 @@ data_root :: () -> const char* {
 
     # Desktop screenshot and test runs must never seed the real user's database.
     #if !WEB && !ANDROID {
-        override_root: const char* = getenv("INBE_DATA_ROOT")
+        override_root: const char* = getenv("APP_DATA_ROOT")
         if override_root != nil && override_root[0] != '\0' {
             snprintf(g_data_root, sizeof(g_data_root), "%s", override_root)
             ensure_dir(g_data_root)
@@ -73,7 +73,7 @@ data_root :: () -> const char* {
     }
 
     #if WEB {
-        snprintf(g_data_root, sizeof(g_data_root), "/home/inbe")
+        snprintf(g_data_root, sizeof(g_data_root), "/home/breathing")
     } #else_if ANDROID {
         app: struct android_app* = GetAndroidApp()
         internal_path: const char* = nil
@@ -82,24 +82,24 @@ data_root :: () -> const char* {
             internal_path = app->activity->internalDataPath
         }
         if internal_path != nil && internal_path[0] != '\0' {
-            snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", internal_path)
+            snprintf(g_data_root, sizeof(g_data_root), "%s/breathing", internal_path)
         } else {
-            snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", GetWorkingDirectory())
+            snprintf(g_data_root, sizeof(g_data_root), "%s/breathing", GetWorkingDirectory())
         }
     } #else_if WIN32 {
         local: const char* = getenv("LOCALAPPDATA")
         roaming: const char* = getenv("APPDATA")
 
         if local != nil && local[0] != '\0' {
-            snprintf(g_data_root, sizeof(g_data_root), "%s/Inbe", local)
+            snprintf(g_data_root, sizeof(g_data_root), "%s/BreathSession", local)
         } else if roaming != nil && roaming[0] != '\0' {
-            snprintf(g_data_root, sizeof(g_data_root), "%s/Inbe", roaming)
+            snprintf(g_data_root, sizeof(g_data_root), "%s/BreathSession", roaming)
         } else {
-            snprintf(g_data_root, sizeof(g_data_root), "Inbe")
+            snprintf(g_data_root, sizeof(g_data_root), "BreathSession")
         }
     } #else {
-        root: const char* = KryAppDataRoot("inbe")
-        snprintf(g_data_root, sizeof(g_data_root), "%s", root != nil && root[0] != '\0' ? root : ".local/inbe")
+        root: const char* = KryAppDataRoot("breathing")
+        snprintf(g_data_root, sizeof(g_data_root), "%s", root != nil && root[0] != '\0' ? root : ".local/breathing")
     }
 
     if !ensure_dir(g_data_root) {
@@ -158,7 +158,7 @@ data_rename_session :: (old_path: const char*, new_path: const char*) -> int {
     data_init()
     name = GetFileName(new_path)
     if name == nil ||
-       sscanf(name, "inbe-%2d%2d%2d", &hour, &minute, &second) != 3 {
+       sscanf(name, "breathing-%2d%2d%2d", &hour, &minute, &second) != 3 {
         return 0
     }
     unused second
@@ -176,7 +176,7 @@ data_discard_session :: (path: const char*) -> int {
 }
 
 data_save_session_checkin :: (path: const char*,
-                                 checkin: const InbeStorageSessionCheckin*) -> int {
+                                 checkin: const StorageSessionCheckin*) -> int {
     data_init()
     return storage_save_session_checkin(path, checkin)
 }
@@ -210,9 +210,9 @@ data_default_export_filename :: (out: char*, out_size: size_t) {
 
     now = time(nil)
     if now > 0 {
-        snprintf(out, out_size, "inbe-%lld.zip", (long long)now)
+        snprintf(out, out_size, "breathing-%lld.zip", (long long)now)
     } else {
-        snprintf(out, out_size, "inbe.zip")
+        snprintf(out, out_size, "breathing.zip")
     }
 }
 
@@ -250,20 +250,37 @@ data_import :: (path: const char*) -> int {
 }
 
 data_import_with_mode :: (path: const char*, mode: DataImportMode) -> int {
+    extension: const char*
+
     data_init()
+    extension = path != nil ? strrchr(path, '.') : nil
+    if extension != nil && strcmp(extension, ".1list") == 0 {
+        return storage_elist_import_onelist(path)
+    }
     return storage_import_zip_ex(
         path,
         mode == DATA_IMPORT_DATA_AND_SETTINGS
-            ? INBE_STORAGE_IMPORT_DATA_AND_SETTINGS
-            : INBE_STORAGE_IMPORT_DATA_ONLY)
+            ? STORAGE_IMPORT_DATA_AND_SETTINGS
+            : STORAGE_IMPORT_DATA_ONLY)
 }
 
 data_inspect_import :: (path: const char*, info: DataImportInfo*) -> int {
-    storage_info: InbeStorageImportInfo
+    storage_info: StorageImportInfo
+    extension: const char*
 
     data_init()
     if info != nil {
         memset(info, 0, sizeof(*info))
+    }
+    extension = path != nil ? strrchr(path, '.') : nil
+    if extension != nil && strcmp(extension, ".1list") == 0 {
+        if !data_validate_import_file(path) {
+            return 0
+        }
+        if info != nil {
+            info->valid = 1
+        }
+        return 1
     }
     if !storage_inspect_import(path, &storage_info) {
         return 0
@@ -321,7 +338,7 @@ data_list_session_records :: (callback: data_session_record_callback,
                                  user: void*) {
     data_init()
     if callback != nil {
-        storage_list_session_records((InbeStorageSessionRecordCallback)callback, user)
+        storage_list_session_records((StorageSessionRecordCallback)callback, user)
     }
 }
 

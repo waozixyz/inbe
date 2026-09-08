@@ -8,19 +8,19 @@ ANDROID :: ANDROID_BUILD
     #import "kryon.h" #private
     #import <android/log.h>
 
-    static push_log_tag: const char* = "INBE_PUSH"
+    static push_log_tag: const char* = "APP_PUSH"
 
     static push_registered_cache: int = -1
     static push_registered_frames: int = 0
 
-    refresh_distributors :: (inbe: InbeApp*) {
+    refresh_distributors :: (breathing: InnerBreeze*) {
         session: AndroidJni
         count := 0
 
-        if inbe == nil {
+        if breathing == nil {
             return
         }
-        inbe->push_distributor_count = 0
+        breathing->push_distributor_count = 0
         session = platform_android_jni_attach()
         if !platform_android_jni_valid(&session) {
             return
@@ -55,32 +55,32 @@ ANDROID :: ANDROID_BUILD
                 text := (*session.env)->GetStringUTFChars(session.env, s, nil)
                 if text != nil {
                     for int c = 0; c < 95 && text[c] != 0; c++ {
-                        inbe->push_distributors[i][c] = text[c]
+                        breathing->push_distributors[i][c] = text[c]
                     }
-                    inbe->push_distributors[i][95] = 0
+                    breathing->push_distributors[i][95] = 0
                     (*session.env)->ReleaseStringUTFChars(session.env, s, text)
                 }
                 (*session.env)->DeleteLocalRef(session.env, s)
             }
-            inbe->push_distributor_count = count
+            breathing->push_distributor_count = count
             (*session.env)->DeleteLocalRef(session.env, array)
         }
 
         if count > 0 {
             platform_android_jni_call_string_array(
                 &session, "getUnifiedPushDistributorLabels",
-                &inbe->push_distributor_labels[0][0], 64, count)
+                &breathing->push_distributor_labels[0][0], 64, count)
             platform_android_jni_call_string_array(
                 &session, "getUnifiedPushDistributorIcons",
-                &inbe->push_distributor_icons[0][0], 256, count)
+                &breathing->push_distributor_icons[0][0], 256, count)
         }
         platform_android_jni_detach(&session)
     }
 
-    configure_with :: (inbe: InbeApp*, index: int) {
+    configure_with :: (breathing: InnerBreeze*, index: int) {
         session: AndroidJni
 
-        if inbe == nil || index < 0 || index >= inbe->push_distributor_count {
+        if breathing == nil || index < 0 || index >= breathing->push_distributor_count {
             return
         }
         session = platform_android_jni_attach()
@@ -88,7 +88,7 @@ ANDROID :: ANDROID_BUILD
             return
         }
         arg := platform_android_jni_new_string(
-            &session, &inbe->push_distributors[index][0])
+            &session, &breathing->push_distributors[index][0])
         if arg != nil {
             platform_android_jni_call_void_string(&session,
                                                   "configureUnifiedPushWith",

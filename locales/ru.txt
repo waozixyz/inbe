@@ -1778,3 +1778,17 @@ Dismiss forever
 [habit_routine_title]
 Расписание и напоминание
 ---
+[tab_elist]
+Списки
+[elist_title]
+Списки
+[elist_new_list]
+Новый список
+[elist_create_list]
+Создать список
+[elist_add_item]
+Добавить
+[elist_empty_title]
+Списков пока нет
+[elist_empty_detail]
+Создайте список и добавляйте задачи и заметки в одном месте.

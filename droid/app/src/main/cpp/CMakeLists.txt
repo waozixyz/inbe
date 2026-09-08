@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(Inbe C)
+project(App C)
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM AND EXISTS "${CCACHE_PROGRAM}")
@@ -21,6 +21,11 @@ set(KRYON_COMPAT_GENERATED_HEADER "${KRYON_RAYLIB_GENERATED_DIR}/kryon_compat.ge
 set(KRYON_RAYLIB_BACKEND_RENAME_HEADER "${KRYON_RAYLIB_GENERATED_DIR}/raylib_backend_rename.h")
 set(KRYON_RAYLIB_WRAPPERS_C "${KRYON_RAYLIB_GENERATED_DIR}/kryon_raylib_wrappers.c")
 set(KRYON_NULL_BACKEND_C "${KRYON_RAYLIB_GENERATED_DIR}/kryon_null_backend.c")
+set(KRYON_ICON_GENERATED_INCLUDE_DIR "${CMAKE_BINARY_DIR}/kryon/generated/include")
+set(KRYON_ICON_GENERATED_SRC_DIR "${CMAKE_BINARY_DIR}/kryon/generated/src")
+set(KRYON_ICON_ASSETS_C "${KRYON_ICON_GENERATED_SRC_DIR}/ui/ui_icon_assets.c")
+set(KRYON_ICON_NAMES_C "${KRYON_ICON_GENERATED_SRC_DIR}/ui/ui_icon_names.c")
+set(KRYON_ICON_TYPES_H "${KRYON_ICON_GENERATED_INCLUDE_DIR}/ui_icon_types.h")
 set(SQLITE_DIR "${REPO_ROOT}/vendor/sqlite")
 set(SQLITE_BUILD_DIR "${CMAKE_BINARY_DIR}/sqlite")
 set(SQLITE_AMALGAMATION_C "${SQLITE_BUILD_DIR}/sqlite3.c")
@@ -38,10 +43,12 @@ foreach(oqs_x86_feature
 endforeach()
 add_subdirectory("${KRYON_DIR}/vendor/liboqs" "${CMAKE_BINARY_DIR}/liboqs")
 if(NOT TARGET oqs)
-    message(FATAL_ERROR "Inbe Android builds require liboqs for sync account crypto")
+    message(FATAL_ERROR "Android builds require liboqs for sync account crypto")
 endif()
 file(GLOB_RECURSE KRYON_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/src/*.c")
 list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/file_dialog/file_dialog.c")
+list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/ui/ui_icon_assets.c")
+list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/ui/ui_icon_names.c")
 # The src/backend/ canvas/software renderers implement raylib-named functions
 # for no-raylib hosts; Android links real raylib, so compiling those is a
 # duplicate-symbol link error. Keep Kryon's shared front-end backend glue.
@@ -55,8 +62,10 @@ list(APPEND KRYON_SOURCES
     "${KRYON_DIR}/src/backend/kry_instance.c"
     "${KRYON_DIR}/src/backend/kry_screenshot.c"
     "${KRYON_DIR}/src/backend/kry_sw_png.c"
-    "${KRYON_DIR}/src/backend/kry_surface_math.c")
-# inbe is a UI-only app: drop the 2D physics subsystem (Box2D). Mirror the
+    "${KRYON_DIR}/src/backend/kry_surface_math.c"
+    "${KRYON_ICON_ASSETS_C}"
+    "${KRYON_ICON_NAMES_C}")
+# this app is UI-only: drop the 2D physics subsystem (Box2D). Mirror the
 # KRYON_PHYSICS_SRCS filter the desktop Makefile applies via vendor.mk.
 list(REMOVE_ITEM KRYON_SOURCES
     "${KRYON_DIR}/src/scene/physics_world.c"
@@ -71,34 +80,34 @@ find_program(HOST_CC NAMES cc clang gcc REQUIRED)
 find_program(HOST_PYTHON NAMES python3 REQUIRED)
 set(KRYON_K2C "${CMAKE_BINARY_DIR}/host-tools/k2c")
 # needs the kir headers on the include path
-set(INBE_KRY_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated")
-file(GLOB_RECURSE INBE_KRY_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.kry")
-list(SORT INBE_KRY_SOURCES)
+set(APP_KRY_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated")
+file(GLOB_RECURSE APP_KRY_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.kry")
+list(SORT APP_KRY_SOURCES)
 # App-layer sources are cross-platform modules that belong in every build.
 # Glob them so adding an app .c file needs no edit here -- this list had
 # drifted out of sync with the Makefile APP_SRCS more than once.
 file(GLOB APP_C_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/app/*.c")
 list(SORT APP_C_SOURCES)
-set(INBE_KRY_GENERATED_SOURCES)
-set(INBE_KRY_GENERATED_HEADERS)
-set(INBE_KRY_COMMAND_SOURCES)
-foreach(kry_source ${INBE_KRY_SOURCES})
+set(APP_KRY_GENERATED_SOURCES)
+set(APP_KRY_GENERATED_HEADERS)
+set(APP_KRY_COMMAND_SOURCES)
+foreach(kry_source ${APP_KRY_SOURCES})
     file(RELATIVE_PATH kry_rel "${REPO_ROOT}" "${kry_source}")
-    list(APPEND INBE_KRY_COMMAND_SOURCES "${kry_rel}")
+    list(APPEND APP_KRY_COMMAND_SOURCES "${kry_rel}")
     get_filename_component(kry_rel_dir "${kry_rel}" DIRECTORY)
     get_filename_component(kry_name "${kry_rel}" NAME_WE)
-    set(kry_output_c "${INBE_KRY_GEN_DIR}/${kry_rel_dir}/${kry_name}.c")
-    set(kry_output_h "${INBE_KRY_GEN_DIR}/${kry_rel_dir}/${kry_name}.h")
-    list(APPEND INBE_KRY_GENERATED_SOURCES "${kry_output_c}")
-    list(APPEND INBE_KRY_GENERATED_HEADERS "${kry_output_h}")
+    set(kry_output_c "${APP_KRY_GEN_DIR}/${kry_rel_dir}/${kry_name}.c")
+    set(kry_output_h "${APP_KRY_GEN_DIR}/${kry_rel_dir}/${kry_name}.h")
+    list(APPEND APP_KRY_GENERATED_SOURCES "${kry_output_c}")
+    list(APPEND APP_KRY_GENERATED_HEADERS "${kry_output_h}")
 endforeach()
-set(INBE_KRY_PROJECT_HEADER "${INBE_KRY_GEN_DIR}/kryon_project.h")
+set(APP_KRY_PROJECT_HEADER "${APP_KRY_GEN_DIR}/kryon_project.h")
 add_custom_command(
-    OUTPUT ${INBE_KRY_GENERATED_SOURCES} ${INBE_KRY_GENERATED_HEADERS} "${INBE_KRY_PROJECT_HEADER}"
-    COMMAND ${CMAKE_COMMAND} -E remove_directory "${INBE_KRY_GEN_DIR}"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${INBE_KRY_GEN_DIR}"
-    COMMAND "${KRYON_K2C}" --root "${REPO_ROOT}" -o "${INBE_KRY_GEN_DIR}" ${INBE_KRY_COMMAND_SOURCES}
-    DEPENDS ${INBE_KRY_SOURCES} "${KRYON_K2C}"
+    OUTPUT ${APP_KRY_GENERATED_SOURCES} ${APP_KRY_GENERATED_HEADERS} "${APP_KRY_PROJECT_HEADER}"
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${APP_KRY_GEN_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${APP_KRY_GEN_DIR}"
+    COMMAND "${KRYON_K2C}" --root "${REPO_ROOT}" -o "${APP_KRY_GEN_DIR}" ${APP_KRY_COMMAND_SOURCES}
+    DEPENDS ${APP_KRY_SOURCES} "${KRYON_K2C}"
     WORKING_DIRECTORY "${REPO_ROOT}"
     VERBATIM
 )
@@ -110,12 +119,12 @@ add_custom_command(
     DEPENDS ${KRYON_K2C_SOURCES}
     VERBATIM
 )
-add_custom_target(inbe_kry_generated DEPENDS
-    ${INBE_KRY_GENERATED_SOURCES}
-    ${INBE_KRY_GENERATED_HEADERS}
-    "${INBE_KRY_PROJECT_HEADER}"
+add_custom_target(app_kry_generated DEPENDS
+    ${APP_KRY_GENERATED_SOURCES}
+    ${APP_KRY_GENERATED_HEADERS}
+    "${APP_KRY_PROJECT_HEADER}"
 )
-add_custom_target(inbe_clean_runtime_api
+add_custom_target(app_clean_runtime_api
     COMMAND "${HOST_PYTHON}"
         "${KRYON_DIR}/scripts/check-clean-text-api.py"
         "${SRC_DIR}"
@@ -123,7 +132,7 @@ add_custom_target(inbe_clean_runtime_api
     COMMENT "Rejecting stale or duplicate Kryon runtime API usage"
     VERBATIM
 )
-add_dependencies(inbe_kry_generated inbe_clean_runtime_api)
+add_dependencies(app_kry_generated app_clean_runtime_api)
 
 add_custom_command(
     OUTPUT
@@ -148,37 +157,37 @@ add_custom_target(kryon_raylib_generated DEPENDS
     "${KRYON_RAYLIB_WRAPPERS_C}"
     "${KRYON_NULL_BACKEND_C}"
 )
-file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
-file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
-file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner*.png")
-set(INBE_EMBEDDED_INPUTS
-    ${INBE_LOCALE_ASSETS}
+file(GLOB APP_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
+file(GLOB APP_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
+file(GLOB APP_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner*.png")
+set(APP_EMBEDDED_INPUTS
+    ${APP_LOCALE_ASSETS}
     assets/easteregg/art.png
     assets/easteregg/waozi.png
     assets/practices/whm/1.png
     assets/practices/whm/2.png
     assets/practices/meditation/1.png
     assets/pet/egg1.png
-    ${INBE_PRACTICE_BANNER_ASSETS}
+    ${APP_PRACTICE_BANNER_ASSETS}
     assets/practices/sunsalutation/poses_man_sheet.png
     assets/practices/sunsalutation/poses_woman_sheet.png
-    assets/fonts/subset/NotoSans-Inbe-Regular.ttf
-    assets/fonts/subset/NotoSansSC-Inbe-Regular.otf
-    assets/fonts/subset/NotoSansJP-Inbe-Regular.otf
-    assets/fonts/subset/NotoSansKR-Inbe-Regular.otf
-    assets/fonts/subset/NotoSansTC-Inbe-Regular.otf
-    ${INBE_SOUND_ASSETS}
+    assets/fonts/subset/NotoSans-App-Regular.ttf
+    assets/fonts/subset/NotoSansSC-App-Regular.otf
+    assets/fonts/subset/NotoSansJP-App-Regular.otf
+    assets/fonts/subset/NotoSansKR-App-Regular.otf
+    assets/fonts/subset/NotoSansTC-App-Regular.otf
+    ${APP_SOUND_ASSETS}
 )
-set(INBE_EMBEDDED_DEPS)
-foreach(asset ${INBE_EMBEDDED_INPUTS})
-    list(APPEND INBE_EMBEDDED_DEPS "${REPO_ROOT}/${asset}")
+set(APP_EMBEDDED_DEPS)
+foreach(asset ${APP_EMBEDDED_INPUTS})
+    list(APPEND APP_EMBEDDED_DEPS "${REPO_ROOT}/${asset}")
 endforeach()
-set(INBE_EMBEDDED_ASSETS_C "${CMAKE_BINARY_DIR}/inbe_embedded_assets.c")
+set(APP_EMBEDDED_ASSETS_C "${CMAKE_BINARY_DIR}/app_embedded_assets.c")
 
 add_custom_command(
-    OUTPUT "${INBE_EMBEDDED_ASSETS_C}"
-    COMMAND sh "${KRYON_DIR}/scripts/embed-assets.sh" "${INBE_EMBEDDED_ASSETS_C}" ${INBE_EMBEDDED_INPUTS}
-    DEPENDS "${KRYON_DIR}/scripts/embed-assets.sh" ${INBE_EMBEDDED_DEPS}
+    OUTPUT "${APP_EMBEDDED_ASSETS_C}"
+    COMMAND sh "${KRYON_DIR}/scripts/embed-assets.sh" "${APP_EMBEDDED_ASSETS_C}" ${APP_EMBEDDED_INPUTS}
+    DEPENDS "${KRYON_DIR}/scripts/embed-assets.sh" ${APP_EMBEDDED_DEPS}
     WORKING_DIRECTORY "${REPO_ROOT}"
     VERBATIM
 )
@@ -232,28 +241,43 @@ target_include_directories(raylib PUBLIC
 )
 
 add_library(main SHARED
-    "${SRC_DIR}/platform/inbe_main_host.c"
+    "${SRC_DIR}/platform/main_host.c"
     ${APP_C_SOURCES}
     "${SRC_DIR}/storage/storage.c"
     "${SRC_DIR}/storage/storage_json_builder.c"
     "${SRC_DIR}/storage/storage_habits.c"
+    "${SRC_DIR}/storage/storage_elist.c"
     "${SRC_DIR}/storage/storage_habit_materialize.c"
     "${SRC_DIR}/storage/storage_habit_sync.c"
     "${SRC_DIR}/storage/sync_client.c"
-    "${SRC_DIR}/third_party/miniz.c"
     "${SQLITE_AMALGAMATION_C}"
     "${SRC_DIR}/platform/android/android_device.c"
     "${SRC_DIR}/platform/android/android_share.c"
-    "${INBE_EMBEDDED_ASSETS_C}"
-    ${INBE_KRY_GENERATED_SOURCES}
+    "${APP_EMBEDDED_ASSETS_C}"
+    ${APP_KRY_GENERATED_SOURCES}
     ${KRYON_SOURCES}
     "${KRYON_RAYLIB_WRAPPERS_C}"
     "${SRC_DIR}/platform/android/android_insets.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
-add_dependencies(main inbe_kry_generated kryon_raylib_generated)
+add_dependencies(main app_kry_generated kryon_raylib_generated)
+
+file(GLOB_RECURSE KRYON_ICON_FILES CONFIGURE_DEPENDS "${KRYON_DIR}/icons/*.png" "${KRYON_DIR}/icons/*.json")
+add_custom_command(
+    OUTPUT "${KRYON_ICON_ASSETS_C}" "${KRYON_ICON_NAMES_C}" "${KRYON_ICON_TYPES_H}"
+    COMMAND "${HOST_PYTHON}" "${KRYON_DIR}/scripts/embed-icon-sheets.py"
+            --icon-dir icons
+            --assets-output "${KRYON_ICON_ASSETS_C}"
+            --types-output "${KRYON_ICON_TYPES_H}"
+            --names-output "${KRYON_ICON_NAMES_C}"
+    DEPENDS "${KRYON_DIR}/scripts/embed-icon-sheets.py" "${KRYON_DIR}/include/ui_icons.h" ${KRYON_ICON_FILES}
+    WORKING_DIRECTORY "${KRYON_DIR}"
+    VERBATIM)
+add_custom_target(kryon_icon_assets_generated DEPENDS "${KRYON_ICON_ASSETS_C}" "${KRYON_ICON_NAMES_C}" "${KRYON_ICON_TYPES_H}")
+add_dependencies(main kryon_icon_assets_generated)
 
 target_include_directories(main PRIVATE
+    "${KRYON_ICON_GENERATED_INCLUDE_DIR}"
     "${KRYON_DIR}/include"
     "${KRYON_DIR}/src"
     "${KRYON_DIR}/vendor/monocypher/src"
@@ -270,8 +294,8 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}/storage"
     "${SRC_DIR}/platform/android"
     "${SRC_DIR}/third_party"
-    "${INBE_KRY_GEN_DIR}"
-    "${INBE_KRY_GEN_DIR}/src"
+    "${APP_KRY_GEN_DIR}"
+    "${APP_KRY_GEN_DIR}/src"
     "${NATIVE_APP_GLUE_DIR}"
     "${SQLITE_BUILD_DIR}"
 )
@@ -319,5 +343,6 @@ target_link_libraries(main
     OpenSLES
     EGL
     GLESv2
+    z
     m
 )

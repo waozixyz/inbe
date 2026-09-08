@@ -14,11 +14,11 @@ enum {
 
 /* Habits-specific constants */
 enum {
-    INBE_HABIT_MAX = 32,
-    INBE_HABIT_ID_SIZE = 40,
-    INBE_HABIT_PENDING_DAY_SAVE_MAX = 128,
-    INBE_HABIT_NAME_SIZE = 40,
-    INBE_HABIT_DESCRIPTION_SIZE = 256,
+    HABIT_MAX = 32,
+    HABIT_ID_SIZE = 40,
+    HABIT_PENDING_DAY_SAVE_MAX = 128,
+    HABIT_NAME_SIZE = 40,
+    HABIT_DESCRIPTION_SIZE = 256,
     HABIT_LINKED_ENTRY_MAX = 128,
     HABIT_LINKED_PATH_SIZE = 80
 };
@@ -45,23 +45,23 @@ enum {
 };
 
 /* Habits-specific enums */
-typedef enum InbeHabitSyncMode {
-    INBE_HABIT_SYNC_NONE = 0,
-    INBE_HABIT_SYNC_ACTIVITIES = 1
-} InbeHabitSyncMode;
+typedef enum HabitSyncMode {
+    HABIT_SYNC_NONE = 0,
+    HABIT_SYNC_ACTIVITIES = 1
+} HabitSyncMode;
 
 /* Data structures */
-typedef struct InbeHabitDay {
+typedef struct HabitDay {
     int day_index;
     int completed;
     int count;
     int session_count;
-} InbeHabitDay;
+} HabitDay;
 
-typedef struct InbeHabit {
-    char id[INBE_HABIT_ID_SIZE];
-    char name[INBE_HABIT_NAME_SIZE];
-    char description[INBE_HABIT_DESCRIPTION_SIZE];
+typedef struct Habit {
+    char id[HABIT_ID_SIZE];
+    char name[HABIT_NAME_SIZE];
+    char description[HABIT_DESCRIPTION_SIZE];
     Color color;
     int sync_mode;
     int sync_activity;
@@ -69,28 +69,28 @@ typedef struct InbeHabit {
     int counter_target;
     int weekdays;          /* bit0=Mon .. bit6=Sun; 0=every day; bit7=off */
     int reminder_hour;     /* -1 = off, else 0..23 local notification hour */
-    InbeHabitDay *days;
+    HabitDay *days;
     int day_count;
     int day_capacity;
-} InbeHabit;
+} Habit;
 
-#define INBE_HABIT_SCHEDULE_OFF (1 << 7)
+#define HABIT_SCHEDULE_OFF (1 << 7)
 
-typedef struct InbeHabitDaySave {
-    char habit_id[INBE_HABIT_ID_SIZE];
+typedef struct HabitDaySave {
+    char habit_id[HABIT_ID_SIZE];
     int day_index;
     int completed;
     int count;
-} InbeHabitDaySave;
+} HabitDaySave;
 
 typedef struct HabitLinkedContext HabitLinkedContext;
 
-typedef struct InbeHabits {
-    InbeHabit items[INBE_HABIT_MAX];
-    char loaded_ids[INBE_HABIT_MAX][INBE_HABIT_ID_SIZE];
-    InbeHabitDaySave pending_day_saves[INBE_HABIT_PENDING_DAY_SAVE_MAX];
+typedef struct Habits {
+    Habit items[HABIT_MAX];
+    char loaded_ids[HABIT_MAX][HABIT_ID_SIZE];
+    HabitDaySave pending_day_saves[HABIT_PENDING_DAY_SAVE_MAX];
     HabitLinkedContext *linked_cache;
-    char linked_cache_habit_id[INBE_HABIT_ID_SIZE];
+    char linked_cache_habit_id[HABIT_ID_SIZE];
     long long linked_cache_session_clock;
     int linked_cache_index;
     int linked_cache_day_filter;
@@ -113,7 +113,7 @@ typedef struct InbeHabits {
     int hold_stats_range_days;
     int loaded;
     int dirty;
-} InbeHabits;
+} Habits;
 
 /* Additional structures */
 typedef struct HabitLinkedEntry {
@@ -142,86 +142,86 @@ struct HabitLinkedContext {
 };
 
 /* Core habits functions */
-void habits_init(InbeHabits *habits);
-void habits_init_with_defaults(InbeHabits *habits, int seed_defaults);
-void habits_free(InbeHabits *habits);
-void habits_save(InbeHabits *habits);
-void habits_flush_save(InbeApp *app);
-int habits_clear_days(InbeHabits *habits);
-int habit_reserve_days(InbeHabit *habit, int capacity);
+void habits_init(Habits *habits);
+void habits_init_with_defaults(Habits *habits, int seed_defaults);
+void habits_free(Habits *habits);
+void habits_save(Habits *habits);
+void habits_flush_save(InnerBreeze*app);
+int habits_clear_days(Habits *habits);
+int habit_reserve_days(Habit *habit, int capacity);
 int habits_today_index(void);
-int habit_completed_day(const InbeHabit *habit, int day_index);
-int habit_completed_today(const InbeHabit *habit);
-void habit_set_day(InbeHabits *habits, int index, int day_index, int completed);
-void habit_set_day_count(InbeHabits *habits, int index, int day_index, int count);
-int habit_day_count(const InbeHabit *habit, int day_index);
-void habit_toggle_day(InbeHabits *habits, int index, int day_index);
-void habit_increment_day(InbeHabits *habits, int index, int day_index, int delta);
-void habit_toggle_today(InbeHabits *habits, int index);
-void habits_add_default(InbeHabits *habits);
-void habits_add_default_set(InbeHabits *habits);
-int habits_seed_default_set_if_needed(InbeHabits *habits);
-void habits_delete(InbeHabits *habits, int index);
-int habits_move(InbeHabits *habits, int from_index, int to_index);
-int habits_name_exists(const InbeHabits *habits, const char *name, int exclude_index);
-void habits_generate_unique_name(InbeHabits *habits, char *name_buffer, size_t buffer_size, const char *base_name);
-int habits_add_custom(InbeHabits *habits, const char *name, Color color,
+int habit_completed_day(const Habit *habit, int day_index);
+int habit_completed_today(const Habit *habit);
+void habit_set_day(Habits *habits, int index, int day_index, int completed);
+void habit_set_day_count(Habits *habits, int index, int day_index, int count);
+int habit_day_count(const Habit *habit, int day_index);
+void habit_toggle_day(Habits *habits, int index, int day_index);
+void habit_increment_day(Habits *habits, int index, int day_index, int delta);
+void habit_toggle_today(Habits *habits, int index);
+void habits_add_default(Habits *habits);
+void habits_add_default_set(Habits *habits);
+int habits_seed_default_set_if_needed(Habits *habits);
+void habits_delete(Habits *habits, int index);
+int habits_move(Habits *habits, int from_index, int to_index);
+int habits_name_exists(const Habits *habits, const char *name, int exclude_index);
+void habits_generate_unique_name(Habits *habits, char *name_buffer, size_t buffer_size, const char *base_name);
+int habits_add_custom(Habits *habits, const char *name, Color color,
                            int sync_mode, int sync_activity);
 int habit_activity_mask_for(int exercise);
-int habit_matches_activity(const InbeHabit *habit, int exercise_type);
+int habit_matches_activity(const Habit *habit, int exercise_type);
 
-void sync_habits_for_activity(InbeApp *app, int exercise_type);
+void sync_habits_for_activity(InnerBreeze*app, int exercise_type);
 
 /* Habit edit functions (moved to habits_screen.c) */
-void habit_edit_begin(InbeApp *app, int index);
-void habit_edit_begin_new(InbeApp *app);
-void habit_edit_commit(InbeApp *app);
-void habit_edit_cancel(InbeApp *app);
+void habit_edit_begin(InnerBreeze*app, int index);
+void habit_edit_begin_new(InnerBreeze*app);
+void habit_edit_commit(InnerBreeze*app);
+void habit_edit_cancel(InnerBreeze*app);
 
 /* UI functions (moved to habits_screen.c) */
-void draw_habits_screen(InbeApp *app);
-void habit_edit_draw(InbeApp *app);
-void habit_session_draw_edit_screen(InbeApp *app);
-int habits_screen_selector_height(InbeApp *app);
-int habits_screen_top_reserved(InbeApp *app);
-int habits_screen_first_run_guide_active(const InbeApp *app);
-void habits_screen_prepare_first_run_guide(InbeApp *app);
-void habits_screen_dismiss_first_run_guide(InbeApp *app);
-void habits_screen_draw_first_run_guide(InbeApp *app);
-void draw_habits_top_bar(InbeApp *app, int draw_menu);
-void habits_enter_detail(InbeApp *app, int selected_habit);
-void habits_begin_new_detail(InbeApp *app);
-int habit_counter_day_action(InbeApp *app, int habit_index, int day_index,
+void draw_habits_screen(InnerBreeze*app);
+void habit_edit_draw(InnerBreeze*app);
+void habit_session_draw_edit_screen(InnerBreeze*app);
+int habits_screen_selector_height(InnerBreeze*app);
+int habits_screen_top_reserved(InnerBreeze*app);
+int habits_screen_first_run_guide_active(const InnerBreeze*app);
+void habits_screen_prepare_first_run_guide(InnerBreeze*app);
+void habits_screen_dismiss_first_run_guide(InnerBreeze*app);
+void habits_screen_draw_first_run_guide(InnerBreeze*app);
+void draw_habits_top_bar(InnerBreeze*app, int draw_menu);
+void habits_enter_detail(InnerBreeze*app, int selected_habit);
+void habits_begin_new_detail(InnerBreeze*app);
+int habit_counter_day_action(InnerBreeze*app, int habit_index, int day_index,
                              int x, int y, int w, int h, int disabled,
                              int allow_left_increment);
-int habit_weekly_visible_days(InbeHabits *habits);
+int habit_weekly_visible_days(Habits *habits);
 int habits_scroll_page_content_height(int content_w, void *user_data);
 void habits_card_description(const char *description, int width, int font,
                              char *out, size_t out_size);
-void draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
+void draw_habits_weekly_view(InnerBreeze*app, Habit *active, int selected,
                              HabitLinkedContext *linked_ctx,
                              int content_x, int content_w, int y,
                              int visible_days);
-int habit_calendar_day_cell(InbeApp *app, int x, int y, int w, int h,
+int habit_calendar_day_cell(InnerBreeze*app, int x, int y, int w, int h,
                             const char *label, float progress, int disabled,
                             int current_day, Color accent);
 void draw_habit_completion_underline(int x, int y, int w, int h, Color color);
 void draw_habit_link_dot(int x, int y, int w, Color color);
-int habit_session_draw_edit_content(InbeApp *app, HabitLinkedContext *ctx, int content_x, int content_w, int y, int draw);
-int habit_is_linked(const InbeHabit *habit);
+int habit_session_draw_edit_content(InnerBreeze*app, HabitLinkedContext *ctx, int content_x, int content_w, int y, int draw);
+int habit_is_linked(const Habit *habit);
 int habit_weekday_bit(int day_index);
-int habit_scheduled_day(const InbeHabit *habit, int day_index);
-int habit_completed_day(const InbeHabit *habit, int day_index);
-void habit_session_cancel_edit(InbeApp *app);
+int habit_scheduled_day(const Habit *habit, int day_index);
+int habit_completed_day(const Habit *habit, int day_index);
+void habit_session_cancel_edit(InnerBreeze*app);
 
 /* Habit session keyboard functions */
-int habit_session_keyboard_height(InbeApp *app);
-int habit_session_draw_keyboard(InbeApp *app, const HabitLinkedEntry *entry);
+int habit_session_keyboard_height(InnerBreeze*app);
+int habit_session_draw_keyboard(InnerBreeze*app, const HabitLinkedEntry *entry);
 int habit_session_keyboard_key(int x, int y, int w, int h, const char *label);
-void habit_session_delete_before_cursor(InbeApp *app);
-void habit_session_insert_char(InbeApp *app, char c);
-int habit_session_commit_edit(InbeApp *app, const HabitLinkedEntry *entry);
-void habit_session_clamp_cursor(InbeApp *app);
+void habit_session_delete_before_cursor(InnerBreeze*app);
+void habit_session_insert_char(InnerBreeze*app, char c);
+int habit_session_commit_edit(InnerBreeze*app, const HabitLinkedEntry *entry);
+void habit_session_clamp_cursor(InnerBreeze*app);
 int habit_session_parse_seconds(const char *text, int *seconds);
 
 #endif

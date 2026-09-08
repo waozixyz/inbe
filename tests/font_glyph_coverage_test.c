@@ -24,11 +24,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FONT_LATIN "assets/fonts/subset/NotoSans-Inbe-Regular.ttf"
-#define FONT_SC    "assets/fonts/subset/NotoSansSC-Inbe-Regular.otf"
-#define FONT_JP    "assets/fonts/subset/NotoSansJP-Inbe-Regular.otf"
-#define FONT_KR    "assets/fonts/subset/NotoSansKR-Inbe-Regular.otf"
-#define FONT_TC    "assets/fonts/subset/NotoSansTC-Inbe-Regular.otf"
+#define FONT_LATIN "assets/fonts/subset/NotoSans-App-Regular.ttf"
+#define FONT_SC    "assets/fonts/subset/NotoSansSC-App-Regular.otf"
+#define FONT_JP    "assets/fonts/subset/NotoSansJP-App-Regular.otf"
+#define FONT_KR    "assets/fonts/subset/NotoSansKR-App-Regular.otf"
+#define FONT_TC    "assets/fonts/subset/NotoSansTC-App-Regular.otf"
 
 #define MAX_CODEPOINTS 4096
 

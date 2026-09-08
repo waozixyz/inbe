@@ -1,6 +1,6 @@
 #import "app.h"
-#import "platform/inbe_activity_monitor.h" #private
-#import "platform/inbe_desktop_tray.h" #private
+#import "platform/activity_monitor.h" #private
+#import "platform/app_desktop_tray.h" #private
 #import "storage/break_stats.h" #private
 #import "practices/practice_registry.h" #private
 #import "notification.h" #private
@@ -9,7 +9,7 @@ ovl :: #import "screens/break_overlay"
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
 DESKTOP :: !ANDROID && !WEB
-TRAY :: #defined(INBE_DESKTOP_TRAY_ENABLED)
+TRAY :: #defined(DESKTOP_TRAY_ENABLED)
 WIN32 :: #defined(_WIN32)
 
 #if WEB {
@@ -44,7 +44,7 @@ break_day_key :: () -> int #private {
     return key
 }
 
-break_persist_daily_state :: (app: InbeApp*) #private {
+break_persist_daily_state :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -69,8 +69,8 @@ break_fallback_input_seen :: () -> int #private {
     return 0
 }
 
-break_sample_activity :: (app: InbeApp*, idle_ms_out: int*) -> int #private {
-    idle_ms := inbe_activity_get_idle_ms()
+break_sample_activity :: (app: InnerBreeze*, idle_ms_out: int*) -> int #private {
+    idle_ms := activity_get_idle_ms()
     if idle_ms_out != nil {
         *idle_ms_out = (int)idle_ms
     }
@@ -83,18 +83,18 @@ break_sample_activity :: (app: InbeApp*, idle_ms_out: int*) -> int #private {
         return 0
     }
     if break_fallback_input_seen() {
-        app->break_fallback_last_input = app->inbe.frame
+        app->break_fallback_last_input = app->breathing.frame
     }
-    return app->inbe.frame - app->break_fallback_last_input < BreakFallbackInputTicks ? 1 : 0
+    return app->breathing.frame - app->break_fallback_last_input < BreakFallbackInputTicks ? 1 : 0
 }
 
-break_play_cue :: (app: InbeApp*, scale: float) #private {
+break_play_cue :: (app: InnerBreeze*, scale: float) #private {
     if app->break_sounds_enabled {
         app_play_bell_cue(app, scale)
     }
 }
 
-break_engine_open_window :: (app: InbeApp*, t: int) #private {
+break_engine_open_window :: (app: InnerBreeze*, t: int) #private {
     #if !WIN32 {
         unused t
     }
@@ -106,7 +106,7 @@ break_engine_open_window :: (app: InbeApp*, t: int) #private {
             title = GetLocaleText("break_daily_title")
         }
         SendNotificationEx(title, GetLocaleText("break_prelude_text"),
-                           "inbe.break", 20 + t,
+                           "breathing.break", 20 + t,
                            NOTIFICATION_PRIORITY_HIGH)
     }
     # The break renders only in its own centered always-on-top window
@@ -117,18 +117,18 @@ break_engine_open_window :: (app: InbeApp*, t: int) #private {
         # Wayland intentionally does not permit a global keyboard grab, but
         # Kryon's SDL UIWindow backend can create a real secondary Wayland
         # surface for the break just like the X11 backend did.
-        if inbe_activity_is_wayland() {
+        if activity_is_wayland() {
             ClearWindowState(FLAG_WINDOW_HIDDEN)
             RestoreWindow()
             SetWindowFocused()
         } else if app->break_block_mode >= 1 {
-            inbe_break_set_input_blocked(1)
+            break_set_input_blocked(1)
         }
     }
     app->break_window_taken = 1
 }
 
-break_engine_close_window :: (app: InbeApp*) #private {
+break_engine_close_window :: (app: InnerBreeze*) #private {
     if !app->break_window_taken {
         return
     }
@@ -138,8 +138,8 @@ break_engine_close_window :: (app: InbeApp*) #private {
         app->break_window = nil
     }
     #if DESKTOP {
-        if !inbe_activity_is_wayland() {
-            inbe_break_set_input_blocked(0)
+        if !activity_is_wayland() {
+            break_set_input_blocked(0)
         }
     }
 }
@@ -147,7 +147,7 @@ break_engine_close_window :: (app: InbeApp*) #private {
 # The break overlay as its own OS window: centered, borderless, always on
 # top. Drawn with the regular break screen; clicks are hit-tested by hand
 # because widget mouse state belongs to the main window.
-app_breaks_window_update :: (app: InbeApp*) {
+app_breaks_window_update :: (app: InnerBreeze*) {
 #if !ANDROID && !WEB {
     if app == nil {
         return
@@ -200,7 +200,7 @@ app_breaks_window_update :: (app: InbeApp*) {
         app->break_window = nil
     }
     if app->break_window == nil {
-        if app->inbe.frame - last_window_fail_frame < 300 {
+        if app->breathing.frame - last_window_fail_frame < 300 {
             return
         }
         flags := UI_WINDOW_BORDERLESS + UI_WINDOW_ALWAYS_ON_TOP +
@@ -211,7 +211,7 @@ app_breaks_window_update :: (app: InbeApp*) {
                                          DarkenUIColor(GetThemeBackground(), 8),
                                          scale)
         if app->break_window == nil {
-            last_window_fail_frame = app->inbe.frame
+            last_window_fail_frame = app->breathing.frame
             return
         }
         app->break_window_w = win_w
@@ -230,12 +230,12 @@ app_breaks_window_update :: (app: InbeApp*) {
     if IsUIWindowRightClicked(app->break_window) {
         #if TRAY {
             win_quit := 0
-            inbe_desktop_tray_apply_action(app,
-                                             INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
+            desktop_tray_apply_action(app,
+                                             DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
                                              &win_quit)
         } #else {
             app->settings_tab = SETTINGS_TAB_BREAKS
-            app_switch_screen(app, InbeScreenSettings)
+            app_switch_screen(app, ScreenSettings)
         }
         return
     }
@@ -248,7 +248,7 @@ app_breaks_window_update :: (app: InbeApp*) {
 
 # Manual hit-test of the break overlay's button row (layout mirrored from
 # break_overlay_draw; TextButton centers each button on its x).
-app_breaks_window_click :: (app: InbeApp*, t: int, x: int, y: int,
+app_breaks_window_click :: (app: InnerBreeze*, t: int, x: int, y: int,
                               view_w: int, view_h: int) {
     timer: BreakTimer* = &app->breaks.timers[t]
     if timer->lock_buttons_s > 0 {
@@ -329,7 +329,7 @@ app_breaks_window_click :: (app: InbeApp*, t: int, x: int, y: int,
     }
 }
 
-app_breaks_update :: (app: InbeApp*) {
+app_breaks_update :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -442,14 +442,14 @@ app_breaks_update :: (app: InbeApp*) {
 }
 }
 
-app_breaks_set_mode :: (app: InbeApp*, mode: int, duration_s: int) {
+app_breaks_set_mode :: (app: InnerBreeze*, mode: int, duration_s: int) {
     if app == nil {
         return
     }
     break_engine_set_mode(&app->breaks, mode, duration_s)
 }
 
-app_breaks_rest_break_now :: (app: InbeApp*) {
+app_breaks_rest_break_now :: (app: InnerBreeze*) {
     if app == nil || !app->breaks_enabled {
         return
     }
@@ -471,15 +471,15 @@ app_breaks_rest_break_now :: (app: InbeApp*) {
 #if TRAY {
 break_practice_tray_action :: (practice_id: int) -> int #private {
     if practice_id == PRACTICE_MEDITATION {
-        return INBE_DESKTOP_TRAY_ACTION_START_MEDITATION
+        return DESKTOP_TRAY_ACTION_START_MEDITATION
     }
     if practice_id == PRACTICE_SUN_SALUTATION {
-        return INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION
+        return DESKTOP_TRAY_ACTION_START_SUN_SALUTATION
     }
     if practice_id == PRACTICE_PATTERNS {
-        return INBE_DESKTOP_TRAY_ACTION_START_PATTERNS
+        return DESKTOP_TRAY_ACTION_START_PATTERNS
     }
-    return INBE_DESKTOP_TRAY_ACTION_START_WHM
+    return DESKTOP_TRAY_ACTION_START_WHM
 }
 }
 
@@ -487,7 +487,7 @@ break_practice_tray_action :: (practice_id: int) -> int #private {
 # right away (timers reset), and because app_breaks_update stays frozen
 # for the whole session the effective restart lands after the practice
 # ends - no matter how its length compares to the break duration.
-app_breaks_start_practice :: (app: InbeApp*, t: int, practice_id: int) {
+app_breaks_start_practice :: (app: InnerBreeze*, t: int, practice_id: int) {
     if app == nil {
         return
     }
@@ -513,7 +513,7 @@ app_breaks_start_practice :: (app: InbeApp*, t: int, practice_id: int) {
 #if TRAY {
     # The tray path also restores the main window when it was hidden.
     win_quit := 0
-    inbe_desktop_tray_apply_action(app, break_practice_tray_action(practice_id),
+    desktop_tray_apply_action(app, break_practice_tray_action(practice_id),
                                    &win_quit)
 } #else {
     practice := practice_get(app->exercise_type)
@@ -523,7 +523,7 @@ app_breaks_start_practice :: (app: InbeApp*, t: int, practice_id: int) {
 }
 }
 
-app_breaks_take_active :: (app: InbeApp*, t: int) #private {
+app_breaks_take_active :: (app: InnerBreeze*, t: int) #private {
     if app == nil {
         return
     }
@@ -544,7 +544,7 @@ app_breaks_take_active :: (app: InbeApp*, t: int) #private {
     }
 }
 
-app_breaks_open_habits :: (app: InbeApp*, t: int) {
+app_breaks_open_habits :: (app: InnerBreeze*, t: int) {
     if app == nil {
         return
     }
@@ -561,10 +561,10 @@ app_breaks_open_habits :: (app: InbeApp*, t: int) {
     RestoreWindow()
     SetWindowFocused()
 }
-    app_switch_screen(app, InbeScreenHabits)
+    app_switch_screen(app, ScreenHabits)
 }
 
-app_breaks_hud_update :: (app: InbeApp*) {
+app_breaks_hud_update :: (app: InnerBreeze*) {
 #if !ANDROID && !WEB {
     if app == nil {
         return
@@ -647,21 +647,21 @@ app_breaks_hud_update :: (app: InbeApp*) {
     } else if IsUIWindowRightClicked(app->break_hud) {
         #if TRAY {
             hud_quit := 0
-            inbe_desktop_tray_apply_action(app,
-                                             INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
+            desktop_tray_apply_action(app,
+                                             DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
                                              &hud_quit)
         } #else {
             app->settings_tab = SETTINGS_TAB_BREAKS
-            app_switch_screen(app, InbeScreenSettings)
+            app_switch_screen(app, ScreenSettings)
         }
     } else if IsUIWindowClicked(app->break_hud) {
         app->settings_tab = SETTINGS_TAB_BREAKS
-        app_switch_screen(app, InbeScreenSettings)
+        app_switch_screen(app, ScreenSettings)
     }
 }
 }
 
-app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: int) {
+app_breaks_hud_draw :: (app: InnerBreeze*, hud_w: int, hud_h: int, row_h: int, pad: int) {
     track := DarkenUIColor(GetThemeBackground(), 18)
     border: Color = DarkenUIColor(GetThemeText(), 62)
     muted := DarkenUIColor(GetThemeText(), 45)

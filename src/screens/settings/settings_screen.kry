@@ -12,7 +12,7 @@
 #import "string.h"
 
 SettingsScrollPageContext :: struct {
-    app: InbeApp*
+    app: InnerBreeze*
     tab: int
 }
 
@@ -35,7 +35,7 @@ state {
     unified_status_type: int = 0
 }
 
-settings_mobile_hub_active :: (app: InbeApp*) -> int #private {
+settings_mobile_hub_active :: (app: InnerBreeze*) -> int #private {
     #if DESKTOP {
         unused app
         return 0
@@ -113,7 +113,7 @@ settings_screen_draw_status_reserved :: (x: int, y: int*, reserved_h: int) {
     *y += reserved_h
 }
 
-settings_tab_content_height :: (app: InbeApp*, tab: int, content_w: int) -> int #private {
+settings_tab_content_height :: (app: InnerBreeze*, tab: int, content_w: int) -> int #private {
     if tab == SETTINGS_TAB_MOBILE_HUB {
         return Scale(92) + settings_desktop_tab_count() * Scale(58) +
                Scale(42)
@@ -176,7 +176,7 @@ settings_screen_tab_label :: (tab: int) -> const char* {
 }
 
 settings_scaffold_title :: (title: const char*, height: int, user_data: void*) -> int #private {
-    app := (InbeApp*)user_data
+    app := (InnerBreeze*)user_data
 
     if app == nil {
         TitleBar(title, height)
@@ -192,14 +192,14 @@ settings_scaffold_title :: (title: const char*, height: int, user_data: void*) -
         #if !DESKTOP {
             if app->settings_tab != SETTINGS_TAB_MOBILE_HUB {
                 route := app_current_route(app)
-                route.screen = InbeScreenSettings
+                route.screen = ScreenSettings
                 route.settings_tab = SETTINGS_TAB_MOBILE_HUB
                 app_switch_route(app, route)
                 return 1
             }
         }
         if !app_return_to_nav_sidebar_if_needed(app) {
-            app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? InbeScreenHabits : InbeScreenStart)
+            app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? ScreenHabits : ScreenStart)
         }
         return 1
     }
@@ -246,7 +246,7 @@ settings_tab_subtitle :: (tab: int) -> const char* #private {
     return ""
 }
 
-settings_mobile_row_value :: (app: InbeApp*, tab: int, route: int) -> const char* #private {
+settings_mobile_row_value :: (app: InnerBreeze*, tab: int, route: int) -> const char* #private {
     unused app
     if route == APP_NAV_ROUTE_DATA {
         return GetLocaleText("sync_status_ready")
@@ -261,7 +261,7 @@ settings_mobile_row_value :: (app: InbeApp*, tab: int, route: int) -> const char
     return ""
 }
 
-settings_mobile_hub_row :: (app: InbeApp*, row: SettingsMobileHubRow,
+settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
                             x: int, y: int, w: int, id: int) -> int #private {
     h := Scale(56)
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
@@ -323,7 +323,7 @@ settings_mobile_hub_row :: (app: InbeApp*, row: SettingsMobileHubRow,
     return 0
 }
 
-settings_mobile_profile_strip :: (app: InbeApp*, x: int, y: int, w: int) -> int #private {
+settings_mobile_profile_strip :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #private {
     label: [96] char
     subtitle: [96] char
     h := Scale(76)
@@ -385,7 +385,7 @@ settings_mobile_hub_content_height :: (content_w: int, user_data: void*) -> int 
 
 settings_mobile_hub_draw_content :: (content_x: int, content_y: int,
                                      content_w: int, user_data: void*) #private {
-    app := (InbeApp*)user_data
+    app := (InnerBreeze*)user_data
     y := content_y
     rows: [6] SettingsMobileHubRow = {
         {GetLocaleText("settings_tab_device"), "", UI_ICON_TYPE_GEAR,
@@ -415,7 +415,7 @@ settings_mobile_hub_draw_content :: (content_x: int, content_y: int,
     }
 }
 
-settings_screen_draw_mobile_hub :: (app: InbeApp*) -> int #private {
+settings_screen_draw_mobile_hub :: (app: InnerBreeze*) -> int #private {
     scaffold := BeginUIScreenScaffold((UIScreenScaffoldSpec){
         .title = GetLocaleText("settings_title"),
         .top_gap = Scale(8),
@@ -434,7 +434,7 @@ settings_screen_draw_mobile_hub :: (app: InbeApp*) -> int #private {
     return 1
 }
 
-settings_draw_tab_content :: (app: InbeApp*, tab: int, x: int, w: int,
+settings_draw_tab_content :: (app: InnerBreeze*, tab: int, x: int, w: int,
                               y: int*, device_state: SettingsDeviceState*,
                               drawn: int*) #private {
     if drawn != NULL {
@@ -465,7 +465,7 @@ settings_draw_tab_content :: (app: InbeApp*, tab: int, x: int, w: int,
     settings_about_draw(app, x, w, y)
 }
 
-settings_desktop_category_button :: (app: InbeApp*, tab: int, x: int, y: int,
+settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int,
                                      w: int, h: int, id: int) -> int #private {
     active := app != NULL && app->settings_tab == tab
     mouse := GetMousePosition()
@@ -523,7 +523,7 @@ settings_desktop_category_button :: (app: InbeApp*, tab: int, x: int, y: int,
     return 0
 }
 
-settings_screen_draw_desktop :: (app: InbeApp*) -> int #private {
+settings_screen_draw_desktop :: (app: InnerBreeze*) -> int #private {
     device_state := (SettingsDeviceState){0}
     page_ctx := (SettingsScrollPageContext){app, app != NULL ? app->settings_tab : SETTINGS_TAB_DEVICE}
     outer_pad := Scale(24)
@@ -640,7 +640,7 @@ settings_screen_draw_desktop :: (app: InbeApp*) -> int #private {
     return 1
 }
 
-settings_screen_draw :: (app: InbeApp*) -> int {
+settings_screen_draw :: (app: InnerBreeze*) -> int {
     device_state := (SettingsDeviceState){0}
     page_ctx := (SettingsScrollPageContext){0}
     scaffold := (UIScreenScaffold){0}
@@ -732,7 +732,7 @@ route settings {
     page settings
 }
 
-settings :: (app: InbeApp*) #ui {
+settings :: (app: InnerBreeze*) #ui {
     Screen root: {
     unused settings_screen_draw(app)
     }

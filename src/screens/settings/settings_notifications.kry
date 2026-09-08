@@ -19,7 +19,7 @@ entry_height :: () -> int #private {
     return Scale(36) + Scale(8) + Scale(34) + Scale(14)
 }
 
-content_height :: (app: InbeApp*, content_w: int) -> int {
+content_height :: (app: InnerBreeze*, content_w: int) -> int {
     height := Scale(30)
 
     if app == nil {
@@ -44,7 +44,7 @@ content_height :: (app: InbeApp*, content_w: int) -> int {
     return height
 }
 
-remove_reminder :: (app: InbeApp*, index: int) #private {
+remove_reminder :: (app: InnerBreeze*, index: int) #private {
     if app == nil || index < 0 || index >= app->reminder_count {
         return
     }
@@ -56,7 +56,7 @@ remove_reminder :: (app: InbeApp*, index: int) #private {
     save_settings(app)
 }
 
-draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #private {
+draw_entry :: (app: InnerBreeze*, index: int, x: int, w: int, y: int*) -> int #private {
     r: AppReminder* = &app->reminders[index]
     row_h := Scale(36)
     btn := Scale(34)
@@ -121,7 +121,7 @@ draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #priva
     return 0
 }
 
-close_picker :: (app: InbeApp*) #private {
+close_picker :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -139,7 +139,7 @@ close_picker :: (app: InbeApp*) #private {
     app->push_picker_open = 0
 }
 
-handle_overlays :: (app: InbeApp*) {
+handle_overlays :: (app: InnerBreeze*) {
     #if ANDROID {
         labels: [APP_PUSH_DISTRIBUTOR_MAX] const char* = {0}
         picked := 0
@@ -181,7 +181,7 @@ handle_overlays :: (app: InbeApp*) {
     }
 }
 
-draw :: (app: InbeApp*, x: int, w: int, y: int*) {
+draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     test_hover := 0
     add_hover := 0
     friend_toggle := 0

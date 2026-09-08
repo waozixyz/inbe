@@ -15,7 +15,7 @@ storage_import_zip(const char *path)
 }
 
 int
-storage_import_zip_ex(const char *path, InbeStorageImportMode mode)
+storage_import_zip_ex(const char *path, StorageImportMode mode)
 {
     (void)path;
     (void)mode;
@@ -23,7 +23,7 @@ storage_import_zip_ex(const char *path, InbeStorageImportMode mode)
 }
 
 int
-storage_inspect_import(const char *path, InbeStorageImportInfo *info)
+storage_inspect_import(const char *path, StorageImportInfo *info)
 {
     (void)path;
     if(info != 0) {

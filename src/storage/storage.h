@@ -1,46 +1,46 @@
-#ifndef INBE_STORAGE_H
-#define INBE_STORAGE_H
+#ifndef STORAGE_H
+#define STORAGE_H
 
 #include "kryon.h"
 #include <stddef.h>
 
 enum {
-    INBE_STORAGE_PATH_SIZE = 512,
-    INBE_STORAGE_ID_SIZE = 64,
-    INBE_SYNC_PROTOCOL_VERSION = 6
+    STORAGE_PATH_SIZE = 512,
+    STORAGE_ID_SIZE = 64,
+    SYNC_PROTOCOL_VERSION = 6
 };
 
-typedef struct InbeStorageSessionCheckin {
+typedef struct StorageSessionCheckin {
     int mood_before;
     int mood_after;
     int energy;
     int stress;
     char note[256];
     char tags[160];
-} InbeStorageSessionCheckin;
+} StorageSessionCheckin;
 
-typedef struct InbeStorageMoodStats {
+typedef struct StorageMoodStats {
     int total;
     int counts[5];
     int average_after_x100;
     int average_lift_x100;
     int average_energy_x100;
     int average_stress_x100;
-} InbeStorageMoodStats;
+} StorageMoodStats;
 
-typedef void (*InbeStorageSessionRecordCallback)(const char *id,
+typedef void (*StorageSessionRecordCallback)(const char *id,
                                                  int year, int month, int day,
                                                  int hour, int minute, int second,
                                                  int topic, int activity,
                                                  const int *rounds, int round_count,
                                                  void *user);
 
-typedef enum InbeStorageImportMode {
-    INBE_STORAGE_IMPORT_DATA_ONLY = 0,
-    INBE_STORAGE_IMPORT_DATA_AND_SETTINGS = 1
-} InbeStorageImportMode;
+typedef enum StorageImportMode {
+    STORAGE_IMPORT_DATA_ONLY = 0,
+    STORAGE_IMPORT_DATA_AND_SETTINGS = 1
+} StorageImportMode;
 
-typedef struct InbeStorageImportInfo {
+typedef struct StorageImportInfo {
     int valid;
     int has_sessions;
     int has_habits;
@@ -48,9 +48,9 @@ typedef struct InbeStorageImportInfo {
     int session_count;
     int habit_count;
     int setting_count;
-} InbeStorageImportInfo;
+} StorageImportInfo;
 
-typedef struct InbeStorageSyncStatus {
+typedef struct StorageSyncStatus {
     int has_account;
     int server_connected;
     int review_pending;
@@ -65,7 +65,7 @@ typedef struct InbeStorageSyncStatus {
     long long secure_migration_queued;
     long long secure_migration_total;
     long long secure_migration_done;
-} InbeStorageSyncStatus;
+} StorageSyncStatus;
 
 int storage_init(const char *root);
 void storage_close(void);
@@ -106,12 +106,12 @@ int storage_load_session(const char *id, int *round_times, int max_rounds,
                               int *year, int *month, int *day,
                               int *hour, int *minute, int *second);
 int storage_save_session_checkin(const char *id,
-                                 const InbeStorageSessionCheckin *checkin);
+                                 const StorageSessionCheckin *checkin);
 int storage_load_session_checkin(const char *id,
-                                 InbeStorageSessionCheckin *checkin);
+                                 StorageSessionCheckin *checkin);
 int storage_mood_stats(int activity_mask, int days,
-                       InbeStorageMoodStats *stats);
-void storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user);
+                       StorageMoodStats *stats);
+void storage_list_session_records(StorageSessionRecordCallback callback, void *user);
 int storage_has_any(void);
 int storage_session_count(void);
 long long storage_session_change_clock(void);
@@ -127,7 +127,7 @@ char *storage_build_sync_payload_json(const char *user_id_hash,
 void storage_free_sync_payload_json(char *payload);
 int storage_apply_sync_response_json(const char *response_json);
 int storage_last_sync_changed(void);
-int storage_sync_status(InbeStorageSyncStatus *status);
+int storage_sync_status(StorageSyncStatus *status);
 int storage_sync_server_connected(void);
 void storage_set_sync_server_connected(int connected);
 int storage_sync_review_pending(void);
@@ -156,11 +156,22 @@ int storage_habit_day_save(const char *habit_id, int local_date, int completed, 
 int storage_habits_initialized(void);
 void storage_mark_habits_initialized(void);
 
+int storage_elist_load(void *state);
+int storage_elist_create_list(const char *title, char out_id[37]);
+int storage_elist_update_list(const char *id, const char *title, int sort_order);
+int storage_elist_delete_list(const char *id);
+int storage_elist_create_item(const char *list_id, const char *title,
+                              const char *comment, char out_id[37]);
+int storage_elist_update_item(const char *id, const char *title,
+                              const char *comment, int done, int sort_order);
+int storage_elist_delete_item(const char *id);
+int storage_elist_import_onelist(const char *path);
+
 int storage_export_zip(const char *path);
 int storage_export_sessions_csv(const char *path);
 int storage_export_health_connect_csv(const char *path);
 int storage_import_zip(const char *path);
-int storage_import_zip_ex(const char *path, InbeStorageImportMode mode);
-int storage_inspect_import(const char *path, InbeStorageImportInfo *info);
+int storage_import_zip_ex(const char *path, StorageImportMode mode);
+int storage_inspect_import(const char *path, StorageImportInfo *info);
 
 #endif

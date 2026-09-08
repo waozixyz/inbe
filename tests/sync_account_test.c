@@ -153,7 +153,7 @@ remove_tree(const char *path)
 static void
 make_clean_root(char *out, size_t out_size, const char *name)
 {
-    snprintf(out, out_size, "/tmp/inbe-sync-account-test-%ld-%s", (long)getpid(), name);
+    snprintf(out, out_size, "/tmp/breathing-sync-account-test-%ld-%s", (long)getpid(), name);
     remove_tree(out);
     check_true("create test root", ensure_dir(out));
     snprintf(g_data_root, sizeof(g_data_root), "%s", out);
@@ -182,7 +182,7 @@ write_key_file(const char *path, const char *public_id,
     if(file == NULL)
         return;
     fprintf(file,
-            "inbe-sync-key-v1\nalgorithm=ML-DSA-44\npublic_id=%s\npublic_key=%s\nprivate_key=%s\n",
+            "breathing-sync-key-v1\nalgorithm=ML-DSA-44\npublic_id=%s\npublic_key=%s\nprivate_key=%s\n",
             public_id, public_key, private_key);
     fclose(file);
 }
@@ -256,11 +256,11 @@ make_account_values_variant(int variant, char public_id[65],
     bytes_to_hex_local(private_key, sizeof(private_key), private_key_hex, 5121);
 }
 
-static InbeSyncAccountSaveResult
+static SyncAccountSaveResult
 import_key_and_save(SyncAccount *account, const char *path, int clear_local_data)
 {
     if(!sync_account_import_private_key_preview(account, path))
-        return INBE_SYNC_ACCOUNT_SAVE_FAILED;
+        return SYNC_ACCOUNT_SAVE_FAILED;
     return sync_account_save(account, clear_local_data);
 }
 
@@ -278,7 +278,7 @@ test_import_export_clear(void)
     FILE *file;
 
     make_clean_root(root, sizeof(root), "roundtrip");
-    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    snprintf(key_path, sizeof(key_path), "%s/breathing-sync.key", root);
     snprintf(export_path, sizeof(export_path), "%s/exported.key", root);
     make_account_values(public_id, public_key, private_key);
     write_key_file(key_path, public_id, public_key, private_key);
@@ -286,7 +286,7 @@ test_import_export_clear(void)
     check_true("init storage", storage_init(root));
     storage_set_setting_text("sync_account_alias", "old-alias");
     check_true("import key",
-               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     check_str("import public id", account.public_id, public_id);
     check_true("import clears stale alias",
                storage_get_setting_text("sync_account_alias") == NULL);
@@ -307,31 +307,31 @@ test_import_export_clear(void)
     check_true("clear key", sync_account_clear());
     check_false("load after clear", sync_account_load(&account));
     check_true("import exported key",
-               import_key_and_save(&account, export_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, export_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     check_str("reimport public id", account.public_id, public_id);
 
     file = fopen(key_path, "wb");
     check_true("open secret key alias file", file != NULL);
     if(file != NULL) {
         fprintf(file,
-                "inbe-sync-key-v1\nalgorithm=ML-DSA-44\npublic_key=%s\nsecret_key=%s\n",
+                "breathing-sync-key-v1\nalgorithm=ML-DSA-44\npublic_key=%s\nsecret_key=%s\n",
                 public_key, private_key);
         fclose(file);
     }
     check_true("import secret key alias",
-               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     check_str("derive public id", account.public_id, public_id);
 
     file = fopen(key_path, "wb");
     check_true("open exported key json file", file != NULL);
     if(file != NULL) {
         fprintf(file,
-                "{\"exported_key\":\"inbe-sync-key-v1\\nalgorithm=ML-DSA-44\\npublic_id=%s\\npublic_key=%s\\nprivate_key=%s\\n\"}\n",
+                "{\"exported_key\":\"breathing-sync-key-v1\\nalgorithm=ML-DSA-44\\npublic_id=%s\\npublic_key=%s\\nprivate_key=%s\\n\"}\n",
                 public_id, public_key, private_key);
         fclose(file);
     }
     check_true("import exported key json",
-               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     check_str("json public key", account.public_key_hex, public_key);
 
     storage_close();
@@ -350,7 +350,7 @@ test_reject_invalid_keys(void)
     FILE *file;
 
     make_clean_root(root, sizeof(root), "invalid");
-    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    snprintf(key_path, sizeof(key_path), "%s/breathing-sync.key", root);
     make_account_values(public_id, public_key, private_key);
 
     check_true("init invalid storage", storage_init(root));
@@ -364,7 +364,7 @@ test_reject_invalid_keys(void)
     check_true("open missing public key file", file != NULL);
     if(file != NULL) {
         fprintf(file,
-                "inbe-sync-key-v1\nalgorithm=ML-DSA-44\npublic_id=%s\nprivate_key=%s\n",
+                "breathing-sync-key-v1\nalgorithm=ML-DSA-44\npublic_id=%s\nprivate_key=%s\n",
                 public_id, private_key);
         fclose(file);
     }
@@ -387,13 +387,13 @@ test_legacy_synced_account_migrates_connected_server(void)
     SyncAccount account;
 
     make_clean_root(root, sizeof(root), "legacy-connected-flag");
-    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    snprintf(key_path, sizeof(key_path), "%s/breathing-sync.key", root);
     make_account_values(public_id, public_key, private_key);
     write_key_file(key_path, public_id, public_key, private_key);
 
     check_true("init legacy connected storage", storage_init(root));
     check_true("save legacy connected account",
-               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     storage_set_setting_text("sync_server_url", "https://api.waozi.xyz");
     exec_db_sql("prepare legacy connected sync state",
                 "INSERT OR REPLACE INTO meta(key,value) "
@@ -423,13 +423,13 @@ test_unsynced_account_does_not_migrate_connected_server(void)
     SyncAccount account;
 
     make_clean_root(root, sizeof(root), "unsynced-connected-flag");
-    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    snprintf(key_path, sizeof(key_path), "%s/breathing-sync.key", root);
     make_account_values(public_id, public_key, private_key);
     write_key_file(key_path, public_id, public_key, private_key);
 
     check_true("init unsynced connected storage", storage_init(root));
     check_true("save unsynced connected account",
-               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     storage_set_setting_text("sync_server_url", "https://api.waozi.xyz");
     exec_db_sql("remove unsynced connected flag",
                 "DELETE FROM settings WHERE key='sync_server_connected';");
@@ -454,16 +454,16 @@ test_disconnected_account_reports_queue_without_connection(void)
     char public_key[2625];
     char private_key[5121];
     SyncAccount account;
-    InbeStorageSyncStatus status;
+    StorageSyncStatus status;
 
     make_clean_root(root, sizeof(root), "disconnected-queued");
-    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    snprintf(key_path, sizeof(key_path), "%s/breathing-sync.key", root);
     make_account_values(public_id, public_key, private_key);
     write_key_file(key_path, public_id, public_key, private_key);
 
     check_true("init disconnected queued storage", storage_init(root));
     check_true("save disconnected queued account",
-               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     storage_set_setting_text("sync_server_url", "https://api.waozi.xyz");
     storage_set_sync_server_connected(0);
     exec_db_sql("insert disconnected queued sync row",
@@ -497,7 +497,7 @@ test_imported_account_backfills_existing_local_data(void)
     int rounds[] = {30, 45, 60};
 
     make_clean_root(root, sizeof(root), "account-backfill");
-    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    snprintf(key_path, sizeof(key_path), "%s/breathing-sync.key", root);
     make_account_values(public_id, public_key, private_key);
     write_key_file(key_path, public_id, public_key, private_key);
 
@@ -518,7 +518,7 @@ test_imported_account_backfills_existing_local_data(void)
                 "DELETE FROM sync_outbox;");
 
     check_true("import account resets sync state",
-               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     check_str("imported deterministic account", account.public_id, public_id);
     check_str("account owner marker", storage_sync_data_owner_public_id(), public_id);
 
@@ -555,13 +555,13 @@ test_logout_preserves_data_owner(void)
     SyncAccount account;
 
     make_clean_root(root, sizeof(root), "logout-owner");
-    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    snprintf(key_path, sizeof(key_path), "%s/breathing-sync.key", root);
     make_account_values(public_id, public_key, private_key);
     write_key_file(key_path, public_id, public_key, private_key);
 
     check_true("init logout owner storage", storage_init(root));
     check_true("import logout owner account",
-               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     check_str("owner before logout", storage_sync_data_owner_public_id(), public_id);
     check_true("logout account", sync_account_clear());
     check_false("credentials removed", sync_account_load(&account));
@@ -606,20 +606,20 @@ test_different_account_requires_clear_local_data(void)
                 "VALUES('habit-switch',20260622,1,3,strftime('%s','now'));");
 
     check_true("first account binds data",
-               import_key_and_save(&account, key_path_one, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path_one, 0) == SYNC_ACCOUNT_SAVE_OK);
     check_true("logout before account switch", sync_account_clear());
     check_true("local syncable data remains", storage_has_local_syncable_data());
 
     check_true("second account blocked before clear",
                import_key_and_save(&account, key_path_two, 0) ==
-                   INBE_SYNC_ACCOUNT_SAVE_NEEDS_CLEAR);
+                   SYNC_ACCOUNT_SAVE_NEEDS_CLEAR);
     check_false("blocked switch leaves no credentials", sync_account_load(&loaded));
     check_str("blocked switch keeps old owner", storage_sync_data_owner_public_id(),
               public_id_one);
     check_true("blocked switch keeps local data", storage_has_local_syncable_data());
 
     check_true("second account can clear local data",
-               import_key_and_save(&account, key_path_two, 1) == INBE_SYNC_ACCOUNT_SAVE_OK);
+               import_key_and_save(&account, key_path_two, 1) == SYNC_ACCOUNT_SAVE_OK);
     check_true("new account stored", sync_account_load(&loaded));
     check_str("new account public id", loaded.public_id, public_id_two);
     check_true("new account clears alias",
@@ -657,7 +657,7 @@ test_social_cache_does_not_block_account_switch(void)
     check_true("init social cache switch storage", storage_init(root));
     check_true("first social cache account",
                import_key_and_save(&account, key_path_one, 0) ==
-                   INBE_SYNC_ACCOUNT_SAVE_OK);
+                   SYNC_ACCOUNT_SAVE_OK);
     check_true("store social-only cache",
                storage_set_social_cache_json("friends.list",
                                              "{\"friends\":[{\"user_id_hash\":\"friend\"}]}"));
@@ -666,7 +666,7 @@ test_social_cache_does_not_block_account_switch(void)
     check_true("logout social cache account", sync_account_clear());
     check_true("second social cache account saves without clear",
                import_key_and_save(&account, key_path_two, 0) ==
-                   INBE_SYNC_ACCOUNT_SAVE_OK);
+                   SYNC_ACCOUNT_SAVE_OK);
     check_true("second social cache account stored", sync_account_load(&loaded));
     check_str("second social cache owner", storage_sync_data_owner_public_id(),
               public_id_two);

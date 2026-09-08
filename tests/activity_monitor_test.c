@@ -1,4 +1,4 @@
-#include "platform/inbe_activity_monitor.h"
+#include "platform/activity_monitor.h"
 
 #include <stdio.h>
 
@@ -26,26 +26,26 @@ expect(int condition, const char *message)
 static void
 test_init_is_idempotent(void)
 {
-    inbe_activity_monitor_init();
-    inbe_activity_monitor_init();
+    activity_monitor_init();
+    activity_monitor_init();
     expect(1, "init runs twice without crashing");
 }
 
 static void
 test_idle_matches_availability(void)
 {
-    int available = inbe_activity_available();
-    long idle = inbe_activity_get_idle_ms();
+    int available = activity_available();
+    long idle = activity_get_idle_ms();
 
     printf("activity monitor: %s%s\n",
            available ? "system-wide (X idle counter)" : "unavailable",
-           inbe_activity_is_wayland() ? " (Wayland session)" : "");
+           activity_is_wayland() ? " (Wayland session)" : "");
 
     if(available) {
         expect(idle >= 0, "available monitor reports a non-negative idle");
         /* No input occurs between the two reads, so idle cannot go down. */
         {
-            long again = inbe_activity_get_idle_ms();
+            long again = activity_get_idle_ms();
 
             expect(again >= idle, "idle does not decrease between reads");
         }
@@ -57,18 +57,18 @@ test_idle_matches_availability(void)
 static void
 test_input_grab_state(void)
 {
-    int supported = inbe_break_set_input_blocked(1);
+    int supported = break_set_input_blocked(1);
 
     if(supported) {
-        expect(inbe_break_input_blocked(), "grab reports held after request");
-        expect(inbe_break_set_input_blocked(1), "re-grabbing is a no-op success");
-        expect(inbe_break_set_input_blocked(0), "ungrab succeeds");
-        expect(!inbe_break_input_blocked(), "grab reports released");
+        expect(break_input_blocked(), "grab reports held after request");
+        expect(break_set_input_blocked(1), "re-grabbing is a no-op success");
+        expect(break_set_input_blocked(0), "ungrab succeeds");
+        expect(!break_input_blocked(), "grab reports released");
     } else {
-        expect(!inbe_break_input_blocked(),
+        expect(!break_input_blocked(),
                "unsupported grab never reports held");
-        expect(inbe_break_set_input_blocked(0) == 0 ||
-               inbe_break_set_input_blocked(0) == 1,
+        expect(break_set_input_blocked(0) == 0 ||
+               break_set_input_blocked(0) == 1,
                "ungrab without grab does not crash");
     }
 }

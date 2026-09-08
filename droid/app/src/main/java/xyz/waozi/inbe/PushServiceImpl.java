@@ -15,8 +15,8 @@ import org.unifiedpush.android.connector.data.PushEndpoint;
 import org.unifiedpush.android.connector.data.PushMessage;
 
 public class PushServiceImpl extends PushService {
-    private static final String TAG = "INBE_PUSH";
-    private static final String PREFS = "inbe_push";
+    private static final String TAG = "PUSH";
+    private static final String PREFS = "push";
     private static final String PREF_ENDPOINT = "endpoint";
     private static final String PREF_AUTH = "auth";
     private static final String PREF_P256DH = "p256dh";

@@ -1,11 +1,11 @@
-#include "inbe_desktop_tray.h"
+#include "app_desktop_tray.h"
+#include "desktop_tray.h"
 #include "kryon.h" /* raylib API (MinimizeWindow) for the stub branch below */
 
-#if defined(INBE_DESKTOP_TRAY_ENABLED)
+#if defined(DESKTOP_TRAY_ENABLED)
 
 #include "app.h"
 #include "breaks/app_breaks.h"
-#include "desktop_tray.h"
 #include "habits_screen.h"
 #include "practices/patterns/patterns_practice.h"
 #include "practices/practice_registry.h"
@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef struct InbeTraySnapshot {
+typedef struct AppTraySnapshot {
     int window_visible;
     int count;
     int break_mode;
@@ -36,37 +36,37 @@ typedef struct InbeTraySnapshot {
     char break_mode_suspended_label[96];
     char break_reading_label[96];
     char break_settings_label[96];
-    char habit_labels[INBE_HABIT_MAX][128];
-    int habit_indices[INBE_HABIT_MAX];
-    int habit_enabled[INBE_HABIT_MAX];
-} InbeTraySnapshot;
+    char habit_labels[HABIT_MAX][128];
+    int habit_indices[HABIT_MAX];
+    int habit_enabled[HABIT_MAX];
+} AppTraySnapshot;
 
-static InbeTraySnapshot TraySnapshot;
+static AppTraySnapshot app_tray_snapshot;
 static int TrayReady;
 
 static const char *const TrayIconPaths[] = {
-    "inbe.png",
-    "packaging/linux/appimage/inbe.png",
-    "packaging/snap/snap/gui/inbe.png",
-    "web-assets/icons/inbe.png",
+    "breathing.png",
+    "packaging/linux/appimage/breathing.png",
+    "packaging/snap/snap/gui/breathing.png",
+    "web-assets/icons/breathing.png",
     NULL
 };
 
-static InbeDesktopTrayAction
+static DesktopTrayAction
 GetTrayHabitAction(int index)
 {
-    if(index < 0 || index >= INBE_HABIT_MAX)
-        return INBE_DESKTOP_TRAY_ACTION_NONE;
-    return (InbeDesktopTrayAction)(INBE_DESKTOP_TRAY_ACTION_MARK_HABIT_0 + index);
+    if(index < 0 || index >= HABIT_MAX)
+        return DESKTOP_TRAY_ACTION_NONE;
+    return (DesktopTrayAction)(DESKTOP_TRAY_ACTION_MARK_HABIT_0 + index);
 }
 
 static int
-GetTrayHabitIndex(InbeDesktopTrayAction action)
+GetTrayHabitIndex(DesktopTrayAction action)
 {
-    if(action < INBE_DESKTOP_TRAY_ACTION_MARK_HABIT_0 ||
-       action > INBE_DESKTOP_TRAY_ACTION_MARK_HABIT_9)
+    if(action < DESKTOP_TRAY_ACTION_MARK_HABIT_0 ||
+       action > DESKTOP_TRAY_ACTION_MARK_HABIT_9)
         return -1;
-    return (int)(action - INBE_DESKTOP_TRAY_ACTION_MARK_HABIT_0);
+    return (int)(action - DESKTOP_TRAY_ACTION_MARK_HABIT_0);
 }
 
 static const char *
@@ -75,14 +75,14 @@ GetTrayWindowLabelKey(int visible)
     return visible ? "tray_hide_inner_breeze" : "tray_show_inner_breeze";
 }
 
-static InbeDesktopTrayAction
+static DesktopTrayAction
 GetTrayWindowAction(int visible)
 {
-    return visible ? INBE_DESKTOP_TRAY_ACTION_HIDE : INBE_DESKTOP_TRAY_ACTION_SHOW;
+    return visible ? DESKTOP_TRAY_ACTION_HIDE : DESKTOP_TRAY_ACTION_SHOW;
 }
 
 static int
-TraySunSalutationStepSeconds(const InbeApp *app)
+TraySunSalutationStepSeconds(const InnerBreeze*app)
 {
     int start_seconds;
     int end_seconds;
@@ -117,7 +117,7 @@ TraySunSalutationStepSeconds(const InbeApp *app)
 }
 
 static void
-BuildTrayStatusText(InbeApp *app, char *text, size_t text_size)
+BuildTrayStatusText(InnerBreeze*app, char *text, size_t text_size)
 {
     if(text == NULL || text_size == 0)
         return;
@@ -127,36 +127,36 @@ BuildTrayStatusText(InbeApp *app, char *text, size_t text_size)
     if(app == NULL)
         return;
 
-    if(app->inbe.screen == InbeScreenSession) {
-        int count = int_from_count(app->inbe.count);
-        int max_breaths = int_from_count(app->inbe.maxbreaths);
+    if(app->breathing.screen == ScreenSession) {
+        int count = int_from_count(app->breathing.count);
+        int max_breaths = int_from_count(app->breathing.maxbreaths);
 
         if(app->session_paused) {
             snprintf(text, text_size, "%s", GetLocaleText("tray_wim_hof_paused"));
         } else {
-            switch(app->inbe.phase) {
-            case InbePhaseBreathe:
+            switch(app->breathing.phase) {
+            case BreathPhaseBreathe:
                 FormatLocaleText(text, text_size, "tray_wim_hof_breath",
                                  count, max_breaths);
                 break;
-            case InbePhaseHold:
+            case BreathPhaseHold:
                 FormatLocaleText(text, text_size, "tray_wim_hof_hold", count);
                 break;
-            case InbePhaseRecover:
+            case BreathPhaseRecover:
                 count = 15 - count;
                 if(count < 0)
                     count = 0;
                 FormatLocaleText(text, text_size, "tray_wim_hof_breathe_in",
                                  count);
                 break;
-            case InbePhaseNext:
+            case BreathPhaseNext:
                 snprintf(text, text_size, "%s", GetLocaleText("tray_wim_hof_next_round"));
                 break;
-            case InbePhaseStarting:
+            case BreathPhaseStarting:
             default:
                 {
-                    int pause = app->inbe.round == 0 ? 3 : app->inbe.pause_seconds;
-                    int remaining = pause > 0 ? pause - app->inbe.sectick / 60 : 0;
+                    int pause = app->breathing.round == 0 ? 3 : app->breathing.pause_seconds;
+                    int remaining = pause > 0 ? pause - app->breathing.sectick / 60 : 0;
                     if(remaining < 0)
                         remaining = 0;
                     FormatLocaleText(text, text_size,
@@ -166,7 +166,7 @@ BuildTrayStatusText(InbeApp *app, char *text, size_t text_size)
                 break;
             }
         }
-    } else if(app->inbe.screen == InbeScreenMeditation) {
+    } else if(app->breathing.screen == ScreenMeditation) {
         int remaining = app->meditation.remaining_seconds;
         if(remaining < 0)
             remaining = 0;
@@ -174,7 +174,7 @@ BuildTrayStatusText(InbeApp *app, char *text, size_t text_size)
                          app->session_paused ? "tray_meditation_paused"
                                              : "tray_meditation_left",
                          remaining / 60, remaining % 60);
-    } else if(app->inbe.screen == InbeScreenSunSalutation) {
+    } else if(app->breathing.screen == ScreenSunSalutation) {
         int step_seconds = TraySunSalutationStepSeconds(app);
         int elapsed = app->sun_salutation.step_ticks / 60;
         if(elapsed < 0)
@@ -189,7 +189,7 @@ BuildTrayStatusText(InbeApp *app, char *text, size_t text_size)
                          app->sun_salutation.repetitions,
                          elapsed,
                          step_seconds);
-    } else if(app->inbe.screen == InbeScreenPatterns && app->patterns.active) {
+    } else if(app->breathing.screen == ScreenPatterns && app->patterns.active) {
         int phase = app->patterns.phase;
         int left = patterns_phase_remaining_seconds(app);
         int session_time;
@@ -237,7 +237,7 @@ BuildTrayStatusText(InbeApp *app, char *text, size_t text_size)
 }
 
 static void
-FillTraySnapshotLabels(InbeTraySnapshot *snapshot)
+FillTraySnapshotLabels(AppTraySnapshot *snapshot)
 {
     if(snapshot == NULL)
         return;
@@ -278,8 +278,8 @@ FillTraySnapshotLabels(InbeTraySnapshot *snapshot)
 static void
 SeedTraySnapshot(void)
 {
-    InbeTraySnapshot next;
-    InbeApp *app = get_global_inbe_app();
+    AppTraySnapshot next;
+    InnerBreeze*app = get_global_app();
 
     memset(&next, 0, sizeof(next));
     next.window_visible = !IsWindowHidden();
@@ -289,23 +289,23 @@ SeedTraySnapshot(void)
     }
     BuildTrayStatusText(app, next.status_label, sizeof(next.status_label));
     FillTraySnapshotLabels(&next);
-    TraySnapshot = next;
+    app_tray_snapshot = next;
 }
 
 static int
-BuildTrayMenu(const InbeTraySnapshot *snapshot,
+BuildTrayMenu(const AppTraySnapshot *snapshot,
               DesktopTrayMenuItem *items, int item_count,
               DesktopTrayMenuItem *start_items, int start_item_count,
               DesktopTrayMenuItem *habit_items, int habit_item_count,
               DesktopTrayMenuItem *break_items, int break_item_count,
               DesktopTrayMenuItem *break_mode_items, int break_mode_item_count)
 {
-    InbeTraySnapshot local_snapshot;
+    AppTraySnapshot local_snapshot;
     int item_index = 0;
 
     if(items == NULL || item_count < 7 ||
        start_items == NULL || start_item_count < 4 ||
-       habit_items == NULL || habit_item_count < INBE_HABIT_MAX ||
+       habit_items == NULL || habit_item_count < HABIT_MAX ||
        break_items == NULL || break_item_count < 4 ||
        break_mode_items == NULL || break_mode_item_count < 3)
         return 0;
@@ -318,29 +318,29 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     start_items[0] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.whm_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_START_WHM,
+        .action = DESKTOP_TRAY_ACTION_START_WHM,
         .enabled = 1
     };
     start_items[1] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.meditation_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_START_MEDITATION,
+        .action = DESKTOP_TRAY_ACTION_START_MEDITATION,
         .enabled = 1
     };
     start_items[2] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.sun_salutation_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION,
+        .action = DESKTOP_TRAY_ACTION_START_SUN_SALUTATION,
         .enabled = 1
     };
     start_items[3] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.patterns_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_START_PATTERNS,
+        .action = DESKTOP_TRAY_ACTION_START_PATTERNS,
         .enabled = 1
     };
 
-    for(int i = 0; i < local_snapshot.count && i < INBE_HABIT_MAX &&
+    for(int i = 0; i < local_snapshot.count && i < HABIT_MAX &&
                 i < 10; i++) {
         habit_items[i] = (DesktopTrayMenuItem){
             .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
@@ -353,26 +353,26 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     break_mode_items[0] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.break_mode_normal_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_NORMAL,
+        .action = DESKTOP_TRAY_ACTION_BREAK_MODE_NORMAL,
         .enabled = local_snapshot.break_mode != BreakModeNormal
     };
     break_mode_items[1] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.break_mode_quiet_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_QUIET,
+        .action = DESKTOP_TRAY_ACTION_BREAK_MODE_QUIET,
         .enabled = local_snapshot.break_mode != BreakModeQuiet
     };
     break_mode_items[2] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.break_mode_suspended_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_SUSPENDED,
+        .action = DESKTOP_TRAY_ACTION_BREAK_MODE_SUSPENDED,
         .enabled = local_snapshot.break_mode != BreakModeSuspended
     };
 
     break_items[0] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.break_rest_now_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_REST_NOW,
+        .action = DESKTOP_TRAY_ACTION_BREAK_REST_NOW,
         .enabled = 1
     };
     break_items[1] = (DesktopTrayMenuItem){
@@ -385,13 +385,13 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     break_items[2] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.break_reading_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_READING_TOGGLE,
+        .action = DESKTOP_TRAY_ACTION_BREAK_READING_TOGGLE,
         .enabled = 1
     };
     break_items[3] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.break_settings_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
+        .action = DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
         .enabled = 1
     };
 
@@ -432,7 +432,7 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     items[item_index++] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.quit_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_QUIT,
+        .action = DESKTOP_TRAY_ACTION_QUIT,
         .enabled = 1
     };
 
@@ -440,11 +440,11 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
 }
 
 static void
-ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
+ApplyTrayMenuSnapshot(const AppTraySnapshot *snapshot)
 {
     DesktopTrayMenuItem items[7];
     DesktopTrayMenuItem start_items[4];
-    DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
+    DesktopTrayMenuItem habit_items[HABIT_MAX];
     DesktopTrayMenuItem break_items[4];
     DesktopTrayMenuItem break_mode_items[3];
     int count;
@@ -456,7 +456,7 @@ ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
     memset(break_mode_items, 0, sizeof(break_mode_items));
 
     count = BuildTrayMenu(snapshot, items, 7, start_items, 4,
-                          habit_items, INBE_HABIT_MAX,
+                          habit_items, HABIT_MAX,
                           break_items, 4, break_mode_items, 3);
     SetDesktopTrayMenu(items, count);
     SetDesktopTrayActivateAction(GetTrayWindowAction(snapshot != NULL
@@ -465,20 +465,20 @@ ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
 }
 
 int
-inbe_desktop_tray_init(void)
+desktop_tray_init(void)
 {
     DesktopTraySpec spec;
     DesktopTrayMenuItem items[7];
     DesktopTrayMenuItem start_items[4];
-    DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
+    DesktopTrayMenuItem habit_items[HABIT_MAX];
     DesktopTrayMenuItem break_items[4];
     DesktopTrayMenuItem break_mode_items[3];
     int item_count;
 
-    /* INBE_NO_TRAY=1 skips the tray entirely. With the lazy-GTK tray build
+    /* APP_NO_TRAY=1 skips the tray entirely. With the lazy-GTK tray build
      * this also keeps libgtk-3 and its dependency chain out of the process;
      * closing the window then quits or minimizes instead of hiding. */
-    if(getenv("INBE_NO_TRAY") != NULL)
+    if(getenv("APP_NO_TRAY") != NULL)
         return 0;
 
     SeedTraySnapshot();
@@ -487,17 +487,17 @@ inbe_desktop_tray_init(void)
     memset(habit_items, 0, sizeof(habit_items));
     memset(break_items, 0, sizeof(break_items));
     memset(break_mode_items, 0, sizeof(break_mode_items));
-    item_count = BuildTrayMenu(&TraySnapshot, items, 7, start_items, 4,
-                               habit_items, INBE_HABIT_MAX,
+    item_count = BuildTrayMenu(&app_tray_snapshot, items, 7, start_items, 4,
+                               habit_items, HABIT_MAX,
                                break_items, 4, break_mode_items, 3);
 
     memset(&spec, 0, sizeof(spec));
-    spec.id = "inbe";
+    spec.id = "breathing";
     spec.title = "Inner Breeze";
-    spec.icon_name = "inbe";
+    spec.icon_name = "breathing";
     spec.icon_paths = TrayIconPaths;
-    spec.close_action = INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST;
-    spec.activate_action = GetTrayWindowAction(TraySnapshot.window_visible);
+    spec.close_action = DESKTOP_TRAY_ACTION_CLOSE_REQUEST;
+    spec.activate_action = GetTrayWindowAction(app_tray_snapshot.window_visible);
     spec.menu_items = items;
     spec.menu_item_count = item_count;
 
@@ -506,20 +506,20 @@ inbe_desktop_tray_init(void)
 }
 
 void
-inbe_desktop_tray_shutdown(void)
+desktop_tray_shutdown(void)
 {
     ShutdownDesktopTray();
     TrayReady = 0;
 }
 
-InbeDesktopTrayAction
-inbe_desktop_tray_poll_action(void)
+DesktopTrayAction
+desktop_tray_poll_action(void)
 {
-    return (InbeDesktopTrayAction)PollDesktopTrayAction();
+    return (DesktopTrayAction)PollDesktopTrayAction();
 }
 
 int
-inbe_desktop_tray_ready(void)
+desktop_tray_ready(void)
 {
     return TrayReady;
 }
@@ -536,12 +536,12 @@ HideTrayWindow(void)
 {
     /* The window vanishing with the process still running is the single
      * most confusing failure mode this app has; always say why it hid. */
-    TraceLog(LOG_INFO, "INBE: hiding main window (tray action)");
+    TraceLog(LOG_INFO, "APP: hiding main window (tray action)");
     SetWindowState(FLAG_WINDOW_HIDDEN);
 }
 
 void
-inbe_desktop_tray_keep_running(void)
+desktop_tray_keep_running(void)
 {
     if(TrayReady)
         SetWindowState(FLAG_WINDOW_HIDDEN);
@@ -550,7 +550,7 @@ inbe_desktop_tray_keep_running(void)
 }
 
 static void
-StartTrayPractice(InbeApp *app, int practice_id)
+StartTrayPractice(InnerBreeze*app, int practice_id)
 {
     const PracticeDefinition *practice;
 
@@ -570,13 +570,13 @@ StartTrayPractice(InbeApp *app, int practice_id)
 }
 
 static void
-MarkTrayHabit(InbeApp *app, int index)
+MarkTrayHabit(InnerBreeze*app, int index)
 {
     int today;
-    InbeHabit *habit;
+    Habit *habit;
 
     if(app == NULL || index < 0 || index >= app->habits.count ||
-       index >= INBE_HABIT_MAX)
+       index >= HABIT_MAX)
         return;
 
     today = habits_today_index();
@@ -589,9 +589,9 @@ MarkTrayHabit(InbeApp *app, int index)
 }
 
 static void
-UpdateTrayMenuSnapshot(InbeApp *app)
+UpdateTrayMenuSnapshot(InnerBreeze*app)
 {
-    InbeTraySnapshot next;
+    AppTraySnapshot next;
     int today;
 
     if(app == NULL)
@@ -605,9 +605,9 @@ UpdateTrayMenuSnapshot(InbeApp *app)
     FillTraySnapshotLabels(&next);
 
     today = habits_today_index();
-    for(int i = 0; i < app->habits.count && i < INBE_HABIT_MAX &&
-                   next.count < INBE_HABIT_MAX; i++) {
-        InbeHabit *habit = &app->habits.items[i];
+    for(int i = 0; i < app->habits.count && i < HABIT_MAX &&
+                   next.count < HABIT_MAX; i++) {
+        Habit *habit = &app->habits.items[i];
         int count = habit_day_count(habit, today);
         int completed = habit_completed_day(habit, today) || count > 0;
 
@@ -621,84 +621,84 @@ UpdateTrayMenuSnapshot(InbeApp *app)
         next.count++;
     }
 
-    if(memcmp(&TraySnapshot, &next, sizeof(next)) != 0) {
-        TraySnapshot = next;
-        ApplyTrayMenuSnapshot(&TraySnapshot);
+    if(memcmp(&app_tray_snapshot, &next, sizeof(next)) != 0) {
+        app_tray_snapshot = next;
+        ApplyTrayMenuSnapshot(&app_tray_snapshot);
     }
 }
 
 void
-inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *quit)
+desktop_tray_apply_action(InnerBreeze*app, DesktopTrayAction action, int *quit)
 {
     int habit_index = GetTrayHabitIndex(action);
 
     if(habit_index >= 0) {
-        if(habit_index < TraySnapshot.count)
-            MarkTrayHabit(app, TraySnapshot.habit_indices[habit_index]);
+        if(habit_index < app_tray_snapshot.count)
+            MarkTrayHabit(app, app_tray_snapshot.habit_indices[habit_index]);
         return;
     }
 
     switch(action) {
-    case INBE_DESKTOP_TRAY_ACTION_SHOW:
+    case DESKTOP_TRAY_ACTION_SHOW:
         RestoreTrayWindow();
         break;
-    case INBE_DESKTOP_TRAY_ACTION_HIDE:
+    case DESKTOP_TRAY_ACTION_HIDE:
         HideTrayWindow();
         break;
-    case INBE_DESKTOP_TRAY_ACTION_MINIMIZE:
+    case DESKTOP_TRAY_ACTION_MINIMIZE:
         MinimizeWindow();
         break;
-    case INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST:
+    case DESKTOP_TRAY_ACTION_CLOSE_REQUEST:
         app_request_desktop_close(app);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_START_WHM:
+    case DESKTOP_TRAY_ACTION_START_WHM:
         StartTrayPractice(app, PRACTICE_WHM);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_START_MEDITATION:
+    case DESKTOP_TRAY_ACTION_START_MEDITATION:
         StartTrayPractice(app, PRACTICE_MEDITATION);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION:
+    case DESKTOP_TRAY_ACTION_START_SUN_SALUTATION:
         StartTrayPractice(app, PRACTICE_SUN_SALUTATION);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_START_PATTERNS:
+    case DESKTOP_TRAY_ACTION_START_PATTERNS:
         StartTrayPractice(app, PRACTICE_PATTERNS);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_QUIT:
+    case DESKTOP_TRAY_ACTION_QUIT:
         if(quit != NULL)
             *quit = 1;
         break;
-    case INBE_DESKTOP_TRAY_ACTION_BREAK_REST_NOW:
+    case DESKTOP_TRAY_ACTION_BREAK_REST_NOW:
         if(app->breaks_enabled)
             app_breaks_rest_break_now(app);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_NORMAL:
+    case DESKTOP_TRAY_ACTION_BREAK_MODE_NORMAL:
         app_breaks_set_mode(app, BreakModeNormal, 0);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_QUIET:
+    case DESKTOP_TRAY_ACTION_BREAK_MODE_QUIET:
         app_breaks_set_mode(app, BreakModeQuiet, 0);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_SUSPENDED:
+    case DESKTOP_TRAY_ACTION_BREAK_MODE_SUSPENDED:
         app_breaks_set_mode(app, BreakModeSuspended, 0);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_BREAK_READING_TOGGLE:
+    case DESKTOP_TRAY_ACTION_BREAK_READING_TOGGLE:
         app->breaks.reading_mode = !app->breaks.reading_mode;
         app->settings_dirty = 1;
         break;
-    case INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS:
+    case DESKTOP_TRAY_ACTION_BREAK_SETTINGS:
         if(app->modal.active)
             app_close_modal(app);
         RestoreTrayWindow();
         app->settings_tab = SETTINGS_TAB_BREAKS;
-        app_switch_screen(app, InbeScreenSettings);
+        app_switch_screen(app, ScreenSettings);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_NONE:
+    case DESKTOP_TRAY_ACTION_NONE:
     default:
         break;
     }
 }
 
 void
-inbe_desktop_tray_update_status(InbeApp *app)
+desktop_tray_update_status(InnerBreeze*app)
 {
     char text[128];
 
@@ -713,20 +713,20 @@ inbe_desktop_tray_update_status(InbeApp *app)
 
 #else
 
-int inbe_desktop_tray_init(void) { return 0; }
-int inbe_desktop_tray_ready(void) { return 0; }
-void inbe_desktop_tray_shutdown(void) {}
-InbeDesktopTrayAction inbe_desktop_tray_poll_action(void)
+int desktop_tray_init(void) { return 0; }
+int desktop_tray_ready(void) { return 0; }
+void desktop_tray_shutdown(void) {}
+DesktopTrayAction desktop_tray_poll_action(void)
 {
-    return INBE_DESKTOP_TRAY_ACTION_NONE;
+    return DESKTOP_TRAY_ACTION_NONE;
 }
-void inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *quit)
+void desktop_tray_apply_action(InnerBreeze*app, DesktopTrayAction action, int *quit)
 {
     (void)app;
     (void)action;
     (void)quit;
 }
-void inbe_desktop_tray_update_status(InbeApp *app) { (void)app; }
-void inbe_desktop_tray_keep_running(void) { MinimizeWindow(); }
+void desktop_tray_update_status(InnerBreeze*app) { (void)app; }
+void desktop_tray_keep_running(void) { MinimizeWindow(); }
 
 #endif

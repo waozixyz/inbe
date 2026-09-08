@@ -83,8 +83,8 @@ check_friend_helpers(void)
         fprintf(stderr, "FAIL friend id normalize: got %s\n", out);
         failures++;
     }
-    if(!sync_client_test_friend_stats_path("inbe", "whm", "avg hold", out, sizeof(out)) ||
-       strcmp(out, "/api/v1/friends/stats?app=inbe&practice=whm&metric=avg%20hold") != 0) {
+    if(!sync_client_test_friend_stats_path("breathing", "whm", "avg hold", out, sizeof(out)) ||
+       strcmp(out, "/api/v1/friends/stats?app=breathing&practice=whm&metric=avg%20hold") != 0) {
         fprintf(stderr, "FAIL friend stats path: got %s\n", out);
         failures++;
     }

@@ -1810,3 +1810,17 @@ Choose which completed practices count toward this habit.
 [habit_routine_title]
 Schedule & reminder
 ---
+[tab_elist]
+Lists
+[elist_title]
+Lists
+[elist_new_list]
+New list
+[elist_create_list]
+Create list
+[elist_add_item]
+Add
+[elist_empty_title]
+No lists yet
+[elist_empty_detail]
+Create a list, then add tasks and notes in one place.

@@ -15,10 +15,10 @@
 #include <jni.h>
 #include <android/log.h>
 
-extern InbeApp* get_global_inbe_app(void);
-extern void app_request_graphics_reload(InbeApp *app);
+extern InnerBreeze* get_global_app(void);
+extern void app_request_graphics_reload(InnerBreeze*app);
 
-#define LOG_TAG "INBE_INSETS"
+#define LOG_TAG "APP_INSETS"
 
 #ifndef JNI_VERSION_1_6
 #define JNI_VERSION_1_6 0x10060000
@@ -43,7 +43,7 @@ static void nativeSetInsets(JNIEnv *env, jobject thiz,
     jint cutout_left, jint cutout_top, jint cutout_right, jint cutout_bottom)
 {
     TraceLog(LOG_INFO,
-             "INBE: Java insets: system=%d,%d,%d,%d ime=%d cutout=%d,%d,%d,%d",
+             "APP: Java insets: system=%d,%d,%d,%d ime=%d cutout=%d,%d,%d,%d",
              system_left, system_top, system_right, system_bottom, ime_bottom,
              cutout_left, cutout_top, cutout_right, cutout_bottom);
 
@@ -65,10 +65,10 @@ static void nativeSetDeviceDensity(JNIEnv *env, jobject thiz, jfloat density)
 
 static jint nativeGetPlayInBackground(JNIEnv *env, jobject thiz)
 {
-	void *app = get_global_inbe_app();
+	void *app = get_global_app();
 	if(app == NULL)
 		return 0;
-	return get_play_in_background(&((InbeApp*)app)->inbe);
+	return get_play_in_background(&((InnerBreeze*)app)->breathing);
 }
 
 static void nativeSetBackgroundActive(JNIEnv *env, jobject thiz, jboolean active)
@@ -76,18 +76,18 @@ static void nativeSetBackgroundActive(JNIEnv *env, jobject thiz, jboolean active
 	(void)env;
 	(void)thiz;
 
-	void *app = get_global_inbe_app();
-	InbeApp *inbe_app = (InbeApp*)app;
+	void *app = get_global_app();
+	InnerBreeze*app = (InnerBreeze*)app;
 
 	if (active) {
-		if (inbe_app != NULL) {
-			inbe_app->backgrounded = 1;
+		if (app != NULL) {
+			app->backgrounded = 1;
 		}
 		android_timer_activate();
 	} else {
 		android_timer_deactivate();
-		if (inbe_app != NULL) {
-			inbe_app->backgrounded = 0;
+		if (app != NULL) {
+			app->backgrounded = 0;
 		}
 	}
 }
@@ -97,16 +97,16 @@ static jint nativePauseSession(JNIEnv *env, jobject thiz)
 	(void)env;
 	(void)thiz;
 
-	InbeApp *inbe_app = get_global_inbe_app();
-	if (inbe_app == NULL) {
-		__android_log_write(ANDROID_LOG_ERROR, "INBE_JNI", "nativePauseSession: app is NULL!");
+	InnerBreeze*app = get_global_app();
+	if (app == NULL) {
+		__android_log_write(ANDROID_LOG_ERROR, "APP_JNI", "nativePauseSession: app is NULL!");
 		return 0;
 	}
-	if (inbe_app->session_paused)
+	if (app->session_paused)
 		return 0;
 
-	inbe_app->session_paused = 1;
-	inbe_app->backgrounded = 1;
+	app->session_paused = 1;
+	app->backgrounded = 1;
 	return 1;
 }
 
@@ -115,16 +115,16 @@ static void nativeResumeSession(JNIEnv *env, jobject thiz)
 	(void)env;
 	(void)thiz;
 
-	InbeApp *inbe_app = get_global_inbe_app();
-	if (inbe_app == NULL) {
-		__android_log_write(ANDROID_LOG_ERROR, "INBE_JNI", "nativeResumeSession: app is NULL!");
+	InnerBreeze*app = get_global_app();
+	if (app == NULL) {
+		__android_log_write(ANDROID_LOG_ERROR, "APP_JNI", "nativeResumeSession: app is NULL!");
 		return;
 	}
-	if (!inbe_app->session_paused)
+	if (!app->session_paused)
 		return;
 
-	inbe_app->session_paused = 0;
-	inbe_app->backgrounded = 0;
+	app->session_paused = 0;
+	app->backgrounded = 0;
 }
 
 static void nativeInvalidateGraphicsResources(JNIEnv *env, jobject thiz)
@@ -132,9 +132,9 @@ static void nativeInvalidateGraphicsResources(JNIEnv *env, jobject thiz)
     (void)env;
     (void)thiz;
 
-    InbeApp *inbe_app = get_global_inbe_app();
-    if(inbe_app != NULL)
-        app_request_graphics_reload(inbe_app);
+    InnerBreeze*app = get_global_app();
+    if(app != NULL)
+        app_request_graphics_reload(app);
 }
 
 /* Widget / quick-settings tile / launcher shortcut entry point. Runs on
@@ -143,7 +143,7 @@ static void nativeInvalidateGraphicsResources(JNIEnv *env, jobject thiz)
  * by the practice (same semantics as the desktop break-window chips). */
 static jboolean nativeStartPractice(JNIEnv *env, jobject thiz, jint practice_id)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     (void)env;
     (void)thiz;
@@ -184,7 +184,7 @@ static jboolean
 nativeDebugImportMusicForPractice(JNIEnv *env, jobject thiz, jstring path,
                                   jint practice_id)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     const char *native_path;
     int error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
     int track;
@@ -205,7 +205,7 @@ nativeDebugImportMusicForPractice(JNIEnv *env, jobject thiz, jstring path,
     (*env)->ReleaseStringUTFChars(env, path, native_path);
 
     practice_id = practice_clamp_id(practice_id);
-    track = INBE_AUDIO_BUILTIN_MUSIC_COUNT + app->audio_custom_music_count - 1;
+    track = AUDIO_BUILTIN_MUSIC_COUNT + app->audio_custom_music_count - 1;
     app->meditation.music_practice_tracks[practice_id] = track;
     app->meditation.music_track = track;
     app_audio_music_sanitize_selection(app);
@@ -214,13 +214,13 @@ nativeDebugImportMusicForPractice(JNIEnv *env, jobject thiz, jstring path,
     save_settings(app);
     TraceLog(LOG_INFO,
              "ANDROID_DEBUG_MUSIC: imported and selected track=%d practice=%d path=%s",
-             track, (int)practice_id, app->audio_custom_music[track - INBE_AUDIO_BUILTIN_MUSIC_COUNT].path);
+             track, (int)practice_id, app->audio_custom_music[track - AUDIO_BUILTIN_MUSIC_COUNT].path);
     return JNI_TRUE;
 }
 
 static jboolean nativeDebugStartMusicDownload(JNIEnv *env, jobject thiz)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     (void)env;
     (void)thiz;
     if(app == NULL)
@@ -231,7 +231,7 @@ static jboolean nativeDebugStartMusicDownload(JNIEnv *env, jobject thiz)
 
 static jboolean nativeDebugOpenDonationReminder(JNIEnv *env, jobject thiz)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     (void)env;
     (void)thiz;
@@ -277,19 +277,19 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
     result = (*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6);
     if (result != JNI_OK) {
-        TraceLog(LOG_ERROR, "INBE: Failed to get JNI environment");
+        TraceLog(LOG_ERROR, "APP: Failed to get JNI environment");
         return result;
     }
 
-    jclass clazz = (*env)->FindClass(env, "xyz/waozi/inbe/MainActivity");
+    jclass clazz = (*env)->FindClass(env, "xyz/waozi/breathing/MainActivity");
     if (clazz == NULL) {
-        TraceLog(LOG_ERROR, "INBE: Failed to find MainActivity class");
+        TraceLog(LOG_ERROR, "APP: Failed to find MainActivity class");
         return JNI_ERR;
     }
 
     result = (*env)->RegisterNatives(env, clazz, g_methods, sizeof(g_methods) / sizeof(g_methods[0]));
     if (result != JNI_OK) {
-        TraceLog(LOG_ERROR, "INBE: Failed to register native methods");
+        TraceLog(LOG_ERROR, "APP: Failed to register native methods");
         return result;
     }
 

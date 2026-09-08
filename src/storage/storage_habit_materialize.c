@@ -14,8 +14,8 @@ storage_build_session_habit_counts(void)
     sqlite3_stmt *stmt = NULL;
     int rc;
 
-    if(!exec_sql("DROP TABLE IF EXISTS temp.inbe_session_habit_counts;"
-                 "CREATE TEMP TABLE inbe_session_habit_counts("
+    if(!exec_sql("DROP TABLE IF EXISTS temp.session_habit_counts;"
+                 "CREATE TEMP TABLE session_habit_counts("
                  " habit_id TEXT NOT NULL,"
                  " local_date INTEGER NOT NULL,"
                  " session_count INTEGER NOT NULL,"
@@ -25,7 +25,7 @@ storage_build_session_habit_counts(void)
 
     if(sqlite3_prepare_v2(g_storage.db,
                           "INSERT INTO "
-                          "inbe_session_habit_counts(habit_id,local_date,session_count) "
+                          "session_habit_counts(habit_id,local_date,session_count) "
                           "SELECT h.id,s.local_date,COUNT(*) "
                           "FROM habits h JOIN sessions s ON s.user_id=h.user_id "
                           "WHERE h.user_id=?1 AND h.deleted_at=0 AND s.deleted_at=0 "
@@ -36,7 +36,7 @@ storage_build_session_habit_counts(void)
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, g_storage.user_id);
-    sqlite3_bind_int(stmt, 2, INBE_HABIT_SYNC_ACTIVITIES);
+    sqlite3_bind_int(stmt, 2, HABIT_SYNC_ACTIVITIES);
     rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
     return rc == SQLITE_DONE;
@@ -179,19 +179,19 @@ storage_clear_stale_session_habit_counts(long long changed_at)
                           "WHERE h.user_id=?1 AND h.deleted_at=0 AND h.sync_mode=?2 AND "
                           "h.sync_activity<>0 "
                           "  AND hd.session_count>0 "
-                          "  AND NOT EXISTS (SELECT 1 FROM inbe_session_habit_counts c "
+                          "  AND NOT EXISTS (SELECT 1 FROM session_habit_counts c "
                           "                  WHERE c.habit_id=hd.habit_id AND "
                           "c.local_date=hd.local_date)",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, g_storage.user_id);
-    sqlite3_bind_int(stmt, 2, INBE_HABIT_SYNC_ACTIVITIES);
+    sqlite3_bind_int(stmt, 2, HABIT_SYNC_ACTIVITIES);
     while(sqlite3_step(stmt) == SQLITE_ROW) {
         const char *habit_id = (const char *)sqlite3_column_text(stmt, 0);
         int local_date = sqlite3_column_int(stmt, 1);
         int count = sqlite3_column_int(stmt, 2);
         int session_count = sqlite3_column_int(stmt, 3);
-        char habit_id_copy[INBE_STORAGE_ID_SIZE];
+        char habit_id_copy[STORAGE_ID_SIZE];
 
         snprintf(habit_id_copy, sizeof(habit_id_copy), "%s", habit_id != NULL ? habit_id : "");
         if(count <= session_count) {
@@ -214,14 +214,14 @@ storage_apply_session_habit_counts(long long changed_at)
 
     if(sqlite3_prepare_v2(g_storage.db,
                           "SELECT habit_id,local_date,session_count "
-                          "FROM inbe_session_habit_counts",
+                          "FROM session_habit_counts",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     while(sqlite3_step(stmt) == SQLITE_ROW) {
         const char *habit_id = (const char *)sqlite3_column_text(stmt, 0);
         int local_date = sqlite3_column_int(stmt, 1);
         int session_count = sqlite3_column_int(stmt, 2);
-        char habit_id_copy[INBE_STORAGE_ID_SIZE];
+        char habit_id_copy[STORAGE_ID_SIZE];
 
         snprintf(habit_id_copy, sizeof(habit_id_copy), "%s", habit_id != NULL ? habit_id : "");
         ok =
@@ -236,15 +236,15 @@ storage_apply_session_habit_counts(long long changed_at)
 static int
 storage_snapshot_habit_day_visible_state(void)
 {
-    return exec_sql("DROP TABLE IF EXISTS temp.inbe_habit_day_visible_before;"
-                    "CREATE TEMP TABLE inbe_habit_day_visible_before("
+    return exec_sql("DROP TABLE IF EXISTS temp.habit_day_visible_before;"
+                    "CREATE TEMP TABLE habit_day_visible_before("
                     " habit_id TEXT NOT NULL,"
                     " local_date INTEGER NOT NULL,"
                     " completed INTEGER NOT NULL,"
                     " count INTEGER NOT NULL,"
                     " PRIMARY KEY(habit_id,local_date)"
                     ");"
-                    "INSERT INTO inbe_habit_day_visible_before("
+                    "INSERT INTO habit_day_visible_before("
                     "habit_id,local_date,completed,count) "
                     "SELECT hd.habit_id,hd.local_date,hd.completed,hd.count "
                     "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
@@ -257,13 +257,13 @@ storage_enqueue_materialized_habit_day_changes(void)
     return exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
                     "SELECT 'habit_day',hd.habit_id,hd.local_date,strftime('%s','now') "
                     "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
-                    "LEFT JOIN inbe_habit_day_visible_before b "
+                    "LEFT JOIN habit_day_visible_before b "
                     "ON b.habit_id=hd.habit_id AND b.local_date=hd.local_date "
                     "WHERE h.user_id=(SELECT id FROM users LIMIT 1) "
                     "AND (b.habit_id IS NULL OR b.completed<>hd.completed OR b.count<>hd.count) "
                     "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
                     "queued_at=excluded.queued_at;"
-                    "DROP TABLE IF EXISTS temp.inbe_habit_day_visible_before");
+                    "DROP TABLE IF EXISTS temp.habit_day_visible_before");
 }
 
 int
@@ -280,19 +280,19 @@ storage_materialize_session_habit_days(void)
     }
 
     changed_at = now_seconds();
-    if(!exec_sql("SAVEPOINT inbe_materialize_habit_days"))
+    if(!exec_sql("SAVEPOINT materialize_habit_days"))
         return 0;
     ok = storage_snapshot_habit_day_visible_state() &&
          storage_build_session_habit_counts() && storage_apply_session_habit_counts(changed_at) &&
          storage_enqueue_materialized_habit_day_changes() &&
-         exec_sql("DROP TABLE IF EXISTS temp.inbe_session_habit_counts;");
+         exec_sql("DROP TABLE IF EXISTS temp.session_habit_counts;");
     if(ok) {
-        ok = exec_sql("RELEASE inbe_materialize_habit_days");
+        ok = exec_sql("RELEASE materialize_habit_days");
     } else {
         TraceLog(LOG_WARNING, "STORAGE: failed to materialize session habit counts: %s",
                  sqlite3_errmsg(g_storage.db));
-        exec_sql("ROLLBACK TO inbe_materialize_habit_days");
-        exec_sql("RELEASE inbe_materialize_habit_days");
+        exec_sql("ROLLBACK TO materialize_habit_days");
+        exec_sql("RELEASE materialize_habit_days");
     }
     return ok;
 }

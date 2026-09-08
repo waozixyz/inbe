@@ -18,7 +18,7 @@ final class PushBridge {
     private PushBridge() {}
 
     static boolean isRegistered(MainActivity activity) {
-        if (BuildConfig.INBE_GPLAY) {
+        if (BuildConfig.GPLAY) {
             Object value = callGplay("isRegistered", new Class<?>[] {MainActivity.class}, activity);
             if (value instanceof Boolean) {
                 return (Boolean) value;
@@ -28,7 +28,7 @@ final class PushBridge {
     }
 
     static String[] getDistributors(MainActivity activity) {
-        if (BuildConfig.INBE_GPLAY) {
+        if (BuildConfig.GPLAY) {
             Object value = callGplay("getDistributors", new Class<?>[] {MainActivity.class}, activity);
             if (value instanceof String[]) {
                 return (String[]) value;
@@ -39,7 +39,7 @@ final class PushBridge {
     }
 
     static String[] getDistributorLabels(MainActivity activity) {
-        if (BuildConfig.INBE_GPLAY) {
+        if (BuildConfig.GPLAY) {
             Object value = callGplay("getDistributorLabels", new Class<?>[] {MainActivity.class}, activity);
             if (value instanceof String[]) {
                 return (String[]) value;
@@ -58,7 +58,7 @@ final class PushBridge {
     }
 
     static String[] getDistributorIcons(MainActivity activity) {
-        if (BuildConfig.INBE_GPLAY) {
+        if (BuildConfig.GPLAY) {
             Object value = callGplay("getDistributorIcons", new Class<?>[] {MainActivity.class}, activity);
             if (value instanceof String[]) {
                 return (String[]) value;
@@ -91,7 +91,7 @@ final class PushBridge {
     }
 
     static void configureWith(final MainActivity activity, final String pkg) {
-        if (BuildConfig.INBE_GPLAY && callGplay("configureWith",
+        if (BuildConfig.GPLAY && callGplay("configureWith",
                 new Class<?>[] {MainActivity.class, String.class}, activity, pkg) != null) {
             return;
         }
@@ -106,7 +106,7 @@ final class PushBridge {
     }
 
     static void configure(final MainActivity activity) {
-        if (BuildConfig.INBE_GPLAY && callGplay("configure",
+        if (BuildConfig.GPLAY && callGplay("configure",
                 new Class<?>[] {MainActivity.class}, activity) != null) {
             return;
         }

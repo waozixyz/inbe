@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-EMBEDDED_C="$ROOT_DIR/build/obj/inbe_embedded_assets.c"
+EMBEDDED_C="$ROOT_DIR/build/obj/breathing_embedded_assets.c"
 
 fail() {
   echo "FAIL $*" >&2
@@ -10,7 +10,7 @@ fail() {
 }
 
 [[ -f "$EMBEDDED_C" ]] ||
-  fail "embedded asset table missing; run make native or make build/obj/inbe_embedded_assets.c first"
+  fail "embedded asset table missing; run make native or make build/obj/breathing_embedded_assets.c first"
 
 if command -v rg >/dev/null 2>&1; then
   mapfile -t image_paths < <(

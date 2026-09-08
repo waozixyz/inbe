@@ -1778,3 +1778,17 @@ Scegli quali pratiche completate contano per questa abitudine.
 [habit_routine_title]
 Pianificazione e promemoria
 ---
+[tab_elist]
+Liste
+[elist_title]
+Liste
+[elist_new_list]
+Nuova lista
+[elist_create_list]
+Crea lista
+[elist_add_item]
+Aggiungi
+[elist_empty_title]
+Nessuna lista
+[elist_empty_detail]
+Crea una lista, poi aggiungi attivita e note in un unico posto.

@@ -8,7 +8,7 @@
 #import "practices/sun_salutation/sun_salutation_practice.h"
 #import "stdio.h"
 
-exit_to_start :: (app: InbeApp*) #private {
+exit_to_start :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -19,10 +19,10 @@ exit_to_start :: (app: InbeApp*) #private {
     app->session_paused = 0
     meditation_music_stop(app)
     app_close_modal(app)
-    app_switch_screen(app, InbeScreenStart)
+    app_switch_screen(app, ScreenStart)
 }
 
-finish :: (app: InbeApp*) #private {
+finish :: (app: InnerBreeze*) #private {
     repetitions := 0
     result_path: [FS_PATH_MAX] char = {0}
 
@@ -49,10 +49,10 @@ finish :: (app: InbeApp*) #private {
     app_close_modal(app)
     app_prepare_session_results(app, EXERCISE_SUN_SALUTATION, repetitions, 0,
                                 nil, nil, 0, result_path)
-    app_switch_screen(app, InbeScreenResults)
+    app_switch_screen(app, ScreenResults)
 }
 
-sun_salutation_practice_start :: (app: InbeApp*) {
+sun_salutation_practice_start :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -77,18 +77,18 @@ sun_salutation_practice_start :: (app: InbeApp*) {
     app->sun_salutation.step_ticks = 0
     app->session_paused = 0
     app_close_modal(app)
-    app_switch_screen(app, InbeScreenSunSalutation)
+    app_switch_screen(app, ScreenSunSalutation)
     meditation_music_start_session(app)
 }
 
-sun_salutation_request_exit :: (app: InbeApp*) {
+sun_salutation_request_exit :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
     app_open_modal(app, UIModalConfirmExitSession)
 }
 
-step_seconds :: (app: InbeApp*) -> int #private {
+step_seconds :: (app: InnerBreeze*) -> int #private {
     start_seconds: int
     end_seconds: int
     repetitions: int
@@ -127,7 +127,7 @@ step_seconds :: (app: InbeApp*) -> int #private {
                                (repetitions - 1)
 }
 
-step_forward :: (app: InbeApp*) #private {
+step_forward :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -145,7 +145,7 @@ step_forward :: (app: InbeApp*) #private {
     }
 }
 
-step_back :: (app: InbeApp*) #private {
+step_back :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -159,10 +159,10 @@ step_back :: (app: InbeApp*) #private {
     }
 }
 
-update_timer :: (app: InbeApp*) #private {
+update_timer :: (app: InnerBreeze*) #private {
     ticks_per_step := 0
 
-    if app == nil || app->inbe.screen != InbeScreenSunSalutation ||
+    if app == nil || app->breathing.screen != ScreenSunSalutation ||
        app->session_paused {
         return
     }
@@ -302,7 +302,7 @@ sun_salutation_transition_frame_for_tick :: (step_ticks: int,
     return frame_index
 }
 
-draw_pose_timer :: (app: InbeApp*, seconds: int, top_y: int, bottom_y: int) #private {
+draw_pose_timer :: (app: InnerBreeze*, seconds: int, top_y: int, bottom_y: int) #private {
     timer_text: [24] char
     elapsed_seconds: int
     text_w: int
@@ -355,7 +355,7 @@ draw_pose_timer :: (app: InbeApp*, seconds: int, top_y: int, bottom_y: int) #pri
     DrawRectangle(x, y, fill_w, h, GetThemeButtonHover())
 }
 
-sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
+sun_salutation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     controls: [3] IconRowItem
     row: IconRowResult
     step_label: const char*
@@ -512,7 +512,7 @@ route sun_salutation {
     page sun_salutation
 }
 
-sun_salutation :: (app: InbeApp*) #ui {
+sun_salutation :: (app: InnerBreeze*) #ui {
     Screen root: {
     sun_salutation_draw_screen(app, view_width / 2, view_height / 2)
     }

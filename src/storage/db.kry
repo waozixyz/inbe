@@ -63,7 +63,7 @@ make_dir :: (path: const char*) -> int {
 }
 
 ensure_dir_local :: (path: const char*) -> int #export {
-    temp: [INBE_STORAGE_PATH_SIZE] char
+    temp: [STORAGE_PATH_SIZE] char
     p: char*
 
     if path == nil || path[0] == '\0' {
@@ -339,6 +339,25 @@ schema_create :: () -> int #export {
         " usage_s INTEGER NOT NULL DEFAULT 0,"
         " updated_at INTEGER NOT NULL,"
         " PRIMARY KEY(user_id,local_date,break_type)"
+        ");"
+        "CREATE TABLE IF NOT EXISTS elist_lists("
+        " id TEXT PRIMARY KEY,"
+        " user_id TEXT NOT NULL,"
+        " title TEXT NOT NULL,"
+        " sort_order INTEGER NOT NULL,"
+        " deleted_at INTEGER NOT NULL DEFAULT 0,"
+        " updated_at INTEGER NOT NULL"
+        ");"
+        "CREATE TABLE IF NOT EXISTS elist_items("
+        " id TEXT PRIMARY KEY,"
+        " user_id TEXT NOT NULL,"
+        " list_id TEXT NOT NULL,"
+        " title TEXT NOT NULL,"
+        " comment TEXT NOT NULL DEFAULT '',"
+        " done INTEGER NOT NULL DEFAULT 0,"
+        " sort_order INTEGER NOT NULL,"
+        " deleted_at INTEGER NOT NULL DEFAULT 0,"
+        " updated_at INTEGER NOT NULL"
         ");") {
         return 0
     }
@@ -626,6 +645,25 @@ migrate_schema :: () -> int #export {
            " json TEXT NOT NULL,"
            " updated_at INTEGER NOT NULL,"
            " PRIMARY KEY(user_id,kind)"
+           ");"
+           "CREATE TABLE IF NOT EXISTS elist_lists("
+           " id TEXT PRIMARY KEY,"
+           " user_id TEXT NOT NULL,"
+           " title TEXT NOT NULL,"
+           " sort_order INTEGER NOT NULL,"
+           " deleted_at INTEGER NOT NULL DEFAULT 0,"
+           " updated_at INTEGER NOT NULL"
+           ");"
+           "CREATE TABLE IF NOT EXISTS elist_items("
+           " id TEXT PRIMARY KEY,"
+           " user_id TEXT NOT NULL,"
+           " list_id TEXT NOT NULL,"
+           " title TEXT NOT NULL,"
+           " comment TEXT NOT NULL DEFAULT '',"
+           " done INTEGER NOT NULL DEFAULT 0,"
+           " sort_order INTEGER NOT NULL,"
+           " deleted_at INTEGER NOT NULL DEFAULT 0,"
+           " updated_at INTEGER NOT NULL"
            ");") {
         return 0
     }
@@ -661,7 +699,7 @@ storage_init :: (root: const char*) -> int #export {
         return 0
     }
     if !storage_join_path(g_storage.db_path, sizeof(g_storage.db_path),
-                          g_storage.root, "inbe.db") {
+                          g_storage.root, "breathing.db") {
         TraceLog(LOG_ERROR, "STORAGE: database path is too long")
         return 0
     }

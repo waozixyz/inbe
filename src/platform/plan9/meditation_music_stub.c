@@ -1,7 +1,7 @@
 #include "src/practices/meditation/meditation_music.h"
 
 static void
-set_status(InbeApp *app, const char *message)
+set_status(InnerBreeze*app, const char *message)
 {
     if(app == 0)
         return;
@@ -11,7 +11,7 @@ set_status(InbeApp *app, const char *message)
 }
 
 static int
-track_available(InbeApp *app, int track)
+track_available(InnerBreeze*app, int track)
 {
     char path[FS_PATH_MAX];
 
@@ -20,7 +20,7 @@ track_available(InbeApp *app, int track)
 }
 
 static int
-load_track(InbeApp *app, int track)
+load_track(InnerBreeze*app, int track)
 {
     char path[FS_PATH_MAX];
 
@@ -71,7 +71,7 @@ meditation_music_format_download_status(char *out, size_t out_size,
 }
 
 void
-meditation_music_draw_download_progress(InbeApp *app, int x, int y, int w)
+meditation_music_draw_download_progress(InnerBreeze*app, int x, int y, int w)
 {
     (void)app;
     (void)x;
@@ -80,7 +80,7 @@ meditation_music_draw_download_progress(InbeApp *app, int x, int y, int w)
 }
 
 int
-meditation_music_available(InbeApp *app)
+meditation_music_available(InnerBreeze*app)
 {
     int i;
 
@@ -94,7 +94,7 @@ meditation_music_available(InbeApp *app)
 }
 
 const char *
-meditation_music_selected_label(InbeApp *app)
+meditation_music_selected_label(InnerBreeze*app)
 {
     int track;
 
@@ -107,7 +107,7 @@ meditation_music_selected_label(InbeApp *app)
 }
 
 void
-meditation_music_init(InbeApp *app)
+meditation_music_init(InnerBreeze*app)
 {
     if(app == 0)
         return;
@@ -121,7 +121,7 @@ meditation_music_init(InbeApp *app)
 }
 
 void
-meditation_music_unload(InbeApp *app)
+meditation_music_unload(InnerBreeze*app)
 {
     if(app == 0)
         return;
@@ -137,7 +137,7 @@ meditation_music_unload(InbeApp *app)
 }
 
 void
-meditation_music_stop(InbeApp *app)
+meditation_music_stop(InnerBreeze*app)
 {
     if(app == 0)
         return;
@@ -150,7 +150,7 @@ meditation_music_stop(InbeApp *app)
 }
 
 void
-meditation_music_fade_out(InbeApp *app)
+meditation_music_fade_out(InnerBreeze*app)
 {
     int fade_ticks;
 
@@ -165,7 +165,7 @@ meditation_music_fade_out(InbeApp *app)
 }
 
 void
-meditation_music_start_session(InbeApp *app)
+meditation_music_start_session(InnerBreeze*app)
 {
     int practice;
     int track;
@@ -177,7 +177,7 @@ meditation_music_start_session(InbeApp *app)
     if(practice < 0 || practice >= EXERCISE_COUNT)
         practice = EXERCISE_MEDITATION;
     track = app->meditation.music_practice_tracks[practice];
-    if(track == INBE_AUDIO_MUSIC_NONE)
+    if(track == AUDIO_MUSIC_NONE)
         return;
     if(!load_track(app, track))
         return;
@@ -187,7 +187,7 @@ meditation_music_start_session(InbeApp *app)
 }
 
 void
-meditation_music_update(InbeApp *app)
+meditation_music_update(InnerBreeze*app)
 {
     float volume;
 
@@ -208,10 +208,10 @@ meditation_music_update(InbeApp *app)
     UpdateMusicStream(app->meditation.music);
 }
 
-void meditation_music_start_download(InbeApp *app) { (void)app; }
+void meditation_music_start_download(InnerBreeze*app) { (void)app; }
 
 void
-meditation_music_draw_practice_settings(InbeApp *app, int practice,
+meditation_music_draw_practice_settings(InnerBreeze*app, int practice,
                                         int content_x, int content_w, int *y,
                                         int show_installed_download,
                                         int show_status)
@@ -226,7 +226,7 @@ meditation_music_draw_practice_settings(InbeApp *app, int practice,
 }
 
 int
-meditation_music_measure_practice_settings(InbeApp *app, int practice,
+meditation_music_measure_practice_settings(InnerBreeze*app, int practice,
                                            int content_w,
                                            int show_installed_download,
                                            int show_status)

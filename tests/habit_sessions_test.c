@@ -126,6 +126,12 @@ data_list_session_records(data_session_record_callback callback, void *user)
     }
 }
 
+long long
+storage_session_change_clock(void)
+{
+    return 1;
+}
+
 void
 storage_habits_save(const void *habits)
 {
@@ -151,7 +157,7 @@ storage_make_uuid(char out[37])
 }
 
 int
-app_auto_sync(InbeApp *app)
+app_auto_sync(InnerBreeze*app)
 {
     (void)app;
     auto_sync_count++;
@@ -159,17 +165,17 @@ app_auto_sync(InbeApp *app)
 }
 
 void
-app_close_modal(InbeApp *app)
+app_close_modal(InnerBreeze*app)
 {
     (void)app;
     close_modal_count++;
 }
 
 void
-app_switch_screen(InbeApp *app, int screen)
+app_switch_screen(InnerBreeze*app, int screen)
 {
     if(app != NULL)
-        app->inbe.screen = screen;
+        app->breathing.screen = screen;
     switched_screen = screen;
 }
 
@@ -180,7 +186,7 @@ SetUIFocusTextInputActive(int active)
 }
 
 static void
-init_habit(InbeHabit *habit, int sync_mode, int sync_activity)
+init_habit(Habit *habit, int sync_mode, int sync_activity)
 {
     memset(habit, 0, sizeof(*habit));
     snprintf(habit->id, sizeof(habit->id), "%s", "habit-1");
@@ -192,7 +198,7 @@ init_habit(InbeHabit *habit, int sync_mode, int sync_activity)
 static void
 test_collect_filters_and_summarizes(void)
 {
-    InbeHabit habit;
+    Habit habit;
     HabitLinkedContext ctx;
 
     reset_stubs();
@@ -201,7 +207,7 @@ test_collect_filters_and_summarizes(void)
     add_record("pattern-b", 2026, 8, 29, EXERCISE_PATTERNS, 30, 0, 0);
     add_record("invalid-whm", 2026, 8, 30, -1, 40, 0, 0);
 
-    init_habit(&habit, INBE_HABIT_SYNC_ACTIVITIES,
+    init_habit(&habit, HABIT_SYNC_ACTIVITIES,
                habit_activity_mask_for(EXERCISE_PATTERNS));
     habit_collect_linked_entries(&habit, 0, &ctx);
 
@@ -215,7 +221,7 @@ test_collect_filters_and_summarizes(void)
     expect_int("count for included day",
                habit_linked_session_count_for_day(&ctx, 20260828), 1);
 
-    init_habit(&habit, INBE_HABIT_SYNC_ACTIVITIES,
+    init_habit(&habit, HABIT_SYNC_ACTIVITIES,
                habit_activity_mask_for(EXERCISE_WIM_HOF));
     habit_collect_linked_entries(&habit, 20260830, &ctx);
     expect_int("invalid activity falls back to whm", ctx.count, 1);
@@ -226,11 +232,11 @@ test_collect_filters_and_summarizes(void)
 static void
 test_effective_counts_and_count_actions(void)
 {
-    InbeApp app = {0};
+    InnerBreeze app = {0};
     HabitLinkedContext ctx;
 
     reset_stubs();
-    init_habit(&app.habits.items[0], INBE_HABIT_SYNC_ACTIVITIES,
+    init_habit(&app.habits.items[0], HABIT_SYNC_ACTIVITIES,
                habit_activity_mask_for(EXERCISE_PATTERNS));
     app.habits.count = 1;
     app.habits.selected = 0;
@@ -256,10 +262,10 @@ test_effective_counts_and_count_actions(void)
 static void
 test_session_changed_preserves_manual_extra(void)
 {
-    InbeApp app = {0};
+    InnerBreeze app = {0};
 
     reset_stubs();
-    init_habit(&app.habits.items[0], INBE_HABIT_SYNC_ACTIVITIES,
+    init_habit(&app.habits.items[0], HABIT_SYNC_ACTIVITIES,
                habit_activity_mask_for(EXERCISE_PATTERNS));
     app.habits.count = 1;
     app.habit_detail_index = 0;
@@ -283,7 +289,7 @@ test_session_changed_preserves_manual_extra(void)
 static void
 test_navigation_helpers(void)
 {
-    InbeApp app = {0};
+    InnerBreeze app = {0};
 
     reset_stubs();
     app.habit_session_edit.active = 1;
@@ -303,7 +309,7 @@ test_navigation_helpers(void)
     expect_str("open clears selected session", app.habit_detail_session_path, "");
     expect_int("open resets edit round", app.habit_session_edit.round, -1);
     expect_int("open closes modal", close_modal_count, 1);
-    expect_int("open switches screen", switched_screen, InbeScreenHabitSessionEdit);
+    expect_int("open switches screen", switched_screen, ScreenHabitSessionEdit);
 }
 
 int

@@ -71,7 +71,7 @@ load_sound_asset(const char *name)
 }
 
 static float
-app_sound_volume_scale(InbeApp *app, float scale)
+app_sound_volume_scale(InnerBreeze*app, float scale)
 {
     float volume;
 
@@ -113,16 +113,16 @@ audio_mixed_meter(void *bufferData, unsigned int frames)
 }
 
 static float
-app_breath_cue_pitch(InbeApp *app)
+app_breath_cue_pitch(InnerBreeze*app)
 {
     int default_ticks = breath_half_ticks_for_speed(DefaultSpeedLevel);
     int half_ticks;
 
     if(app == NULL)
         return 1.0f;
-    half_ticks = app->inbe.breath_half_ticks;
+    half_ticks = app->breathing.breath_half_ticks;
     if(half_ticks <= 0)
-        half_ticks = breath_half_ticks_for_speed(app->inbe.speed_level);
+        half_ticks = breath_half_ticks_for_speed(app->breathing.speed_level);
     if(half_ticks <= 0)
         half_ticks = default_ticks;
     if(default_ticks <= 0)
@@ -132,7 +132,7 @@ app_breath_cue_pitch(InbeApp *app)
 }
 
 static void
-app_play_sound_pitch(InbeApp *app, Sound sound, float scale, float pitch)
+app_play_sound_pitch(InnerBreeze*app, Sound sound, float scale, float pitch)
 {
     float volume;
 
@@ -163,13 +163,13 @@ app_play_sound_pitch(InbeApp *app, Sound sound, float scale, float pitch)
 }
 
 void
-app_play_sound(InbeApp *app, Sound sound, float scale)
+app_play_sound(InnerBreeze*app, Sound sound, float scale)
 {
     app_play_sound_pitch(app, sound, scale, 1.0f);
 }
 
 void
-app_play_breath_cue(InbeApp *app, int dir)
+app_play_breath_cue(InnerBreeze*app, int dir)
 {
     Sound sound;
     float scale = 1.25f;
@@ -182,7 +182,7 @@ app_play_breath_cue(InbeApp *app, int dir)
 }
 
 void
-app_play_bell_cue(InbeApp *app, float scale)
+app_play_bell_cue(InnerBreeze*app, float scale)
 {
     if(app == NULL)
         return;
@@ -190,7 +190,7 @@ app_play_bell_cue(InbeApp *app, float scale)
 }
 
 int
-app_bell_cue_playing(InbeApp *app)
+app_bell_cue_playing(InnerBreeze*app)
 {
     if(app == NULL || !app->audio_ready || app->bell_sound.frameCount == 0)
         return 0;
@@ -198,7 +198,7 @@ app_bell_cue_playing(InbeApp *app)
 }
 
 float
-app_audio_output_level(InbeApp *app)
+app_audio_output_level(InnerBreeze*app)
 {
     float latest;
 
@@ -220,7 +220,7 @@ app_audio_output_level(InbeApp *app)
 }
 
 void
-unload_cue_sounds(InbeApp *app)
+unload_cue_sounds(InnerBreeze*app)
 {
     Sound empty;
 
@@ -236,7 +236,7 @@ unload_cue_sounds(InbeApp *app)
 }
 
 static Sound
-load_cue_sound(InbeApp *app, int cue)
+load_cue_sound(InnerBreeze*app, int cue)
 {
     char path[FS_PATH_MAX];
     Wave wave;
@@ -258,18 +258,18 @@ load_cue_sound(InbeApp *app, int cue)
 }
 
 void
-app_audio_reload_cue_sounds(InbeApp *app)
+app_audio_reload_cue_sounds(InnerBreeze*app)
 {
     if(app == NULL || !app->audio_ready)
         return;
     unload_cue_sounds(app);
-    app->breath_in_sound = load_cue_sound(app, INBE_AUDIO_CUE_BREATH_IN);
-    app->breath_out_sound = load_cue_sound(app, INBE_AUDIO_CUE_BREATH_OUT);
-    app->bell_sound = load_cue_sound(app, INBE_AUDIO_CUE_BELL);
+    app->breath_in_sound = load_cue_sound(app, AUDIO_CUE_BREATH_IN);
+    app->breath_out_sound = load_cue_sound(app, AUDIO_CUE_BREATH_OUT);
+    app->bell_sound = load_cue_sound(app, AUDIO_CUE_BELL);
 }
 
 void
-init_audio(InbeApp *app)
+init_audio(InnerBreeze*app)
 {
     if(app == NULL || app->audio_ready)
         return;
@@ -288,7 +288,7 @@ init_audio(InbeApp *app)
 }
 
 void
-app_audio_ensure_ready(InbeApp *app)
+app_audio_ensure_ready(InnerBreeze*app)
 {
     if(app == NULL || app->audio_ready)
         return;
@@ -298,7 +298,7 @@ app_audio_ensure_ready(InbeApp *app)
 }
 
 int
-app_audio_reinitialize(InbeApp *app)
+app_audio_reinitialize(InnerBreeze*app)
 {
     if(app == NULL)
         return 0;

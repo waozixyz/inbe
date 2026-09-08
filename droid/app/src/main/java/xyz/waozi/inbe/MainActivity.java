@@ -44,7 +44,7 @@ import java.net.URL;
 import java.util.Arrays;
 
 public class MainActivity extends NativeActivity {
-    private static final String TAG = "InbeMainActivity";
+    private static final String TAG = "MainActivity";
     private static final int REQUEST_IMPORT_ZIP = 1001;
     private static final int REQUEST_POST_NOTIFICATIONS = 1002;
     private static final int REQUEST_HEALTH_CONNECT = HealthConnectExport.REQUEST_CODE;
@@ -326,7 +326,7 @@ public class MainActivity extends NativeActivity {
                     }
                 }
             }
-        }, "inbe-runtime-asset-download").start();
+        }, "runtime-asset-download").start();
     }
 
     public String syncHttpRequest(String method, String urlText, String body, String[] headers) {
@@ -609,7 +609,7 @@ public class MainActivity extends NativeActivity {
             importName = hasExt ? displayName : displayName + "."
                     + (extension != null && !extension.isEmpty() ? extension : "bin");
         } else {
-            importName = "inbe-import-" + pendingImportKind
+            importName = "import-" + pendingImportKind
                     + (extension != null && !extension.isEmpty() ? "." + extension : "");
         }
         File importFile = new File(importDir, importName);
@@ -899,7 +899,7 @@ public class MainActivity extends NativeActivity {
             int imeBottom = 0;
             int cLeft = 0, cTop = 0, cRight = 0, cBottom = 0;
 
-            // Inbe owns a single edge-to-edge native surface. Java reports the
+            // This app owns a single edge-to-edge native surface. Java reports the
             // system bar insets; native applies them once against the real GL surface.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Insets systemBars = insets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());

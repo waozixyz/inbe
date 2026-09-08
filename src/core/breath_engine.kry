@@ -55,17 +55,17 @@ inccount :: (v: char*) {
     v[0] = '0'
 }
 
-get_play_in_background :: (inbe: Inbe*) -> int {
-    return inbe->play_in_background
+get_play_in_background :: (breathing: BreathSession*) -> int {
+    return breathing->play_in_background
 }
 
-inbeinit :: (l: Inbe*) {
+breath_session_init :: (l: BreathSession*) {
     if l == nil {
         return
     }
 
-    l->screen = InbeScreenStart
-    l->phase = InbePhaseStarting
+    l->screen = ScreenStart
+    l->phase = BreathPhaseStarting
     l->round = 0
 
     l->r = 25
@@ -84,7 +84,7 @@ inbeinit :: (l: Inbe*) {
     l->pause_seconds = DefaultPauseSeconds
     l->progressive_speed = 1
     l->progressive_start_speed = DefaultProgressiveStartSpeed
-    l->breath_animation = InbeBreathAnimationLinear
+    l->breath_animation = BreathAnimationLinear
     l->play_in_background = 0
 
     for int i = 0; i < MaxRounds; i++ {
@@ -109,7 +109,7 @@ lerp_int :: (a: int, b: int, num: int, den: int) -> int #private {
     return a + scaled / den
 }
 
-effective_breath_half_ticks :: (l: const Inbe*) -> int #private {
+effective_breath_half_ticks :: (l: const BreathSession*) -> int #private {
     target_ticks := breath_half_ticks_for_speed(l->speed_level)
     start_speed := l->progressive_start_speed
 
@@ -141,15 +141,15 @@ effective_breath_half_ticks :: (l: const Inbe*) -> int #private {
     )
 }
 
-current_breath_half_ticks :: (l: const Inbe*) -> int {
+current_breath_half_ticks :: (l: const BreathSession*) -> int {
     if l == nil {
         return 0
     }
     return effective_breath_half_ticks(l)
 }
 
-current_breath_progress :: (l: const Inbe*) -> float {
-    if l == nil || l->phase != InbePhaseBreathe {
+current_breath_progress :: (l: const BreathSession*) -> float {
+    if l == nil || l->phase != BreathPhaseBreathe {
         return 0.0f
     }
 
@@ -172,7 +172,7 @@ current_breath_progress :: (l: const Inbe*) -> float {
     return 0.5f + amount * 0.5f
 }
 
-inbe_effective_pause_seconds :: (l: const Inbe*) -> int {
+effective_pause_seconds :: (l: const BreathSession*) -> int {
     if l == nil {
         return 0
     }
@@ -202,26 +202,26 @@ eased_span :: (span: int, frame: int, half_ticks: int) -> int #private {
     return (int)((float)span * smoothstepf(t) + 0.5f)
 }
 
-animated_span :: (l: const Inbe*, span: int, frame: int, half_ticks: int) -> int #private {
-    if l != nil && l->breath_animation == InbeBreathAnimationLinear {
+animated_span :: (l: const BreathSession*, span: int, frame: int, half_ticks: int) -> int #private {
+    if l != nil && l->breath_animation == BreathAnimationLinear {
         return lerp_int(0, span, frame, half_ticks)
     }
     return eased_span(span, frame, half_ticks)
 }
 
-draw_radius :: (l: const Inbe*) -> float {
+draw_radius :: (l: const BreathSession*) -> float {
     if l == nil {
         return 0.0f
     }
     return (float)l->r
 }
 
-starting :: (l: Inbe*) #private {
-    pause_ticks := inbe_effective_pause_seconds(l) * 60
+starting :: (l: BreathSession*) #private {
+    pause_ticks := effective_pause_seconds(l) * 60
 
     if pause_ticks <= 0 {
         l->sectick = 0
-        l->phase = InbePhaseBreathe
+        l->phase = BreathPhaseBreathe
         return
     }
 
@@ -231,10 +231,10 @@ starting :: (l: Inbe*) #private {
     }
 
     l->sectick = 0
-    l->phase = InbePhaseBreathe
+    l->phase = BreathPhaseBreathe
 }
 
-breathe :: (l: Inbe*) #private {
+breathe :: (l: BreathSession*) #private {
     span := l->rmax - l->rmin
     half_ticks := effective_breath_half_ticks(l)
 
@@ -268,11 +268,11 @@ breathe :: (l: Inbe*) #private {
 
     if count_value(l->count) >= count_value(l->maxbreaths) {
         cpcount(l->count, "000")
-        l->phase = InbePhaseHold
+        l->phase = BreathPhaseHold
     }
 }
 
-next :: (l: Inbe*) #private {
+next :: (l: BreathSession*) #private {
     span := l->rmax - l->rmin
 
     if span <= 0 || l->breath_half_ticks <= 0 {
@@ -294,15 +294,15 @@ next :: (l: Inbe*) #private {
 
         if l->round < l->max_rounds - 1 {
             l->round++
-            l->phase = InbePhaseStarting
+            l->phase = BreathPhaseStarting
         } else {
             l->completed = 1
-            l->phase = InbePhaseStarting
+            l->phase = BreathPhaseStarting
         }
     }
 }
 
-recover :: (l: Inbe*) #private {
+recover :: (l: BreathSession*) #private {
     span := l->rmax - l->rmin
 
     if span <= 0 || l->breath_half_ticks <= 0 {
@@ -337,7 +337,7 @@ recover :: (l: Inbe*) #private {
         if eqcount(l->count, "015") {
             cpcount(l->count, "000")
             l->breath_frame = 0
-            l->phase = InbePhaseNext
+            l->phase = BreathPhaseNext
         }
         return
     }
@@ -351,7 +351,7 @@ recover :: (l: Inbe*) #private {
     inccount(l->count)
 }
 
-hold :: (l: Inbe*) #private {
+hold :: (l: BreathSession*) #private {
     l->sectick++
     if l->sectick < 60 {
         return
@@ -361,7 +361,7 @@ hold :: (l: Inbe*) #private {
     inccount(l->count)
 }
 
-inbestep :: (l: Inbe*) {
+breath_session_step :: (l: BreathSession*) {
     if l == nil {
         return
     }
@@ -370,46 +370,46 @@ inbestep :: (l: Inbe*) {
     }
 
     switch l->phase {
-    case InbePhaseStarting:
+    case BreathPhaseStarting:
         starting(l)
         break
-    case InbePhaseBreathe:
+    case BreathPhaseBreathe:
         breathe(l)
         break
-    case InbePhaseHold:
+    case BreathPhaseHold:
         hold(l)
         break
-    case InbePhaseRecover:
+    case BreathPhaseRecover:
         recover(l)
         break
-    case InbePhaseNext:
+    case BreathPhaseNext:
         next(l)
         break
     }
 }
 
-inbe_end_hold :: (l: Inbe*) {
+end_hold :: (l: BreathSession*) {
     if l == nil {
         return
     }
 
     cpcount(l->results[l->round], l->count)
     cpcount(l->count, "000")
-    l->phase = InbePhaseRecover
+    l->phase = BreathPhaseRecover
     l->r = l->rmin
     l->breath_frame = 0
     l->breathtick = 0
     l->sectick = 0
 }
 
-inbe_just_completed :: (l: const Inbe*) -> int {
+just_completed :: (l: const BreathSession*) -> int {
     if l == nil {
         return 0
     }
     return l->completed
 }
 
-inbe_clear_completed :: (l: Inbe*) {
+clear_completed :: (l: BreathSession*) {
     if l == nil {
         return
     }

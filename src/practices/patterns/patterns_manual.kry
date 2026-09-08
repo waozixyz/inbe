@@ -24,7 +24,7 @@ static patterns_manual_title_keys: [PATTERNS_MANUAL_PAGES] const char* = {
     "patterns_ready_label"
 }
 
-patterns_manual_close :: (app: InbeApp*, mark_seen: int) {
+patterns_manual_close :: (app: InnerBreeze*, mark_seen: int) {
     if app == NULL {
         return
     }
@@ -38,10 +38,10 @@ patterns_manual_close :: (app: InbeApp*, mark_seen: int) {
     app->tutorial_step = 0
     app->manual_scroll = 0
     app->practice_tab = PRACTICE_TAB_PLAY
-    app_switch_screen(app, InbeScreenStart)
+    app_switch_screen(app, ScreenStart)
 }
 
-patterns_manual_start :: (app: InbeApp*) #private {
+patterns_manual_start :: (app: InnerBreeze*) #private {
     mark_exercise_manual_seen(app, EXERCISE_PATTERNS)
     app->tutorial_step = 0
     app->manual_scroll = 0
@@ -75,7 +75,7 @@ patterns_manual_content_height :: (content_w: int, user_data: void*) -> int #pri
     return h
 }
 
-patterns_manual_phase_count :: (app: InbeApp*, phase: int) -> int #private {
+patterns_manual_phase_count :: (app: InnerBreeze*, phase: int) -> int #private {
     if app == nil {
         return patterns_preset_ratio(0, phase)
     }
@@ -135,7 +135,7 @@ patterns_manual_phase_card :: (label: const char*, count: int, x: int,
     })
 }
 
-patterns_manual_preset_ratio_text :: (app: InbeApp*, preset: int, out: char*,
+patterns_manual_preset_ratio_text :: (app: InnerBreeze*, preset: int, out: char*,
                                       out_size: size_t) #private {
     ratio: [4] int = {0, 0, 0, 0}
 
@@ -154,7 +154,7 @@ patterns_manual_preset_ratio_text :: (app: InbeApp*, preset: int, out: char*,
              ratio[0], ratio[1], ratio[2], ratio[3])
 }
 
-patterns_manual_preset_card :: (app: InbeApp*, preset: int,
+patterns_manual_preset_card :: (app: InnerBreeze*, preset: int,
                                 bounds: Rectangle) #private {
     selected := app->patterns.preset == preset
     fill := selected ? GetThemeButton() : GetThemeSurface()
@@ -196,7 +196,7 @@ patterns_manual_preset_card :: (app: InbeApp*, preset: int,
     })
 }
 
-patterns_manual_draw_preset_selector :: (app: InbeApp*, page: UIScrollPage,
+patterns_manual_draw_preset_selector :: (app: InnerBreeze*, page: UIScrollPage,
                                          y: int*) #private {
     visual_h := patterns_manual_visual_height(0)
     bounds := (Rectangle){(float)page.content_x, (float)*y,
@@ -256,7 +256,7 @@ patterns_manual_draw_preset_selector :: (app: InbeApp*, page: UIScrollPage,
     *y += visual_h + Scale(18)
 }
 
-patterns_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
+patterns_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
                                 step: int, y: int*) #private {
     visual_h := patterns_manual_visual_height(step)
     bounds := (Rectangle){(float)page.content_x, (float)*y,
@@ -382,7 +382,7 @@ patterns_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
     *y += visual_h + Scale(18)
 }
 
-patterns_manual_draw :: (app: InbeApp*) {
+patterns_manual_draw :: (app: InnerBreeze*) {
     layout := (PracticeManualLayout){0}
     responsive_max_w := (int)(view_width * 0.96f)
     step := clampi(app->tutorial_step, 0, PATTERNS_MANUAL_PAGES - 1)

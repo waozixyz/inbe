@@ -15,19 +15,19 @@
 /*
  * Desktop update flow. The lifecycle (check, channel choice, download,
  * sha256 verify, apply mechanics) lives in kryon's kry_update_flow; this
- * file adds inbe's persistence (one check per day in settings), locale,
+ * file adds breathing's persistence (one check per day in settings), locale,
  * the toast, and the Windows zip extractor. Screenshot mode
- * (INBE_DATA_ROOT) skips the check so CI stays offline-deterministic.
+ * (APP_DATA_ROOT) skips the check so CI stays offline-deterministic.
  */
-#define INBE_APPCAST_URL \
-    "https://github.com/waozixyz/inbe/releases/latest/download/appcast.json"
-#define INBE_UPDATE_CHECK_INTERVAL_S (24 * 60 * 60)
-#define INBE_UPDATE_LAST_CHECK_KEY "update_check_last_unix"
+#define APPCAST_URL \
+    "https://github.com/waozixyz/breathing/releases/latest/download/appcast.json"
+#define UPDATE_CHECK_INTERVAL_S (24 * 60 * 60)
+#define UPDATE_LAST_CHECK_KEY "update_check_last_unix"
 
 #if !defined(PLATFORM_WEB) && !ANDROID_BUILD
 
 static KryUpdateFlow *flow;
-static int update_available;
+static int update_available_flag;
 static int shown_available_toast;
 static int logged_ready;
 static int check_resolved;
@@ -36,27 +36,27 @@ static int apply_armed;
 static int
 update_check_throttled(void)
 {
-    long last = storage_get_setting_int(INBE_UPDATE_LAST_CHECK_KEY, 0);
+    long last = storage_get_setting_int(UPDATE_LAST_CHECK_KEY, 0);
     long now = (long)time(NULL);
 
     return last > 0 && now >= last &&
-           now - last < INBE_UPDATE_CHECK_INTERVAL_S;
+           now - last < UPDATE_CHECK_INTERVAL_S;
 }
 
 static const char *
 update_appcast_url(void)
 {
-    const char *override = getenv("INBE_UPDATE_APPCAST_OVERRIDE");
+    const char *override = getenv("UPDATE_APPCAST_OVERRIDE");
 
     return override != NULL && override[0] != '\0' ? override
-                                                   : INBE_APPCAST_URL;
+                                                   : APPCAST_URL;
 }
 
 static int
 update_zip_extract_cb(const char *archive, const char *dest_dir, void *user)
 {
     (void)user;
-    return inbe_update_zip_extract(archive, dest_dir);
+    return update_zip_extract(archive, dest_dir);
 }
 
 static void
@@ -67,13 +67,13 @@ update_flow_note_state(void)
     if(!check_resolved && state != KRY_UPDATE_FLOW_CHECKING &&
        state != KRY_UPDATE_FLOW_IDLE) {
         check_resolved = 1;   /* any terminal check state arms the throttle */
-        storage_set_setting_int(INBE_UPDATE_LAST_CHECK_KEY, (int)time(NULL));
+        storage_set_setting_int(UPDATE_LAST_CHECK_KEY, (int)time(NULL));
     }
     switch(state) {
     case KRY_UPDATE_FLOW_AVAILABLE:
-        if(!update_available) {
-            update_available = 1;
-            TraceLog(LOG_INFO, "INBE: update %s available (channel %s)",
+        if(!update_available_flag) {
+            update_available_flag = 1;
+            TraceLog(LOG_INFO, "APP: update %s available (channel %s)",
                      kry_update_flow_new_version(flow),
                      kry_update_channel_name(kry_update_flow_channel(flow)));
             /* Toast only where a download is actionable; system channels
@@ -85,18 +85,18 @@ update_flow_note_state(void)
             }
             /* Test/automation hook: fetch immediately instead of waiting
              * for a click on the About row. */
-            if(getenv("INBE_UPDATE_AUTO_DOWNLOAD") != NULL)
+            if(getenv("UPDATE_AUTO_DOWNLOAD") != NULL)
                 kry_update_flow_download(flow);
         }
         break;
     case KRY_UPDATE_FLOW_READY:
         if(!logged_ready) {
             logged_ready = 1;
-            TraceLog(LOG_INFO, "INBE: update staged and verified");
+            TraceLog(LOG_INFO, "APP: update staged and verified");
         }
         break;
     case KRY_UPDATE_FLOW_FAILED:
-        TraceLog(LOG_WARNING, "INBE: update flow: %s",
+        TraceLog(LOG_WARNING, "APP: update flow: %s",
                  kry_update_flow_error(flow) != NULL
                    ? kry_update_flow_error(flow) : "?");
         break;
@@ -106,27 +106,27 @@ update_flow_note_state(void)
 }
 
 void
-inbe_update_check_start(void)
+update_check_start(void)
 {
     KryUpdateFlowConfig cfg = {
-        .app_name = "inbe",
-        .current_version = INBE_VERSION_STRING,
+        .app_name = "breathing",
+        .current_version = APP_VERSION_STRING,
     };
-    const char *override = getenv("INBE_UPDATE_APPCAST_OVERRIDE");
+    const char *override = getenv("UPDATE_APPCAST_OVERRIDE");
 
-    if(flow != NULL || update_available || update_check_throttled())
+    if(flow != NULL || update_available_flag || update_check_throttled())
         return;
-    if(getenv("INBE_DATA_ROOT") != NULL && (override == NULL || override[0] == '\0'))
+    if(getenv("APP_DATA_ROOT") != NULL && (override == NULL || override[0] == '\0'))
         return;    /* screenshot/test runs stay offline unless overridden */
     flow = kry_update_flow_start(&cfg, update_appcast_url());
     if(flow == NULL)
-        TraceLog(LOG_INFO, "INBE: update check unavailable (no HTTP client)");
+        TraceLog(LOG_INFO, "APP: update check unavailable (no HTTP client)");
     else
         kry_update_flow_set_extractor(flow, update_zip_extract_cb, NULL);
 }
 
 void
-inbe_update_check_poll(void)
+update_check_poll(void)
 {
     if(flow == NULL)
         return;
@@ -135,17 +135,17 @@ inbe_update_check_poll(void)
 }
 
 int
-inbe_update_available(void)
+update_available(void)
 {
-    return update_available;
+    return update_available_flag;
 }
 
 const char *
-inbe_update_row_text(void)
+update_row_text(void)
 {
     static char text[96];
 
-    if(!update_available)
+    if(!update_available_flag)
         return "";
     snprintf(text, sizeof(text), "%s: v%s",
              GetLocaleText("update_available_row"),
@@ -154,7 +154,7 @@ inbe_update_row_text(void)
 }
 
 const char *
-inbe_update_download_url(void)
+update_download_url(void)
 {
     if(flow == NULL)
         return "";
@@ -164,48 +164,48 @@ inbe_update_download_url(void)
         if(release[0] != '\0')
             return release;
     }
-    return "https://github.com/waozixyz/inbe/releases";
+    return "https://github.com/waozixyz/breathing/releases";
 }
 
-InbeUpdateFlow
-inbe_update_flow(void)
+UpdateFlow
+update_flow(void)
 {
     /* map kryon states onto the historical app enum */
     switch(kry_update_flow_state(flow)) {
-    case KRY_UPDATE_FLOW_AVAILABLE: return INBE_UPDATE_FLOW_AVAILABLE;
-    case KRY_UPDATE_FLOW_DOWNLOADING: return INBE_UPDATE_FLOW_DOWNLOADING;
-    case KRY_UPDATE_FLOW_READY: return INBE_UPDATE_FLOW_READY;
-    case KRY_UPDATE_FLOW_FAILED: return INBE_UPDATE_FLOW_FAILED;
-    default: return INBE_UPDATE_FLOW_IDLE;
+    case KRY_UPDATE_FLOW_AVAILABLE: return UPDATE_FLOW_AVAILABLE;
+    case KRY_UPDATE_FLOW_DOWNLOADING: return UPDATE_FLOW_DOWNLOADING;
+    case KRY_UPDATE_FLOW_READY: return UPDATE_FLOW_READY;
+    case KRY_UPDATE_FLOW_FAILED: return UPDATE_FLOW_FAILED;
+    default: return UPDATE_FLOW_IDLE;
     }
 }
 
 int
-inbe_update_can_self_update(void)
+update_can_self_update(void)
 {
     return flow != NULL && kry_update_flow_artifact(flow) != NULL;
 }
 
 double
-inbe_update_download_fraction(void)
+update_download_fraction(void)
 {
     return kry_update_flow_progress(flow);
 }
 
 const char *
-inbe_update_flow_error(void)
+update_flow_error(void)
 {
     return kry_update_flow_error(flow);
 }
 
 int
-inbe_update_is_downloading(void)
+update_is_downloading(void)
 {
     return kry_update_flow_state(flow) == KRY_UPDATE_FLOW_DOWNLOADING;
 }
 
 const char *
-inbe_update_action_label(void)
+update_action_label(void)
 {
     static char label[96];
 
@@ -219,16 +219,16 @@ inbe_update_action_label(void)
 }
 
 void
-inbe_update_row_action(void)
+update_row_action(void)
 {
     if(kry_update_flow_state(flow) == KRY_UPDATE_FLOW_READY)
-        inbe_update_apply();
+        update_apply();
     else
         kry_update_flow_download(flow);
 }
 
 const char *
-inbe_update_error_text(void)
+update_error_text(void)
 {
     const char *error;
 
@@ -240,9 +240,9 @@ inbe_update_error_text(void)
 }
 
 void
-inbe_update_apply(void)
+update_apply(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(kry_update_flow_apply(flow)) {
         apply_armed = 1;
@@ -252,32 +252,32 @@ inbe_update_apply(void)
 }
 
 int
-inbe_update_apply_at_exit(void)
+update_apply_at_exit(void)
 {
     if(flow == NULL || !apply_armed)
         return 0;
-    TraceLog(LOG_INFO, "INBE: applying update and restarting");
+    TraceLog(LOG_INFO, "APP: applying update and restarting");
     if(!kry_update_flow_exec_pending(flow))
-        TraceLog(LOG_WARNING, "INBE: update re-exec failed; continuing exit");
+        TraceLog(LOG_WARNING, "APP: update re-exec failed; continuing exit");
     return 1;
 }
 
 #else /* web/Android: stores manage updates */
 
-void inbe_update_check_start(void) {}
-void inbe_update_check_poll(void) {}
-int inbe_update_available(void) { return 0; }
-const char *inbe_update_row_text(void) { return ""; }
-const char *inbe_update_download_url(void) { return ""; }
-InbeUpdateFlow inbe_update_flow(void) { return INBE_UPDATE_FLOW_IDLE; }
-int inbe_update_can_self_update(void) { return 0; }
-double inbe_update_download_fraction(void) { return -1.0; }
-const char *inbe_update_flow_error(void) { return NULL; }
-int inbe_update_is_downloading(void) { return 0; }
-const char *inbe_update_action_label(void) { return ""; }
-void inbe_update_row_action(void) {}
-const char *inbe_update_error_text(void) { return ""; }
-void inbe_update_apply(void) {}
-int inbe_update_apply_at_exit(void) { return 0; }
+void update_check_start(void) {}
+void update_check_poll(void) {}
+int update_available(void) { return 0; }
+const char *update_row_text(void) { return ""; }
+const char *update_download_url(void) { return ""; }
+UpdateFlow update_flow(void) { return UPDATE_FLOW_IDLE; }
+int update_can_self_update(void) { return 0; }
+double update_download_fraction(void) { return -1.0; }
+const char *update_flow_error(void) { return NULL; }
+int update_is_downloading(void) { return 0; }
+const char *update_action_label(void) { return ""; }
+void update_row_action(void) {}
+const char *update_error_text(void) { return ""; }
+void update_apply(void) {}
+int update_apply_at_exit(void) { return 0; }
 
 #endif

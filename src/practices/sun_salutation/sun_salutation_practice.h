@@ -1,5 +1,5 @@
-#ifndef INBE_SUN_SALUTATION_PRACTICE_H
-#define INBE_SUN_SALUTATION_PRACTICE_H
+#ifndef APP_SUN_SALUTATION_PRACTICE_H
+#define APP_SUN_SALUTATION_PRACTICE_H
 
 #include "app_fwd.h"
 
@@ -23,13 +23,13 @@
 
 int sun_salutation_step_pose_index(int step);
 const char *sun_salutation_step_label(int step);
-void sun_salutation_practice_init(InbeApp *app);
-void sun_salutation_practice_destroy(InbeApp *app);
-void sun_salutation_practice_start(InbeApp *app);
-void sun_manual_draw(InbeApp *app);
-void sun_manual_close(InbeApp *app, int mark_seen);
-void sun_salutation_config_screen_draw(InbeApp *app);
-void sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y);
-void sun_salutation_request_exit(InbeApp *app);
+void sun_salutation_practice_init(InnerBreeze*app);
+void sun_salutation_practice_destroy(InnerBreeze*app);
+void sun_salutation_practice_start(InnerBreeze*app);
+void sun_manual_draw(InnerBreeze*app);
+void sun_manual_close(InnerBreeze*app, int mark_seen);
+void sun_salutation_config_screen_draw(InnerBreeze*app);
+void sun_salutation_draw_screen(InnerBreeze*app, int center_x, int center_y);
+void sun_salutation_request_exit(InnerBreeze*app);
 
 #endif

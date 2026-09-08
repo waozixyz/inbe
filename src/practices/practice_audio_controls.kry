@@ -5,7 +5,7 @@
     PRACTICE_AUDIO_MUSIC_POPUP_ID = 15001
 }
 
-practice_audio_sound_icon_for_volume :: (app: InbeApp*) -> Texture2D #private {
+practice_audio_sound_icon_for_volume :: (app: InnerBreeze*) -> Texture2D #private {
     vol: int
 
     if app == nil {
@@ -25,14 +25,14 @@ practice_audio_sound_icon_for_volume :: (app: InbeApp*) -> Texture2D #private {
     return app->icons[UI_ICON_TYPE_SOUND3]
 }
 
-practice_audio_music_icon :: (app: InbeApp*) -> Texture2D #private {
+practice_audio_music_icon :: (app: InnerBreeze*) -> Texture2D #private {
     if app == nil {
         return (Texture2D){0}
     }
     return app->icons[UI_ICON_TYPE_MUSIC]
 }
 
-practice_draw_audio_controls :: (app: InbeApp*) {
+practice_draw_audio_controls :: (app: InnerBreeze*) {
     title_h := GetNodeHeight(NodeTitleBar(0))
     icon_size := Scale(18)
     icon_padding := Scale(5)

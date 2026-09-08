@@ -2,7 +2,7 @@
 #import "practices/meditation/meditation_music.h"
 #import "practices/meditation/meditation_practice.h"
 
-meditation_practice_init :: (app: InbeApp*) {
+meditation_practice_init :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
@@ -12,7 +12,7 @@ meditation_practice_init :: (app: InbeApp*) {
     meditation_music_init(app)
 }
 
-meditation_practice_destroy :: (app: InbeApp*) {
+meditation_practice_destroy :: (app: InnerBreeze*) {
     if app != NULL {
         app_unload_texture(app->meditation.image_1)
         app->meditation.image_1 = (Texture2D){0}
@@ -20,7 +20,7 @@ meditation_practice_destroy :: (app: InbeApp*) {
     meditation_music_unload(app)
 }
 
-meditation_practice_start :: (app: InbeApp*) {
+meditation_practice_start :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
@@ -28,10 +28,10 @@ meditation_practice_start :: (app: InbeApp*) {
     meditation_start_configured(app)
 }
 
-meditation_practice_update :: (app: InbeApp*) {
+meditation_practice_update :: (app: InnerBreeze*) {
     meditation_music_update(app)
 }
 
-meditation_practice_leave_config :: (app: InbeApp*) {
+meditation_practice_leave_config :: (app: InnerBreeze*) {
     meditation_music_unload(app)
 }

@@ -13,11 +13,11 @@
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
 
-SettingsSyncKeySaveDialog :: int (*)(InbeApp*, const char*) #type
-SettingsSyncKeyImportDialog :: int (*)(InbeApp*) #type
+SettingsSyncKeySaveDialog :: int (*)(InnerBreeze*, const char*) #type
+SettingsSyncKeyImportDialog :: int (*)(InnerBreeze*) #type
 
 #enum {
-    INBE_PENDING_SYNC_ACCOUNT_NONE = 0
+    PENDING_SYNC_ACCOUNT_NONE = 0
 }
 
 static sync_server_url_key: const char* = "sync_server_url"
@@ -117,7 +117,7 @@ backup_filename :: (out: char*, out_size: size_t) #private {
     snprintf(out, out_size, "account.key")
 }
 
-start_sync_key_export :: (app: InbeApp*, account: const SyncAccount*) -> int #private {
+start_sync_key_export :: (app: InnerBreeze*, account: const SyncAccount*) -> int #private {
     filename: [64] char
 
     backup_filename(filename, sizeof(filename))
@@ -133,7 +133,7 @@ start_sync_key_export :: (app: InbeApp*, account: const SyncAccount*) -> int #pr
     }
 }
 
-start_sync_key_import :: (app: InbeApp*) -> int #private {
+start_sync_key_import :: (app: InnerBreeze*) -> int #private {
     if import_dialog_callback != nil {
         return import_dialog_callback(app)
     }
@@ -208,7 +208,7 @@ alias_valid :: (text: const char*) -> int #private {
     return 1
 }
 
-server_normalize :: (app: InbeApp*, out: char*, out_size: size_t) -> int #private {
+server_normalize :: (app: InnerBreeze*, out: char*, out_size: size_t) -> int #private {
     if app == nil || out == nil || out_size == 0 {
         return 0
     }
@@ -220,7 +220,7 @@ server_normalize :: (app: InbeApp*, out: char*, out_size: size_t) -> int #privat
     return 1
 }
 
-server_save :: (app: InbeApp*) #private {
+server_save :: (app: InnerBreeze*) #private {
     url: [sizeof(app->sync_server_url)] char
 
     if app == nil {
@@ -235,7 +235,7 @@ server_save :: (app: InbeApp*) #private {
     settings_screen_set_status_success(GetLocaleText("sync_server_saved"), url)
 }
 
-open_alias_modal :: (app: InbeApp*, then_backup: int) #private {
+open_alias_modal :: (app: InnerBreeze*, then_backup: int) #private {
     alias: const char* = nil
 
     if app == nil {
@@ -252,29 +252,29 @@ open_alias_modal :: (app: InbeApp*, then_backup: int) #private {
     app_open_modal(app, UIModalSyncAlias)
 }
 
-save_prepared :: (app: InbeApp*, account: SyncAccount*,
+save_prepared :: (app: InnerBreeze*, account: SyncAccount*,
                      action: int, clear_local_data: int) -> int {
-    result: InbeSyncAccountSaveResult
+    result: SyncAccountSaveResult
 
     if app == nil || account == nil {
         return 0
     }
 
     result = sync_account_save(account, clear_local_data)
-    if result == INBE_SYNC_ACCOUNT_SAVE_NEEDS_CLEAR {
+    if result == SYNC_ACCOUNT_SAVE_NEEDS_CLEAR {
         app->pending_sync_account = *account
         app->pending_sync_account_action = action
         app_open_modal(app, UIModalConfirmSyncAccountSwitch)
         return 0
     }
-    if result != INBE_SYNC_ACCOUNT_SAVE_OK {
+    if result != SYNC_ACCOUNT_SAVE_OK {
         return 0
     }
 
-    app->pending_sync_account_action = InbePendingSyncAccountNone
+    app->pending_sync_account_action = PendingSyncAccountNone
     memset(&app->pending_sync_account, 0, sizeof(app->pending_sync_account))
 
-    if action == InbePendingSyncAccountCreate {
+    if action == PendingSyncAccountCreate {
         settings_screen_set_status_success(GetLocaleText("sync_account_created"), nil)
     } else {
         settings_screen_set_status_success(GetLocaleText("sync_private_key_imported"), nil)
@@ -284,7 +284,7 @@ save_prepared :: (app: InbeApp*, account: SyncAccount*,
     return 1
 }
 
-draw_account_id :: (app: InbeApp*, account: const SyncAccount*,
+draw_account_id :: (app: InnerBreeze*, account: const SyncAccount*,
                    x: int, w: int, y: int*, small_font: int,
                    style: TextInputStyle) #private {
     alias := storage_get_setting_text(sync_account_alias_key)
@@ -306,7 +306,7 @@ draw_account_id :: (app: InbeApp*, account: const SyncAccount*,
     }
 }
 
-server_connected :: (app: InbeApp*) -> int #private {
+server_connected :: (app: InnerBreeze*) -> int #private {
     url: [sizeof(app->sync_server_url)] char
     saved_url: const char* = nil
     saved_normalized: [sizeof(app->sync_server_url)] char
@@ -347,7 +347,7 @@ result_key :: (result: SyncResult) -> const char* #private {
     return "sync_failed"
 }
 
-create_account :: (app: InbeApp*, account: SyncAccount*) -> int #private {
+create_account :: (app: InnerBreeze*, account: SyncAccount*) -> int #private {
     if account == nil {
         return 0
     }
@@ -357,7 +357,7 @@ create_account :: (app: InbeApp*, account: SyncAccount*) -> int #private {
         return 0
     }
 
-    if save_prepared(app, account, InbePendingSyncAccountCreate, 0) {
+    if save_prepared(app, account, PendingSyncAccountCreate, 0) {
         return 1
     }
 
@@ -368,7 +368,7 @@ create_account :: (app: InbeApp*, account: SyncAccount*) -> int #private {
     return 0
 }
 
-run_connect :: (app: InbeApp*) #private {
+run_connect :: (app: InnerBreeze*) #private {
     result: SyncResult
     url: [sizeof(app->sync_server_url)] char
     account: SyncAccount
@@ -412,11 +412,11 @@ run_connect :: (app: InbeApp*) #private {
     }
 }
 
-connect :: (app: InbeApp*) {
+connect :: (app: InnerBreeze*) {
     run_connect(app)
 }
 
-logout :: (app: InbeApp*) #private {
+logout :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -425,7 +425,7 @@ logout :: (app: InbeApp*) #private {
         GetLocaleText("sync_logged_out_local_data_kept"), nil)
 }
 
-clear_remote_confirmed :: (app: InbeApp*) {
+clear_remote_confirmed :: (app: InnerBreeze*) {
     account: SyncAccount
     result: SyncResult
     url: [sizeof(app->sync_server_url)] char
@@ -629,7 +629,7 @@ config_content_height :: (content_w: int) -> int {
     return h
 }
 
-draw :: (app: InbeApp*, x: int, w: int, y: int*) {
+draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     account: SyncAccount
     has_account := sync_account_load(&account)
     font := GetFontSize()
@@ -697,7 +697,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     *y += Scale(16)
 }
 
-draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
+draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     account: SyncAccount
     has_account := sync_account_load(&account)
     font := GetFontSize()
@@ -854,7 +854,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
     unused font
 }
 
-draw_backup_modal :: (app: InbeApp*) -> int {
+draw_backup_modal :: (app: InnerBreeze*) -> int {
     frame: UIPanelFrame
     account: SyncAccount
     btn_h := Scale(36)
@@ -909,7 +909,7 @@ draw_backup_modal :: (app: InbeApp*) -> int {
     return 0
 }
 
-draw_alias_modal :: (app: InbeApp*) -> int {
+draw_alias_modal :: (app: InnerBreeze*) -> int {
     frame: UIPanelFrame
     input_style := text_style()
     btn_h := Scale(36)
@@ -1038,7 +1038,7 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     return result
 }
 
-draw_public_id_modal :: (app: InbeApp*) -> int {
+draw_public_id_modal :: (app: InnerBreeze*) -> int {
     frame: UIPanelFrame
     account: SyncAccount
     input_style := text_style()

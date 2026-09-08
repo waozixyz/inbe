@@ -8,12 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INBE_SYNC_WS_PATH "/api/v1/sync/ws"
-#define INBE_ACCOUNT_ALIAS_PATH "/api/v1/account/alias"
-#define INBE_FRIENDS_PATH "/api/v1/friends"
-#define INBE_FRIEND_REQUESTS_PATH "/api/v1/friends/requests"
-#define INBE_FRIEND_STATS_PATH "/api/v1/friends/stats"
-#define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
+#define SYNC_WS_PATH "/api/v1/sync/ws"
+#define ACCOUNT_ALIAS_PATH "/api/v1/account/alias"
+#define FRIENDS_PATH "/api/v1/friends"
+#define FRIEND_REQUESTS_PATH "/api/v1/friends/requests"
+#define FRIEND_STATS_PATH "/api/v1/friends/stats"
+#define SYNC_SERVER_URL_KEY "sync_server_url"
 
 static SyncResult sync_client_bearer_request(const char *base_url,
                                                   const char *method,
@@ -51,7 +51,7 @@ sync_client_connected_server(const char *base_url)
 
     if(!storage_sync_server_connected())
         return 0;
-    saved_url = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    saved_url = storage_get_setting_text(SYNC_SERVER_URL_KEY);
     if(saved_url == NULL || saved_url[0] == '\0')
         return 0;
     if(!sync_client_normalize_url(saved_url, saved_normalized, sizeof(saved_normalized)))
@@ -136,7 +136,7 @@ sync_client_normalize_friend_target(const char *target, char *out, size_t out_si
     return 1;
 }
 
-#if defined(INBE_SYNC_CLIENT_TESTS)
+#if defined(SYNC_CLIENT_TESTS)
 int
 sync_client_test_response_buffer(const char *first, const char *second,
                                  char *out, size_t out_size)
@@ -233,7 +233,7 @@ sync_kryon_config(const char *base_url, const SyncAccount *account)
     cfg.account = account;
     cfg.client_id = storage_sync_client_id();
     cfg.app_id = "inbe";
-    cfg.protocol_version = INBE_SYNC_PROTOCOL_VERSION;
+    cfg.protocol_version = SYNC_PROTOCOL_VERSION;
     cfg.http_request = DefaultSyncHttpRequest;
     cfg.get_text = sync_kryon_get_text;
     cfg.set_text = sync_kryon_set_text;
@@ -308,7 +308,7 @@ sync_client_register_alias(const char *base_url, const char *alias)
         return SYNC_PAYLOAD_FAILED;
     }
     TraceLog(LOG_INFO, "SYNC: alias request alias=@%s", alias);
-    result = sync_client_bearer_request(base_url, "POST", INBE_ACCOUNT_ALIAS_PATH,
+    result = sync_client_bearer_request(base_url, "POST", ACCOUNT_ALIAS_PATH,
                                         body.data, response, sizeof(response));
     FreeSyncBuffer(&body);
     if(result != SYNC_OK)
@@ -355,7 +355,7 @@ sync_client_send_friend_request(const char *base_url, const char *target)
         return SYNC_PAYLOAD_FAILED;
     }
     TraceLog(LOG_INFO, "SYNC: friend request target=%s", normalized);
-    result = sync_client_bearer_request(base_url, "POST", INBE_FRIEND_REQUESTS_PATH,
+    result = sync_client_bearer_request(base_url, "POST", FRIEND_REQUESTS_PATH,
                                         body.data, NULL, 0);
     FreeSyncBuffer(&body);
     return result;
@@ -364,14 +364,14 @@ sync_client_send_friend_request(const char *base_url, const char *target)
 SyncResult
 sync_client_get_friend_requests(const char *base_url, char *out, size_t out_size)
 {
-    return sync_client_bearer_request(base_url, "GET", INBE_FRIEND_REQUESTS_PATH,
+    return sync_client_bearer_request(base_url, "GET", FRIEND_REQUESTS_PATH,
                                       NULL, out, out_size);
 }
 
 SyncResult
 sync_client_get_friends(const char *base_url, char *out, size_t out_size)
 {
-    return sync_client_bearer_request(base_url, "GET", INBE_FRIENDS_PATH,
+    return sync_client_bearer_request(base_url, "GET", FRIENDS_PATH,
                                       NULL, out, out_size);
 }
 
@@ -383,7 +383,7 @@ sync_client_friend_request_action(const char *base_url, const char *request_id,
 
     if(request_id == NULL || request_id[0] == '\0' || action == NULL)
         return SYNC_PAYLOAD_FAILED;
-    if(snprintf(path, sizeof(path), "%s/%s/%s", INBE_FRIEND_REQUESTS_PATH,
+    if(snprintf(path, sizeof(path), "%s/%s/%s", FRIEND_REQUESTS_PATH,
                 request_id, action) >= (int)sizeof(path))
         return SYNC_PAYLOAD_FAILED;
     return sync_client_bearer_request(base_url, "POST", path, "{}", NULL, 0);
@@ -408,7 +408,7 @@ sync_client_remove_friend(const char *base_url, const char *friend_user_id)
 
     if(friend_user_id == NULL || friend_user_id[0] == '\0')
         return SYNC_PAYLOAD_FAILED;
-    if(snprintf(path, sizeof(path), "%s/%s", INBE_FRIENDS_PATH,
+    if(snprintf(path, sizeof(path), "%s/%s", FRIENDS_PATH,
                 friend_user_id) >= (int)sizeof(path))
         return SYNC_PAYLOAD_FAILED;
     return sync_client_bearer_request(base_url, "DELETE", path, NULL, NULL, 0);
@@ -452,7 +452,7 @@ sync_client_get_friend_stats(const char *base_url, const char *app,
 {
     char path[512];
 
-    snprintf(path, sizeof(path), "%s", INBE_FRIEND_STATS_PATH);
+    snprintf(path, sizeof(path), "%s", FRIEND_STATS_PATH);
     if(!sync_url_append_query(path, sizeof(path), "app", app != NULL ? app : "inbe") ||
        !sync_url_append_query(path, sizeof(path), "practice", practice) ||
        !sync_url_append_query(path, sizeof(path), "metric", metric))
@@ -460,7 +460,7 @@ sync_client_get_friend_stats(const char *base_url, const char *app,
     return sync_client_bearer_request(base_url, "GET", path, NULL, out, out_size);
 }
 
-#if defined(INBE_SYNC_CLIENT_TESTS)
+#if defined(SYNC_CLIENT_TESTS)
 int
 sync_client_test_friend_stats_path(const char *app, const char *practice,
                                    const char *metric, char *out, size_t out_size)
@@ -470,7 +470,7 @@ sync_client_test_friend_stats_path(const char *app, const char *practice,
     if(out == NULL || out_size == 0)
         return 0;
     out[0] = '\0';
-    snprintf(path, sizeof(path), "%s", INBE_FRIEND_STATS_PATH);
+    snprintf(path, sizeof(path), "%s", FRIEND_STATS_PATH);
     if(!sync_url_append_query(path, sizeof(path), "app", app) ||
        !sync_url_append_query(path, sizeof(path), "practice", practice) ||
        !sync_url_append_query(path, sizeof(path), "metric", metric) ||
@@ -494,7 +494,7 @@ sync_client_wait_for_remote_event(const char *base_url)
     if(!sync_account_load(&account))
         return SYNC_NO_ACCOUNT;
     cfg = sync_kryon_config(base_url, &account);
-    return WaitForRemoteSyncEvent(&cfg, INBE_SYNC_WS_PATH);
+    return WaitForRemoteSyncEvent(&cfg, SYNC_WS_PATH);
 }
 
 SyncResult
@@ -527,7 +527,7 @@ sync_client_web_start_remote_events(const char *base_url)
     if(!sync_account_load(&account))
         return 0;
     cfg = sync_kryon_config(base_url, &account);
-    return StartWebRemoteEvents(&cfg, INBE_SYNC_WS_PATH);
+    return StartWebRemoteEvents(&cfg, SYNC_WS_PATH);
 }
 
 int

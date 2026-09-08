@@ -14,7 +14,7 @@ WEB :: #defined(PLATFORM_WEB)
 DESKTOP :: !ANDROID && !WEB
 
 #enum {
-    APP_BOTTOM_NAV_CONFIGURABLE_COUNT = 4
+    APP_BOTTOM_NAV_CONFIGURABLE_COUNT = 5
     APP_NAV_CONFIG_ACTION_NONE,
     APP_NAV_CONFIG_ACTION_MOVE,
     APP_NAV_CONFIG_ACTION_REMOVE,
@@ -43,7 +43,7 @@ app_active_practice_title_height :: () -> int {
     return title_height > min_height ? title_height : min_height
 }
 
-app_draw_active_practice_title_bar :: (app: InbeApp*, title: const char*, height: int) -> int {
+app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, height: int) -> int {
     hover := 0
     button_size := Scale(24)
     padding := Scale(10)
@@ -125,8 +125,8 @@ app_nav_sidebar_compact :: () -> int #private {
     return view_width <= Scale(480)
 }
 
-app_nav_sidebar_screen_active :: (app: const InbeApp*) -> int {
-    return app != NULL && app->inbe.screen == InbeScreenNavSidebar
+app_nav_sidebar_screen_active :: (app: const InnerBreeze*) -> int {
+    return app != NULL && app->breathing.screen == ScreenNavSidebar
 }
 
 app_nav_desktop_rail_width :: () -> int {
@@ -137,7 +137,7 @@ app_nav_desktop_content_offset :: () -> int {
     return app_nav_desktop_rail_width()
 }
 
-app_nav_desktop_rail_enabled :: (app: const InbeApp*) -> int {
+app_nav_desktop_rail_enabled :: (app: const InnerBreeze*) -> int {
     #if !DESKTOP {
         app_nav_mark_int_used(app == NULL ? 0 : 1)
         return 0
@@ -151,24 +151,26 @@ app_nav_desktop_rail_enabled :: (app: const InbeApp*) -> int {
     if app->modal.active && app->modal.type == UIModalEditProgressiveStartSpeed {
         return 0
     }
-    if app->inbe.screen == InbeScreenHabitEdit ||
-       app->inbe.screen == InbeScreenHabitSessionEdit ||
-       app->inbe.screen == InbeScreenSession ||
-       app->inbe.screen == InbeScreenMeditation ||
-       app->inbe.screen == InbeScreenSunSalutation ||
-       app->inbe.screen == InbeScreenPatterns ||
-       app->inbe.screen == InbeScreenResults {
+    if app->breathing.screen == ScreenHabitEdit ||
+       app->breathing.screen == ScreenHabitSessionEdit ||
+       app->breathing.screen == ScreenSession ||
+       app->breathing.screen == ScreenMeditation ||
+       app->breathing.screen == ScreenSunSalutation ||
+       app->breathing.screen == ScreenPatterns ||
+       app->breathing.screen == ScreenResults {
         return 0
     }
-    return app->inbe.screen == InbeScreenStart ||
-           app->inbe.screen == InbeScreenHabits ||
-           app->inbe.screen == InbeScreenProfile ||
-           app->inbe.screen == InbeScreenSettings
+    return app->breathing.screen == ScreenStart ||
+           app->breathing.screen == ScreenHabits ||
+           app->breathing.screen == ScreenEList ||
+           app->breathing.screen == ScreenProfile ||
+           app->breathing.screen == ScreenSettings
     }
 }
 
 app_bottom_nav_configurable_route :: (route: int) -> int #private {
     return route == APP_NAV_ROUTE_HABITS ||
+           route == APP_NAV_ROUTE_ELIST ||
            route == APP_NAV_ROUTE_PRACTICE ||
            route == APP_NAV_ROUTE_PROFILE ||
            route == APP_NAV_ROUTE_SETTINGS
@@ -189,6 +191,9 @@ app_main_tab_route :: (main_tab: int) -> int #private {
     if main_tab == APP_MAIN_TAB_PRACTICE {
         return APP_NAV_ROUTE_PRACTICE
     }
+    if main_tab == APP_MAIN_TAB_ELIST {
+        return APP_NAV_ROUTE_ELIST
+    }
     return APP_NAV_ROUTE_NONE
 }
 
@@ -199,10 +204,13 @@ app_main_tab_for_route :: (route: int) -> int #private {
     if route == APP_NAV_ROUTE_PRACTICE {
         return APP_MAIN_TAB_PRACTICE
     }
+    if route == APP_NAV_ROUTE_ELIST {
+        return APP_MAIN_TAB_ELIST
+    }
     return APP_MAIN_TAB_NONE
 }
 
-app_bottom_nav_has_route :: (app: const InbeApp*, route: int) -> int #private {
+app_bottom_nav_has_route :: (app: const InnerBreeze*, route: int) -> int #private {
     if app == NULL || route == APP_NAV_ROUTE_NONE {
         return 0
     }
@@ -215,34 +223,47 @@ app_bottom_nav_has_route :: (app: const InbeApp*, route: int) -> int #private {
 }
 
 app_screen_for_main_tab :: (main_tab: int) -> int {
-    return main_tab == APP_MAIN_TAB_HABITS ? InbeScreenHabits : InbeScreenStart
+    if main_tab == APP_MAIN_TAB_HABITS {
+        return ScreenHabits
+    }
+    if main_tab == APP_MAIN_TAB_ELIST {
+        return ScreenEList
+    }
+    return ScreenStart
 }
 
-app_open_nav_sidebar :: (app: InbeApp*) #private {
+app_open_nav_sidebar :: (app: InnerBreeze*) #private {
     if app == NULL || app->modal.active {
         return
     }
     app->nav_sidebar_open = 1
-    app->nav_sidebar_open_frame = app->inbe.frame
+    app->nav_sidebar_open_frame = app->breathing.frame
     app->nav_sidebar_return_on_back = 0
     if app_nav_sidebar_compact() {
-        app->nav_sidebar_prior_screen = app->inbe.screen
-        app_switch_screen(app, InbeScreenNavSidebar)
+        app->nav_sidebar_prior_screen = app->breathing.screen
+        app_switch_screen(app, ScreenNavSidebar)
     }
 }
 
-app_close_nav_sidebar :: (app: InbeApp*) {
+app_close_nav_sidebar :: (app: InnerBreeze*) {
     was_open: int
 
     if app == NULL {
         return
+    }
+    if app->bottom_nav_route_count == 3 &&
+       app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
+       app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
+       app->bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS {
+        app->bottom_nav_routes[3] = APP_NAV_ROUTE_ELIST
+        app->bottom_nav_route_count = 4
     }
     was_open = app->nav_sidebar_open || app_nav_sidebar_screen_active(app)
     app->nav_sidebar_open = 0
     app->nav_sidebar_return_on_back = 0
     if app_nav_sidebar_screen_active(app) {
         prior := app->nav_sidebar_prior_screen
-        if prior > 0 && prior != InbeScreenNavSidebar {
+        if prior > 0 && prior != ScreenNavSidebar {
             app_switch_screen(app, prior)
         } else {
             app_switch_screen(app, app_screen_for_main_tab(app->main_tab))
@@ -253,7 +274,7 @@ app_close_nav_sidebar :: (app: InbeApp*) {
     }
 }
 
-app_update_nav_sidebar_mode :: (app: InbeApp*) {
+app_update_nav_sidebar_mode :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
@@ -272,7 +293,7 @@ app_update_nav_sidebar_mode :: (app: InbeApp*) {
     }
 }
 
-app_return_to_nav_sidebar_if_needed :: (app: InbeApp*) -> int {
+app_return_to_nav_sidebar_if_needed :: (app: InnerBreeze*) -> int {
     if app == NULL || !app->nav_sidebar_return_on_back ||
        !app_nav_sidebar_compact() {
         return 0
@@ -283,23 +304,18 @@ app_return_to_nav_sidebar_if_needed :: (app: InbeApp*) -> int {
     return 1
 }
 
-app_reset_bottom_nav_routes :: (app: InbeApp*) {
+app_reset_bottom_nav_routes :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
     app->bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS
-    app->bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE
-    if app_nav_bottom_profile_enabled() {
-        app->bottom_nav_routes[2] = APP_NAV_ROUTE_PROFILE
-        app->bottom_nav_routes[3] = APP_NAV_ROUTE_SETTINGS
-        app->bottom_nav_route_count = 4
-    } else {
-        app->bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS
-        app->bottom_nav_route_count = 3
-    }
+    app->bottom_nav_routes[1] = APP_NAV_ROUTE_ELIST
+    app->bottom_nav_routes[2] = APP_NAV_ROUTE_PRACTICE
+    app->bottom_nav_routes[3] = APP_NAV_ROUTE_SETTINGS
+    app->bottom_nav_route_count = 4
 }
 
-app_sanitize_bottom_nav_routes :: (app: InbeApp*) {
+app_sanitize_bottom_nav_routes :: (app: InnerBreeze*) {
     allowed: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] int
     allowed_count := 0
 
@@ -307,6 +323,8 @@ app_sanitize_bottom_nav_routes :: (app: InbeApp*) {
         return
     }
     allowed[allowed_count] = APP_NAV_ROUTE_HABITS
+    allowed_count += 1
+    allowed[allowed_count] = APP_NAV_ROUTE_ELIST
     allowed_count += 1
     allowed[allowed_count] = APP_NAV_ROUTE_PRACTICE
     allowed_count += 1
@@ -337,7 +355,7 @@ app_sanitize_bottom_nav_routes :: (app: InbeApp*) {
     }
 }
 
-app_reconcile_bottom_nav_selection :: (app: InbeApp*) #private {
+app_reconcile_bottom_nav_selection :: (app: InnerBreeze*) #private {
     selected_route: int
 
     if app == NULL {
@@ -355,7 +373,7 @@ app_reconcile_bottom_nav_selection :: (app: InbeApp*) #private {
     }
 }
 
-app_open_main_tab :: (app: InbeApp*, main_tab: int, persist: int) #private {
+app_open_main_tab :: (app: InnerBreeze*, main_tab: int, persist: int) #private {
     if app == NULL {
         return
     }
@@ -363,7 +381,7 @@ app_open_main_tab :: (app: InbeApp*, main_tab: int, persist: int) #private {
     if app->practice_tab == PRACTICE_TAB_CONFIG {
         app_leave_practice_config(app)
     }
-    if app->inbe.screen == InbeScreenHabits &&
+    if app->breathing.screen == ScreenHabits &&
        app->habits.screen_mode == HABITS_SCREEN_REORDER {
         app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
         app->habits.scroll = 0
@@ -371,14 +389,14 @@ app_open_main_tab :: (app: InbeApp*, main_tab: int, persist: int) #private {
 
     if main_tab == APP_MAIN_TAB_NONE {
         app->main_tab = APP_MAIN_TAB_NONE
-        app_switch_screen(app, InbeScreenStart)
+        app_switch_screen(app, ScreenStart)
         if persist {
             save_settings(app)
         }
         return
     }
 
-    app->main_tab = clampi(main_tab, APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE)
+    app->main_tab = clampi(main_tab, APP_MAIN_TAB_HABITS, APP_MAIN_TAB_ELIST)
     if app->main_tab == APP_MAIN_TAB_PRACTICE {
         app->practice_tab = PRACTICE_TAB_PLAY
     }
@@ -388,7 +406,7 @@ app_open_main_tab :: (app: InbeApp*, main_tab: int, persist: int) #private {
     }
 }
 
-app_open_profile_tab :: (app: InbeApp*, tab: int) #private {
+app_open_profile_tab :: (app: InnerBreeze*, tab: int) #private {
     route: AppRoute
     return_to_sidebar: int
 
@@ -407,14 +425,14 @@ app_open_profile_tab :: (app: InbeApp*, tab: int) #private {
     settings_screen_clear_status()
     app_block_current_click(app)
     route = app_current_route(app)
-    route.screen = InbeScreenProfile
+    route.screen = ScreenProfile
     route.profile_view = PROFILE_VIEW_MAIN
     route.profile_tab = clampi(tab, PROFILE_TAB_OVERVIEW, PROFILE_TAB_COUNT - 1)
     app->nav_sidebar_return_on_back = return_to_sidebar
     app_switch_route(app, route)
 }
 
-app_apply_nav_route :: (app: InbeApp*, route: int) {
+app_apply_nav_route :: (app: InnerBreeze*, route: int) {
     return_to_sidebar: int
 
     if app == NULL {
@@ -422,7 +440,7 @@ app_apply_nav_route :: (app: InbeApp*, route: int) {
     }
     return_to_sidebar = app_nav_sidebar_screen_active(app)
 
-    if app->inbe.screen == InbeScreenHabits &&
+    if app->breathing.screen == ScreenHabits &&
        app->habits.screen_mode == HABITS_SCREEN_REORDER {
         app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
         app->habits.scroll = 0
@@ -446,13 +464,17 @@ app_apply_nav_route :: (app: InbeApp*, route: int) {
         app->nav_sidebar_open = 0
         app->nav_sidebar_return_on_back = return_to_sidebar
         app_open_main_tab(app, APP_MAIN_TAB_HABITS, 1)
+    } else if route == APP_NAV_ROUTE_ELIST {
+        app->nav_sidebar_open = 0
+        app->nav_sidebar_return_on_back = return_to_sidebar
+        app_open_main_tab(app, APP_MAIN_TAB_ELIST, 1)
     } else if route == APP_NAV_ROUTE_SETTINGS {
         #if DESKTOP {
             app_open_settings_tab(app, SETTINGS_TAB_DEVICE)
         } #else {
             next := app_current_route(app)
             app->nav_sidebar_open = 0
-            next.screen = InbeScreenSettings
+            next.screen = ScreenSettings
             next.settings_tab = SETTINGS_TAB_COUNT
             app->settings_scroll = 0
             settings_screen_clear_status()
@@ -461,30 +483,30 @@ app_apply_nav_route :: (app: InbeApp*, route: int) {
     }
 }
 
-app_is_practice_fullscreen_subview :: (app: const InbeApp*) -> int #private {
+app_is_practice_fullscreen_subview :: (app: const InnerBreeze*) -> int #private {
     return app != NULL &&
-           app->inbe.screen == InbeScreenStart &&
+           app->breathing.screen == ScreenStart &&
            (app->practice_tab == PRACTICE_TAB_MANUAL ||
             app->practice_tab == PRACTICE_TAB_CONFIG)
 }
 
-app_is_blank_home :: (app: const InbeApp*) -> int #private {
+app_is_blank_home :: (app: const InnerBreeze*) -> int #private {
     return app != NULL &&
-           app->inbe.screen == InbeScreenStart &&
+           app->breathing.screen == ScreenStart &&
            app->main_tab == APP_MAIN_TAB_NONE
 }
 
-app_content_bottom_reserved :: (app: const InbeApp*) -> int {
+app_content_bottom_reserved :: (app: const InnerBreeze*) -> int {
     if app == NULL {
         return 0
     }
     if app_nav_desktop_rail_enabled(app) {
         return 0
     }
-    if app->inbe.screen == InbeScreenHabitEdit {
+    if app->breathing.screen == ScreenHabitEdit {
         return 0
     }
-    if app->inbe.screen == InbeScreenHabits &&
+    if app->breathing.screen == ScreenHabits &&
        app->habits.screen_mode == HABITS_SCREEN_REORDER {
         return 0
     }
@@ -498,12 +520,12 @@ app_content_bottom_reserved :: (app: const InbeApp*) -> int {
     return GetNodeHeight(NodeBottomNav((BottomNavProps){0}))
 }
 
-app_content_left_reserved :: (app: const InbeApp*) -> int {
+app_content_left_reserved :: (app: const InnerBreeze*) -> int {
     unused app
     return 0
 }
 
-app_page_height :: (app: const InbeApp*, full_height: int) -> int {
+app_page_height :: (app: const InnerBreeze*, full_height: int) -> int {
     bottom_reserved: int
 
     if full_height <= 0 {
@@ -538,23 +560,26 @@ app_nav_route_label :: (route: int) -> const char* {
     if route == APP_NAV_ROUTE_PRACTICE {
         return GetLocaleText("tab_practice")
     }
+    if route == APP_NAV_ROUTE_ELIST {
+        return GetLocaleText("tab_elist")
+    }
     if route == APP_NAV_ROUTE_SETTINGS {
         return GetLocaleText("settings_title")
     }
     return ""
 }
 
-app_current_nav_route :: (app: const InbeApp*) -> int {
+app_current_nav_route :: (app: const InnerBreeze*) -> int {
     if app == NULL {
         return APP_NAV_ROUTE_NONE
     }
-    if app->inbe.screen == InbeScreenProfile {
+    if app->breathing.screen == ScreenProfile {
         return APP_NAV_ROUTE_PROFILE
     }
-    if app->inbe.screen == InbeScreenSettings {
+    if app->breathing.screen == ScreenSettings {
         return APP_NAV_ROUTE_SETTINGS
     }
-    if app->inbe.screen == InbeScreenStart {
+    if app->breathing.screen == ScreenStart {
         if app_is_practice_fullscreen_subview(app) {
             return APP_NAV_ROUTE_NONE
         }
@@ -563,18 +588,21 @@ app_current_nav_route :: (app: const InbeApp*) -> int {
         }
         return APP_NAV_ROUTE_PRACTICE
     }
-    if app->inbe.screen == InbeScreenHabits {
+    if app->breathing.screen == ScreenHabits {
         return APP_NAV_ROUTE_HABITS
+    }
+    if app->breathing.screen == ScreenEList {
+        return APP_NAV_ROUTE_ELIST
     }
     return APP_NAV_ROUTE_NONE
 }
 
-app_fullscreen_bottom_reserved :: (app: const InbeApp*) -> int {
+app_fullscreen_bottom_reserved :: (app: const InnerBreeze*) -> int {
     unused app
     return 0
 }
 
-app_open_settings_tab :: (app: InbeApp*, tab: int) #private {
+app_open_settings_tab :: (app: InnerBreeze*, tab: int) #private {
     route: AppRoute
     return_to_sidebar: int
 
@@ -591,7 +619,7 @@ app_open_settings_tab :: (app: InbeApp*, tab: int) #private {
     settings_screen_clear_status()
     app_block_current_click(app)
     route = app_current_route(app)
-    route.screen = InbeScreenSettings
+    route.screen = ScreenSettings
     route.settings_tab = tab
     app->nav_sidebar_return_on_back = return_to_sidebar
     app_switch_route(app, route)
@@ -628,7 +656,7 @@ app_sidebar_clean_button :: (x: int, y: int, w: int, h: int,
     return InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = id})
 }
 
-app_sidebar_settings_button :: (app: InbeApp*, x: int, y: int*, w: int,
+app_sidebar_settings_button :: (app: InnerBreeze*, x: int, y: int*, w: int,
                                tab: int) -> int #private {
     h := Scale(38)
     disabled := app != NULL && app->modal.active
@@ -642,7 +670,7 @@ app_sidebar_settings_button :: (app: InbeApp*, x: int, y: int*, w: int,
     return 0
 }
 
-app_draw_sidebar_settings_items :: (app: InbeApp*, x: int, y: int*, w: int,
+app_draw_sidebar_settings_items :: (app: InnerBreeze*, x: int, y: int*, w: int,
                                    items: const AppSidebarSettingsItem*,
                                    count: int) -> int #private {
     for int i = 0; i < count; i++ {
@@ -685,7 +713,7 @@ app_alias_display_name :: (alias: const char*, out: char*, out_size: size_t) #pr
     }
 }
 
-app_nav_profile_identity :: (app: InbeApp*, out: char*, out_size: size_t,
+app_nav_profile_identity :: (app: InnerBreeze*, out: char*, out_size: size_t,
                              subtitle: char*, subtitle_size: size_t) {
     account: SyncAccount
     alias: const char*
@@ -724,7 +752,7 @@ app_nav_profile_identity :: (app: InbeApp*, out: char*, out_size: size_t,
     }
 }
 
-app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
+app_draw_sidebar_profile_header :: (app: InnerBreeze*, x: int, y: int*, w: int,
                                    has_account: int,
                                    account_label: const char*,
                                    account_subtitle: const char*) -> int #private {
@@ -752,7 +780,7 @@ app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
         .icons = app != NULL ? app->icons : NULL,
         .pfp_icon_type = app != NULL ? app->profile_picture_icon : UI_ICON_TYPE_NONE,
         .content_padding_x = Scale(16),
-        .current_frame = app != NULL ? app->inbe.frame : 0,
+        .current_frame = app != NULL ? app->breathing.frame : 0,
         .block_click_frame = app != NULL ? app->nav_sidebar_open_frame : -1
     })
 
@@ -778,7 +806,7 @@ app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
     return 0
 }
 
-app_open_customize_nav :: (app: InbeApp*) {
+app_open_customize_nav :: (app: InnerBreeze*) {
     return_to_sidebar: int
 
     if app == NULL {
@@ -794,10 +822,10 @@ app_open_customize_nav :: (app: InbeApp*) {
     app->nav_sidebar_prior_screen = 0
     app->nav_sidebar_return_on_back = return_to_sidebar
     app_block_current_click(app)
-    app_switch_screen(app, InbeScreenCustomizeNav)
+    app_switch_screen(app, ScreenCustomizeNav)
 }
 
-app_draw_nav_sidebar :: (app: InbeApp*) {
+app_draw_nav_sidebar :: (app: InnerBreeze*) {
     sidebar_w: int
     sidebar_x: int
     pad: int
@@ -889,11 +917,11 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
                                Fade(BLACK, 0.36f), Fade(BLACK, 0.0f))
     }
 
-    if app->nav_sidebar_open_frame == app->inbe.frame {
+    if app->nav_sidebar_open_frame == app->breathing.frame {
         return
     }
 
-    if app->nav_sidebar_open_frame != app->inbe.frame && overlay.closed {
+    if app->nav_sidebar_open_frame != app->breathing.frame && overlay.closed {
         app_close_nav_sidebar(app)
         return
     }
@@ -949,16 +977,19 @@ app_nav_option_index :: (route: int) -> int #private {
         return 0
     }
     if route == APP_NAV_ROUTE_PRACTICE {
+        return 2
+    }
+    if route == APP_NAV_ROUTE_ELIST {
         return 1
     }
     if route == APP_NAV_ROUTE_SETTINGS {
         if app_nav_bottom_profile_enabled() {
-            return 3
+            return 4
         }
-        return 2
+        return 3
     }
     if app_nav_bottom_profile_enabled() && route == APP_NAV_ROUTE_PROFILE {
-        return 2
+        return 3
     }
     return 0
 }
@@ -967,7 +998,7 @@ app_nav_config_option_count :: () -> int #private {
     if app_nav_bottom_profile_enabled() {
         return APP_BOTTOM_NAV_CONFIGURABLE_COUNT
     }
-    return 3
+        return 4
 }
 
 app_nav_route_for_option :: (option: int) -> int #private {
@@ -975,12 +1006,13 @@ app_nav_route_for_option :: (option: int) -> int #private {
     count := app_nav_config_option_count()
 
     routes[0] = APP_NAV_ROUTE_HABITS
-    routes[1] = APP_NAV_ROUTE_PRACTICE
+    routes[1] = APP_NAV_ROUTE_ELIST
+    routes[2] = APP_NAV_ROUTE_PRACTICE
     if app_nav_bottom_profile_enabled() {
-        routes[2] = APP_NAV_ROUTE_PROFILE
-        routes[3] = APP_NAV_ROUTE_SETTINGS
+        routes[3] = APP_NAV_ROUTE_PROFILE
+        routes[4] = APP_NAV_ROUTE_SETTINGS
     } else {
-        routes[2] = APP_NAV_ROUTE_SETTINGS
+        routes[3] = APP_NAV_ROUTE_SETTINGS
     }
 
     if option < 0 || option >= count {
@@ -989,7 +1021,7 @@ app_nav_route_for_option :: (option: int) -> int #private {
     return routes[option]
 }
 
-app_save_bottom_nav_config :: (app: InbeApp*) #private {
+app_save_bottom_nav_config :: (app: InnerBreeze*) #private {
     if app == NULL {
         return
     }
@@ -1003,7 +1035,7 @@ app_save_bottom_nav_config :: (app: InbeApp*) #private {
     save_settings(app)
 }
 
-app_move_bottom_nav_config_route :: (app: InbeApp*, from_index: int,
+app_move_bottom_nav_config_route :: (app: InnerBreeze*, from_index: int,
                                     to_index: int) -> int #private {
     if app == NULL {
         return 0
@@ -1016,17 +1048,18 @@ app_move_bottom_nav_config_route :: (app: InbeApp*, from_index: int,
     }, from_index, to_index)
 }
 
-app_first_unused_bottom_nav_route :: (app: const InbeApp*) -> int #private {
+app_first_unused_bottom_nav_route :: (app: const InnerBreeze*) -> int #private {
     routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] int
     count := app_nav_config_option_count()
 
     routes[0] = APP_NAV_ROUTE_HABITS
-    routes[1] = APP_NAV_ROUTE_PRACTICE
+    routes[1] = APP_NAV_ROUTE_ELIST
+    routes[2] = APP_NAV_ROUTE_PRACTICE
     if app_nav_bottom_profile_enabled() {
-        routes[2] = APP_NAV_ROUTE_PROFILE
-        routes[3] = APP_NAV_ROUTE_SETTINGS
+        routes[3] = APP_NAV_ROUTE_PROFILE
+        routes[4] = APP_NAV_ROUTE_SETTINGS
     } else {
-        routes[2] = APP_NAV_ROUTE_SETTINGS
+        routes[3] = APP_NAV_ROUTE_SETTINGS
     }
 
     return KryRouteListFirstUnused(app != NULL ? app->bottom_nav_config_routes : nil,
@@ -1037,7 +1070,7 @@ app_first_unused_bottom_nav_route :: (app: const InbeApp*) -> int #private {
 
 app_customize_nav_scaffold_title :: (title: const char*, height: int,
                                      user_data: void*) -> int #private {
-    app := (InbeApp*)user_data
+    app := (InnerBreeze*)user_data
 
     if app_draw_close_title_bar(app, title, height) {
         app_block_current_click(app)
@@ -1047,7 +1080,7 @@ app_customize_nav_scaffold_title :: (title: const char*, height: int,
     return 0
 }
 
-app_draw_customize_nav_page :: (app: InbeApp*) -> int {
+app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     options: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const char*
     scaffold: UIScreenScaffold
     reorder_items: [APP_BOTTOM_NAV_CONTENT_MAX] UIReorderItem
@@ -1080,12 +1113,13 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
     draw_count = app->bottom_nav_config_route_count
 
     options[0] = app_nav_route_label(APP_NAV_ROUTE_HABITS)
-    options[1] = app_nav_route_label(APP_NAV_ROUTE_PRACTICE)
+    options[1] = app_nav_route_label(APP_NAV_ROUTE_ELIST)
+    options[2] = app_nav_route_label(APP_NAV_ROUTE_PRACTICE)
     if app_nav_bottom_profile_enabled() {
-        options[2] = app_nav_route_label(APP_NAV_ROUTE_PROFILE)
-        options[3] = app_nav_route_label(APP_NAV_ROUTE_SETTINGS)
+        options[3] = app_nav_route_label(APP_NAV_ROUTE_PROFILE)
+        options[4] = app_nav_route_label(APP_NAV_ROUTE_SETTINGS)
     } else {
-        options[2] = app_nav_route_label(APP_NAV_ROUTE_SETTINGS)
+        options[3] = app_nav_route_label(APP_NAV_ROUTE_SETTINGS)
     }
 
     scaffold = BeginUIScreenScaffold((UIScreenScaffoldSpec){

@@ -18,7 +18,7 @@ main(void)
     InitUIDPI();
     SetTargetFPS(60);
 
-    app = CreateApp("/sys/src/inbe");
+    app = CreateApp("/sys/src/breathing");
     if(app == 0) {
         CloseWindow();
         exits("app");

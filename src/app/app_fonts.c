@@ -51,11 +51,11 @@ register_desktop_system_ui_font(void)
     if(!GetSystemUIFontFile(font_path, (int)sizeof(font_path)))
         return 0;
     if(!RegisterUIFontFileSource("ui", font_path, NULL, 0)) {
-        TraceLog(LOG_WARNING, "INBE: failed to load system UI font: %s",
+        TraceLog(LOG_WARNING, "APP: failed to load system UI font: %s",
                  font_path);
         return 0;
     }
-    TraceLog(LOG_INFO, "INBE: using system UI font: %s", font_path);
+    TraceLog(LOG_INFO, "APP: using system UI font: %s", font_path);
     return 1;
 }
 #endif
@@ -116,14 +116,14 @@ register_language_picker_fonts(void)
     int seed_count = 0;
     const int *seed = language_picker_seed_codepoints(&seed_count);
 
-    (void)register_ui_font_source("ui-lang-latin", INBE_FONT_LATIN, NULL, 0);
-    (void)register_ui_font_source("ui-lang-ja", INBE_FONT_JP, seed, seed_count);
-    (void)register_ui_font_source("ui-lang-ko", INBE_FONT_KR, seed, seed_count);
-    (void)register_ui_font_source("ui-lang-zh", INBE_FONT_SC, seed, seed_count);
+    (void)register_ui_font_source("ui-lang-latin", FONT_LATIN, NULL, 0);
+    (void)register_ui_font_source("ui-lang-ja", FONT_JP, seed, seed_count);
+    (void)register_ui_font_source("ui-lang-ko", FONT_KR, seed, seed_count);
+    (void)register_ui_font_source("ui-lang-zh", FONT_SC, seed, seed_count);
 }
 
 int
-load_locale_font(InbeApp *app)
+load_locale_font(InnerBreeze*app)
 {
     Image white;
     const char *code;
@@ -193,7 +193,7 @@ done:
 }
 
 void
-unload_locale_font(InbeApp *app)
+unload_locale_font(InnerBreeze*app)
 {
     if(app == NULL)
         return;
@@ -202,7 +202,7 @@ unload_locale_font(InbeApp *app)
 }
 
 void
-discard_locale_font_cpu(InbeApp *app)
+discard_locale_font_cpu(InnerBreeze*app)
 {
     if(app == NULL)
         return;

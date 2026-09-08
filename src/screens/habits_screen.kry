@@ -26,7 +26,7 @@ WEB :: #defined(PLATFORM_WEB)
     HABITS_TOP_H = 36
 }
 
-static habits_top_options: [INBE_HABIT_MAX + 2] const char* = {0}
+static habits_top_options: [HABIT_MAX + 2] const char* = {0}
 static habits_top_dropdown_selected: int = 0
 
 HabitsScrollPageContext :: struct {
@@ -36,7 +36,7 @@ HabitsScrollPageContext :: struct {
     grid_gap: int
 }
 
-habit_web_context_click_in_bounds :: (app: InbeApp*, bounds: Rectangle) -> int #private {
+habit_web_context_click_in_bounds :: (app: InnerBreeze*, bounds: Rectangle) -> int #private {
     #if WEB {
         top_left: Vector2
         bottom_right: Vector2
@@ -60,7 +60,7 @@ habit_web_context_click_in_bounds :: (app: InbeApp*, bounds: Rectangle) -> int #
     }
 }
 
-habit_counter_day_action :: (app: InbeApp*, habit_index: int, day_index: int,
+habit_counter_day_action :: (app: InnerBreeze*, habit_index: int, day_index: int,
                                 x: int, y: int, w: int, h: int,
                                 disabled: int, allow_left_increment: int) -> int {
     mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
@@ -124,7 +124,7 @@ habit_counter_day_action :: (app: InbeApp*, habit_index: int, day_index: int,
     return 0
 }
 
-habit_weekly_visible_days :: (habits: InbeHabits*) -> int {
+habit_weekly_visible_days :: (habits: Habits*) -> int {
     if habits == nil {
         return HABIT_WEEKLY_INITIAL_DAYS
     }
@@ -137,17 +137,17 @@ habit_weekly_visible_days :: (habits: InbeHabits*) -> int {
     return habits->weekly_days
 }
 
-habits_screen_selector_height :: (app: InbeApp*) -> int {
+habits_screen_selector_height :: (app: InnerBreeze*) -> int {
     unused app
     return 0
 }
 
-habits_screen_top_reserved :: (app: InbeApp*) -> int {
+habits_screen_top_reserved :: (app: InnerBreeze*) -> int {
     unused app
     return 0
 }
 
-habits_select_detail_tab :: (app: InbeApp*, tab: int) #private {
+habits_select_detail_tab :: (app: InnerBreeze*, tab: int) #private {
     route: AppRoute
 
     if app == nil {
@@ -160,7 +160,7 @@ habits_select_detail_tab :: (app: InbeApp*, tab: int) #private {
     }
 
     route = app_current_route(app)
-    route.screen = InbeScreenHabits
+    route.screen = ScreenHabits
     route.habits_screen_mode = HABITS_SCREEN_DETAIL
     route.habits_tab = tab
     app->habits.scroll = 0
@@ -173,7 +173,7 @@ habits_select_detail_tab :: (app: InbeApp*, tab: int) #private {
     } else if tab == HABIT_TAB_MONTHLY {
         app->habits.view_mode = HABIT_VIEW_CALENDAR
     } else if tab == HABIT_TAB_EDIT {
-        route.screen = InbeScreenHabitEdit
+        route.screen = ScreenHabitEdit
         if app->habits.count > 0 {
             habit_edit_begin(app, app->habits.selected)
         } else {
@@ -185,7 +185,7 @@ habits_select_detail_tab :: (app: InbeApp*, tab: int) #private {
     save_settings(app)
 }
 
-habits_select_habit :: (app: InbeApp*, selected_habit: int) #private {
+habits_select_habit :: (app: InnerBreeze*, selected_habit: int) #private {
     if app == nil ||
        selected_habit < 0 ||
        selected_habit >= app->habits.count {
@@ -198,7 +198,7 @@ habits_select_habit :: (app: InbeApp*, selected_habit: int) #private {
     save_settings(app)
 }
 
-habits_enter_detail :: (app: InbeApp*, selected_habit: int) {
+habits_enter_detail :: (app: InnerBreeze*, selected_habit: int) {
     route: AppRoute
 
     if app == nil {
@@ -217,7 +217,7 @@ habits_enter_detail :: (app: InbeApp*, selected_habit: int) {
     save_settings(app)
 }
 
-habits_open_history :: (app: InbeApp*) #private {
+habits_open_history :: (app: InnerBreeze*) #private {
     route: AppRoute
 
     if app == nil || app->habits.count <= 0 {
@@ -232,7 +232,7 @@ habits_open_history :: (app: InbeApp*) #private {
     save_settings(app)
 }
 
-habits_open_statistics :: (app: InbeApp*) #private {
+habits_open_statistics :: (app: InnerBreeze*) #private {
     route: AppRoute
 
     if app == nil || app->habits.count <= 0 {
@@ -246,7 +246,7 @@ habits_open_statistics :: (app: InbeApp*) #private {
     save_settings(app)
 }
 
-habits_return_to_focus :: (app: InbeApp*) #private {
+habits_return_to_focus :: (app: InnerBreeze*) #private {
     route: AppRoute
 
     if app == nil {
@@ -261,7 +261,7 @@ habits_return_to_focus :: (app: InbeApp*) #private {
     save_settings(app)
 }
 
-habits_return_to_overview :: (app: InbeApp*) #private {
+habits_return_to_overview :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -273,7 +273,7 @@ habits_return_to_overview :: (app: InbeApp*) #private {
     save_settings(app)
 }
 
-habits_begin_new_detail :: (app: InbeApp*) {
+habits_begin_new_detail :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -281,7 +281,7 @@ habits_begin_new_detail :: (app: InbeApp*) {
     habit_edit_begin_new(app)
 }
 
-draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
+draw_habits_top_bar :: (app: InnerBreeze*, draw_menu: int) {
     tabs: [HABIT_TAB_COUNT] Tab
     actions: [1] TopNavAction
     nav_result: TopNavResult
@@ -302,7 +302,7 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
         habits_top_options[option_count++] = ""
         habit_offset = 1
     }
-    for int i = 0; i < app->habits.count && i < INBE_HABIT_MAX; i++ {
+    for int i = 0; i < app->habits.count && i < HABIT_MAX; i++ {
         habits_top_options[option_count++] = app->habits.items[i].name
     }
 
@@ -399,16 +399,16 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
 
 habits_card_description :: (description: const char*, width: int, font: int,
                             out: char*, out_size: size_t) {
-    line: [INBE_HABIT_DESCRIPTION_SIZE + 4] char = {0}
-    shortened: [INBE_HABIT_DESCRIPTION_SIZE + 4] char = {0}
+    line: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
+    shortened: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
     snprintf(line, sizeof(line), "%s", description != nil ? description : "")
     for int i = 0; line[i] != '\0'; i++ {
         if line[i] == '\n' || line[i] == '\r' || line[i] == '\t' {
             line[i] = ' '
         }
     }
-    inbe_text_short_label(line, 80, 1, shortened, sizeof(shortened))
-    inbe_text_fit_ellipsis(shortened, out, out_size, width, font)
+    text_short_label(line, 80, 1, shortened, sizeof(shortened))
+    text_fit_ellipsis(shortened, out, out_size, width, font)
 }
 
 habits_day_index :: (days_ago: int) -> int {
@@ -432,7 +432,7 @@ habits_day_index :: (days_ago: int) -> int {
         day.tm_mday
 }
 
-habits_screen_dismiss_first_run_guide :: (app: InbeApp*) {
+habits_screen_dismiss_first_run_guide :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -442,15 +442,15 @@ habits_screen_dismiss_first_run_guide :: (app: InbeApp*) {
     sync_web_storage_critical()
 }
 
-habits_screen_first_run_guide_active :: (app: const InbeApp*) -> int {
+habits_screen_first_run_guide_active :: (app: const InnerBreeze*) -> int {
     return app != nil &&
         !app->habits_guide_seen &&
         !app->modal.active &&
-        app->inbe.screen == InbeScreenHabits &&
+        app->breathing.screen == ScreenHabits &&
         !storage_has_sync_account()
 }
 
-habits_screen_prepare_first_run_guide :: (app: InbeApp*) {
+habits_screen_prepare_first_run_guide :: (app: InnerBreeze*) {
     step: int
     meditation_index: int = 0
 
@@ -503,7 +503,7 @@ habits_screen_prepare_first_run_guide :: (app: InbeApp*) {
     }
 }
 
-habits_screen_tab_anchor :: (app: InbeApp*, first_tab: int,
+habits_screen_tab_anchor :: (app: InnerBreeze*, first_tab: int,
                             tab_count: int) -> Rectangle #private {
     bar_x: int = 0
     bar_y: int = habits_screen_selector_height(app)
@@ -540,7 +540,7 @@ habits_screen_tab_anchor :: (app: InbeApp*, first_tab: int,
 }
 
 
-habits_cards_progress_anchor :: (app: InbeApp*) -> Rectangle #private {
+habits_cards_progress_anchor :: (app: InnerBreeze*) -> Rectangle #private {
     x: int
     w: int
     y := habits_screen_top_reserved(app) + Scale(51)
@@ -557,7 +557,7 @@ habits_cards_progress_anchor :: (app: InbeApp*) -> Rectangle #private {
                        (float)(TextLineHeight(GetSmallFontSize()) + pad * 2)}
 }
 
-habits_cards_first_anchor :: (app: InbeApp*) -> Rectangle #private {
+habits_cards_first_anchor :: (app: InnerBreeze*) -> Rectangle #private {
     x: int
     w: int
     y := habits_screen_top_reserved(app) + Scale(86)
@@ -571,14 +571,14 @@ habits_cards_first_anchor :: (app: InbeApp*) -> Rectangle #private {
 habits_draw_fitted_text :: (text: const char*, x: int, y: int,
                            max_w: int, preferred: int, minimum: int,
                            color: Color) #private {
-    fitted: [INBE_HABIT_NAME_SIZE + 4] char = {0}
+    fitted: [HABIT_NAME_SIZE + 4] char = {0}
     font: int
 
     if text == nil || max_w <= 0 {
         return
     }
     font = FitFontSize(text, max_w, preferred, minimum)
-    inbe_text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
+    text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
     Text((TextProps){
         .bounds={(x), (y), 0, 0},
         .text=(fitted),
@@ -589,7 +589,7 @@ habits_draw_fitted_text :: (text: const char*, x: int, y: int,
 }
 
 
-habits_done_today :: (app: InbeApp*) -> int #private {
+habits_done_today :: (app: InnerBreeze*) -> int #private {
     today: int = habits_today_index()
     done: int = 0
 
@@ -597,7 +597,7 @@ habits_done_today :: (app: InbeApp*) -> int #private {
         return 0
     }
     for int i = 0; i < app->habits.count; i++ {
-        habit: InbeHabit* = &app->habits.items[i]
+        habit: Habit* = &app->habits.items[i]
         ctx: HabitLinkedContext
         linked_ctx: HabitLinkedContext* = nil
         completed: int
@@ -631,7 +631,7 @@ habits_done_today :: (app: InbeApp*) -> int #private {
 }
 
 
-habits_due_today :: (app: InbeApp*) -> int #private {
+habits_due_today :: (app: InnerBreeze*) -> int #private {
     due: int = 0
     for int i = 0; i < app->habits.count; i++ {
         if habit_scheduled_day(&app->habits.items[i], habits_today_index()) {
@@ -642,7 +642,7 @@ habits_due_today :: (app: InbeApp*) -> int #private {
 }
 
 
-habits_screen_draw_first_run_guide :: (app: InbeApp*) {
+habits_screen_draw_first_run_guide :: (app: InnerBreeze*) {
     steps: [HABITS_GUIDE_STEPS] UIGuideStep
     result: UIGuideResult
 
@@ -729,7 +729,7 @@ draw_habit_link_dot :: (x: int, y: int, w: int, color: Color) {
                   GetThemeText())
 }
 
-habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
+habit_calendar_day_cell :: (app: InnerBreeze*, x: int, y: int, w: int, h: int,
                                label: const char*, progress: float,
                                disabled: int, current_day: int,
                                accent: Color) -> int {
@@ -835,7 +835,7 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
     return inside && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
 }
 
-habit_calendar_day_metadata :: (app: InbeApp*, x: int, y: int,
+habit_calendar_day_metadata :: (app: InnerBreeze*, x: int, y: int,
                                   w: int, h: int, counting: int,
                                   count: int, linked_count: int,
                                   disabled: int, accent: Color) #private {
@@ -930,7 +930,7 @@ habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
     }
 
     if TextWidth(text, font_size) > w {
-        inbe_text_fit_ellipsis(text, fitted, sizeof(fitted), w, font_size)
+        text_fit_ellipsis(text, fitted, sizeof(fitted), w, font_size)
         draw_text = fitted
     }
 
@@ -997,7 +997,7 @@ habit_weekly_summary :: (ctx: const HabitLinkedContext*, day_index: int,
     return count
 }
 
-habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
+habit_weekly_summary_button :: (app: InnerBreeze*, x: int, y: int,
                                w: int, h: int, completed: int,
                                disabled: int, primary: const char*,
                                secondary: const char*) -> int #private {
@@ -1111,7 +1111,7 @@ habit_weekly_content_height :: (visible_days: int) -> int #private {
            Scale(16)
 }
 
-draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
+draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
                                selected: int,
                                linked_ctx: HabitLinkedContext*,
                                content_x: int, content_w: int,
@@ -1377,7 +1377,7 @@ habits_scroll_page_content_height :: (content_w: int,
 }
 
 HabitsFocusPageContext :: struct {
-    app: InbeApp*
+    app: InnerBreeze*
 }
 
 habits_focus_card_height :: () -> int #private {
@@ -1403,7 +1403,7 @@ habits_focus_content_height :: (content_w: int, user_data: void*) -> int #privat
         Scale(24)
 }
 
-habit_focus_day_complete :: (habit: const InbeHabit*, day_index: int,
+habit_focus_day_complete :: (habit: const Habit*, day_index: int,
                              linked_ctx: const HabitLinkedContext*) -> int #private {
     if habit == nil {
         return 0
@@ -1414,7 +1414,7 @@ habit_focus_day_complete :: (habit: const InbeHabit*, day_index: int,
          habit_effective_day_count(habit, day_index, linked_ctx) > 0)
 }
 
-habit_focus_streak :: (habit: const InbeHabit*,
+habit_focus_streak :: (habit: const Habit*,
                        linked_ctx: const HabitLinkedContext*) -> int #private {
     streak := 0
 
@@ -1431,7 +1431,7 @@ habit_focus_streak :: (habit: const InbeHabit*,
     return streak
 }
 
-habit_focus_completion_count :: (habit: const InbeHabit*,
+habit_focus_completion_count :: (habit: const Habit*,
                                   linked_ctx: const HabitLinkedContext*,
                                   days: int, scheduled: int*) -> int #private {
     completed := 0
@@ -1477,7 +1477,7 @@ habits_focus_draw_metric :: (x: int, y: int, w: int, h: int,
     })
 }
 
-habits_focus_draw_week :: (app: InbeApp*, habit: InbeHabit*, selected: int,
+habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
                            linked_ctx: HabitLinkedContext*,
                            x: int, y: int, w: int) #private {
     weekdays: [7] const char* = {
@@ -1620,7 +1620,7 @@ habits_focus_draw_week :: (app: InbeApp*, habit: InbeHabit*, selected: int,
                              week_value, LightenUIColor(habit->color, 18))
 }
 
-habits_focus_draw_card :: (app: InbeApp*, selected: int,
+habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
                            x: int, y: int, w: int) #private {
     habit := &app->habits.items[selected]
     linked_ctx := habit_cached_linked_entries(app, selected, 0)
@@ -1646,7 +1646,7 @@ habits_focus_draw_card :: (app: InbeApp*, selected: int,
                             Text14,
                             foreground)
     if habit->description[0] != '\0' {
-        description: [INBE_HABIT_DESCRIPTION_SIZE + 4] char = {0}
+        description: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
         habits_card_description(habit->description, w - Scale(54),
                                 GetSmallFontSize(), description,
                                 sizeof(description))
@@ -1718,7 +1718,7 @@ habits_focus_draw_card :: (app: InbeApp*, selected: int,
                            w - Scale(28))
 }
 
-habits_focus_draw_collapsed :: (app: InbeApp*, index: int,
+habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
                                 x: int, y: int, w: int) #private {
     habit := &app->habits.items[index]
     h := habits_focus_collapsed_height()
@@ -1729,7 +1729,7 @@ habits_focus_draw_collapsed :: (app: InbeApp*, index: int,
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
     hover := CheckCollisionPointRec(mouse, bounds) &&
              !UIInputCapturesClick(mouse)
-    description: [INBE_HABIT_DESCRIPTION_SIZE + 4] char = {0}
+    description: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
     weekdays: [7] const char* = {
         "habit_day_mon", "habit_day_tue", "habit_day_wed", "habit_day_thu",
         "habit_day_fri", "habit_day_sat", "habit_day_sun"
@@ -1819,10 +1819,10 @@ habits_focus_draw_collapsed :: (app: InbeApp*, index: int,
     }
 }
 
-draw_habits_focus :: (app: InbeApp*, content_top: int) #private {
+draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     context := (HabitsFocusPageContext){app}
-    items: [INBE_HABIT_MAX] UIReorderItem
-    count := clampi(app->habits.count, 0, INBE_HABIT_MAX)
+    items: [HABIT_MAX] UIReorderItem
+    count := clampi(app->habits.count, 0, HABIT_MAX)
     area := (UIScrollArea){0}
     measured: UIScrollView
     reorder: UIReorderListResult
@@ -1938,7 +1938,7 @@ draw_habits_focus :: (app: InbeApp*, content_top: int) #private {
                    (float)button_w, (float)Scale(48)},
         .label = GetLocaleText("habit_new_button"), .id = 24000,
         .font = GetFontSize(), .style = ButtonStylePrimary,
-        .disabled = app->habits.count >= INBE_HABIT_MAX || app->modal.active
+        .disabled = app->habits.count >= HABIT_MAX || app->modal.active
     }) {
         habits_begin_new_detail(app)
         EndUIScrollPage(page)
@@ -1974,7 +1974,7 @@ draw_habits_focus :: (app: InbeApp*, content_top: int) #private {
     EndUIScrollPage(page)
 }
 
-habits_draw_subpage_header :: (app: InbeApp*, statistics: int) -> int #private {
+habits_draw_subpage_header :: (app: InnerBreeze*, statistics: int) -> int #private {
     top_h := Scale(58)
     selector_h := Scale(40)
     selector_y := top_h + Scale(10)
@@ -1985,7 +1985,7 @@ habits_draw_subpage_header :: (app: InbeApp*, statistics: int) -> int #private {
         GetLocaleText("habit_focus_week"),
         GetLocaleText("habit_focus_calendar")
     }
-    active: InbeHabit* = nil
+    active: Habit* = nil
 
     if app->habits.selected >= 0 && app->habits.selected < app->habits.count {
         active = &app->habits.items[app->habits.selected]
@@ -2014,7 +2014,7 @@ habits_draw_subpage_header :: (app: InbeApp*, statistics: int) -> int #private {
     return selector_y + selector_h + Scale(12)
 }
 
-draw_habits_screen :: (app: InbeApp*) {
+draw_habits_screen :: (app: InnerBreeze*) {
     content_top: int
     content_bottom: int
     content_x: int
@@ -2027,7 +2027,7 @@ draw_habits_screen :: (app: InbeApp*) {
     month_h: int = Scale(42)
     grid_gap: int = Scale(4)
     selected: int
-    active: InbeHabit* = nil
+    active: Habit* = nil
     now: time_t
     month_local: struct tm* = nil
     month: struct tm
@@ -2123,7 +2123,7 @@ draw_habits_screen :: (app: InbeApp*) {
         }
         EndUIClip()
         draw_habits_top_bar(app, 0)
-        if app->inbe.screen == InbeScreenHabits {
+        if app->breathing.screen == ScreenHabits {
             draw_habits_top_bar(app, 1)
         }
         return
@@ -2167,7 +2167,7 @@ draw_habits_screen :: (app: InbeApp*) {
             app->habit_edit.index != app->habits.selected) {
             habit_edit_begin(app, app->habits.selected)
         }
-        app_switch_screen(app, InbeScreenHabitEdit)
+        app_switch_screen(app, ScreenHabitEdit)
         return
     }
 
@@ -2231,7 +2231,7 @@ draw_habits_screen :: (app: InbeApp*) {
                                    content_x, content_w, y, weekly_days)
         EndUIScrollPage(page)
         draw_habits_top_bar(app, 0)
-        if app->inbe.screen == InbeScreenHabits {
+        if app->breathing.screen == ScreenHabits {
             draw_habits_top_bar(app, 1)
         }
         return
@@ -2373,7 +2373,7 @@ draw_habits_screen :: (app: InbeApp*) {
     EndUIScrollPage(page)
 
     draw_habits_top_bar(app, 0)
-    if app->inbe.screen == InbeScreenHabits {
+    if app->breathing.screen == ScreenHabits {
         draw_habits_top_bar(app, 1)
     }
 }
@@ -2384,7 +2384,7 @@ route habits {
     page habits
 }
 
-habits :: (app: InbeApp*) #ui {
+habits :: (app: InnerBreeze*) #ui {
     Screen root: {
     draw_habits_screen(app)
     }

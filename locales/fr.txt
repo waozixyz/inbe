@@ -1778,3 +1778,17 @@ Choisissez les pratiques terminées qui comptent pour cette habitude.
 [habit_routine_title]
 Planning et rappel
 ---
+[tab_elist]
+Listes
+[elist_title]
+Listes
+[elist_new_list]
+Nouvelle liste
+[elist_create_list]
+Creer la liste
+[elist_add_item]
+Ajouter
+[elist_empty_title]
+Aucune liste
+[elist_empty_detail]
+Creez une liste, puis ajoutez vos taches et notes au meme endroit.

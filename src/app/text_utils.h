@@ -1,5 +1,5 @@
-#ifndef INBE_TEXT_UTILS_H
-#define INBE_TEXT_UTILS_H
+#ifndef APP_TEXT_UTILS_H
+#define APP_TEXT_UTILS_H
 
 #include "kryon.h"
 
@@ -8,7 +8,7 @@
 #include <string.h>
 
 static inline void
-inbe_text_fit_ellipsis(const char *text, char *out, size_t out_size, int max_w,
+text_fit_ellipsis(const char *text, char *out, size_t out_size, int max_w,
                        int font)
 {
     if(out == NULL || out_size == 0)
@@ -37,19 +37,19 @@ inbe_text_fit_ellipsis(const char *text, char *out, size_t out_size, int max_w,
 }
 
 static inline const char *
-inbe_text_fit_ellipsis_into(const char *text, char *out, size_t out_size, int max_w,
+text_fit_ellipsis_into(const char *text, char *out, size_t out_size, int max_w,
                             int font)
 {
     if(text == NULL)
         text = "";
     if(max_w > 0 && TextWidth(text, font) <= max_w)
         return text;
-    inbe_text_fit_ellipsis(text, out, out_size, max_w, font);
+    text_fit_ellipsis(text, out, out_size, max_w, font);
     return out;
 }
 
 static inline void
-inbe_text_short_label(const char *text, int max_codepoints, int append_ellipsis,
+text_short_label(const char *text, int max_codepoints, int append_ellipsis,
                       char *out, size_t out_size)
 {
     size_t len;

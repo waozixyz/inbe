@@ -127,12 +127,12 @@ cache_key :: (out: char*, out_size: size_t, practice: int, metric: int) #private
     if out == nil || out_size == 0 {
         return
     }
-    snprintf(out, out_size, "leaderboard.inbe.%s.%s",
+    snprintf(out, out_size, "leaderboard.breathing.%s.%s",
                 practice_id(practice),
                 metric_id_for_practice(practice, metric))
 }
 
-load_friends_cache :: (app: InbeApp*) {
+load_friends_cache :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -153,7 +153,7 @@ load_friends_cache :: (app: InbeApp*) {
     app->profile_friends_loaded = 1
 }
 
-load_leaderboard_cache :: (app: InbeApp*) {
+load_leaderboard_cache :: (app: InnerBreeze*) {
     key: [96] char = {0}
 
     if app == nil {
@@ -193,7 +193,7 @@ json_array_count :: (json: const char*, array_key: const char*) -> int #private 
     return storage_json_array_count_path(json, path)
 }
 
-friends_count :: (app: InbeApp*) -> int {
+friends_count :: (app: InnerBreeze*) -> int {
     if app != nil && !app->profile_friends_loaded {
         load_friends_cache(app)
     }
@@ -201,7 +201,7 @@ friends_count :: (app: InbeApp*) -> int {
                             "friends")
 }
 
-pending_count :: (app: InbeApp*) -> int {
+pending_count :: (app: InnerBreeze*) -> int {
     if app != nil && !app->profile_friends_loaded {
         load_friends_cache(app)
     }
@@ -237,7 +237,7 @@ display_name :: (out: char*, out_size: size_t, alias: const char*,
     }
 }
 
-prompt_remove_friend :: (app: InbeApp*, friend_user_id: const char*,
+prompt_remove_friend :: (app: InnerBreeze*, friend_user_id: const char*,
                         friend_name: const char*) #private {
     if app == nil || friend_user_id == nil || friend_user_id[0] == '\0' {
         return
@@ -256,7 +256,7 @@ prompt_remove_friend :: (app: InbeApp*, friend_user_id: const char*,
 
 draw_json_people :: (json: const char*, array_key: const char*,
                     x: int, w: int, y: int*, with_actions: int,
-                    app: InbeApp*) #private {
+                    app: InnerBreeze*) #private {
     array_path: [48] char = {0}
     count := 0
     font := GetFontSize()
@@ -406,7 +406,7 @@ draw_json_people :: (json: const char*, array_key: const char*,
     }
 }
 
-draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
+draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     font := GetFontSize()
     btn_h := Scale(34)
     hover_add := 0
@@ -528,7 +528,7 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
 }
 
-friends_content_height :: (app: InbeApp*, content_w: int) -> int {
+friends_content_height :: (app: InnerBreeze*, content_w: int) -> int {
     h := Scale(16) + Scale(30) + Scale(22) + Scale(46) +
          Scale(34) + Scale(22)
     incoming_count := 0
@@ -573,7 +573,7 @@ draw_leaderboard_value :: (x: int, w: int, y: int, value: const char*,
     })
 }
 
-leaderboard_zero_value :: (app: InbeApp*, metric: int, out: char*,
+leaderboard_zero_value :: (app: InnerBreeze*, metric: int, out: char*,
                            out_size: size_t) #private {
     if out == nil || out_size == 0 {
         return
@@ -598,7 +598,7 @@ today_index :: () -> int #private {
            (tm_value->tm_mon + 1) * 100 + tm_value->tm_mday
 }
 
-local_leaderboard_value :: (app: InbeApp*, metric: int, out: char*,
+local_leaderboard_value :: (app: InnerBreeze*, metric: int, out: char*,
                            out_size: size_t) -> double #private {
     streak := 0
     avg: long = 0
@@ -640,7 +640,7 @@ row_seen :: (rows: const ProfileLeaderboardDrawRow*, count: int,
     return 0
 }
 
-append_missing_friend_rows :: (app: InbeApp*, rows: ProfileLeaderboardDrawRow*,
+append_missing_friend_rows :: (app: InnerBreeze*, rows: ProfileLeaderboardDrawRow*,
                               count: int*) #private {
     friend_count: int = 0
 
@@ -720,7 +720,7 @@ row_compare :: (left_ptr: const void*, right_ptr: const void*) -> int #private {
     return strcmp(left_name, right_name)
 }
 
-draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
+draw_leaderboard_rows :: (app: InnerBreeze*, json: const char*,
                          x: int, w: int, y: int*) #private {
     rows := 0
     cache_rows := 0
@@ -743,7 +743,7 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
     if app_social_refresh_loading() && !has_visible_rows {
         spinner_x := x + Scale(10)
         spinner_y := *y + Scale(9)
-        angle := app != nil ? (float)((app->inbe.frame * 5) % 360) : 0.0f
+        angle := app != nil ? (float)((app->breathing.frame * 5) % 360) : 0.0f
 
         DrawRing((Vector2){(float)spinner_x, (float)spinner_y},
                  (float)Scale(5), (float)Scale(7),
@@ -852,7 +852,7 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
     }
 }
 
-leaderboard_row_count :: (app: InbeApp*, json: const char*) -> int #private {
+leaderboard_row_count :: (app: InnerBreeze*, json: const char*) -> int #private {
     draw_rows: [24] ProfileLeaderboardDrawRow = {0}
     account: SyncAccount
     has_account := sync_account_load(&account) && account.public_id[0] != '\0'
@@ -912,7 +912,7 @@ find_metric_row :: (json: const char*, user_id: const char*,
     return 0
 }
 
-draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
+draw_combined_leaderboard :: (app: InnerBreeze*, x: int, w: int,
                               y: int*) #private {
     rows: [24] ProfileLeaderboardDrawRow = {0}
     names: [24][96] char = {0}
@@ -943,7 +943,7 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
     has_visible_rows := streak_count > 0 || avg_count > 0 ||
                         friend_count > 0 || has_account
     if app_social_refresh_loading() && !has_visible_rows {
-        angle := (float)((app->inbe.frame * 5) % 360)
+        angle := (float)((app->breathing.frame * 5) % 360)
         DrawRing((Vector2){(float)(x + Scale(10)),
                            (float)(*y + Scale(9))},
                  (float)Scale(5), (float)Scale(7), angle,
@@ -1084,7 +1084,7 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
     }
 }
 
-leaderboard_content_height :: (app: InbeApp*, content_w: int) -> int {
+leaderboard_content_height :: (app: InnerBreeze*, content_w: int) -> int {
     rows := 0
 
     unused content_w
@@ -1100,7 +1100,7 @@ leaderboard_content_height :: (app: InbeApp*, content_w: int) -> int {
            Scale(16)
 }
 
-refresh_leaderboard :: (app: InbeApp*) #private {
+refresh_leaderboard :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -1110,7 +1110,7 @@ refresh_leaderboard :: (app: InbeApp*) #private {
         GetLocaleText("profile_updating_status"), nil)
 }
 
-refresh_cache :: (app: InbeApp*) {
+refresh_cache :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -1121,7 +1121,7 @@ refresh_cache :: (app: InbeApp*) {
         GetLocaleText("profile_updating_status"), nil)
 }
 
-draw_choice_row :: (app: InbeApp*, x: int, w: int, y: int*, value: int*,
+draw_choice_row :: (app: InnerBreeze*, x: int, w: int, y: int*, value: int*,
                    labels: const char* const*, count: int) #private {
     gap := Scale(8)
     btn_h := Scale(34)
@@ -1160,7 +1160,7 @@ draw_choice_row :: (app: InbeApp*, x: int, w: int, y: int*, value: int*,
     *y += btn_h + Scale(10)
 }
 
-draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
+draw_leaderboard :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     practice_options: [EXERCISE_COUNT] const char* = {0}
     current_metric_count := 0
     before_practice := 0

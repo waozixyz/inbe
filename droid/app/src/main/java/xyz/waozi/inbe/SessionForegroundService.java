@@ -16,7 +16,7 @@ import android.util.Log;
 public class SessionForegroundService extends Service {
     public static final String ACTION_START = "xyz.waozi.inbe.action.START_SESSION_FOREGROUND";
     public static final String ACTION_STOP = "xyz.waozi.inbe.action.STOP_SESSION_FOREGROUND";
-    private static final String TAG = "InbeSessionService";
+    private static final String TAG = "SessionService";
     private static final String CHANNEL_ID = "active_session";
     private static final int NOTIFICATION_ID = 3001;
     private static String currentStatusText = "";

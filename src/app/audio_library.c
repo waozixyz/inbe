@@ -7,13 +7,13 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char *const audio_builtin_music_titles[INBE_AUDIO_BUILTIN_MUSIC_COUNT] = {
+static const char *const audio_builtin_music_titles[AUDIO_BUILTIN_MUSIC_COUNT] = {
     "Deep Meditation",
     "Path Of Meditation",
     "Truth Of Silence"
 };
 
-static const char *const audio_builtin_music_files[INBE_AUDIO_BUILTIN_MUSIC_COUNT] = {
+static const char *const audio_builtin_music_files[AUDIO_BUILTIN_MUSIC_COUNT] = {
 #if defined(KRYON_PLATFORM_PLAN9)
     "Elijah_K/deep-meditation.wav",
     "Elijah_K/path-of-meditation.wav",
@@ -25,13 +25,13 @@ static const char *const audio_builtin_music_files[INBE_AUDIO_BUILTIN_MUSIC_COUN
 #endif
 };
 
-static const char *const audio_cue_setting_keys[INBE_AUDIO_CUE_COUNT] = {
+static const char *const audio_cue_setting_keys[AUDIO_CUE_COUNT] = {
     "audio_cue_breath_in",
     "audio_cue_breath_out",
     "audio_cue_bell"
 };
 
-static const char *const audio_cue_default_files[INBE_AUDIO_CUE_COUNT] = {
+static const char *const audio_cue_default_files[AUDIO_CUE_COUNT] = {
 #if defined(KRYON_PLATFORM_PLAN9)
     "breath-in.wav",
     "breath-out.wav",
@@ -44,23 +44,23 @@ static const char *const audio_cue_default_files[INBE_AUDIO_CUE_COUNT] = {
 };
 
 #if defined(KRYON_PLATFORM_PLAN9)
-#define INBE_AUDIO_MUSIC_EXTENSIONS ".wav"
-#define INBE_AUDIO_SOUND_EXTENSIONS ".wav"
+#define AUDIO_MUSIC_EXTENSIONS ".wav"
+#define AUDIO_SOUND_EXTENSIONS ".wav"
 #else
-#define INBE_AUDIO_MUSIC_EXTENSIONS ".ogg;.wav;.qoa;.xm;.mod;.mp3;.flac;.m4a;.opus"
-#define INBE_AUDIO_SOUND_EXTENSIONS ".ogg;.wav;.qoa;.mp3;.flac;.m4a;.opus"
+#define AUDIO_MUSIC_EXTENSIONS ".ogg;.wav;.qoa;.xm;.mod;.mp3;.flac;.m4a;.opus"
+#define AUDIO_SOUND_EXTENSIONS ".ogg;.wav;.qoa;.mp3;.flac;.m4a;.opus"
 #endif
 
 int
 app_audio_music_file_valid(const char *path)
 {
-    return KryAudioFileValid(path, INBE_AUDIO_MUSIC_EXTENSIONS);
+    return KryAudioFileValid(path, AUDIO_MUSIC_EXTENSIONS);
 }
 
 int
 app_audio_sound_file_valid(const char *path)
 {
-    return KryAudioFileValid(path, INBE_AUDIO_SOUND_EXTENSIONS);
+    return KryAudioFileValid(path, AUDIO_SOUND_EXTENSIONS);
 }
 
 static int
@@ -78,7 +78,7 @@ audio_import_error_from_kryon(int error)
 }
 
 static int
-audio_import_item(InbeAudioLibraryItem *items, int *count, int max_count,
+audio_import_item(AudioLibraryItem *items, int *count, int max_count,
                   const char *kind, const char *src,
                   const char *extensions, int *error_code)
 {
@@ -115,7 +115,7 @@ audio_import_item(InbeAudioLibraryItem *items, int *count, int max_count,
 }
 
 static void
-audio_load_item(InbeAudioLibraryItem *item, const char *prefix, int index)
+audio_load_item(AudioLibraryItem *item, const char *prefix, int index)
 {
     char key[96];
     const char *value;
@@ -132,7 +132,7 @@ audio_load_item(InbeAudioLibraryItem *item, const char *prefix, int index)
 }
 
 static void
-audio_save_item(const InbeAudioLibraryItem *item, const char *prefix, int index)
+audio_save_item(const AudioLibraryItem *item, const char *prefix, int index)
 {
     char key[96];
 
@@ -145,7 +145,7 @@ audio_save_item(const InbeAudioLibraryItem *item, const char *prefix, int index)
 }
 
 void
-app_audio_library_load(InbeApp *app)
+app_audio_library_load(InnerBreeze*app)
 {
     int i;
 
@@ -156,8 +156,8 @@ app_audio_library_load(InbeApp *app)
         storage_get_setting_int("audio_custom_sound_count", 0);
     if(app->audio_custom_sound_count < 0)
         app->audio_custom_sound_count = 0;
-    if(app->audio_custom_sound_count > INBE_AUDIO_CUSTOM_SOUND_MAX)
-        app->audio_custom_sound_count = INBE_AUDIO_CUSTOM_SOUND_MAX;
+    if(app->audio_custom_sound_count > AUDIO_CUSTOM_SOUND_MAX)
+        app->audio_custom_sound_count = AUDIO_CUSTOM_SOUND_MAX;
     for(i = 0; i < app->audio_custom_sound_count; i++)
         audio_load_item(&app->audio_custom_sounds[i], "audio_custom_sound", i);
 
@@ -165,12 +165,12 @@ app_audio_library_load(InbeApp *app)
         storage_get_setting_int("audio_custom_music_count", 0);
     if(app->audio_custom_music_count < 0)
         app->audio_custom_music_count = 0;
-    if(app->audio_custom_music_count > INBE_AUDIO_CUSTOM_MUSIC_MAX)
-        app->audio_custom_music_count = INBE_AUDIO_CUSTOM_MUSIC_MAX;
+    if(app->audio_custom_music_count > AUDIO_CUSTOM_MUSIC_MAX)
+        app->audio_custom_music_count = AUDIO_CUSTOM_MUSIC_MAX;
     for(i = 0; i < app->audio_custom_music_count; i++)
         audio_load_item(&app->audio_custom_music[i], "audio_custom_music", i);
 
-    for(i = 0; i < INBE_AUDIO_CUE_COUNT; i++) {
+    for(i = 0; i < AUDIO_CUE_COUNT; i++) {
         int selected = storage_get_setting_int(audio_cue_setting_keys[i], 0);
         if(selected < 0 || selected > app->audio_custom_sound_count)
             selected = 0;
@@ -179,7 +179,7 @@ app_audio_library_load(InbeApp *app)
 }
 
 void
-app_audio_library_save(const InbeApp *app)
+app_audio_library_save(const InnerBreeze*app)
 {
     int i;
 
@@ -187,38 +187,38 @@ app_audio_library_save(const InbeApp *app)
         return;
 
     storage_set_setting_int("audio_custom_sound_count", app->audio_custom_sound_count);
-    for(i = 0; i < INBE_AUDIO_CUSTOM_SOUND_MAX; i++) {
+    for(i = 0; i < AUDIO_CUSTOM_SOUND_MAX; i++) {
         if(i < app->audio_custom_sound_count) {
             audio_save_item(&app->audio_custom_sounds[i], "audio_custom_sound", i);
         } else {
-            InbeAudioLibraryItem empty = {{0}, {0}};
+            AudioLibraryItem empty = {{0}, {0}};
             audio_save_item(&empty, "audio_custom_sound", i);
         }
     }
 
     storage_set_setting_int("audio_custom_music_count", app->audio_custom_music_count);
-    for(i = 0; i < INBE_AUDIO_CUSTOM_MUSIC_MAX; i++) {
+    for(i = 0; i < AUDIO_CUSTOM_MUSIC_MAX; i++) {
         if(i < app->audio_custom_music_count) {
             audio_save_item(&app->audio_custom_music[i], "audio_custom_music", i);
         } else {
-            InbeAudioLibraryItem empty = {{0}, {0}};
+            AudioLibraryItem empty = {{0}, {0}};
             audio_save_item(&empty, "audio_custom_music", i);
         }
     }
 
-    for(i = 0; i < INBE_AUDIO_CUE_COUNT; i++)
+    for(i = 0; i < AUDIO_CUE_COUNT; i++)
         storage_set_setting_int(audio_cue_setting_keys[i], app->audio_cue_selected[i]);
 }
 
 int
-app_audio_import_custom_sound(InbeApp *app, int cue, const char *path)
+app_audio_import_custom_sound(InnerBreeze*app, int cue, const char *path)
 {
     int error_code;
     return app_audio_import_custom_sound_ex(app, cue, path, &error_code);
 }
 
 int
-app_audio_import_custom_sound_ex(InbeApp *app, int cue, const char *path, int *error_code)
+app_audio_import_custom_sound_ex(InnerBreeze*app, int cue, const char *path, int *error_code)
 {
     int index;
 
@@ -233,12 +233,12 @@ app_audio_import_custom_sound_ex(InbeApp *app, int cue, const char *path, int *e
 
     index = audio_import_item(app->audio_custom_sounds,
                               &app->audio_custom_sound_count,
-                              INBE_AUDIO_CUSTOM_SOUND_MAX,
+                              AUDIO_CUSTOM_SOUND_MAX,
                               "sounds", path,
-                              INBE_AUDIO_SOUND_EXTENSIONS, error_code);
+                              AUDIO_SOUND_EXTENSIONS, error_code);
     if(index < 0)
         return 0;
-    if(cue >= 0 && cue < INBE_AUDIO_CUE_COUNT)
+    if(cue >= 0 && cue < AUDIO_CUE_COUNT)
         app->audio_cue_selected[cue] = index + 1;
     app_audio_library_save(app);
     app_audio_reload_cue_sounds(app);
@@ -246,14 +246,14 @@ app_audio_import_custom_sound_ex(InbeApp *app, int cue, const char *path, int *e
 }
 
 int
-app_audio_import_custom_music(InbeApp *app, const char *path)
+app_audio_import_custom_music(InnerBreeze*app, const char *path)
 {
     int error_code;
     return app_audio_import_custom_music_ex(app, path, &error_code);
 }
 
 int
-app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code)
+app_audio_import_custom_music_ex(InnerBreeze*app, const char *path, int *error_code)
 {
     int index;
     Music probe;
@@ -269,9 +269,9 @@ app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code
 
     index = audio_import_item(app->audio_custom_music,
                               &app->audio_custom_music_count,
-                              INBE_AUDIO_CUSTOM_MUSIC_MAX,
+                              AUDIO_CUSTOM_MUSIC_MAX,
                               "music", path,
-                              INBE_AUDIO_MUSIC_EXTENSIONS, error_code);
+                              AUDIO_MUSIC_EXTENSIONS, error_code);
     if(index < 0)
         return 0;
     probe = LoadMusicStream(app->audio_custom_music[index].path);
@@ -287,14 +287,14 @@ app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code
         return 0;
     }
     UnloadMusicStream(probe);
-    app->meditation.music_track = INBE_AUDIO_BUILTIN_MUSIC_COUNT + index;
+    app->meditation.music_track = AUDIO_BUILTIN_MUSIC_COUNT + index;
     app_audio_music_sanitize_selection(app);
     app_audio_library_save(app);
     return 1;
 }
 
 int
-app_audio_remove_custom_sound(InbeApp *app, int index)
+app_audio_remove_custom_sound(InnerBreeze*app, int index)
 {
     int i;
     int cue;
@@ -306,7 +306,7 @@ app_audio_remove_custom_sound(InbeApp *app, int index)
     app->audio_custom_sound_count--;
     memset(&app->audio_custom_sounds[app->audio_custom_sound_count], 0,
            sizeof(app->audio_custom_sounds[0]));
-    for(cue = 0; cue < INBE_AUDIO_CUE_COUNT; cue++) {
+    for(cue = 0; cue < AUDIO_CUE_COUNT; cue++) {
         if(app->audio_cue_selected[cue] == index + 1)
             app->audio_cue_selected[cue] = 0;
         else if(app->audio_cue_selected[cue] > index + 1)
@@ -318,9 +318,9 @@ app_audio_remove_custom_sound(InbeApp *app, int index)
 }
 
 int
-app_audio_remove_custom_music(InbeApp *app, int index)
+app_audio_remove_custom_music(InnerBreeze*app, int index)
 {
-    int removed_track = INBE_AUDIO_BUILTIN_MUSIC_COUNT + index;
+    int removed_track = AUDIO_BUILTIN_MUSIC_COUNT + index;
     int i;
 
     if(app == NULL || index < 0 || index >= app->audio_custom_music_count)
@@ -347,23 +347,23 @@ app_audio_remove_custom_music(InbeApp *app, int index)
 }
 
 int
-app_audio_music_count(const InbeApp *app)
+app_audio_music_count(const InnerBreeze*app)
 {
     int custom = app != NULL ? app->audio_custom_music_count : 0;
 
     if(custom < 0)
         custom = 0;
-    if(custom > INBE_AUDIO_CUSTOM_MUSIC_MAX)
-        custom = INBE_AUDIO_CUSTOM_MUSIC_MAX;
-    return INBE_AUDIO_BUILTIN_MUSIC_COUNT + custom;
+    if(custom > AUDIO_CUSTOM_MUSIC_MAX)
+        custom = AUDIO_CUSTOM_MUSIC_MAX;
+    return AUDIO_BUILTIN_MUSIC_COUNT + custom;
 }
 
 const char *
-app_audio_music_label(const InbeApp *app, int index)
+app_audio_music_label(const InnerBreeze*app, int index)
 {
-    if(index >= 0 && index < INBE_AUDIO_BUILTIN_MUSIC_COUNT)
+    if(index >= 0 && index < AUDIO_BUILTIN_MUSIC_COUNT)
         return audio_builtin_music_titles[index];
-    index -= INBE_AUDIO_BUILTIN_MUSIC_COUNT;
+    index -= AUDIO_BUILTIN_MUSIC_COUNT;
     if(app != NULL && index >= 0 && index < app->audio_custom_music_count)
         return app->audio_custom_music[index].title;
     return "";
@@ -372,20 +372,20 @@ app_audio_music_label(const InbeApp *app, int index)
 const char *
 app_audio_cue_default_asset(int cue)
 {
-    if(cue < 0 || cue >= INBE_AUDIO_CUE_COUNT)
+    if(cue < 0 || cue >= AUDIO_CUE_COUNT)
         return "";
     return audio_cue_default_files[cue];
 }
 
 int
-app_audio_cue_path(InbeApp *app, int cue, char *out, size_t out_size)
+app_audio_cue_path(InnerBreeze*app, int cue, char *out, size_t out_size)
 {
     int selected;
 
     if(out == NULL || out_size == 0)
         return 0;
     out[0] = '\0';
-    if(app == NULL || cue < 0 || cue >= INBE_AUDIO_CUE_COUNT)
+    if(app == NULL || cue < 0 || cue >= AUDIO_CUE_COUNT)
         return 0;
     selected = app->audio_cue_selected[cue];
     if(selected <= 0 || selected > app->audio_custom_sound_count)
@@ -399,12 +399,12 @@ app_audio_cue_path(InbeApp *app, int cue, char *out, size_t out_size)
 }
 
 int
-app_audio_music_path(const InbeApp *app, int index, char *out, size_t out_size)
+app_audio_music_path(const InnerBreeze*app, int index, char *out, size_t out_size)
 {
     if(out == NULL || out_size == 0)
         return 0;
     out[0] = '\0';
-    if(index >= 0 && index < INBE_AUDIO_BUILTIN_MUSIC_COUNT) {
+    if(index >= 0 && index < AUDIO_BUILTIN_MUSIC_COUNT) {
         char candidate[FS_PATH_MAX * 2];
 #if defined(DEBUG_LOCAL_ASSETS) || defined(KRYON_PLATFORM_PLAN9)
         snprintf(candidate, sizeof(candidate), "unpackaged_assets/audio/%s",
@@ -432,7 +432,7 @@ app_audio_music_path(const InbeApp *app, int index, char *out, size_t out_size)
         return 0;
     }
 
-    index -= INBE_AUDIO_BUILTIN_MUSIC_COUNT;
+    index -= AUDIO_BUILTIN_MUSIC_COUNT;
     if(app != NULL && index >= 0 && index < app->audio_custom_music_count &&
        app_audio_music_file_valid(app->audio_custom_music[index].path)) {
         snprintf(out, out_size, "%s", app->audio_custom_music[index].path);
@@ -442,7 +442,7 @@ app_audio_music_path(const InbeApp *app, int index, char *out, size_t out_size)
 }
 
 void
-app_audio_music_sanitize_selection(InbeApp *app)
+app_audio_music_sanitize_selection(InnerBreeze*app)
 {
     int count;
     int mask;
@@ -457,17 +457,17 @@ app_audio_music_sanitize_selection(InbeApp *app)
         app->meditation.music_track = 0;
     /* The mask is derived from the per-practice track slots so it can never
      * drift out of sync: a bit is set iff that practice has a valid track
-     * (i.e. not INBE_AUDIO_MUSIC_NONE). */
+     * (i.e. not AUDIO_MUSIC_NONE). */
     mask = 0;
     for(i = 0; i < EXERCISE_COUNT; i++) {
         int track = app->meditation.music_practice_tracks[i];
-        /* INBE_AUDIO_MUSIC_NONE (-1) is valid and means "no music". Any other
+        /* AUDIO_MUSIC_NONE (-1) is valid and means "no music". Any other
          * out-of-range value is clamped to None rather than 0 so a stale index
          * never silently selects a different track. */
-        if(track != INBE_AUDIO_MUSIC_NONE &&
+        if(track != AUDIO_MUSIC_NONE &&
            (track < 0 || track >= count))
-            app->meditation.music_practice_tracks[i] = INBE_AUDIO_MUSIC_NONE;
-        if(app->meditation.music_practice_tracks[i] != INBE_AUDIO_MUSIC_NONE)
+            app->meditation.music_practice_tracks[i] = AUDIO_MUSIC_NONE;
+        if(app->meditation.music_practice_tracks[i] != AUDIO_MUSIC_NONE)
             mask |= 1 << i;
     }
     app->meditation.music_practice_mask = mask;

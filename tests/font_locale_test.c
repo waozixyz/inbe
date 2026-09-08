@@ -36,21 +36,21 @@ int
 main(void)
 {
     static const LocaleFontCase cases[] = {
-        {"en",      INBE_FONT_LATIN},
-        {"cs",      INBE_FONT_LATIN},
-        {"de",      INBE_FONT_LATIN},
-        {"es",      INBE_FONT_LATIN},
-        {"fr",      INBE_FONT_LATIN},
-        {"id",      INBE_FONT_LATIN},
-        {"it",      INBE_FONT_LATIN},
-        {"pt",      INBE_FONT_LATIN},
-        {"ru",      INBE_FONT_LATIN},
-        {"zh",      INBE_FONT_SC},
-        {"zh-TW",   INBE_FONT_TC},
-        {"zh_Hant", INBE_FONT_TC},
-        {"ja",      INBE_FONT_JP},
-        {"ko",      INBE_FONT_KR},
-        {NULL,      INBE_FONT_LATIN}
+        {"en",      FONT_LATIN},
+        {"cs",      FONT_LATIN},
+        {"de",      FONT_LATIN},
+        {"es",      FONT_LATIN},
+        {"fr",      FONT_LATIN},
+        {"id",      FONT_LATIN},
+        {"it",      FONT_LATIN},
+        {"pt",      FONT_LATIN},
+        {"ru",      FONT_LATIN},
+        {"zh",      FONT_SC},
+        {"zh-TW",   FONT_TC},
+        {"zh_Hant", FONT_TC},
+        {"ja",      FONT_JP},
+        {"ko",      FONT_KR},
+        {NULL,      FONT_LATIN}
     };
     int failures = 0;
 

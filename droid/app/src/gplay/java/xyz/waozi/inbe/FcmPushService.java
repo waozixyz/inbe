@@ -5,7 +5,7 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 public class FcmPushService extends FirebaseMessagingService {
-    private static final String TAG = "INBE_FCM";
+    private static final String TAG = "FCM";
 
     @Override
     public void onNewToken(String token) {

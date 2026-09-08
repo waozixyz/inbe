@@ -28,7 +28,7 @@ PracticeManualLayout :: struct {
     content_h: int
 }
 
-PracticeLeaveConfigFn :: void (*)(InbeApp*) #type
+PracticeLeaveConfigFn :: void (*)(InnerBreeze*) #type
 
 practice_activity_count_for_tab :: (tab: int) -> int {
     unused tab
@@ -46,11 +46,11 @@ practice_activity_for_tab :: (tab: int, index: int) -> int {
     return practice_ordered_id(index)
 }
 
-practice_screen_subscreen_integrated :: (app: const InbeApp*, modal_type: int) -> int {
-    return app != NULL && app->inbe.screen == InbeScreenStart && (int)app->modal.type != modal_type
+practice_screen_subscreen_integrated :: (app: const InnerBreeze*, modal_type: int) -> int {
+    return app != NULL && app->breathing.screen == ScreenStart && (int)app->modal.type != modal_type
 }
 
-practice_screen_config_layout :: (app: InbeApp*, modal_type: int, content_top_gap: int, layout: PracticeSubscreenLayout*) {
+practice_screen_config_layout :: (app: InnerBreeze*, modal_type: int, content_top_gap: int, layout: PracticeSubscreenLayout*) {
     integrated := practice_screen_subscreen_integrated(app, modal_type)
     title_h := integrated ? app_content_top_reserved(app) : GetNodeHeight(NodeTitleBar(0))
     scroll_y := title_h + content_top_gap
@@ -66,7 +66,7 @@ practice_screen_config_layout :: (app: InbeApp*, modal_type: int, content_top_ga
     *layout = (PracticeSubscreenLayout){integrated, title_h, scroll_y, scroll_h}
 }
 
-practice_screen_manual_layout :: (app: InbeApp*, modal_type: int, page_count: int, content_top_gap: int, content_bottom_gap: int, min_content_h: int, layout: PracticeManualLayout*) {
+practice_screen_manual_layout :: (app: InnerBreeze*, modal_type: int, page_count: int, content_top_gap: int, content_bottom_gap: int, min_content_h: int, layout: PracticeManualLayout*) {
     integrated := practice_screen_subscreen_integrated(app, modal_type)
     title_h := app_nav_desktop_rail_enabled(app) ? 0 :
                (integrated ? app_content_top_reserved(app) : GetNodeHeight(NodeTitleBar(0)))
@@ -85,7 +85,7 @@ practice_screen_manual_layout :: (app: InbeApp*, modal_type: int, page_count: in
     *layout = (PracticeManualLayout){integrated, title_h, nav_y, nav_h, content_y, content_h}
 }
 
-practice_screen_handle_config_title :: (app: InbeApp*, title: const char*, modal_type: int, leave_config: PracticeLeaveConfigFn) -> int {
+practice_screen_handle_config_title :: (app: InnerBreeze*, title: const char*, modal_type: int, leave_config: PracticeLeaveConfigFn) -> int {
     title_h := 0
 
     if app == NULL {
@@ -106,7 +106,7 @@ practice_screen_handle_config_title :: (app: InbeApp*, title: const char*, modal
         }
         app->settings_scroll = 0
         app->practice_tab = PRACTICE_TAB_PLAY
-        app_switch_screen(app, InbeScreenStart)
+        app_switch_screen(app, ScreenStart)
     }
     return 1
 }
@@ -115,7 +115,7 @@ practice_card_banner_bottom_padding :: () -> int #private {
     return Scale(6)
 }
 
-practice_card_banner_asset_path :: (app: const InbeApp*, exercise: int) -> const char* #private {
+practice_card_banner_asset_path :: (app: const InnerBreeze*, exercise: int) -> const char* #private {
     id := practice_clamp_id(exercise)
     dark := app != NULL && ((app->theme_mode == APP_THEME_DARK) ||
         (app->theme_mode != APP_THEME_LIGHT && app->dark_mode != 0))
@@ -147,7 +147,7 @@ practice_draw_card_banner :: (asset_path: const char*, dest: Rectangle) {
     })
 }
 
-practice_next_ordered :: (app: InbeApp*, dir: int) -> int {
+practice_next_ordered :: (app: InnerBreeze*, dir: int) -> int {
     if app == NULL {
         return EXERCISE_WIM_HOF
     }
@@ -162,12 +162,12 @@ practice_next_ordered :: (app: InbeApp*, dir: int) -> int {
     return practice_ordered_id(next_index)
 }
 
-practice_home_count :: (app: const InbeApp*) -> int {
+practice_home_count :: (app: const InnerBreeze*) -> int {
     unused app
     return practice_count()
 }
 
-practice_ordered_index :: (app: const InbeApp*, exercise: int) -> int {
+practice_ordered_index :: (app: const InnerBreeze*, exercise: int) -> int {
     unused app
     for int i = 0; i < practice_count(); i++ {
         id := practice_ordered_id(i)
@@ -178,15 +178,15 @@ practice_ordered_index :: (app: const InbeApp*, exercise: int) -> int {
     return 0
 }
 
-practice_home_dots_height :: (app: const InbeApp*) -> int #private {
+practice_home_dots_height :: (app: const InnerBreeze*) -> int #private {
     return practice_home_count(app) > 1 ? Scale(32) : 0
 }
 
-practice_home_carousel_controls_height :: (app: const InbeApp*) -> int #private {
+practice_home_carousel_controls_height :: (app: const InnerBreeze*) -> int #private {
     return practice_home_dots_height(app)
 }
 
-practice_select_home_card :: (app: InbeApp*, exercise: int) #private {
+practice_select_home_card :: (app: InnerBreeze*, exercise: int) #private {
     route := (AppRoute){0}
 
     if app == NULL {
@@ -196,7 +196,7 @@ practice_select_home_card :: (app: InbeApp*, exercise: int) #private {
         app_leave_practice_config(app)
     }
     route = app_current_route(app)
-    route.screen = InbeScreenStart
+    route.screen = ScreenStart
     route.exercise_type = practice_clamp_id(exercise)
     route.practice_tab = PRACTICE_TAB_PLAY
     route.practice_config_tab = 0
@@ -208,7 +208,7 @@ practice_select_home_card :: (app: InbeApp*, exercise: int) #private {
 }
 
 
-practice_home_below_card_height :: (app: const InbeApp*, content_w: int) -> int #private {
+practice_home_below_card_height :: (app: const InnerBreeze*, content_w: int) -> int #private {
     practice := practice_get(app != NULL ? app->exercise_type : 0)
     tokens := GetUIStyleTokens()
     gap := Scale(12)
@@ -229,7 +229,7 @@ practice_home_below_card_height :: (app: const InbeApp*, content_w: int) -> int 
     return height + Scale(14)
 }
 
-practice_home_card_height :: (app: const InbeApp*, y: int, bottom_reserved: int,
+practice_home_card_height :: (app: const InnerBreeze*, y: int, bottom_reserved: int,
                              content_w: int) -> int #private {
     card_h: int = view_height - y - bottom_reserved -
               practice_home_below_card_height(app, content_w)
@@ -254,7 +254,7 @@ practice_home_action_gap :: (content_w: int) -> int #private {
     return content_w < Scale(340) ? Scale(8) : Scale(12)
 }
 
-practice_home_action_button :: (app: InbeApp*, bounds: Rectangle,
+practice_home_action_button :: (app: InnerBreeze*, bounds: Rectangle,
                                 label: const char*, primary: int) -> int #private {
     mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
     disabled := app != NULL && app->modal.active
@@ -312,7 +312,7 @@ practice_home_subtitle :: (exercise: int) -> const char* #private {
     return NULL
 }
 
-practice_home_meditation_minutes :: (app: const InbeApp*) -> int #private {
+practice_home_meditation_minutes :: (app: const InnerBreeze*) -> int #private {
     mode := app != NULL ? app->meditation.duration_mode : 1
 
     if mode == 0 {
@@ -333,7 +333,7 @@ practice_home_meditation_minutes :: (app: const InbeApp*) -> int #private {
     return app != NULL ? clampi(app->meditation.custom_minutes, 1, 240) : 15
 }
 
-practice_home_metadata :: (app: InbeApp*, out: char*, out_size: size_t) #private {
+practice_home_metadata :: (app: InnerBreeze*, out: char*, out_size: size_t) #private {
     if out == NULL || out_size == 0 {
         return
     }
@@ -355,16 +355,16 @@ practice_home_metadata :: (app: InbeApp*, out: char*, out_size: size_t) #private
             snprintf(out, out_size, "%s", ratio)
         }
     } else {
-        FormatLocaleText(out, out_size, "practice_home_wim_hof_metadata", app->inbe.max_rounds, int_from_count(app->inbe.maxbreaths))
+        FormatLocaleText(out, out_size, "practice_home_wim_hof_metadata", app->breathing.max_rounds, int_from_count(app->breathing.maxbreaths))
     }
 }
 
-practice_home_title_height :: (app: const InbeApp*) -> int #private {
+practice_home_title_height :: (app: const InnerBreeze*) -> int #private {
     subtitle: const char* = app != NULL ? practice_home_subtitle(app->exercise_type) : NULL
     return subtitle != NULL ? Scale(80) : Scale(58)
 }
 
-practice_draw_home_title :: (app: InbeApp*, x: int, y: int, w: int) #private {
+practice_draw_home_title :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
     if app == NULL {
         return
     }
@@ -447,7 +447,7 @@ practice_home_actions_share_row :: (practice: const PracticeDefinition*, content
     return practice != NULL && practice->draw_manual != NULL && practice->draw_config != NULL && practice_home_action_row_widths(content_w, &manual_w, &config_w)
 }
 
-practice_draw_desktop_home_title :: (app: InbeApp*, x: int, y: int, w: int) #private {
+practice_draw_desktop_home_title :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
     if app == NULL {
         return
     }
@@ -485,7 +485,7 @@ practice_draw_desktop_home_title :: (app: InbeApp*, x: int, y: int, w: int) #pri
     })
 }
 
-practice_screen_draw_desktop_home :: (app: InbeApp*) -> int #private {
+practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
     if app == NULL || !IsUIDesktopMode() {
         return 0
     }
@@ -622,7 +622,7 @@ practice_screen_draw_desktop_home :: (app: InbeApp*) -> int #private {
 }
 
 practice_home_content_height :: (content_w: int, user_data: void*) -> int #private {
-    app := (InbeApp*)user_data
+    app := (InnerBreeze*)user_data
     if app == NULL {
         return 0
     }
@@ -633,7 +633,7 @@ practice_home_content_height :: (content_w: int, user_data: void*) -> int #priva
     return y
 }
 
-practice_screen_draw_home :: (app: InbeApp*) {
+practice_screen_draw_home :: (app: InnerBreeze*) {
     start(app)
 }
 
@@ -641,14 +641,14 @@ practice_activity_label :: (exercise: int) -> const char* {
     return practice_label(exercise)
 }
 
-practice_clamp_activity_to_tab :: (app: InbeApp*) {
+practice_clamp_activity_to_tab :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
     app->exercise_type = practice_clamp_id(app->exercise_type)
 }
 
-practice_screen_open_tab :: (app: InbeApp*, tab: int) {
+practice_screen_open_tab :: (app: InnerBreeze*, tab: int) {
     route := (AppRoute){0}
 
     if app == NULL || app->modal.active {
@@ -660,7 +660,7 @@ practice_screen_open_tab :: (app: InbeApp*, tab: int) {
             app_leave_practice_config(app)
         }
         route.practice_tab = PRACTICE_TAB_PLAY
-        route.screen = InbeScreenStart
+        route.screen = ScreenStart
         if app->modal.type == UIModalPracticeManual || app->modal.type == UIModalPracticeConfig {
             app_close_modal(app)
         }
@@ -674,7 +674,7 @@ practice_screen_open_tab :: (app: InbeApp*, tab: int) {
             app_leave_practice_config(app)
         }
         route.practice_tab = PRACTICE_TAB_MANUAL
-        route.screen = InbeScreenStart
+        route.screen = ScreenStart
         app->tutorial_step = 0
         app->manual_scroll = 0
         app_switch_route(app, route)
@@ -690,12 +690,12 @@ practice_screen_open_tab :: (app: InbeApp*, tab: int) {
         }
         route.practice_tab = PRACTICE_TAB_CONFIG
         route.practice_config_tab = 0
-        route.screen = InbeScreenStart
+        route.screen = ScreenStart
         app_switch_route(app, route)
     }
 }
 
-practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private {
+practice_screen_draw_desktop_tab_bar :: (app: InnerBreeze*, y: int) -> int #private {
     tabs := (Tab[EXERCISE_COUNT]){0}
     values := (int[EXERCISE_COUNT]){0}
     tab_count := 0
@@ -721,7 +721,7 @@ practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private 
     return clicked >= 0 && clicked < tab_count ? values[clicked] : -1
 }
 
-practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
+practice_screen_draw_top_bar :: (app: InnerBreeze*, draw_menu: int) {
     exercise_options := (const char*[EXERCISE_COUNT]){0}
     exercise_values := (int[EXERCISE_COUNT]){0}
     activity_count := 0
@@ -755,7 +755,7 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
             route.exercise_type = exercise_values[activity_index]
             route.practice_tab = PRACTICE_TAB_PLAY
             route.practice_config_tab = 0
-            route.screen = InbeScreenStart
+            route.screen = ScreenStart
             app->manual_scroll = 0
             app->settings_scroll = 0
             app->practice_home_scroll = 0
@@ -775,7 +775,7 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
             route.exercise_type = clicked_exercise
             route.practice_tab = PRACTICE_TAB_PLAY
             route.practice_config_tab = 0
-            route.screen = InbeScreenStart
+            route.screen = ScreenStart
             app->manual_scroll = 0
             app->settings_scroll = 0
             app->practice_home_scroll = 0
@@ -791,7 +791,7 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
     }
 }
 
-practice_screen_draw_floating_actions :: (app: InbeApp*) {
+practice_screen_draw_floating_actions :: (app: InnerBreeze*) {
     icon_size := Scale(22)
     icon_padding := Scale(9)
     button_w := icon_size + icon_padding * 2
@@ -800,7 +800,7 @@ practice_screen_draw_floating_actions :: (app: InbeApp*) {
     y := app_content_top_reserved(app) + Scale(10)
     x := view_width - margin
 
-    if app == NULL || app->modal.active || app->inbe.screen != InbeScreenStart {
+    if app == NULL || app->modal.active || app->breathing.screen != ScreenStart {
         return
     }
     practice := practice_get(app->exercise_type)
@@ -821,7 +821,7 @@ practice_screen_draw_floating_actions :: (app: InbeApp*) {
     }
 }
 
-practice_screen_draw_modal :: (app: InbeApp*) {
+practice_screen_draw_modal :: (app: InnerBreeze*) {
     if app == NULL || !app->modal.active {
         return
     }
@@ -848,7 +848,7 @@ practice_screen_draw_modal :: (app: InbeApp*) {
     }
 }
 
-practice_screen_dismiss_first_run_guide :: (app: InbeApp*) {
+practice_screen_dismiss_first_run_guide :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
@@ -858,11 +858,11 @@ practice_screen_dismiss_first_run_guide :: (app: InbeApp*) {
     sync_web_storage_critical()
 }
 
-practice_screen_first_run_guide_active :: (app: const InbeApp*) -> int {
-    return app != NULL && !app->tutorial_seen && !app->modal.active && app->exercise_type != EXERCISE_SUN_SALUTATION && app->inbe.screen == InbeScreenStart && app->main_tab != APP_MAIN_TAB_NONE && !storage_has_sync_account()
+practice_screen_first_run_guide_active :: (app: const InnerBreeze*) -> int {
+    return app != NULL && !app->tutorial_seen && !app->modal.active && app->exercise_type != EXERCISE_SUN_SALUTATION && app->breathing.screen == ScreenStart && app->main_tab != APP_MAIN_TAB_NONE && !storage_has_sync_account()
 }
 
-practice_screen_prepare_first_run_guide :: (app: InbeApp*) {
+practice_screen_prepare_first_run_guide :: (app: InnerBreeze*) {
     if !practice_screen_first_run_guide_active(app) {
         return
     }
@@ -900,7 +900,7 @@ practice_home_action_guide_anchor :: (manual: Rectangle, config: Rectangle) -> R
     return (Rectangle){left, top, right - left, bottom - top}
 }
 
-practice_screen_draw_first_run_guide :: (app: InbeApp*) {
+practice_screen_draw_first_run_guide :: (app: InnerBreeze*) {
     steps: [3] UIGuideStep = {0}
     result := (UIGuideResult){0}
 
@@ -929,7 +929,7 @@ route start {
     page start
 }
 
-start :: (app: InbeApp*) #ui {
+start :: (app: InnerBreeze*) #ui {
     Screen root: {
     guard app == NULL
 

@@ -1778,3 +1778,17 @@ Escolha quais práticas concluídas contam para este hábito.
 [habit_routine_title]
 Programação e lembrete
 ---
+[tab_elist]
+Listas
+[elist_title]
+Listas
+[elist_new_list]
+Nova lista
+[elist_create_list]
+Criar lista
+[elist_add_item]
+Adicionar
+[elist_empty_title]
+Ainda nao ha listas
+[elist_empty_detail]
+Crie uma lista e adicione tarefas e notas em um so lugar.

@@ -42,7 +42,7 @@ settings_cache_add :: (key: const char*, value: const char*, user: void*) #priva
                      (size_t)new_capacity * sizeof(*grown))
         if grown == nil {
             TraceLog(LOG_WARNING,
-                     "INBE: settings cache cannot grow to %d entries",
+                     "APP: settings cache cannot grow to %d entries",
                      new_capacity)
             return
         }
@@ -133,7 +133,7 @@ load_profile_picture_icon :: (cache: const SettingsLoadCache*) -> UIIconType #pr
     return is_profile_picture_icon(type) ? type : fallback
 }
 
-load_bottom_nav_routes :: (app: InbeApp*, cache: const SettingsLoadCache*) #private {
+load_bottom_nav_routes :: (app: InnerBreeze*, cache: const SettingsLoadCache*) #private {
     if app == nil {
         return
     }
@@ -154,34 +154,34 @@ default_theme_source :: () -> int #private {
     return APP_THEME_SOURCE_SYSTEM
 }
 
-apply_settings :: (inbe: Inbe*, speed: int, max_rounds: int,
+apply_settings :: (breathing: BreathSession*, speed: int, max_rounds: int,
                       max_breaths: int, pause_seconds: int) {
     speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX)
-    inbe->speed_level = speed
-    inbe->breath_half_ticks = breath_half_ticks_for_speed(speed)
-    inbe->breath_animation = clampi(inbe->breath_animation,
-                                    InbeBreathAnimationLinear,
-                                    InbeBreathAnimationCount - 1)
-    inbe->progressive_start_speed = clampi(inbe->progressive_start_speed,
+    breathing->speed_level = speed
+    breathing->breath_half_ticks = breath_half_ticks_for_speed(speed)
+    breathing->breath_animation = clampi(breathing->breath_animation,
+                                    BreathAnimationLinear,
+                                    BreathAnimationCount - 1)
+    breathing->progressive_start_speed = clampi(breathing->progressive_start_speed,
                                            SETTINGS_SPEED_MIN, speed)
-    inbe->max_rounds = clampi(max_rounds, 1, MaxRounds)
-    inbe->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN,
+    breathing->max_rounds = clampi(max_rounds, 1, MaxRounds)
+    breathing->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN,
                                  SETTINGS_PAUSE_MAX)
-    count_from_int(inbe->maxbreaths,
+    count_from_int(breathing->maxbreaths,
                       clampi(max_breaths, SETTINGS_BREATHS_MIN,
                              SETTINGS_BREATHS_MAX))
 }
 
-reset_settings_preview :: (app: InbeApp*) {
-    speed := app->inbe.speed_level
-    max_rounds := app->inbe.max_rounds
-    max_breaths := int_from_count(app->inbe.maxbreaths)
-    pause_seconds := app->inbe.pause_seconds
-    play_in_background := app->inbe.play_in_background
-    breath_animation := app->inbe.breath_animation
+reset_settings_preview :: (app: InnerBreeze*) {
+    speed := app->breathing.speed_level
+    max_rounds := app->breathing.max_rounds
+    max_breaths := int_from_count(app->breathing.maxbreaths)
+    pause_seconds := app->breathing.pause_seconds
+    play_in_background := app->breathing.play_in_background
+    breath_animation := app->breathing.breath_animation
     content_w: int
 
-    inbeinit(&app->settings_preview)
+    breath_session_init(&app->settings_preview)
     app->settings_preview.progressive_speed = 0
     app->settings_preview.play_in_background = play_in_background
     app->settings_preview.breath_animation = breath_animation
@@ -196,16 +196,16 @@ save_setting_int :: (key: const char*, value: int) #private {
     storage_set_setting_int(key, value)
 }
 
-save_settings :: (app: InbeApp*) {
+save_settings :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
 
     storage_settings_begin_write()
-    save_setting_int("speed", app->inbe.speed_level)
-    save_setting_int("max_rounds", app->inbe.max_rounds)
-    save_setting_int("max_breaths", int_from_count(app->inbe.maxbreaths))
-    save_setting_int("pause_seconds", app->inbe.pause_seconds)
+    save_setting_int("speed", app->breathing.speed_level)
+    save_setting_int("max_rounds", app->breathing.max_rounds)
+    save_setting_int("max_breaths", int_from_count(app->breathing.maxbreaths))
+    save_setting_int("pause_seconds", app->breathing.pause_seconds)
     save_setting_int("sound_volume", app->sound_volume)
     save_setting_int("music_volume", app->music_volume)
     app_audio_library_save(app)
@@ -273,10 +273,10 @@ save_settings :: (app: InbeApp*) {
             save_setting_int(key, i < app->reminder_count ? r->last_day : 0)
         }
     }
-    save_setting_int("progressive_speed", app->inbe.progressive_speed)
+    save_setting_int("progressive_speed", app->breathing.progressive_speed)
     save_setting_int("progressive_start_speed",
-                        app->inbe.progressive_start_speed)
-    save_setting_int("breath_animation", app->inbe.breath_animation)
+                        app->breathing.progressive_start_speed)
+    save_setting_int("breath_animation", app->breathing.breath_animation)
     save_setting_int("advanced_session_controls",
                         app->advanced_session_controls ? 1 : 0)
     save_setting_int("double_tap_to_breathe",
@@ -305,7 +305,7 @@ save_settings :: (app: InbeApp*) {
         practice_music_track_key(i, track_key, sizeof(track_key))
         save_setting_int(track_key, app->meditation.music_practice_tracks[i])
     }
-    save_setting_int("play_in_background", app->inbe.play_in_background)
+    save_setting_int("play_in_background", app->breathing.play_in_background)
     save_setting_int("play_in_background_default_migrated", 1)
     save_setting_int("practice_category_tab", app->practice_category_tab)
     save_setting_int("patterns_preset", app->patterns.preset)
@@ -372,7 +372,7 @@ save_settings :: (app: InbeApp*) {
     app->settings_save_delay_ticks = 0
 }
 
-load_language_setting :: (app: InbeApp*, settings_missing: int,
+load_language_setting :: (app: InnerBreeze*, settings_missing: int,
                          cache: const SettingsLoadCache*) #private {
     language := settings_cache_get(cache, "language")
     setup_done := settings_cache_get_int(cache, "language_setup_done",
@@ -414,7 +414,7 @@ load_clamped_setting :: (cache: const SettingsLoadCache*, dst: int*,
     *dst = clampi(value, min_value, max_value)
 }
 
-load_reminders :: (app: InbeApp*, cache: const SettingsLoadCache*) #private {
+load_reminders :: (app: InnerBreeze*, cache: const SettingsLoadCache*) #private {
     key: [40] char
 
     if app == nil || cache == nil {
@@ -485,7 +485,7 @@ break_timer_setting_key :: (t: int, field: const char*, out: char*, out_size: in
     }
 }
 
-app_load_settings :: (app: InbeApp*) -> int {
+app_load_settings :: (app: InnerBreeze*) -> int {
     settings_missing: int
     speed: int
     max_rounds: int
@@ -553,7 +553,7 @@ app_load_settings :: (app: InbeApp*) -> int {
         }
     }
     load_reminders(app, &settings_cache)
-    load_bool_setting(&settings_cache, &app->inbe.progressive_speed,
+    load_bool_setting(&settings_cache, &app->breathing.progressive_speed,
                          "progressive_speed", 1)
     load_bool_setting(&settings_cache, &app->advanced_session_controls,
                          "advanced_session_controls", 0)
@@ -573,9 +573,9 @@ app_load_settings :: (app: InbeApp*) -> int {
         app->breaks_enabled = 0
     }
     load_clamped_setting(&settings_cache, &app->desktop_startup_mode,
-                            "desktop_startup_mode", 0, 0, INBE_STARTUP_COUNT - 1)
+                            "desktop_startup_mode", 0, 0, STARTUP_COUNT - 1)
     load_clamped_setting(&settings_cache, &app->desktop_close_action,
-                            "desktop_close_action", 0, 0, INBE_CLOSE_COUNT - 1)
+                            "desktop_close_action", 0, 0, CLOSE_COUNT - 1)
     load_clamped_setting(&settings_cache, &app->break_block_mode,
                             "break_block_mode", 0, 0, 2)
     load_bool_setting(&settings_cache, &app->break_sounds_enabled,
@@ -661,14 +661,14 @@ app_load_settings :: (app: InbeApp*) -> int {
     load_clamped_setting(&settings_cache, &app->habits.view_mode,
                             "habits_view_mode", HABIT_VIEW_WEEKLY,
                             HABIT_VIEW_CALENDAR, HABIT_VIEW_WEEKLY)
-    load_clamped_setting(&settings_cache, &app->inbe.progressive_start_speed,
+    load_clamped_setting(&settings_cache, &app->breathing.progressive_start_speed,
                             "progressive_start_speed",
                             DefaultProgressiveStartSpeed, SETTINGS_SPEED_MIN,
                             SETTINGS_SPEED_MAX)
-    load_clamped_setting(&settings_cache, &app->inbe.breath_animation,
-                            "breath_animation", InbeBreathAnimationLinear,
-                            InbeBreathAnimationLinear,
-                            InbeBreathAnimationCount - 1)
+    load_clamped_setting(&settings_cache, &app->breathing.breath_animation,
+                            "breath_animation", BreathAnimationLinear,
+                            BreathAnimationLinear,
+                            BreathAnimationCount - 1)
     load_clamped_setting(&settings_cache, &app->exercise_type,
                             "exercise_type", EXERCISE_WIM_HOF,
                             EXERCISE_WIM_HOF, EXERCISE_COUNT - 1)
@@ -697,7 +697,7 @@ app_load_settings :: (app: InbeApp*) -> int {
     for int i = 0; i < EXERCISE_COUNT; i++ {
         track_key: [48] char
         practice_music_track_key(i, track_key, sizeof(track_key))
-        default_track := i == EXERCISE_MEDITATION ? 0 : INBE_AUDIO_MUSIC_NONE
+        default_track := i == EXERCISE_MEDITATION ? 0 : AUDIO_MUSIC_NONE
         load_clamped_setting(&settings_cache,
             &app->meditation.music_practice_tracks[i],
             track_key, default_track, -1, music_max)
@@ -705,7 +705,7 @@ app_load_settings :: (app: InbeApp*) -> int {
     for int i = 0; i < EXERCISE_COUNT; i++ {
         if (app->meditation.music_practice_mask & (1 << i)) == 0 &&
            app->meditation.music_practice_tracks[i] >= 0 {
-            app->meditation.music_practice_tracks[i] = INBE_AUDIO_MUSIC_NONE
+            app->meditation.music_practice_tracks[i] = AUDIO_MUSIC_NONE
         }
     }
     app_audio_music_sanitize_selection(app)
@@ -754,23 +754,23 @@ app_load_settings :: (app: InbeApp*) -> int {
         manual_seen_mask & ((1 << EXERCISE_COUNT) - 1)
     load_language_setting(app, settings_missing, &settings_cache)
 
-    if getenv("INBE_FORCE_DARK_MODE") != nil {
+    if getenv("APP_FORCE_DARK_MODE") != nil {
         app->theme_mode = APP_THEME_DARK
     }
     if settings_cache_get(&settings_cache, "play_in_background_default_migrated") == nil {
-        app->inbe.play_in_background = 0
+        app->breathing.play_in_background = 0
         storage_set_setting_int("play_in_background", 0)
         storage_set_setting_int("play_in_background_default_migrated", 1)
     } else {
-        app->inbe.play_in_background =
+        app->breathing.play_in_background =
             settings_cache_get_int(&settings_cache, "play_in_background", 0) != 0
     }
-    TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",
-                app->inbe.play_in_background)
+    TraceLog(LOG_INFO, "APP: Loaded play_in_background setting = %d",
+                app->breathing.play_in_background)
     app->backgrounded = 0
 
     app_device_preferences_init(app)
-    apply_settings(&app->inbe, speed, max_rounds, max_breaths,
+    apply_settings(&app->breathing, speed, max_rounds, max_breaths,
                       pause_seconds)
     refresh_locale_dependent_text(app)
 

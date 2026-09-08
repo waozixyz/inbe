@@ -1,5 +1,5 @@
 #import "app.h"
-#import "miniz.h"
+#import "kry_archive.h"
 #import "practices/practice_registry.h"
 #import "runtime_assets.h"
 #import "stdio.h"
@@ -28,7 +28,7 @@ practice_mask_all :: () -> int #private {
     return (1 << EXERCISE_COUNT) - 1
 }
 
-sanitize_practice_music :: (app: InbeApp*) #private {
+sanitize_practice_music :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -140,7 +140,7 @@ append_text_checked :: (out: char*, out_size: size_t, suffix: const char*) -> in
     return 1
 }
 
-set_status :: (app: InbeApp*, message: const char*) #private {
+set_status :: (app: InnerBreeze*, message: const char*) #private {
     if app == nil {
         return
     }
@@ -202,7 +202,7 @@ meditation_music_format_download_status :: (out: char*, out_size: size_t,
     snprintf(out, out_size, "%s", GetLocaleText("meditation_music_downloading"))
 }
 
-meditation_music_draw_download_progress :: (app: InbeApp*, x: int, y: int, w: int) #export {
+meditation_music_draw_download_progress :: (app: InnerBreeze*, x: int, y: int, w: int) #export {
     download: RuntimeAssetDownload*
     bar_h := Scale(10)
     fill_w := 0
@@ -267,16 +267,16 @@ draw_attribution :: (content_x: int, content_w: int, y: int*) #private {
     Paragraph(attribution_paragraph(content_w), content_x, y)
 }
 
-archive_path :: (app: InbeApp*, out: char*, out_size: size_t) #private {
+archive_path :: (app: InnerBreeze*, out: char*, out_size: size_t) #private {
     if !join_path2(out,
                    out_size,
                    app->meditation.music_cache_dir,
-                   "/inbe-meditation-audio-v1.zip") {
+                   "/breathing-meditation-audio-v1.zip") {
         set_status(app, GetLocaleText("meditation_music_cache_path_too_long"))
     }
 }
 
-track_path :: (app: InbeApp*, track: int, out: char*, out_size: size_t) #private {
+track_path :: (app: InnerBreeze*, track: int, out: char*, out_size: size_t) #private {
     if track < 0 || track >= MEDITATION_MUSIC_TRACK_COUNT {
         track = 0
     }
@@ -307,13 +307,13 @@ track_path :: (app: InbeApp*, track: int, out: char*, out_size: size_t) #private
     }
 }
 
-extract_audio_archive :: (app: InbeApp*, archive_file_path: const char*) -> int #private {
-    archive: mz_zip_archive
+extract_audio_archive :: (app: InnerBreeze*, archive_file_path: const char*) -> int #private {
+    archive: Archive
     file_count: int
     extracted := 0
 
     memset(&archive, 0, sizeof(archive))
-    if !mz_zip_reader_init_file(&archive, archive_file_path, 0) {
+    if !ArchiveOpenZip(&archive, archive_file_path) {
         set_status(app, GetLocaleText("meditation_music_archive_open_failed"))
         return 0
     }
@@ -329,21 +329,21 @@ extract_audio_archive :: (app: InbeApp*, archive_file_path: const char*) -> int 
         set_status(app, GetLocaleText("meditation_music_cache_path_too_long"))
     }
 
-    file_count = (int)mz_zip_reader_get_num_files(&archive)
+    file_count = ArchiveEntryCount(&archive)
     for int i = 0; i < file_count; i++ {
-        stat: mz_zip_archive_file_stat
+        stat: ArchiveEntry
         out_path: [FS_PATH_MAX] char
 
-        if !mz_zip_reader_file_stat(&archive, i, &stat) {
+        if !ArchiveReadEntry(&archive, i, &stat) {
             continue
         }
-        if mz_zip_reader_is_file_a_directory(&archive, i) {
+        if stat.is_directory {
             continue
         }
-        if !safe_archive_member(stat.m_filename) {
+        if !safe_archive_member(stat.name) {
             continue
         }
-        if !known_track_archive_member(stat.m_filename) {
+        if !known_track_archive_member(stat.name) {
             continue
         }
 
@@ -351,7 +351,7 @@ extract_audio_archive :: (app: InbeApp*, archive_file_path: const char*) -> int 
                        sizeof(out_path),
                        app->meditation.music_cache_dir,
                        "/audio/") ||
-           !append_text_checked(out_path, sizeof(out_path), stat.m_filename) {
+           !append_text_checked(out_path, sizeof(out_path), stat.name) {
             set_status(app, GetLocaleText("meditation_music_file_path_too_long"))
             continue
         }
@@ -367,7 +367,7 @@ extract_audio_archive :: (app: InbeApp*, archive_file_path: const char*) -> int 
             EnsureRuntimeAssetDir(dir)
         }
 
-        if mz_zip_reader_extract_to_file(&archive, i, out_path, 0) {
+        if ArchiveExtractEntry(&archive, i, out_path) {
             if audio_file_looks_valid(out_path) {
                 extracted++
             } else {
@@ -376,7 +376,7 @@ extract_audio_archive :: (app: InbeApp*, archive_file_path: const char*) -> int 
         }
     }
 
-    mz_zip_reader_end(&archive)
+    ArchiveClose(&archive)
     if extracted != MEDITATION_MUSIC_TRACK_COUNT {
         set_status(app, GetLocaleText("meditation_music_archive_invalid"))
         return 0
@@ -390,7 +390,7 @@ extract_audio_archive :: (app: InbeApp*, archive_file_path: const char*) -> int 
     return 1
 }
 
-meditation_music_available :: (app: InbeApp*) -> int {
+meditation_music_available :: (app: InnerBreeze*) -> int {
     path: [FS_PATH_MAX] char
 
     if app == nil {
@@ -406,7 +406,7 @@ meditation_music_available :: (app: InbeApp*) -> int {
     return 1
 }
 
-meditation_music_selected_label :: (app: InbeApp*) -> const char* {
+meditation_music_selected_label :: (app: InnerBreeze*) -> const char* {
     track: int
 
     if app == nil {
@@ -419,13 +419,13 @@ meditation_music_selected_label :: (app: InbeApp*) -> const char* {
     return app_audio_music_label(app, track)
 }
 
-meditation_music_init :: (app: InbeApp*) {
+meditation_music_init :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
 
-    InitRuntimeAssets("inbe")
-    if !GetRuntimeAssetCacheRoot("inbe",
+    InitRuntimeAssets("breathing")
+    if !GetRuntimeAssetCacheRoot("breathing",
                                  app->meditation.music_cache_dir,
                                  sizeof(app->meditation.music_cache_dir)) {
         snprintf(app->meditation.music_cache_dir,
@@ -445,7 +445,7 @@ meditation_music_init :: (app: InbeApp*) {
     }
 }
 
-meditation_music_unload :: (app: InbeApp*) {
+meditation_music_unload :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -460,7 +460,7 @@ meditation_music_unload :: (app: InbeApp*) {
     app->meditation.music_fade_out_total_ticks = 0
 }
 
-meditation_music_stop :: (app: InbeApp*) {
+meditation_music_stop :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -473,7 +473,7 @@ meditation_music_stop :: (app: InbeApp*) {
     app->meditation.music_fade_out_total_ticks = 0
 }
 
-meditation_music_fade_out :: (app: InbeApp*) {
+meditation_music_fade_out :: (app: InnerBreeze*) {
     fade_ticks := 180
 
     if app == nil || !app->meditation.music_loaded ||
@@ -488,7 +488,7 @@ meditation_music_fade_out :: (app: InbeApp*) {
     app->meditation.music_fade_out_total_ticks = fade_ticks
 }
 
-load_track :: (app: InbeApp*, track: int) -> int #private {
+load_track :: (app: InnerBreeze*, track: int) -> int #private {
     path: [FS_PATH_MAX] char
 
     if app == nil {
@@ -530,7 +530,7 @@ load_track :: (app: InbeApp*, track: int) -> int #private {
     return 1
 }
 
-test_track :: (app: InbeApp*) #private {
+test_track :: (app: InnerBreeze*) #private {
     track: int
 
     if app == nil {
@@ -555,7 +555,7 @@ test_track :: (app: InbeApp*) #private {
     set_status(app, GetLocaleText("meditation_music_test_playing"))
 }
 
-meditation_music_start_session :: (app: InbeApp*) {
+meditation_music_start_session :: (app: InnerBreeze*) {
     track: int
     practice: int
 
@@ -566,7 +566,7 @@ meditation_music_start_session :: (app: InbeApp*) {
     sanitize_practice_music(app)
     practice = practice_clamp_id(app->exercise_type)
     track = app->meditation.music_practice_tracks[practice]
-    if track == INBE_AUDIO_MUSIC_NONE {
+    if track == AUDIO_MUSIC_NONE {
         return
     }
     if !load_track(app, track) {
@@ -577,18 +577,18 @@ meditation_music_start_session :: (app: InbeApp*) {
     app->meditation.music_test_playing = 0
 }
 
-meditation_music_update :: (app: InbeApp*) {
+meditation_music_update :: (app: InnerBreeze*) {
     archive_file_path: [FS_PATH_MAX] char
 
     if app == nil {
         return
     }
     if app->meditation.music_test_playing &&
-       !((app->inbe.screen == InbeScreenStart &&
+       !((app->breathing.screen == ScreenStart &&
           app->practice_tab == PRACTICE_TAB_CONFIG) ||
-         app->inbe.screen == InbeScreenPracticeConfig ||
-         app->inbe.screen == InbeScreenManual ||
-         app->inbe.screen == InbeScreenSettings) {
+         app->breathing.screen == ScreenPracticeConfig ||
+         app->breathing.screen == ScreenManual ||
+         app->breathing.screen == ScreenSettings) {
         meditation_music_stop(app)
         return
     }
@@ -636,7 +636,7 @@ meditation_music_update :: (app: InbeApp*) {
     }
 }
 
-meditation_music_start_download :: (app: InbeApp*) #export {
+meditation_music_start_download :: (app: InnerBreeze*) #export {
     archive_file_path: [FS_PATH_MAX] char
     audio_url: const char*
 
@@ -644,7 +644,7 @@ meditation_music_start_download :: (app: InbeApp*) #export {
         return
     }
 
-    audio_url = "https://inbe.waozi.xyz/web-assets/dl/inbe-meditation-audio-v1.zip"
+    audio_url = "https://breathing.waozi.xyz/web-assets/dl/breathing-meditation-audio-v1.zip"
 
     archive_path(app, archive_file_path, sizeof(archive_file_path))
     app->meditation.music_archive_extracted = 0
@@ -655,7 +655,7 @@ meditation_music_start_download :: (app: InbeApp*) #export {
                             archive_file_path)
 }
 
-meditation_music_draw_practice_settings :: (app: InbeApp*,
+meditation_music_draw_practice_settings :: (app: InnerBreeze*,
                                                practice: int,
                                                content_x: int,
                                                content_w: int,
@@ -670,7 +670,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     selection: int
     test_label: const char*
     download_status: [96] char
-    track_options: [INBE_AUDIO_MUSIC_COUNT_MAX + 1] const char*
+    track_options: [AUDIO_MUSIC_COUNT_MAX + 1] const char*
     track_count: int
 
     if app == nil || y == nil {
@@ -681,8 +681,8 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     practice = practice_clamp_id(practice)
     selected_track = app->meditation.music_practice_tracks[practice]
     if selected_track < 0 {
-        selected_track = INBE_AUDIO_MUSIC_NONE
-        app->meditation.music_practice_tracks[practice] = INBE_AUDIO_MUSIC_NONE
+        selected_track = AUDIO_MUSIC_NONE
+        app->meditation.music_practice_tracks[practice] = AUDIO_MUSIC_NONE
         app->meditation.music_practice_mask &= ~(1 << practice)
     } else {
         app->meditation.music_practice_mask |= 1 << practice
@@ -697,15 +697,15 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     })
 
     track_count = app_audio_music_count(app)
-    if track_count > INBE_AUDIO_MUSIC_COUNT_MAX {
-        track_count = INBE_AUDIO_MUSIC_COUNT_MAX
+    if track_count > AUDIO_MUSIC_COUNT_MAX {
+        track_count = AUDIO_MUSIC_COUNT_MAX
     }
     track_options[0] = GetLocaleText("audio_music_none_option")
     for int i = 0; i < track_count; i++ {
         track_options[i + 1] = app_audio_music_label(app, i)
     }
 
-    selection = selected_track == INBE_AUDIO_MUSIC_NONE ? 0 : selected_track + 1
+    selection = selected_track == AUDIO_MUSIC_NONE ? 0 : selected_track + 1
     if selection < 0 || selection > track_count {
         selection = 0
     }
@@ -718,7 +718,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
                             track_count + 1,
                             &selection) {
         if selection <= 0 {
-            app->meditation.music_practice_tracks[practice] = INBE_AUDIO_MUSIC_NONE
+            app->meditation.music_practice_tracks[practice] = AUDIO_MUSIC_NONE
             app->meditation.music_practice_mask &= ~(1 << practice)
         } else {
             app->meditation.music_practice_tracks[practice] = selection - 1
@@ -733,7 +733,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     *y += Scale(90)
 
     selected_track = app->meditation.music_practice_tracks[practice]
-    if selected_track == INBE_AUDIO_MUSIC_NONE {
+    if selected_track == AUDIO_MUSIC_NONE {
         return
     }
 
@@ -821,7 +821,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     *y += Scale(10)
 }
 
-meditation_music_measure_practice_settings :: (app: InbeApp*,
+meditation_music_measure_practice_settings :: (app: InnerBreeze*,
                                                   practice: int,
                                                   content_w: int,
                                                   show_installed_download: int,
@@ -837,7 +837,7 @@ meditation_music_measure_practice_settings :: (app: InbeApp*,
     sanitize_practice_music(app)
     practice = practice_clamp_id(practice)
     selected_track = app->meditation.music_practice_tracks[practice]
-    if selected_track == INBE_AUDIO_MUSIC_NONE {
+    if selected_track == AUDIO_MUSIC_NONE {
         return h
     }
 

@@ -1,5 +1,5 @@
-#ifndef INBE_ACTIVITY_MONITOR_H
-#define INBE_ACTIVITY_MONITOR_H
+#ifndef APP_ACTIVITY_MONITOR_H
+#define APP_ACTIVITY_MONITOR_H
 
 /*
  * Workrave-style activity monitoring for the break engine.
@@ -17,19 +17,19 @@
  */
 
 /* Idempotent; also called lazily by the getters. Cheap when unsupported. */
-void inbe_activity_monitor_init(void);
+void activity_monitor_init(void);
 
 /* 1 when this process runs in a native Wayland desktop session.  This is
  * deliberately separate from availability: Wayland may gain a system idle
  * provider in the future, while X11-only auxiliary windows and input grabs
  * must remain disabled under Wayland regardless. */
-int inbe_activity_is_wayland(void);
+int activity_is_wayland(void);
 
 /* 1 when system-wide idle detection works on this platform/session. */
-int inbe_activity_available(void);
+int activity_available(void);
 
 /* Milliseconds since the last user input anywhere, or -1 when unknown. */
-long inbe_activity_get_idle_ms(void);
+long activity_get_idle_ms(void);
 
 /*
  * Block mode: grab the keyboard so the user cannot keep typing through a
@@ -37,9 +37,9 @@ long inbe_activity_get_idle_ms(void);
  * overlay covers the screen in "block input and screen" mode). Returns 1 on
  * success, 0 when unsupported (Wayland, headless). Ungrab with on == 0.
  */
-int inbe_break_set_input_blocked(int on);
+int break_set_input_blocked(int on);
 
 /* 1 while the input grab is held. */
-int inbe_break_input_blocked(void);
+int break_input_blocked(void);
 
-#endif /* INBE_ACTIVITY_MONITOR_H */
+#endif /* APP_ACTIVITY_MONITOR_H */

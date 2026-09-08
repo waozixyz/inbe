@@ -55,14 +55,14 @@ DESKTOP :: !ANDROID && !WEB
     }
 }
 
-app_set_host_api :: (app: InbeApp*, host: InbeHostApi) {
+app_set_host_api :: (app: InnerBreeze*, host: HostApi) {
     if app == NULL {
         return
     }
     app->host = host
 }
 
-app_request_orientation_size :: (app: InbeApp*) -> int #private {
+app_request_orientation_size :: (app: InnerBreeze*) -> int #private {
     width := 0
     height := 0
 
@@ -91,7 +91,7 @@ refresh_theme_colors :: (theme_id: int, dark_mode: int) {
     SetCurrentTheme(theme_id, dark_mode)
 }
 
-app_effective_dark_mode :: (app: InbeApp*) -> int {
+app_effective_dark_mode :: (app: InnerBreeze*) -> int {
     if app == NULL {
         return 0
     }
@@ -110,7 +110,7 @@ app_effective_dark_mode :: (app: InbeApp*) -> int {
     }
 }
 
-app_refresh_theme :: (app: InbeApp*) {
+app_refresh_theme :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
@@ -143,7 +143,7 @@ app_refresh_theme :: (app: InbeApp*) {
     SetCurrentTheme(app->theme_id, app->dark_mode)
 }
 
-app_apply_orientation_preference :: (app: InbeApp*) {
+app_apply_orientation_preference :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
@@ -167,7 +167,7 @@ app_apply_orientation_preference :: (app: InbeApp*) {
     }
 }
 
-app_device_preferences_init :: (app: InbeApp*) {
+app_device_preferences_init :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
@@ -188,7 +188,7 @@ app_device_preferences_init :: (app: InbeApp*) {
     app_apply_orientation_preference(app)
 }
 
-app_device_preferences_update :: (app: InbeApp*) {
+app_device_preferences_update :: (app: InnerBreeze*) {
     effective_dark := 0
     orientation := APP_DEVICE_ORIENTATION_UNKNOWN
 

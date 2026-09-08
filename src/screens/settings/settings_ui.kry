@@ -113,7 +113,7 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
     return 0
 }
 
-commit_toggle_row :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, value: int*, save_now: int) -> int {
+commit_toggle_row :: (app: InnerBreeze*, x: int, w: int, y: int*, label: const char*, value: int*, save_now: int) -> int {
     if draw_toggle_row(x, w, y, label, value) {
         if app != NULL {
             app->settings_dirty = 1
@@ -126,7 +126,7 @@ commit_toggle_row :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*
     return 0
 }
 
-commit_slider_row :: (app: InbeApp*, id: int, x: int, w: int, y: int*, row_h: int, label: const char*, min: int, max: int, value: int*, suffix: const char*, save_now: int) -> int {
+commit_slider_row :: (app: InnerBreeze*, id: int, x: int, w: int, y: int*, row_h: int, label: const char*, min: int, max: int, value: int*, suffix: const char*, save_now: int) -> int {
     if y == NULL {
         return 0
     }
@@ -146,7 +146,7 @@ audio_meter_height :: () -> int {
     return Scale(18) + Scale(10) + Scale(8)
 }
 
-draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) -> int {
+draw_audio_meter :: (app: InnerBreeze*, x: int, y: int, w: int, label: const char*) -> int {
     label_font := Text12
     bar_h := Scale(10)
     label_h := Scale(18)

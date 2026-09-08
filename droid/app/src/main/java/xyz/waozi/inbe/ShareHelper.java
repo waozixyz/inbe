@@ -9,7 +9,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 public class ShareHelper {
-    private static final String TAG = "InbeShare";
+    private static final String TAG = "Share";
     private static final String FILE_PROVIDER_AUTHORITY = BuildConfig.APPLICATION_ID + ".fileprovider";
 
     public static void shareFile(Activity activity, byte[] data, String filename, String mimeType, String chooserTitle) {

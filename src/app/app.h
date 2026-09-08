@@ -1,5 +1,5 @@
-#ifndef INBE_APP_H
-#define INBE_APP_H
+#ifndef APP_APP_H
+#define APP_APP_H
 
 #include "kryon.h"
 #include "platform.h"
@@ -8,6 +8,7 @@
 #include "app_fwd.h"
 #include "runtime_assets.h"
 #include "screens/habits_screen.h"
+#include "screens/elist_screen.h"
 #include "screens/settings/settings_types.h"
 #include "storage/sync_account.h"
 
@@ -62,35 +63,35 @@ enum {
 };
 
 enum {
-    INBE_AUDIO_CUE_BREATH_IN = 0,
-    INBE_AUDIO_CUE_BREATH_OUT,
-    INBE_AUDIO_CUE_BELL,
-    INBE_AUDIO_CUE_COUNT
+    AUDIO_CUE_BREATH_IN = 0,
+    AUDIO_CUE_BREATH_OUT,
+    AUDIO_CUE_BELL,
+    AUDIO_CUE_COUNT
 };
 
 enum {
-    INBE_STARTUP_SHOW = 0,
-    INBE_STARTUP_HIDDEN,
-    INBE_STARTUP_COUNT
+    STARTUP_SHOW = 0,
+    STARTUP_HIDDEN,
+    STARTUP_COUNT
 };
 
 enum {
-    INBE_CLOSE_ASK = 0,
-    INBE_CLOSE_KEEP_RUNNING,
-    INBE_CLOSE_QUIT,
-    INBE_CLOSE_COUNT
+    CLOSE_ASK = 0,
+    CLOSE_KEEP_RUNNING,
+    CLOSE_QUIT,
+    CLOSE_COUNT
 };
 
 enum {
-    INBE_AUDIO_BUILTIN_MUSIC_COUNT = 3,
-    INBE_AUDIO_CUSTOM_SOUND_MAX = 8,
-    INBE_AUDIO_CUSTOM_MUSIC_MAX = 16,
-    INBE_AUDIO_LABEL_SIZE = 64,
-    INBE_AUDIO_MUSIC_COUNT_MAX =
-        INBE_AUDIO_BUILTIN_MUSIC_COUNT + INBE_AUDIO_CUSTOM_MUSIC_MAX,
+    AUDIO_BUILTIN_MUSIC_COUNT = 3,
+    AUDIO_CUSTOM_SOUND_MAX = 8,
+    AUDIO_CUSTOM_MUSIC_MAX = 16,
+    AUDIO_LABEL_SIZE = 64,
+    AUDIO_MUSIC_COUNT_MAX =
+        AUDIO_BUILTIN_MUSIC_COUNT + AUDIO_CUSTOM_MUSIC_MAX,
     /* Sentinel for "no music selected" on a per-practice track slot. A value
      * of -1 means the practice plays no background music. */
-    INBE_AUDIO_MUSIC_NONE = -1
+    AUDIO_MUSIC_NONE = -1
 };
 
 enum {
@@ -151,11 +152,11 @@ typedef enum {
     UIModalSecureMigration,
 } UIModalType;
 
-typedef enum InbePendingSyncAccountAction {
-    InbePendingSyncAccountNone = 0,
-    InbePendingSyncAccountCreate,
-    InbePendingSyncAccountImport
-} InbePendingSyncAccountAction;
+typedef enum PendingSyncAccountAction {
+    PendingSyncAccountNone = 0,
+    PendingSyncAccountCreate,
+    PendingSyncAccountImport
+} PendingSyncAccountAction;
 
 typedef enum SessionExitModalResult {
     SessionExitModalNone = 0,
@@ -173,22 +174,22 @@ typedef enum AppClosePromptResult {
 typedef struct {
     int active;
     UIModalType type;
-} InbeModal;
+} AppModal;
 
-typedef struct InbeConfig {
+typedef struct AppConfig {
 	char title[64];
 	int width;
 	int height;
 	int loaded;
     int title_custom;
-} InbeConfig;
+} AppConfig;
 
-typedef struct InbeAudioLibraryItem {
-    char title[INBE_AUDIO_LABEL_SIZE];
+typedef struct AudioLibraryItem {
+    char title[AUDIO_LABEL_SIZE];
     char path[FS_PATH_MAX];
-} InbeAudioLibraryItem;
+} AudioLibraryItem;
 
-extern InbeConfig config;
+extern AppConfig config;
 
 typedef enum ExerciseType {
     EXERCISE_WIM_HOF = 0,
@@ -216,11 +217,11 @@ typedef enum AppOrientationMode {
     APP_ORIENTATION_SENSOR = 3,
 } AppOrientationMode;
 
-typedef struct InbeHostApi {
+typedef struct HostApi {
     void *userdata;
     void (*request_size)(void *userdata, int width, int height);
     void (*close)(void *userdata);
-} InbeHostApi;
+} HostApi;
 
 typedef enum NavigationMode {
     NAV_MODE_TABBAR = 0,
@@ -237,6 +238,7 @@ typedef enum AppMainTab {
     APP_MAIN_TAB_NONE = -1,
     APP_MAIN_TAB_HABITS = 0,
     APP_MAIN_TAB_PRACTICE = 1,
+    APP_MAIN_TAB_ELIST = 2,
 } AppMainTab;
 
 typedef enum AppNavRoute {
@@ -244,6 +246,7 @@ typedef enum AppNavRoute {
     APP_NAV_ROUTE_PROFILE = 0,
     APP_NAV_ROUTE_HABITS = 1,
     APP_NAV_ROUTE_PRACTICE = 2,
+    APP_NAV_ROUTE_ELIST = 3,
     APP_NAV_ROUTE_SETTINGS = 4,
     APP_NAV_ROUTE_ACCOUNT = 6,
     APP_NAV_ROUTE_DATA = 7,
@@ -282,9 +285,9 @@ typedef struct AppReminder {
     int last_day;
 } AppReminder;
 
-int app_draw_close_title_bar(InbeApp *app, const char *title, int height);
+int app_draw_close_title_bar(InnerBreeze*app, const char *title, int height);
 int app_scaffold_close_title(const char *title, int height, void *user_data);
-int app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
+int app_draw_close_dropdown_title_bar(InnerBreeze*app, UITitleBarDropdown dropdown,
                                       int height);
 
 typedef struct WhmPracticeState {
@@ -344,7 +347,7 @@ typedef struct HabitSessionEditState {
     char text[16];
 } HabitSessionEditState;
 
-typedef struct InbePatterns {
+typedef struct Patterns {
     int preset;
     int custom[4];         /* inhale, hold-in, exhale, hold-out seconds */
     int duration_minutes;  /* 0 = open-ended */
@@ -356,7 +359,7 @@ typedef struct InbePatterns {
     double second_accumulator;
     int cycle;
     int elapsed_seconds;
-} InbePatterns;
+} Patterns;
 
 typedef struct HabitEditState {
     int active;
@@ -371,8 +374,8 @@ typedef struct HabitEditState {
     int more_colors;
     int name_error;
     int form_viewport_height;
-    char text[INBE_HABIT_NAME_SIZE];
-    char description[INBE_HABIT_DESCRIPTION_SIZE];
+    char text[HABIT_NAME_SIZE];
+    char description[HABIT_DESCRIPTION_SIZE];
     Color color;
     int sync_mode;
     int sync_activity;
@@ -382,7 +385,7 @@ typedef struct HabitEditState {
     int reminder_hour;
 } HabitEditState;
 
-typedef struct InbeSessionResult {
+typedef struct SessionResult {
     int active;
     int activity;
     int primary_value;
@@ -394,17 +397,17 @@ typedef struct InbeSessionResult {
     int round_values[MaxRounds];
     char detail[96];
     char path[FS_PATH_MAX];
-} InbeSessionResult;
+} SessionResult;
 
-struct InbeApp {
-    Inbe inbe;
-    Inbe settings_preview;
-    Inbe start_speed_preview;
+struct InnerBreeze {
+    BreathSession breathing;
+    BreathSession settings_preview;
+    BreathSession start_speed_preview;
     int start_speed_preview_speed;
     Camera2D camera;
     Texture2D icons[UI_ICON_TYPE_COUNT];
     int graphics_reload_requested;
-    InbeHostApi host;
+    HostApi host;
 
     WhmPracticeState whm;
     MeditationPracticeState meditation;
@@ -421,11 +424,11 @@ struct InbeApp {
     float audio_meter_level;
     int sound_volume;
     int music_volume;
-    int audio_cue_selected[INBE_AUDIO_CUE_COUNT];
+    int audio_cue_selected[AUDIO_CUE_COUNT];
     int audio_custom_sound_count;
     int audio_custom_music_count;
-    InbeAudioLibraryItem audio_custom_sounds[INBE_AUDIO_CUSTOM_SOUND_MAX];
-    InbeAudioLibraryItem audio_custom_music[INBE_AUDIO_CUSTOM_MUSIC_MAX];
+    AudioLibraryItem audio_custom_sounds[AUDIO_CUSTOM_SOUND_MAX];
+    AudioLibraryItem audio_custom_music[AUDIO_CUSTOM_MUSIC_MAX];
     int retention_marker_enabled;
     int retention_marker_last_bucket;
     int sound_last_screen;
@@ -539,14 +542,15 @@ struct InbeApp {
     int profile_picture_picker_scroll;
     int android_orientation;
     int main_tab;
-    InbeHabits habits;
+    Habits habits;
+    EListState elist;
     int habits_flush_post_frame_scheduled;
     int habit_detail_index;
     int habit_detail_day;
     char habit_detail_session_path[FS_PATH_MAX];
     HabitSessionEditState habit_session_edit;
     HabitEditState habit_edit;
-    InbePatterns patterns;
+    Patterns patterns;
     int habit_reminder_day;      /* yday+year key for once-per-day firing */
     unsigned int habit_reminded_mask;
     int habit_counter_press_day;
@@ -571,17 +575,17 @@ struct InbeApp {
     int backgrounded;
     double desktop_background_last_time;
     int results_saved;
-    InbeSessionResult session_result;
+    SessionResult session_result;
     int blocked_input_frame;
     int close_prompt_open;
     AppClosePromptResult close_prompt_result;
     int request_quit;   /* app layer requests exit (update restart, quit shortcut) */
-    int desktop_startup_mode;   /* INBE_STARTUP_* (desktop only) */
-    int desktop_close_action;   /* INBE_CLOSE_* (desktop only) */
+    int desktop_startup_mode;   /* STARTUP_* (desktop only) */
+    int desktop_close_action;   /* CLOSE_* (desktop only) */
     char results_path[FS_PATH_MAX];
     int volume_popup_active;
     int music_volume_popup_active;
-    InbeModal modal;
+    AppModal modal;
     int play_circle_hover;
     float play_circle_scale;
     SettingsThemeState theme_state;
@@ -607,37 +611,37 @@ struct InbeApp {
     double break_hud_last_present; /* HUD redraw throttle: present at ~2 Hz */
 };
 
-void app_set_host_api(InbeApp *app, InbeHostApi host);
+void app_set_host_api(InnerBreeze*app, HostApi host);
 void app_init(void *app);
 void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);
-InbeApp *get_global_inbe_app(void);
-void set_global_inbe_app(InbeApp *app);
-void app_switch_screen(InbeApp *app, int screen);
-AppRoute app_current_route(const InbeApp *app);
-void app_switch_route(InbeApp *app, AppRoute route);
-void app_leave_practice_config(InbeApp *app);
-int app_content_top_reserved(const InbeApp *app);
+InnerBreeze*get_global_app(void);
+void set_global_app(InnerBreeze*app);
+void app_switch_screen(InnerBreeze*app, int screen);
+AppRoute app_current_route(const InnerBreeze*app);
+void app_switch_route(InnerBreeze*app, AppRoute route);
+void app_leave_practice_config(InnerBreeze*app);
+int app_content_top_reserved(const InnerBreeze*app);
 int app_toolbar_height(void);
-int app_auto_sync(InbeApp *app);
-void app_request_social_refresh(InbeApp *app);
+int app_auto_sync(InnerBreeze*app);
+void app_request_social_refresh(InnerBreeze*app);
 int app_social_refresh_loading(void);
 int app_sync_loading(void);
-void app_request_friend_send(InbeApp *app, const char *target);
-void app_request_friend_accept(InbeApp *app, const char *request_id);
-void app_request_friend_decline(InbeApp *app, const char *request_id);
-void app_request_friend_remove(InbeApp *app, const char *friend_user_id);
-int app_should_use_tab_bar(const InbeApp *app);
-void app_play_breath_cue(InbeApp *app, int dir);
-void app_play_bell_cue(InbeApp *app, float scale);
-void app_play_sound(InbeApp *app, Sound sound, float scale);
-void app_audio_ensure_ready(InbeApp *app);
-int app_audio_reinitialize(InbeApp *app);
-float app_audio_output_level(InbeApp *app);
-int app_bell_cue_playing(InbeApp *app);
-void app_audio_library_load(InbeApp *app);
-void app_audio_library_save(const InbeApp *app);
-void app_audio_reload_cue_sounds(InbeApp *app);
+void app_request_friend_send(InnerBreeze*app, const char *target);
+void app_request_friend_accept(InnerBreeze*app, const char *request_id);
+void app_request_friend_decline(InnerBreeze*app, const char *request_id);
+void app_request_friend_remove(InnerBreeze*app, const char *friend_user_id);
+int app_should_use_tab_bar(const InnerBreeze*app);
+void app_play_breath_cue(InnerBreeze*app, int dir);
+void app_play_bell_cue(InnerBreeze*app, float scale);
+void app_play_sound(InnerBreeze*app, Sound sound, float scale);
+void app_audio_ensure_ready(InnerBreeze*app);
+int app_audio_reinitialize(InnerBreeze*app);
+float app_audio_output_level(InnerBreeze*app);
+int app_bell_cue_playing(InnerBreeze*app);
+void app_audio_library_load(InnerBreeze*app);
+void app_audio_library_save(const InnerBreeze*app);
+void app_audio_reload_cue_sounds(InnerBreeze*app);
 
 /* Audio import error codes */
 #define AUDIO_IMPORT_SUCCESS 1
@@ -647,20 +651,20 @@ void app_audio_reload_cue_sounds(InbeApp *app);
 #define AUDIO_IMPORT_ERROR_COPY_FAILED -4
 #define AUDIO_IMPORT_ERROR_UNKNOWN -5
 
-int app_audio_import_custom_sound_ex(InbeApp *app, int cue, const char *path, int *error_code);
-int app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code);
-int app_audio_import_custom_sound(InbeApp *app, int cue, const char *path);
-int app_audio_import_custom_music(InbeApp *app, const char *path);
-int app_audio_remove_custom_sound(InbeApp *app, int index);
-int app_audio_remove_custom_music(InbeApp *app, int index);
-int app_audio_music_count(const InbeApp *app);
-const char *app_audio_music_label(const InbeApp *app, int index);
-int app_audio_music_path(const InbeApp *app, int index, char *out, size_t out_size);
+int app_audio_import_custom_sound_ex(InnerBreeze*app, int cue, const char *path, int *error_code);
+int app_audio_import_custom_music_ex(InnerBreeze*app, const char *path, int *error_code);
+int app_audio_import_custom_sound(InnerBreeze*app, int cue, const char *path);
+int app_audio_import_custom_music(InnerBreeze*app, const char *path);
+int app_audio_remove_custom_sound(InnerBreeze*app, int index);
+int app_audio_remove_custom_music(InnerBreeze*app, int index);
+int app_audio_music_count(const InnerBreeze*app);
+const char *app_audio_music_label(const InnerBreeze*app, int index);
+int app_audio_music_path(const InnerBreeze*app, int index, char *out, size_t out_size);
 int app_audio_sound_file_valid(const char *path);
 int app_audio_music_file_valid(const char *path);
 const char *app_audio_cue_default_asset(int cue);
-int app_audio_cue_path(InbeApp *app, int cue, char *out, size_t out_size);
-void app_audio_music_sanitize_selection(InbeApp *app);
+int app_audio_cue_path(InnerBreeze*app, int cue, char *out, size_t out_size);
+void app_audio_music_sanitize_selection(InnerBreeze*app);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);
 const char *app_donation_url(void);
@@ -673,12 +677,12 @@ const char *app_monero_trocador_url(void);
 const char *app_bitcoin_donation_url(void);
 const char *app_monero_donation_url(void);
 
-void app_open_modal(InbeApp *app, UIModalType type);
-void app_close_modal(InbeApp *app);
-void app_block_current_click(InbeApp *app);
-void app_request_desktop_close(InbeApp *app);
-void app_request_desktop_quit(InbeApp *app);
-AppClosePromptResult app_consume_close_prompt_result(InbeApp *app);
+void app_open_modal(InnerBreeze*app, UIModalType type);
+void app_close_modal(InnerBreeze*app);
+void app_block_current_click(InnerBreeze*app);
+void app_request_desktop_close(InnerBreeze*app);
+void app_request_desktop_quit(InnerBreeze*app);
+AppClosePromptResult app_consume_close_prompt_result(InnerBreeze*app);
 SessionExitModalResult app_draw_session_exit_modal(int can_save,
                                                    const char *save_message,
                                                    const char *discard_message);
@@ -686,18 +690,18 @@ SessionExitModalResult app_draw_session_exit_modal(int can_save,
 int clampi(int x, int min, int max);
 int int_from_count(const char src[4]);
 void count_from_int(char dst[4], int value);
-void app_reload_after_import(InbeApp *app, int reload_settings);
-void update_preview_bounds(Inbe *inbe, int content_w, int max_h);
+void app_reload_after_import(InnerBreeze*app, int reload_settings);
+void update_preview_bounds(BreathSession *breathing, int content_w, int max_h);
 void refresh_theme_colors(int theme_id, int dark_mode);
-void refresh_locale_dependent_text(InbeApp *app);
-void apply_system_language_selection(InbeApp *app, int save_now);
-void apply_language_selection(InbeApp *app, int language_index, int save_now);
-void app_accept_language_selection(InbeApp *app);
-int exercise_manual_seen(InbeApp *app, int exercise_type);
-void mark_exercise_manual_seen(InbeApp *app, int exercise_type);
-void sync_habits_for_activity(InbeApp *app, int exercise_type);
-void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
-void app_prepare_session_results(InbeApp *app, int activity, int primary_value,
+void refresh_locale_dependent_text(InnerBreeze*app);
+void apply_system_language_selection(InnerBreeze*app, int save_now);
+void apply_language_selection(InnerBreeze*app, int language_index, int save_now);
+void app_accept_language_selection(InnerBreeze*app);
+int exercise_manual_seen(InnerBreeze*app, int exercise_type);
+void mark_exercise_manual_seen(InnerBreeze*app, int exercise_type);
+void sync_habits_for_activity(InnerBreeze*app, int exercise_type);
+void draw_breath_preview(BreathSession *breathing, int center_x, int center_y);
+void app_prepare_session_results(InnerBreeze*app, int activity, int primary_value,
                                  int secondary_value, const char *detail,
                                  const int *round_values, int round_count,
                                  const char *saved_path);

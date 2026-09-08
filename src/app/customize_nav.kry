@@ -7,7 +7,7 @@ route customize_nav {
     page customize_nav
 }
 
-customize_nav :: (app: InbeApp*) #ui {
+customize_nav :: (app: InnerBreeze*) #ui {
     Screen root: {
     app_draw_customize_nav_page(app)
     }

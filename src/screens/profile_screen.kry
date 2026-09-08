@@ -39,7 +39,7 @@ profile_sync_content_height :: (content_w: int) -> int #private {
     return settings_sync_account_config_content_height(content_w)
 }
 
-profile_habits_content_height :: (app: InbeApp*, content_w: int) -> int #private {
+profile_habits_content_height :: (app: InnerBreeze*, content_w: int) -> int #private {
     row_h := content_w < Scale(260) ? Scale(78) : Scale(48)
     count := app != nil ? app->habits.count : 0
 
@@ -47,7 +47,7 @@ profile_habits_content_height :: (app: InbeApp*, content_w: int) -> int #private
 }
 
 profile_content_height :: (content_w: int, user_data: void*) -> int {
-    app := (InbeApp*)user_data
+    app := (InnerBreeze*)user_data
 
     if app != nil && app->profile_view == PROFILE_VIEW_HABITS {
         return Scale(12) + profile_habits_content_height(app, content_w)
@@ -88,7 +88,7 @@ profile_text_style :: () -> TextInputStyle #private {
     }
 }
 
-profile_save_identity :: (app: InbeApp*) #private {
+profile_save_identity :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -113,7 +113,7 @@ profile_compact_public_id :: (public_id: const char*, out: char*, out_size: size
     snprintf(out, out_size, "%.*s...%.*s", 4, public_id, 4, public_id + len - 4)
 }
 
-profile_draw_identity :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     account: SyncAccount = {0}
     account_text: [80] char = {0}
     alias: const char* = nil
@@ -239,7 +239,7 @@ profile_draw_metric_card :: (x: int, w: int, y: int*, label: const char*,
     *y += h + Scale(8)
 }
 
-profile_open_tab_card :: (app: InbeApp*, tab: int) #private {
+profile_open_tab_card :: (app: InnerBreeze*, tab: int) #private {
     if app == nil {
         return
     }
@@ -307,7 +307,7 @@ profile_draw_hub_stat_card :: (x: int, y: int, w: int, h: int,
     })
 }
 
-profile_draw_hub_route_card :: (app: InbeApp*, x: int, y: int*, w: int,
+profile_draw_hub_route_card :: (app: InnerBreeze*, x: int, y: int*, w: int,
                                 h: int, icon: Texture2D, title: const char*,
                                 subtitle: const char*, value: const char*,
                                 tab: int) #private {
@@ -374,7 +374,7 @@ profile_draw_hub_route_card :: (app: InbeApp*, x: int, y: int*, w: int,
     *y += h + Scale(10)
 }
 
-profile_draw_hub_identity :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+profile_draw_hub_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     account: SyncAccount = {0}
     alias: const char* = nil
     has_account := sync_account_load(&account)
@@ -449,7 +449,7 @@ profile_draw_hub_identity :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     *y += card_h + Scale(18)
 }
 
-profile_draw_overview :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     today := habits_today_index()
     due := 0
     done := 0
@@ -598,7 +598,7 @@ profile_tab_title :: (tab: int) -> const char* #private {
     return GetLocaleText("tab_profile")
 }
 
-profile_draw_tabs :: (app: InbeApp*, y: int, h: int) -> int #private {
+profile_draw_tabs :: (app: InnerBreeze*, y: int, h: int) -> int #private {
     clicked := -1
     tab_w := view_width / PROFILE_TAB_COUNT
 
@@ -636,13 +636,13 @@ profile_draw_tabs :: (app: InbeApp*, y: int, h: int) -> int #private {
 
 profile_draw_fitted_text :: (text: const char*, x: int, y: int, max_w: int,
                             font: int, color: Color) #private {
-    fitted: [INBE_HABIT_NAME_SIZE + 4] char = {0}
+    fitted: [HABIT_NAME_SIZE + 4] char = {0}
 
     if text == nil || max_w <= 0 {
         return
     }
 
-    inbe_text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
+    text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
     Text((TextProps){
         .bounds={(x), (y), 0, 0},
         .text=(fitted),
@@ -652,14 +652,14 @@ profile_draw_fitted_text :: (text: const char*, x: int, y: int, max_w: int,
     })
 }
 
-profile_draw_data :: (app: InbeApp*, x: int, w: int, y: int*) {
+profile_draw_data :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     profile_draw_data_summary(x, w, y)
     settings_data_draw_sync_status(x, w, y)
     *y += Scale(10)
     settings_data_draw_actions(app, x, w, y)
 }
 
-profile_draw_habits :: (app: InbeApp*, x: int, w: int, y: int*) {
+profile_draw_habits :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     font := GetFontSize()
     small := GetSmallFontSize()
     btn_h := Scale(32)
@@ -717,7 +717,7 @@ profile_draw_habits :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
 }
 
-profile_screen_draw_remove_friend_modal :: (app: InbeApp*) {
+profile_screen_draw_remove_friend_modal :: (app: InnerBreeze*) {
     message: [384] char = {0}
     modal_result := 0
 
@@ -757,7 +757,7 @@ profile_screen_draw_remove_friend_modal :: (app: InbeApp*) {
     }
 }
 
-profile_screen_draw :: (app: InbeApp*) -> int {
+profile_screen_draw :: (app: InnerBreeze*) -> int {
     if app == nil {
         return 0
     }
@@ -808,7 +808,7 @@ profile_screen_draw :: (app: InbeApp*) -> int {
         if app_return_to_nav_sidebar_if_needed(app) {
             return 1
         }
-        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? InbeScreenHabits : InbeScreenStart)
+        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? ScreenHabits : ScreenStart)
         return 1
     }
 
@@ -854,7 +854,7 @@ route profile {
     page profile
 }
 
-profile :: (app: InbeApp*) #ui {
+profile :: (app: InnerBreeze*) #ui {
     Screen root: {
     unused profile_screen_draw(app)
     }

@@ -4,7 +4,6 @@
 #include "storage.h"
 #include "version.h"
 #include "kryon.h"
-#include "miniz.h"
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,7 +44,7 @@ android_share_helper_class(JNIEnv *env, jobject activity)
                                      "(Ljava/lang/String;)Ljava/lang/Class;");
     if(!load_class)
         return NULL;
-    class_name = (*env)->NewStringUTF(env, "xyz.waozi.inbe.ShareHelper");
+    class_name = (*env)->NewStringUTF(env, "xyz.waozi.breathing.ShareHelper");
     share_helper_class = (jclass)(*env)->CallObjectMethod(env, class_loader, load_class, class_name);
     (*env)->DeleteLocalRef(env, class_name);
     (*env)->DeleteLocalRef(env, class_loader);
@@ -206,7 +205,7 @@ int android_share_export(const char *filename)
         return 0;
     }
 
-    jstring class_name = (*env)->NewStringUTF(env, "xyz.waozi.inbe.ShareHelper");
+    jstring class_name = (*env)->NewStringUTF(env, "xyz.waozi.breathing.ShareHelper");
     jclass share_helper_class = (jclass)(*env)->CallObjectMethod(env, class_loader, load_class, class_name);
     (*env)->DeleteLocalRef(env, class_name);
 

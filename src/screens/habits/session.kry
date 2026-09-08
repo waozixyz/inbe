@@ -9,12 +9,12 @@
 ANDROID :: ANDROID_BUILD
 
 ScrollPageContext :: struct {
-    app: InbeApp*
+    app: InnerBreeze*
     linked: HabitLinkedContext*
     y: int
 }
 
-begin_round_edit :: (app: InbeApp*, entry: const HabitLinkedEntry*,
+begin_round_edit :: (app: InnerBreeze*, entry: const HabitLinkedEntry*,
                     round: int) #private {
     if app == nil || entry == nil || round < 0 || round >= entry->round_count {
         return
@@ -142,7 +142,7 @@ delete_round :: (entry: const HabitLinkedEntry*, round: int) -> int #private {
     return data_replace_session(entry->path, rounds, out_count)
 }
 
-handle_physical_keyboard :: (app: InbeApp*,
+handle_physical_keyboard :: (app: InnerBreeze*,
                             entry: const HabitLinkedEntry*) -> int #private {
     commit_pressed := 0
 
@@ -180,9 +180,9 @@ scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private
            ctx->y
 }
 
-draw_edit_screen :: (app: InbeApp*) {
+draw_edit_screen :: (app: InnerBreeze*) {
     ctx: HabitLinkedContext
-    habit: InbeHabit* = nil
+    habit: Habit* = nil
     date_text: [32] char = {0}
     top_h := Scale(58)
     bottom_reserved := 0
@@ -198,7 +198,7 @@ draw_edit_screen :: (app: InbeApp*) {
     bottom_reserved = app_content_bottom_reserved(app)
     if app->habit_detail_index < 0 ||
        app->habit_detail_index >= app->habits.count {
-        app_switch_screen(app, InbeScreenHabits)
+        app_switch_screen(app, ScreenHabits)
         return
     }
 
@@ -206,7 +206,7 @@ draw_edit_screen :: (app: InbeApp*) {
     habit_collect_linked_entries(habit, app->habit_detail_day, &ctx)
     if ctx.count <= 0 {
         habit_session_cancel_edit(app)
-        app_switch_screen(app, InbeScreenHabits)
+        app_switch_screen(app, ScreenHabits)
         return
     }
     habit_format_date(app->habit_detail_day, date_text, sizeof(date_text))
@@ -219,7 +219,7 @@ draw_edit_screen :: (app: InbeApp*) {
 
     if app_draw_close_title_bar(app, date_text, top_h) {
         habit_session_cancel_edit(app)
-        app_switch_screen(app, InbeScreenHabits)
+        app_switch_screen(app, ScreenHabits)
         return
     }
 
@@ -257,7 +257,7 @@ draw_edit_screen :: (app: InbeApp*) {
     }
 }
 
-draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
+draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                          content_x: int, content_w: int, y: int,
                          draw: int) -> int {
     row_h := Scale(34)
@@ -447,7 +447,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
     if ctx->day_filter > 0 &&
        app->habit_detail_index >= 0 &&
        app->habit_detail_index < app->habits.count {
-        habit: InbeHabit* = &app->habits.items[app->habit_detail_index]
+        habit: Habit* = &app->habits.items[app->habit_detail_index]
 
         if habit_counting_enabled(habit) {
             minimum_count := ctx->count
@@ -500,7 +500,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
     return y
 }
 
-keyboard_height :: (app: InbeApp*) -> int {
+keyboard_height :: (app: InnerBreeze*) -> int {
     key_h := Scale(48)
     gap := Scale(6)
     pad := Scale(10)
@@ -516,7 +516,7 @@ keyboard_height :: (app: InbeApp*) -> int {
     return pad * 2 + key_h * 4 + gap * 3
 }
 
-draw_keyboard :: (app: InbeApp*, entry: const HabitLinkedEntry*) -> int {
+draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
     labels: [12] const char* = {
         "1", "2", "3",
         "4", "5", "6",
@@ -575,7 +575,7 @@ keyboard_key :: (x: int, y: int, w: int, h: int,
                                ButtonStyleSecondary, 0, &hover)
 }
 
-clamp_cursor :: (app: InbeApp*) {
+clamp_cursor :: (app: InnerBreeze*) {
     len := 0
 
     if app == nil {
@@ -590,7 +590,7 @@ clamp_cursor :: (app: InbeApp*) {
     }
 }
 
-delete_before_cursor :: (app: InbeApp*) {
+delete_before_cursor :: (app: InnerBreeze*) {
     len: size_t = 0
     cursor := 0
 
@@ -609,7 +609,7 @@ delete_before_cursor :: (app: InbeApp*) {
     app->habit_session_edit.cursor--
 }
 
-insert_char :: (app: InbeApp*, c: char) {
+insert_char :: (app: InnerBreeze*, c: char) {
     len: size_t = 0
     cursor := 0
 
@@ -651,7 +651,7 @@ parse_seconds :: (text_value: const char*, seconds: int*) -> int {
     return 1
 }
 
-commit_edit :: (app: InbeApp*, entry: const HabitLinkedEntry*) -> int {
+commit_edit :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
     if app == nil || entry == nil || !app->habit_session_edit.active {
         return 0
     }
@@ -688,7 +688,7 @@ route habit_session_edit {
     page habit_session_edit
 }
 
-habit_session_edit :: (app: InbeApp*) #ui {
+habit_session_edit :: (app: InnerBreeze*) #ui {
     Screen root: {
     habit_session_draw_edit_screen(app)
     }

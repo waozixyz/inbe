@@ -172,7 +172,7 @@ remove_tree(const char *path)
 static void
 make_clean_root(char *out, size_t out_size, const char *name)
 {
-    snprintf(out, out_size, "/tmp/inbe-sync-review-test-%ld-%s", (long)getpid(), name);
+    snprintf(out, out_size, "/tmp/breathing-sync-review-test-%ld-%s", (long)getpid(), name);
     remove_tree(out);
     check_true("create test root", ensure_dir(out));
     snprintf(g_data_root, sizeof(g_data_root), "%s", out);
@@ -186,7 +186,7 @@ exec_db_sql(const char *root, const char *sql)
     char *err = NULL;
     int ok;
 
-    snprintf(db_path, sizeof(db_path), "%s/inbe.db", root);
+    snprintf(db_path, sizeof(db_path), "%s/breathing.db", root);
     if(sqlite3_open(db_path, &db) != SQLITE_OK || db == NULL)
         return 0;
     ok = sqlite3_exec(db, sql, NULL, NULL, &err) == SQLITE_OK;
@@ -206,7 +206,7 @@ read_db_count(const char *root, const char *sql)
     sqlite3_stmt *stmt = NULL;
     int count = -1;
 
-    snprintf(db_path, sizeof(db_path), "%s/inbe.db", root);
+    snprintf(db_path, sizeof(db_path), "%s/breathing.db", root);
     if(sqlite3_open(db_path, &db) != SQLITE_OK || db == NULL)
         return count;
     if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK &&
@@ -667,7 +667,7 @@ static void
 test_uuid_habit_ids_load_days_into_memory(void)
 {
     char root[1024];
-    InbeHabits habits;
+    Habits habits;
     const char *uuid = "940dd8b7-0d60-48ce-9c8f-433b9170b6b1";
 
     make_clean_root(root, sizeof(root), "uuid-habit-load");
@@ -781,7 +781,7 @@ test_normal_response_records_server_hash(void)
 {
     char root[1024];
     char *payload;
-    InbeStorageSyncStatus status;
+    StorageSyncStatus status;
     const char *response = "{"
                            "\"server_version\":5,"
                            "\"server_clock\":77,"
@@ -800,7 +800,7 @@ test_normal_response_records_server_hash(void)
                    "waozi");
     check_true("normal response loads status", storage_sync_status(&status));
     check_int("normal response latest protocol", status.latest_protocol,
-              INBE_SYNC_PROTOCOL_VERSION);
+              SYNC_PROTOCOL_VERSION);
     check_false("normal response no protocol upgrade", status.protocol_upgrade_available);
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
@@ -818,7 +818,7 @@ static void
 test_latest_protocol_warning_targets_current_client_only(void)
 {
     char root[1024];
-    InbeStorageSyncStatus status;
+    StorageSyncStatus status;
     const char *response = "{"
                            "\"server_version\":7,"
                            "\"server_clock\":78,"

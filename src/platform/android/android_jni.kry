@@ -75,7 +75,7 @@ ANDROID :: ANDROID_BUILD
                                                method)
                 called = 1
             } else {
-                __android_log_write(ANDROID_LOG_ERROR, "INBE_JNI",
+                __android_log_write(ANDROID_LOG_ERROR, "APP_JNI",
                                     "method not found")
             }
         }
@@ -97,7 +97,7 @@ ANDROID :: ANDROID_BUILD
                                                method, arg)
                 called = 1
             } else {
-                __android_log_write(ANDROID_LOG_ERROR, "INBE_JNI",
+                __android_log_write(ANDROID_LOG_ERROR, "APP_JNI",
                                     "method not found")
             }
         }
@@ -118,7 +118,7 @@ ANDROID :: ANDROID_BUILD
                                                             session->activity,
                                                             method) ? 1 : 0
             } else {
-                __android_log_write(ANDROID_LOG_ERROR, "INBE_JNI",
+                __android_log_write(ANDROID_LOG_ERROR, "APP_JNI",
                                     "method not found")
             }
         }
@@ -142,7 +142,7 @@ ANDROID :: ANDROID_BUILD
                 array = (jobjectArray)(*session->env)->CallObjectMethod(
                     session->env, session->activity, method)
             } else {
-                __android_log_write(ANDROID_LOG_ERROR, "INBE_JNI",
+                __android_log_write(ANDROID_LOG_ERROR, "APP_JNI",
                                     "string array method not found")
             }
         }

@@ -1,5 +1,5 @@
-#ifndef INBE_APP_INTERNAL_H
-#define INBE_APP_INTERNAL_H
+#ifndef APP_APP_INTERNAL_H
+#define APP_APP_INTERNAL_H
 
 /*
  * Prototypes for app-module-private functions that cross translation-unit
@@ -12,13 +12,13 @@
 
 /* app_fonts.c */
 int  app_running_in_kryon_preview(void);
-int  load_locale_font(InbeApp *app);
-void unload_locale_font(InbeApp *app);
-void discard_locale_font_cpu(InbeApp *app);
+int  load_locale_font(InnerBreeze*app);
+void unload_locale_font(InnerBreeze*app);
+void discard_locale_font_cpu(InnerBreeze*app);
 
 /* app_audio.c */
 void audio_mixed_meter(void *bufferData, unsigned int frames);
-void unload_cue_sounds(InbeApp *app);
-void init_audio(InbeApp *app);
+void unload_cue_sounds(InnerBreeze*app);
+void init_audio(InnerBreeze*app);
 
-#endif /* INBE_APP_INTERNAL_H */
+#endif /* APP_APP_INTERNAL_H */

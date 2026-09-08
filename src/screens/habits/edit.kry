@@ -8,7 +8,7 @@ static reminder_hour_texts: [24 * 8] char = {0}
 #import "stdio.h"
 #import "string.h"
 
-begin_new :: (app: InbeApp*) {
+begin_new :: (app: InnerBreeze*) {
     default_color: Color = {99, 196, 165, 255}
 
     if app == nil {
@@ -20,20 +20,20 @@ begin_new :: (app: InbeApp*) {
         .is_new = 1,
         .index = -1,
         .color = default_color,
-        .sync_mode = INBE_HABIT_SYNC_NONE,
+        .sync_mode = HABIT_SYNC_NONE,
         .counter_target = 1,
         .reminder_hour = -1,
-        .weekdays = INBE_HABIT_SCHEDULE_OFF,
+        .weekdays = HABIT_SCHEDULE_OFF,
         .sections = {1, 0, 1, 0}
     }
     app->habit_edit.cursor = (int)strlen(app->habit_edit.text)
     app->habit_edit.focused = 0
     app->habits.scroll = 0
     app->habits.tab = HABIT_TAB_EDIT
-    app_switch_screen(app, InbeScreenHabitEdit)
+    app_switch_screen(app, ScreenHabitEdit)
 }
 
-begin :: (app: InbeApp*, index: int) {
+begin :: (app: InnerBreeze*, index: int) {
     if app == nil || index < 0 || index >= app->habits.count {
         return
     }
@@ -61,10 +61,10 @@ begin :: (app: InbeApp*, index: int) {
         (int)strlen(app->habit_edit.description)
     app->habits.tab = HABIT_TAB_EDIT
     app->habits.scroll = 0
-    app_switch_screen(app, InbeScreenHabitEdit)
+    app_switch_screen(app, ScreenHabitEdit)
 }
 
-cancel :: (app: InbeApp*) {
+cancel :: (app: InnerBreeze*) {
     was_new: int
 
     if app == nil {
@@ -76,10 +76,10 @@ cancel :: (app: InbeApp*) {
     app->habit_edit = (HabitEditState){
         .index = -1,
         .color = {99, 196, 165, 255},
-        .sync_mode = INBE_HABIT_SYNC_NONE
+        .sync_mode = HABIT_SYNC_NONE
     }
     SetUIFocusTextInputActive(0)
-    if app->inbe.screen == InbeScreenHabitEdit {
+    if app->breathing.screen == ScreenHabitEdit {
         app->habits.screen_mode = was_new
             ? HABITS_SCREEN_OVERVIEW : HABITS_SCREEN_DETAIL
         app->habits.tab = HABIT_TAB_WEEKLY
@@ -88,7 +88,7 @@ cancel :: (app: InbeApp*) {
     }
 }
 
-trimmed_text :: (app: InbeApp*) -> const char* #private {
+trimmed_text :: (app: InnerBreeze*) -> const char* #private {
     start: char* = nil
     end: char* = nil
 
@@ -108,7 +108,7 @@ trimmed_text :: (app: InbeApp*) -> const char* #private {
     return start
 }
 
-practice_picker :: (app: InbeApp*) -> int #private {
+practice_picker :: (app: InnerBreeze*) -> int #private {
     modal_w := view_width - Scale(32)
     modal_h := Scale(344)
     hover := 0
@@ -146,7 +146,7 @@ practice_picker :: (app: InbeApp*) -> int #private {
     return result
 }
 
-commit :: (app: InbeApp*) {
+commit :: (app: InnerBreeze*) {
     name_text: const char* = nil
     index := 0
     was_new := 0
@@ -174,9 +174,9 @@ commit :: (app: InbeApp*) {
     }
     if name_text[0] != '\0' {
         if app->habit_edit.sync_activity != 0 {
-            app->habit_edit.sync_mode = INBE_HABIT_SYNC_ACTIVITIES
+            app->habit_edit.sync_mode = HABIT_SYNC_ACTIVITIES
         } else {
-            app->habit_edit.sync_mode = INBE_HABIT_SYNC_NONE
+            app->habit_edit.sync_mode = HABIT_SYNC_NONE
         }
         if app->habit_edit.is_new {
             created := habits_add_custom(&app->habits, name_text,
@@ -229,7 +229,7 @@ commit :: (app: InbeApp*) {
     app->habits.view_mode = HABIT_VIEW_WEEKLY
     app->habits.scroll = 0
     save_settings(app)
-    app_switch_screen(app, InbeScreenHabits)
+    app_switch_screen(app, ScreenHabits)
 }
 
 text_field :: (text: char*, text_size: size_t, cursor: int*,
@@ -293,7 +293,7 @@ section_header_height :: (section: int) -> int #private {
     return body_line + Scale(24)
 }
 
-section_height :: (app: InbeApp*, section: int, width: int) -> int #private {
+section_height :: (app: InnerBreeze*, section: int, width: int) -> int #private {
     header := section_header_height(section)
     if !app->habit_edit.sections[section] {
         return header
@@ -307,14 +307,14 @@ section_height :: (app: InbeApp*, section: int, width: int) -> int #private {
             ((count + columns - 1) / columns) * Scale(44)
     }
     if section == 1 {
-        scheduled := (app->habit_edit.weekdays & INBE_HABIT_SCHEDULE_OFF) == 0
+        scheduled := (app->habit_edit.weekdays & HABIT_SCHEDULE_OFF) == 0
         return header + Scale(scheduled ? 196 : 108)
     }
     return header + Scale(app->habit_edit.counter_enabled ? 156 : 104)
 }
 
 content_height :: (width: int, user_data: void*) -> int #private {
-    app := (InbeApp*)user_data
+    app := (InnerBreeze*)user_data
     height := Scale(16)
     for int i = 0; i < 3; i++ {
         height += section_height(app, i, width - Scale(24)) + Scale(12)
@@ -322,7 +322,7 @@ content_height :: (width: int, user_data: void*) -> int #private {
     return height
 }
 
-draw_form :: (app: InbeApp*) #private {
+draw_form :: (app: InnerBreeze*) #private {
     if app->modal.active {
         if app->modal.type == UIModalHabitPracticePicker {
             if practice_picker(app) { app_close_modal(app) }
@@ -337,7 +337,7 @@ draw_form :: (app: InbeApp*) #private {
                 habits_delete(&app->habits, index)
                 app_auto_sync(app)
                 save_settings(app)
-                app_switch_screen(app, InbeScreenHabits)
+                app_switch_screen(app, ScreenHabits)
             }
         }
         return
@@ -349,13 +349,13 @@ draw_form :: (app: InbeApp*) #private {
     small := GetSmallFontSize()
     if IsKeyPressed(KEY_ESCAPE) {
         cancel(app)
-        app_switch_screen(app, InbeScreenHabits)
+        app_switch_screen(app, ScreenHabits)
         return
     }
     title := GetLocaleText(app->habit_edit.is_new ? "habit_new_title" : "habit_edit_title")
     if ReturnTitleBar(app->icons[UI_ICON_TYPE_LEFT], title, top) {
         cancel(app)
-        app_switch_screen(app, InbeScreenHabits)
+        app_switch_screen(app, ScreenHabits)
         return
     }
 
@@ -411,7 +411,7 @@ draw_form :: (app: InbeApp*) #private {
         if section == 1 && !app->habit_edit.sections[section] {
             summary: [16] char = {0}
             status: const char* = GetLocaleText("habit_reminder_off")
-            if (app->habit_edit.weekdays & INBE_HABIT_SCHEDULE_OFF) == 0 {
+            if (app->habit_edit.weekdays & HABIT_SCHEDULE_OFF) == 0 {
                 status = app->habit_edit.weekdays == 0 ? GetLocaleText("habit_every_day") : GetLocaleText("habit_schedule_custom")
             } else if app->habit_edit.reminder_hour >= 0 {
                 snprintf(summary, sizeof(summary), "%02d:00", app->habit_edit.reminder_hour)
@@ -445,7 +445,7 @@ draw_form :: (app: InbeApp*) #private {
                 .wrap=TextWrapNone
             })
             field := text_field(app->habit_edit.text, sizeof(app->habit_edit.text),
-                                &app->habit_edit.cursor, &app->habit_edit.focused, INBE_HABIT_NAME_SIZE - 1, font)
+                                &app->habit_edit.cursor, &app->habit_edit.focused, HABIT_NAME_SIZE - 1, font)
             field_y := row + label_line + Scale(4)
             field.bounds = (Rectangle){(float)px, (float)field_y,
                                        (float)inner, (float)Scale(44)}
@@ -464,7 +464,7 @@ draw_form :: (app: InbeApp*) #private {
             })
             area := text_area(app->habit_edit.description, sizeof(app->habit_edit.description),
                               &app->habit_edit.description_cursor, &app->habit_edit.description_focused,
-                              &app->habit_edit.description_scroll_y, INBE_HABIT_DESCRIPTION_SIZE - 1, font)
+                              &app->habit_edit.description_scroll_y, HABIT_DESCRIPTION_SIZE - 1, font)
             area_y := row + label_line + Scale(4)
             area.bounds = (Rectangle){(float)px, (float)area_y,
                                       (float)inner, (float)Scale(48)}
@@ -527,7 +527,7 @@ draw_form :: (app: InbeApp*) #private {
             }
         }
         if open && section == 1 {
-            schedule_enabled := (app->habit_edit.weekdays & INBE_HABIT_SCHEDULE_OFF) == 0
+            schedule_enabled := (app->habit_edit.weekdays & HABIT_SCHEDULE_OFF) == 0
             Text((TextProps){
                 .bounds={(px), (row + Scale(14)), 0, 0},
                 .text=(GetLocaleText("habit_schedule_enabled")),
@@ -537,7 +537,7 @@ draw_form :: (app: InbeApp*) #private {
             })
             if Toggle(7600, px + inner - Scale(56), row + Scale(7), Scale(56), Scale(30),
                       &schedule_enabled, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
-                app->habit_edit.weekdays = schedule_enabled ? 0 : INBE_HABIT_SCHEDULE_OFF
+                app->habit_edit.weekdays = schedule_enabled ? 0 : HABIT_SCHEDULE_OFF
             }
             row += Scale(52)
             if schedule_enabled {
@@ -682,10 +682,10 @@ draw_form :: (app: InbeApp*) #private {
     }
 }
 
-draw :: (app: InbeApp*) {
+draw :: (app: InnerBreeze*) {
     if app == nil { return }
     if !app->habit_edit.active {
-        app_switch_screen(app, InbeScreenHabits)
+        app_switch_screen(app, ScreenHabits)
         return
     }
     draw_form(app)
@@ -697,7 +697,7 @@ route habit_edit {
     page habit_edit
 }
 
-habit_edit :: (app: InbeApp*) #ui {
+habit_edit :: (app: InnerBreeze*) #ui {
     Screen root: {
     habit_edit_draw(app)
     }

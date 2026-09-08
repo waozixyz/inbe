@@ -14,7 +14,7 @@
 #include "app/app_update_check.h"
 #include "data.h"
 #include "app/app_notifications.h"
-#include "platform/inbe_desktop_tray.h"
+#include "platform/app_desktop_tray.h"
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/break_overlay.h"
@@ -54,11 +54,11 @@
 #endif
 
 #if defined(PLATFORM_WEB) || ANDROID_BUILD
-#define INBE_DEFAULT_WIDTH 320
-#define INBE_DEFAULT_HEIGHT 560
+#define APP_DEFAULT_WIDTH 320
+#define APP_DEFAULT_HEIGHT 560
 #else
-#define INBE_DEFAULT_WIDTH 900
-#define INBE_DEFAULT_HEIGHT 720
+#define APP_DEFAULT_WIDTH 900
+#define APP_DEFAULT_HEIGHT 720
 #endif
 
 typedef struct AppProfileStats {
@@ -90,30 +90,31 @@ ReadonlyTextBox(ReadonlyTextBoxProps props)
     DrawUIReadonlyTextBox(props);
 }
 
-static void app_apply_route(InbeApp *app, AppRoute route);
-static void app_restore_habits_view_settings(InbeApp *app);
+static void app_apply_route(InnerBreeze*app, AppRoute route);
+static void app_restore_habits_view_settings(InnerBreeze*app);
 
-typedef struct InbeRouteBinding {
+typedef struct RouteBinding {
     const char *id;
     int screen;
-} InbeRouteBinding;
+} RouteBinding;
 
-static const InbeRouteBinding inbe_route_bindings[] = {
-    {"start", InbeScreenStart},
-    {"session", InbeScreenSession},
-    {"meditation", InbeScreenMeditation},
-    {"sun_salutation", InbeScreenSunSalutation},
-    {"patterns", InbeScreenPatterns},
-    {"results", InbeScreenResults},
-    {"settings", InbeScreenSettings},
-    {"language", InbeScreenLanguage},
-    {"manual", InbeScreenManual},
-    {"profile", InbeScreenProfile},
-    {"habits", InbeScreenHabits},
-    {"customize_nav", InbeScreenCustomizeNav},
-    {"nav_sidebar", InbeScreenNavSidebar},
-    {"habit_edit", InbeScreenHabitEdit},
-    {"habit_session_edit", InbeScreenHabitSessionEdit},
+static const RouteBinding route_bindings[] = {
+    {"start", ScreenStart},
+    {"session", ScreenSession},
+    {"meditation", ScreenMeditation},
+    {"sun_salutation", ScreenSunSalutation},
+    {"patterns", ScreenPatterns},
+    {"results", ScreenResults},
+    {"settings", ScreenSettings},
+    {"language", ScreenLanguage},
+    {"manual", ScreenManual},
+    {"profile", ScreenProfile},
+    {"habits", ScreenHabits},
+    {"elist", ScreenEList},
+    {"customize_nav", ScreenCustomizeNav},
+    {"nav_sidebar", ScreenNavSidebar},
+    {"habit_edit", ScreenHabitEdit},
+    {"habit_session_edit", ScreenHabitSessionEdit},
 };
 
 static int g_app_route_version = -1;
@@ -147,10 +148,10 @@ app_screen_for_route_id(const char *id)
 
     if(id == NULL || id[0] == '\0')
         return -1;
-    for(i = 0; i < sizeof(inbe_route_bindings) / sizeof(inbe_route_bindings[0]);
+    for(i = 0; i < sizeof(route_bindings) / sizeof(route_bindings[0]);
         i++) {
-        if(strcmp(inbe_route_bindings[i].id, id) == 0)
-            return inbe_route_bindings[i].screen;
+        if(strcmp(route_bindings[i].id, id) == 0)
+            return route_bindings[i].screen;
     }
     return -1;
 }
@@ -160,16 +161,16 @@ app_route_id_for_screen(int screen)
 {
     size_t i;
 
-    for(i = 0; i < sizeof(inbe_route_bindings) / sizeof(inbe_route_bindings[0]);
+    for(i = 0; i < sizeof(route_bindings) / sizeof(route_bindings[0]);
         i++) {
-        if(inbe_route_bindings[i].screen == screen)
-            return inbe_route_bindings[i].id;
+        if(route_bindings[i].screen == screen)
+            return route_bindings[i].id;
     }
     return NULL;
 }
 
 static void
-app_write_current_route(InbeApp *app, int push)
+app_write_current_route(InnerBreeze*app, int push)
 {
     const char *id;
     const char *path;
@@ -177,7 +178,7 @@ app_write_current_route(InbeApp *app, int push)
 
     if(app == NULL)
         return;
-    id = app_route_id_for_screen(app->inbe.screen);
+    id = app_route_id_for_screen(app->breathing.screen);
     if(id == NULL || id[0] == '\0')
         return;
     path = GetRoutePath();
@@ -192,7 +193,7 @@ app_write_current_route(InbeApp *app, int push)
 }
 
 static void
-app_sync_route_from_url(InbeApp *app)
+app_sync_route_from_url(InnerBreeze*app)
 {
     int version;
     char id[96];
@@ -212,7 +213,7 @@ app_sync_route_from_url(InbeApp *app)
         app_write_current_route(app, 0);
         return;
     }
-    if(screen == InbeScreenLanguage && app->language_selected) {
+    if(screen == ScreenLanguage && app->language_selected) {
         app_write_current_route(app, 0);
         return;
     }
@@ -226,7 +227,7 @@ static int
 app_profile_enabled(void)
 {
     if(!g_app_profile.initialized) {
-        const char *env = getenv("INBE_PROFILE");
+        const char *env = getenv("APP_PROFILE");
         g_app_profile.enabled = env != NULL && env[0] != '\0' && env[0] != '0';
         g_app_profile.initialized = 1;
     }
@@ -312,14 +313,14 @@ app_donation_url(void)
 }
 
 static void
-app_save_donation_reminder(InbeApp *app)
+app_save_donation_reminder(InnerBreeze*app)
 {
     if(app != NULL)
         save_settings(app);
 }
 
 static void
-app_record_donation_reminder_seen(InbeApp *app)
+app_record_donation_reminder_seen(InnerBreeze*app)
 {
     int practice_count;
 
@@ -335,16 +336,16 @@ app_record_donation_reminder_seen(InbeApp *app)
 }
 
 static int
-app_donation_reminder_practice_home(const InbeApp *app)
+app_donation_reminder_practice_home(const InnerBreeze*app)
 {
     return app != NULL &&
-           app->inbe.screen == InbeScreenStart &&
+           app->breathing.screen == ScreenStart &&
            app->main_tab == APP_MAIN_TAB_PRACTICE &&
            app->practice_tab == PRACTICE_TAB_PLAY;
 }
 
 static void
-app_init_donation_reminder_observed_practice_count(InbeApp *app)
+app_init_donation_reminder_observed_practice_count(InnerBreeze*app)
 {
     if(app == NULL ||
        app->donation_reminder_observed_practice_count_initialized)
@@ -354,7 +355,7 @@ app_init_donation_reminder_observed_practice_count(InbeApp *app)
 }
 
 static int
-app_donation_reminder_next_threshold(const InbeApp *app, int observed_count)
+app_donation_reminder_next_threshold(const InnerBreeze*app, int observed_count)
 {
     int next_prompt_count;
 
@@ -370,7 +371,7 @@ app_donation_reminder_next_threshold(const InbeApp *app, int observed_count)
 }
 
 static void
-app_handle_donation_reminder_action(InbeApp *app, int action)
+app_handle_donation_reminder_action(InnerBreeze*app, int action)
 {
     if(app == NULL)
         return;
@@ -436,7 +437,7 @@ app_profile_frame_end(double frame_start)
 }
 
 static void
-app_update_frame_pacing(InbeApp *app)
+app_update_frame_pacing(InnerBreeze*app)
 {
 #if ANDROID_BUILD
     int active = 0;
@@ -456,37 +457,37 @@ app_update_frame_pacing(InbeApp *app)
 #endif
 }
 
-InbeConfig config = {
+AppConfig config = {
     .title = "Inner Breeze",
-    .width = INBE_DEFAULT_WIDTH,
-    .height = INBE_DEFAULT_HEIGHT,
+    .width = APP_DEFAULT_WIDTH,
+    .height = APP_DEFAULT_HEIGHT,
     .loaded = 0,
     .title_custom = 1
 };
 
-int view_width = INBE_DEFAULT_WIDTH;
-int view_height = INBE_DEFAULT_HEIGHT;
-static int app_full_view_width = INBE_DEFAULT_WIDTH;
-static InbeApp *g_inbe_app_ptr;
+int view_width = APP_DEFAULT_WIDTH;
+int view_height = APP_DEFAULT_HEIGHT;
+static int app_full_view_width = APP_DEFAULT_WIDTH;
+static InnerBreeze*g_app_ptr;
 /* Theme colors are now accessed via theme accessor functions */
 
-InbeApp *
-get_global_inbe_app(void)
+InnerBreeze*
+get_global_app(void)
 {
-    return g_inbe_app_ptr;
+    return g_app_ptr;
 }
 
 void
-set_global_inbe_app(InbeApp *app)
+set_global_app(InnerBreeze*app)
 {
-    g_inbe_app_ptr = app;
-    TraceLog(LOG_INFO, "INBE: Global app pointer set to %p", app);
+    g_app_ptr = app;
+    TraceLog(LOG_INFO, "APP: Global app pointer set to %p", app);
 }
 
 void *
 CreateApp(const char *project_path)
 {
-    InbeApp *app;
+    InnerBreeze*app;
 
     app = calloc(1, sizeof(*app));
     if(app == NULL)
@@ -494,26 +495,26 @@ CreateApp(const char *project_path)
     if(project_path != NULL && project_path[0] != '\0')
         ChangeDirectory(project_path);
     app_init(app);
-    set_global_inbe_app(app);
+    set_global_app(app);
     return app;
 }
 
 void
 DestroyApp(void *vapp)
 {
-    InbeApp *app = vapp;
+    InnerBreeze*app = vapp;
 
     if(app == NULL)
         return;
     app_destroy(app);
     free(app);
-    set_global_inbe_app(NULL);
+    set_global_app(NULL);
 }
 
 void
 ApplyRoute(void *vapp, const AppRouteInfo *route_info)
 {
-    InbeApp *app = vapp;
+    InnerBreeze*app = vapp;
     AppRoute route;
     int screen = -1;
     size_t i;
@@ -524,10 +525,10 @@ ApplyRoute(void *vapp, const AppRouteInfo *route_info)
         session_start(app);
         return;
     }
-    for(i = 0; i < sizeof(inbe_route_bindings) / sizeof(inbe_route_bindings[0]);
+    for(i = 0; i < sizeof(route_bindings) / sizeof(route_bindings[0]);
         i++) {
-        if(strcmp(inbe_route_bindings[i].id, route_info->id) == 0) {
-            screen = inbe_route_bindings[i].screen;
+        if(strcmp(route_bindings[i].id, route_info->id) == 0) {
+            screen = route_bindings[i].screen;
             break;
         }
     }
@@ -547,7 +548,7 @@ BeginScreenDraw(void *vapp, Rectangle viewport)
 }
 
 int
-app_draw_close_title_bar(InbeApp *app, const char *title, int height)
+app_draw_close_title_bar(InnerBreeze*app, const char *title, int height)
 {
     int hover = 0;
     int button_size = Scale(22);
@@ -569,11 +570,11 @@ app_draw_close_title_bar(InbeApp *app, const char *title, int height)
 int
 app_scaffold_close_title(const char *title, int height, void *user_data)
 {
-    return app_draw_close_title_bar((InbeApp *)user_data, title, height);
+    return app_draw_close_title_bar((InnerBreeze*)user_data, title, height);
 }
 
 int
-app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
+app_draw_close_dropdown_title_bar(InnerBreeze*app, UITitleBarDropdown dropdown,
                                   int height)
 {
     int hover = 0;
@@ -607,7 +608,7 @@ app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
 }
 
 void
-app_leave_practice_config(InbeApp *app)
+app_leave_practice_config(InnerBreeze*app)
 {
     if(app == NULL)
         return;
@@ -622,13 +623,13 @@ app_leave_practice_config(InbeApp *app)
 }
 
 AppRoute
-app_current_route(const InbeApp *app)
+app_current_route(const InnerBreeze*app)
 {
     AppRoute route = {0};
 
     if(app == NULL)
         return route;
-    route.screen = app->inbe.screen;
+    route.screen = app->breathing.screen;
     route.exercise_type = app->exercise_type;
     route.practice_tab = app->practice_tab;
     route.practice_config_tab = app->practice_config_tab;
@@ -643,9 +644,9 @@ app_current_route(const InbeApp *app)
 static int
 app_route_uses_habit_state(int screen)
 {
-    return screen == InbeScreenHabits ||
-           screen == InbeScreenHabitEdit ||
-           screen == InbeScreenHabitSessionEdit;
+    return screen == ScreenHabits ||
+           screen == ScreenHabitEdit ||
+           screen == ScreenHabitSessionEdit;
 }
 
 static int
@@ -657,14 +658,14 @@ app_route_equal(AppRoute a, AppRoute b)
         return a.habits_screen_mode == b.habits_screen_mode &&
                a.habits_tab == b.habits_tab;
     switch(a.screen) {
-    case InbeScreenStart:
+    case ScreenStart:
         return a.exercise_type == b.exercise_type &&
                a.practice_tab == b.practice_tab &&
                (a.practice_tab != PRACTICE_TAB_CONFIG ||
                 a.practice_config_tab == b.practice_config_tab);
-    case InbeScreenSettings:
+    case ScreenSettings:
         return a.settings_tab == b.settings_tab;
-    case InbeScreenProfile:
+    case ScreenProfile:
         return a.profile_view == b.profile_view &&
                a.profile_tab == b.profile_tab;
     default:
@@ -674,11 +675,11 @@ app_route_equal(AppRoute a, AppRoute b)
 }
 
 static void
-app_enter_route(InbeApp *app, AppRoute route)
+app_enter_route(InnerBreeze*app, AppRoute route)
 {
     if(app == NULL)
         return;
-    if(route.screen == InbeScreenProfile) {
+    if(route.screen == ScreenProfile) {
         if(route.profile_tab == PROFILE_TAB_FRIENDS) {
             profile_social_load_friends_cache(app);
             app_request_social_refresh(app);
@@ -690,11 +691,11 @@ app_enter_route(InbeApp *app, AppRoute route)
 }
 
 static void
-app_apply_route(InbeApp *app, AppRoute route)
+app_apply_route(InnerBreeze*app, AppRoute route)
 {
     if(app == NULL)
         return;
-    app->inbe.screen = route.screen;
+    app->breathing.screen = route.screen;
     app->exercise_type = route.exercise_type;
     app->practice_tab = route.practice_tab;
     app->practice_config_tab = route.practice_config_tab;
@@ -706,14 +707,14 @@ app_apply_route(InbeApp *app, AppRoute route)
 }
 
 void
-app_switch_route(InbeApp *app, AppRoute route)
+app_switch_route(InnerBreeze*app, AppRoute route)
 {
     if(app == NULL)
         return;
     if(app_route_equal(app_current_route(app), route))
         return;
 
-    if(route.screen == InbeScreenHabits && app->inbe.screen != InbeScreenHabits)
+    if(route.screen == ScreenHabits && app->breathing.screen != ScreenHabits)
         app->habits.focus_selected_tab = 1;
 
     app_apply_route(app, route);
@@ -721,7 +722,7 @@ app_switch_route(InbeApp *app, AppRoute route)
 }
 
 void
-app_switch_screen(InbeApp *app, int screen)
+app_switch_screen(InnerBreeze*app, int screen)
 {
     AppRoute route;
 
@@ -733,17 +734,17 @@ app_switch_screen(InbeApp *app, int screen)
 }
 
 static void
-app_observe_direct_route_change(InbeApp *app, AppRoute before_route)
+app_observe_direct_route_change(InnerBreeze*app, AppRoute before_route)
 {
     if(app == NULL || app_route_equal(before_route, app_current_route(app)))
         return;
-    if(app->inbe.screen == InbeScreenHabits && before_route.screen != InbeScreenHabits)
+    if(app->breathing.screen == ScreenHabits && before_route.screen != ScreenHabits)
         app->habits.focus_selected_tab = 1;
     app_write_current_route(app, 1);
 }
 
 static void
-app_flush_deferred_settings(InbeApp *app)
+app_flush_deferred_settings(InnerBreeze*app)
 {
     if(app == NULL || app->settings_save_delay_ticks <= 0)
         return;
@@ -754,7 +755,7 @@ app_flush_deferred_settings(InbeApp *app)
 }
 
 static int
-app_habits_save_pending(const InbeApp *app)
+app_habits_save_pending(const InnerBreeze*app)
 {
     return app != NULL &&
            (app->habits.dirty || app->habits.pending_day_save_count > 0);
@@ -763,7 +764,7 @@ app_habits_save_pending(const InbeApp *app)
 static void
 app_flush_habits_post_frame(void *userdata)
 {
-    InbeApp *app = userdata;
+    InnerBreeze*app = userdata;
 
     if(app == NULL)
         return;
@@ -772,7 +773,7 @@ app_flush_habits_post_frame(void *userdata)
 }
 
 static void
-app_schedule_habits_post_frame_flush(InbeApp *app)
+app_schedule_habits_post_frame_flush(InnerBreeze*app)
 {
     if(!app_habits_save_pending(app) ||
        app->habits_flush_post_frame_scheduled)
@@ -791,11 +792,11 @@ app_toolbar_height(void)
 }
 
 int
-app_content_top_reserved(const InbeApp *app)
+app_content_top_reserved(const InnerBreeze*app)
 {
     TabBarProps tabs;
 
-    if(app != NULL && app->inbe.screen == InbeScreenStart) {
+    if(app != NULL && app->breathing.screen == ScreenStart) {
         memset(&tabs, 0, sizeof(tabs));
         return GetNodeHeight(NodeTabBar(tabs));
     }
@@ -803,14 +804,14 @@ app_content_top_reserved(const InbeApp *app)
 }
 
 void
-app_block_current_click(InbeApp *app)
+app_block_current_click(InnerBreeze*app)
 {
     if(app != NULL)
-        app->blocked_input_frame = app->inbe.frame;
+        app->blocked_input_frame = app->breathing.frame;
 }
 
 void
-app_open_modal(InbeApp *app, UIModalType type)
+app_open_modal(InnerBreeze*app, UIModalType type)
 {
     if(app == NULL)
         return;
@@ -820,7 +821,7 @@ app_open_modal(InbeApp *app, UIModalType type)
 }
 
 static void
-app_clear_modal_state(InbeApp *app)
+app_clear_modal_state(InnerBreeze*app)
 {
     if(app == NULL)
         return;
@@ -830,7 +831,7 @@ app_clear_modal_state(InbeApp *app)
 }
 
 void
-app_close_modal(InbeApp *app)
+app_close_modal(InnerBreeze*app)
 {
     UIModalType type;
 
@@ -838,7 +839,7 @@ app_close_modal(InbeApp *app)
         return;
     type = app->modal.type;
     if(type == UIModalEditProgressiveStartSpeed &&
-       app->inbe.screen == InbeScreenStart &&
+       app->breathing.screen == ScreenStart &&
        app->practice_tab == PRACTICE_TAB_CONFIG) {
         app->modal.type = UIModalPracticeConfig;
         app_block_current_click(app);
@@ -857,33 +858,33 @@ app_close_modal(InbeApp *app)
 }
 
 static int
-app_screen_local_modal_valid(const InbeApp *app, UIModalType type)
+app_screen_local_modal_valid(const InnerBreeze*app, UIModalType type)
 {
     if(app == NULL)
         return 0;
 
     switch(type) {
     case UIModalConfirmExitSession:
-        return app->inbe.screen == InbeScreenSession ||
-               app->inbe.screen == InbeScreenMeditation ||
-               app->inbe.screen == InbeScreenSunSalutation ||
-               app->inbe.screen == InbeScreenPatterns;
+        return app->breathing.screen == ScreenSession ||
+               app->breathing.screen == ScreenMeditation ||
+               app->breathing.screen == ScreenSunSalutation ||
+               app->breathing.screen == ScreenPatterns;
     case UIModalMeditationSetup:
-        return app->inbe.screen == InbeScreenStart;
+        return app->breathing.screen == ScreenStart;
     case UIModalConfirmDeleteHabit:
     case UIModalHabitPracticePicker:
-        return app->inbe.screen == InbeScreenHabitEdit ||
-               (app->inbe.screen == InbeScreenHabits &&
+        return app->breathing.screen == ScreenHabitEdit ||
+               (app->breathing.screen == ScreenHabits &&
                 app->habits.tab == HABIT_TAB_EDIT);
     case UIModalBottomNavConfig:
-        return app->inbe.screen == InbeScreenCustomizeNav;
+        return app->breathing.screen == ScreenCustomizeNav;
     default:
         return 1;
     }
 }
 
 static void
-app_clear_invalid_screen_local_modal(InbeApp *app)
+app_clear_invalid_screen_local_modal(InnerBreeze*app)
 {
     if(app == NULL || !app->modal.active)
         return;
@@ -893,7 +894,7 @@ app_clear_invalid_screen_local_modal(InbeApp *app)
 }
 
 static int
-app_donation_reminder_safe(const InbeApp *app, int first_run_guide_active,
+app_donation_reminder_safe(const InnerBreeze*app, int first_run_guide_active,
                            int habits_guide_active)
 {
     if(app == NULL)
@@ -913,15 +914,15 @@ app_donation_reminder_safe(const InbeApp *app, int first_run_guide_active,
        app->profile_intention_focused)
         return 0;
 
-    switch(app->inbe.screen) {
-    case InbeScreenSession:
-    case InbeScreenMeditation:
-    case InbeScreenSunSalutation:
-    case InbeScreenPatterns:
-    case InbeScreenResults:
-    case InbeScreenBreak:
-    case InbeScreenHabitEdit:
-    case InbeScreenHabitSessionEdit:
+    switch(app->breathing.screen) {
+    case ScreenSession:
+    case ScreenMeditation:
+    case ScreenSunSalutation:
+    case ScreenPatterns:
+    case ScreenResults:
+    case ScreenBreak:
+    case ScreenHabitEdit:
+    case ScreenHabitSessionEdit:
         return 0;
     default:
         break;
@@ -930,7 +931,7 @@ app_donation_reminder_safe(const InbeApp *app, int first_run_guide_active,
 }
 
 static void
-app_maybe_open_donation_reminder(InbeApp *app, int first_run_guide_active,
+app_maybe_open_donation_reminder(InnerBreeze*app, int first_run_guide_active,
                                  int habits_guide_active)
 {
     int practice_count;
@@ -968,18 +969,18 @@ app_maybe_open_donation_reminder(InbeApp *app, int first_run_guide_active,
 }
 
 void
-app_request_desktop_close(InbeApp *app)
+app_request_desktop_close(InnerBreeze*app)
 {
     if(app == NULL)
         return;
     /* Configured close behaviour overrides the ask prompt (desktop only). */
-    if(app->desktop_close_action == INBE_CLOSE_QUIT) {
+    if(app->desktop_close_action == CLOSE_QUIT) {
         app->request_quit = 1;
         return;
     }
-    if(app->desktop_close_action == INBE_CLOSE_KEEP_RUNNING) {
-#if defined(INBE_DESKTOP_TRAY_ENABLED)
-        inbe_desktop_tray_keep_running();
+    if(app->desktop_close_action == CLOSE_KEEP_RUNNING) {
+#if defined(DESKTOP_TRAY_ENABLED)
+        desktop_tray_keep_running();
 #else
         MinimizeWindow();
 #endif
@@ -997,11 +998,11 @@ app_request_desktop_close(InbeApp *app)
  * window-close button behaviour).
  */
 void
-app_request_desktop_quit(InbeApp *app)
+app_request_desktop_quit(InnerBreeze*app)
 {
     if(app == NULL)
         return;
-#if defined(INBE_DESKTOP_TRAY_ENABLED)
+#if defined(DESKTOP_TRAY_ENABLED)
     app_request_desktop_close(app);
 #else
     app->request_quit = 1;
@@ -1009,7 +1010,7 @@ app_request_desktop_quit(InbeApp *app)
 }
 
 AppClosePromptResult
-app_consume_close_prompt_result(InbeApp *app)
+app_consume_close_prompt_result(InnerBreeze*app)
 {
     AppClosePromptResult result;
 
@@ -1048,7 +1049,7 @@ app_draw_session_exit_modal(int can_save, const char *save_message,
 }
 
 static void
-app_draw_close_prompt(InbeApp *app)
+app_draw_close_prompt(InnerBreeze*app)
 {
     int modal_result;
     ModalAction actions[2];
@@ -1056,7 +1057,7 @@ app_draw_close_prompt(InbeApp *app)
 
     if(app == NULL || !app->close_prompt_open)
         return;
-    if(app->blocked_input_frame == app->inbe.frame)
+    if(app->blocked_input_frame == app->breathing.frame)
         return;
 
     ClearUIInputCaptures();
@@ -1093,7 +1094,7 @@ exercise_manual_seen_bit(int exercise_type)
 }
 
 int
-exercise_manual_seen(InbeApp *app, int exercise_type)
+exercise_manual_seen(InnerBreeze*app, int exercise_type)
 {
     int bit = exercise_manual_seen_bit(exercise_type);
     if(app == NULL || bit == 0)
@@ -1102,7 +1103,7 @@ exercise_manual_seen(InbeApp *app, int exercise_type)
 }
 
 void
-mark_exercise_manual_seen(InbeApp *app, int exercise_type)
+mark_exercise_manual_seen(InnerBreeze*app, int exercise_type)
 {
     int bit = exercise_manual_seen_bit(exercise_type);
     if(app == NULL || bit == 0)
@@ -1114,7 +1115,7 @@ mark_exercise_manual_seen(InbeApp *app, int exercise_type)
 }
 
 static void
-app_reload_graphics_resources(InbeApp *app)
+app_reload_graphics_resources(InnerBreeze*app)
 {
     int i;
     Texture2D empty;
@@ -1143,7 +1144,7 @@ app_reload_graphics_resources(InbeApp *app)
 }
 
 void
-refresh_locale_dependent_text(InbeApp *app)
+refresh_locale_dependent_text(InnerBreeze*app)
 {
     if(app == NULL)
         return;
@@ -1158,7 +1159,7 @@ refresh_locale_dependent_text(InbeApp *app)
 }
 
 static void
-apply_language_code(InbeApp *app, const char *code)
+apply_language_code(InnerBreeze*app, const char *code)
 {
     if(app == NULL)
         return;
@@ -1178,7 +1179,7 @@ apply_language_code(InbeApp *app, const char *code)
 }
 
 void
-apply_system_language_selection(InbeApp *app, int save_now)
+apply_system_language_selection(InnerBreeze*app, int save_now)
 {
     if(app == NULL)
         return;
@@ -1192,7 +1193,7 @@ apply_system_language_selection(InbeApp *app, int save_now)
 }
 
 void
-apply_language_selection(InbeApp *app, int language_index, int save_now)
+apply_language_selection(InnerBreeze*app, int language_index, int save_now)
 {
     const char *code;
 
@@ -1215,7 +1216,7 @@ apply_language_selection(InbeApp *app, int language_index, int save_now)
 }
 
 void
-app_accept_language_selection(InbeApp *app)
+app_accept_language_selection(InnerBreeze*app)
 {
     int first_language_setup;
 
@@ -1285,7 +1286,7 @@ int_from_count(const char src[CountSize])
 }
 
 static void
-app_restore_habits_view_settings(InbeApp *app)
+app_restore_habits_view_settings(InnerBreeze*app)
 {
     const char *selected_id;
     int screen_mode;
@@ -1321,10 +1322,10 @@ app_restore_habits_view_settings(InbeApp *app)
 }
 
 void
-app_reload_after_import(InbeApp *app, int reload_settings)
+app_reload_after_import(InnerBreeze*app, int reload_settings)
 {
-    char selected_habit_id[INBE_HABIT_ID_SIZE] = "";
-    char detail_habit_id[INBE_HABIT_ID_SIZE] = "";
+    char selected_habit_id[HABIT_ID_SIZE] = "";
+    char detail_habit_id[HABIT_ID_SIZE] = "";
     int selected = -1;
     int detail_index = -1;
     int view_mode = HABIT_VIEW_CALENDAR;
@@ -1402,7 +1403,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
 
 #if ANDROID_BUILD
 void
-app_request_graphics_reload(InbeApp *app)
+app_request_graphics_reload(InnerBreeze*app)
 {
     if(app != NULL)
         app->graphics_reload_requested = 1;
@@ -1459,7 +1460,7 @@ app_load_asset_texture(const char *name)
 }
 
 static void
-app_draw_blank_home_easteregg(InbeApp *app)
+app_draw_blank_home_easteregg(InnerBreeze*app)
 {
     Texture2D texture;
     Texture2D logo;
@@ -1554,22 +1555,22 @@ app_draw_blank_home_easteregg(InbeApp *app)
 }
 
 static void
-app_apply_initial_screen(InbeApp *app)
+app_apply_initial_screen(InnerBreeze*app)
 {
     if(app == NULL)
         return;
     if(!app->language_selected) {
-        app->inbe.screen = InbeScreenLanguage;
+        app->breathing.screen = ScreenLanguage;
         app->habits.focus_selected_tab = 0;
         return;
     }
-    app->inbe.screen = app_screen_for_main_tab(app->main_tab);
-    app->habits.focus_selected_tab = app->inbe.screen == InbeScreenHabits;
+    app->breathing.screen = app_screen_for_main_tab(app->main_tab);
+    app->habits.focus_selected_tab = app->breathing.screen == ScreenHabits;
 }
 
 void
 app_init(void *vapp) {
-    InbeApp *app = vapp;
+    InnerBreeze*app = vapp;
     int i;
     if(app == 0)
         return;
@@ -1583,13 +1584,13 @@ app_init(void *vapp) {
 
     InitLocale();
     InitUIDPI();
-    TraceLog(LOG_INFO, "INBE: app init width=%d height=%d embedded=%d",
+    TraceLog(LOG_INFO, "APP: app init width=%d height=%d embedded=%d",
              config.width, config.height, config.loaded);
     load_config();
     app_notifications_init(app);
 
-    view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
-    view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
+    view_width = config.width > 0 ? config.width : APP_DEFAULT_WIDTH;
+    view_height = config.height > 0 ? config.height : APP_DEFAULT_HEIGHT;
     UpdateUIDPI(view_width, view_height);
     view_width = GetLayoutWidth();
     view_height = GetLayoutHeight();
@@ -1599,17 +1600,17 @@ app_init(void *vapp) {
                                : 1.0f;
         InitUI(view_width, view_height, user_scale);
     }
-    TraceLog(LOG_INFO, "INBE: render scale=%.2f layout=%dx%d",
+    TraceLog(LOG_INFO, "APP: render scale=%.2f layout=%dx%d",
              GetRenderScale(), view_width, view_height);
 #if ANDROID_BUILD
     SetTextInputPlatformCallback(android_device_set_soft_keyboard_visible);
 #endif
 
-    inbeinit(&app->inbe);
+    breath_session_init(&app->breathing);
     break_engine_init(&app->breaks);
     app->breaks_enabled = 0;
-    app->desktop_startup_mode = INBE_STARTUP_SHOW;
-    app->desktop_close_action = INBE_CLOSE_ASK;
+    app->desktop_startup_mode = STARTUP_SHOW;
+    app->desktop_close_action = CLOSE_ASK;
     app->break_hud_x = -1;
     app->break_hud_y = -1;
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
@@ -1623,7 +1624,7 @@ app_init(void *vapp) {
     app_init_donation_reminder_observed_practice_count(app);
     if(!load_locale_font(app))
         TraceLog(LOG_WARNING, "FONT: Failed to load Noto UI font -> using built-in default");
-    inbe_update_check_start();
+    update_check_start();
     app->practice_tab = PRACTICE_TAB_PLAY;
     app->practice_config_tab = 0;
     memset(&app->session_result, 0, sizeof(app->session_result));
@@ -1634,6 +1635,7 @@ app_init(void *vapp) {
     habits_init_with_defaults(&app->habits, app->language_selected);
     app_restore_habits_view_settings(app);
     app->habit_detail_index = -1;
+    app->elist.editing_item = -1;
     memset(&app->habit_session_edit, 0, sizeof(app->habit_session_edit));
     app->habit_session_edit.round = -1;
     app_apply_initial_screen(app);
@@ -1658,10 +1660,10 @@ app_init(void *vapp) {
     app->habit_edit.color.g = 196;
     app->habit_edit.color.b = 165;
     app->habit_edit.color.a = 255;
-    app->habit_edit.sync_mode = INBE_HABIT_SYNC_NONE;
+    app->habit_edit.sync_mode = HABIT_SYNC_NONE;
     practice_update_session_sounds(app);
     reset_settings_preview(app);
-    inbeinit(&app->start_speed_preview);
+    breath_session_init(&app->start_speed_preview);
 
     // Load all icons
     LoadAllUIIconTextures(app->icons);
@@ -1676,15 +1678,15 @@ app_init(void *vapp) {
 }
 
 static void
-handle_back_button(InbeApp *app)
+handle_back_button(InnerBreeze*app)
 {
     /* If modal is active, let modal drawing handle it */
     if(app->modal.active) {
         return;
     }
 
-    switch(app->inbe.screen) {
-    case InbeScreenStart:
+    switch(app->breathing.screen) {
+    case ScreenStart:
         if(app->practice_tab == PRACTICE_TAB_CONFIG)
             app_leave_practice_config(app);
         if(app->practice_tab != PRACTICE_TAB_PLAY) {
@@ -1698,47 +1700,47 @@ handle_back_button(InbeApp *app)
         }
         break;
 
-    case InbeScreenSettings:
+    case ScreenSettings:
         if(app->settings_dirty)
             save_settings(app);
         settings_screen_clear_status();
         if(app_return_to_nav_sidebar_if_needed(app))
             break;
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
-                                  ? InbeScreenHabits
-                                  : InbeScreenStart);
+                                  ? ScreenHabits
+                                  : ScreenStart);
         app->settings_scroll = 0;
         break;
 
-    case InbeScreenProfile:
+    case ScreenProfile:
         app->profile_scroll = 0;
         app->sync_server_url_focused = 0;
         settings_screen_clear_status();
         if(app_return_to_nav_sidebar_if_needed(app))
             break;
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
-                                  ? InbeScreenHabits
-                                  : InbeScreenStart);
+                                  ? ScreenHabits
+                                  : ScreenStart);
         break;
 
-    case InbeScreenCustomizeNav:
+    case ScreenCustomizeNav:
         if(app_return_to_nav_sidebar_if_needed(app))
             break;
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
-                                  ? InbeScreenHabits
-                                  : InbeScreenStart);
+                                  ? ScreenHabits
+                                  : ScreenStart);
         break;
 
-    case InbeScreenNavSidebar:
+    case ScreenNavSidebar:
         app_close_nav_sidebar(app);
         break;
 
-    case InbeScreenPracticeConfig:
+    case ScreenPracticeConfig:
         app_leave_practice_config(app);
-        app_switch_screen(app, InbeScreenStart);
+        app_switch_screen(app, ScreenStart);
         break;
 
-    case InbeScreenHabits:
+    case ScreenHabits:
         if(app->habits.screen_mode == HABITS_SCREEN_HISTORY ||
            app->habits.screen_mode == HABITS_SCREEN_STATISTICS) {
             app->habits.screen_mode = HABITS_SCREEN_DETAIL;
@@ -1760,27 +1762,30 @@ handle_back_button(InbeApp *app)
             habit_edit_cancel(app);
             break;
         }
-        app_switch_screen(app, InbeScreenStart);
+        app_switch_screen(app, ScreenStart);
+        break;
+    case ScreenEList:
+        app_switch_screen(app, app_screen_for_main_tab(APP_MAIN_TAB_PRACTICE));
         break;
 
-    case InbeScreenHabitEdit:
+    case ScreenHabitEdit:
         habit_edit_cancel(app);
-        app_switch_screen(app, InbeScreenHabits);
+        app_switch_screen(app, ScreenHabits);
         break;
 
-    case InbeScreenHabitSessionEdit:
+    case ScreenHabitSessionEdit:
         habit_session_cancel_edit(app);
-        app_switch_screen(app, InbeScreenHabits);
+        app_switch_screen(app, ScreenHabits);
         break;
 
-    case InbeScreenLanguage:
+    case ScreenLanguage:
         break;
 
-    case InbeScreenManual:
+    case ScreenManual:
         manual_screen_close_tutorial(app, 0);
         break;
 
-    case InbeScreenResults:
+    case ScreenResults:
         practice_ensure_results_saved(app);
 #if ANDROID_BUILD
         android_allow_screen_off();
@@ -1789,7 +1794,7 @@ handle_back_button(InbeApp *app)
         app_init(app);
         break;
 
-    case InbeScreenSession:
+    case ScreenSession:
         /* When paused, exit immediately */
         if(app->session_paused) {
             practice_active_background_stop(app);
@@ -1800,7 +1805,7 @@ handle_back_button(InbeApp *app)
         }
         break;
 
-    case InbeScreenMeditation:
+    case ScreenMeditation:
         {
             const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
             if(practice->request_exit != NULL)
@@ -1808,7 +1813,7 @@ handle_back_button(InbeApp *app)
         }
         break;
 
-    case InbeScreenPatterns:
+    case ScreenPatterns:
         {
             const PracticeDefinition *practice = practice_get(PRACTICE_PATTERNS);
             if(practice->request_exit != NULL)
@@ -1822,7 +1827,7 @@ handle_back_button(InbeApp *app)
 }
 
 static void
-draw_profile_picture_picker_modal(InbeApp *app)
+draw_profile_picture_picker_modal(InnerBreeze*app)
 {
     ProfilePicturePickerResult result;
     ProfilePicturePickerProps props;
@@ -2038,7 +2043,7 @@ app_draw_donation_coin_section(const char *label, const char *address,
 }
 
 static void
-draw_about_donation_modal(InbeApp *app)
+draw_about_donation_modal(InnerBreeze*app)
 {
     UIPanelFrame frame;
     ParagraphSpec message;
@@ -2194,7 +2199,7 @@ draw_about_donation_modal(InbeApp *app)
 }
 
 static void
-draw_donation_reminder_modal(InbeApp *app)
+draw_donation_reminder_modal(InnerBreeze*app)
 {
     int modal_result;
     ModalAction actions[3];
@@ -2227,10 +2232,10 @@ draw_donation_reminder_modal(InbeApp *app)
 }
 
 static void
-draw_secure_migration_modal(InbeApp *app)
+draw_secure_migration_modal(InnerBreeze*app)
 {
     static const Texture2D no_texture;
-    InbeStorageSyncStatus status;
+    StorageSyncStatus status;
     UIPanelFrame frame;
     ParagraphSpec message;
     const char *message_text;
@@ -2349,13 +2354,13 @@ draw_secure_migration_modal(InbeApp *app)
 }
 
 static void
-draw_global_modal(InbeApp *app)
+draw_global_modal(InnerBreeze*app)
 {
     int modal_result;
 
     if(app == NULL || !app->modal.active)
         return;
-    if(app->blocked_input_frame == app->inbe.frame)
+    if(app->blocked_input_frame == app->breathing.frame)
         return;
 
     ClearUIInputCaptures();
@@ -2433,7 +2438,7 @@ draw_global_modal(InbeApp *app)
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
 static void
-app_update_desktop_background_state(InbeApp *app)
+app_update_desktop_background_state(InnerBreeze*app)
 {
     int backgrounded;
     double now;
@@ -2463,9 +2468,9 @@ app_update_desktop_background_state(InbeApp *app)
 
 /* Wrappers for screen draws that return int (e.g. "handled?"); the dispatcher
  * in updateapp() always finishes the frame after them, so the return is unused. */
-static void app_draw_settings_screen(InbeApp *app)      { (void)settings_screen_draw(app); }
-static void app_draw_profile_screen(InbeApp *app)       { (void)profile_screen_draw(app); }
-static void app_draw_customize_nav_screen(InbeApp *app) { (void)app_draw_customize_nav_page(app); }
+static void app_draw_settings_screen(InnerBreeze*app)      { (void)settings_screen_draw(app); }
+static void app_draw_profile_screen(InnerBreeze*app)       { (void)profile_screen_draw(app); }
+static void app_draw_customize_nav_screen(InnerBreeze*app) { (void)app_draw_customize_nav_page(app); }
 
 /* Simple screens: draw, then finish the frame. Adding a screen is a one-line
  * table entry. The practice screens (Start/Session/Meditation/SunSalutation/
@@ -2473,21 +2478,22 @@ static void app_draw_customize_nav_screen(InbeApp *app) { (void)app_draw_customi
  * active-session logic that does not fit a flat table. */
 static const struct {
     int screen;
-    void (*draw)(InbeApp *app);
+    void (*draw)(InnerBreeze*app);
 } g_simple_screens[] = {
-    { InbeScreenSettings,         app_draw_settings_screen },
-    { InbeScreenProfile,          app_draw_profile_screen },
-    { InbeScreenCustomizeNav,     app_draw_customize_nav_screen },
-    { InbeScreenNavSidebar,       NULL },
-    { InbeScreenLanguage,         language_screen_draw },
-    { InbeScreenHabits,           draw_habits_screen },
-    { InbeScreenHabitEdit,        habit_edit_draw },
-    { InbeScreenHabitSessionEdit, habit_session_draw_edit_screen },
-    { InbeScreenBreak,            break_overlay_draw },
+    { ScreenSettings,         app_draw_settings_screen },
+    { ScreenProfile,          app_draw_profile_screen },
+    { ScreenCustomizeNav,     app_draw_customize_nav_screen },
+    { ScreenNavSidebar,       NULL },
+    { ScreenLanguage,         language_screen_draw },
+    { ScreenHabits,           draw_habits_screen },
+    { ScreenEList,            draw_elist_screen },
+    { ScreenHabitEdit,        habit_edit_draw },
+    { ScreenHabitSessionEdit, habit_session_draw_edit_screen },
+    { ScreenBreak,            break_overlay_draw },
 };
 
 static void
-updateapp(InbeApp *app)
+updateapp(InnerBreeze*app)
 {
     int center_x = view_width / 2;
     int frame_view_height = view_height;
@@ -2587,15 +2593,15 @@ updateapp(InbeApp *app)
     if(IsKeyPressed(KEY_BACK)
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
        || (IsKeyPressed(KEY_BACKSPACE) &&
-           ((app->inbe.screen == InbeScreenStart &&
+           ((app->breathing.screen == ScreenStart &&
              app->practice_tab != PRACTICE_TAB_PLAY) ||
-            app->inbe.screen == InbeScreenSession ||
-            app->inbe.screen == InbeScreenMeditation ||
-            app->inbe.screen == InbeScreenSunSalutation ||
-            app->inbe.screen == InbeScreenPatterns))
+            app->breathing.screen == ScreenSession ||
+            app->breathing.screen == ScreenMeditation ||
+            app->breathing.screen == ScreenSunSalutation ||
+            app->breathing.screen == ScreenPatterns))
 #endif
        ) {
-        if(app->nav_sidebar_open || app->inbe.screen == InbeScreenNavSidebar) {
+        if(app->nav_sidebar_open || app->breathing.screen == ScreenNavSidebar) {
             app_close_nav_sidebar(app);
         } else if(app->close_prompt_open) {
             app->close_prompt_open = 0;
@@ -2620,10 +2626,10 @@ updateapp(InbeApp *app)
         app_request_desktop_quit(app);
     } else if(IsKeyPressed(KEY_ESCAPE) &&
               (app->nav_sidebar_open ||
-               app->inbe.screen == InbeScreenNavSidebar)) {
+               app->breathing.screen == ScreenNavSidebar)) {
         app_close_nav_sidebar(app);
     } else if(IsKeyPressed(KEY_ESCAPE) &&
-              app->inbe.screen == InbeScreenStart &&
+              app->breathing.screen == ScreenStart &&
               app->practice_tab == PRACTICE_TAB_PLAY &&
               !app->nav_sidebar_open && !app->modal.active &&
               !first_run_guide_active && !habits_guide_active) {
@@ -2632,25 +2638,25 @@ updateapp(InbeApp *app)
 #endif
 
     for(size_t i = 0; i < sizeof(g_simple_screens) / sizeof(g_simple_screens[0]); i++) {
-        if(app->inbe.screen == g_simple_screens[i].screen) {
+        if(app->breathing.screen == g_simple_screens[i].screen) {
             if(g_simple_screens[i].draw != NULL)
                 g_simple_screens[i].draw(app);
             goto finish_frame;
         }
     }
 
-    if(app->inbe.screen == InbeScreenStart) {
+    if(app->breathing.screen == ScreenStart) {
         practice_update_circle_bounds(app, app_content_top_reserved(app),
                                       app_content_bottom_reserved(app));
-    } else if(app->inbe.screen == InbeScreenSession) {
+    } else if(app->breathing.screen == ScreenSession) {
         practice_update_circle_bounds(app, GetNodeHeight(NodeTitleBar(0)), 84);
     }
 
-    if(app->inbe.screen == InbeScreenSession)
+    if(app->breathing.screen == ScreenSession)
         practice_draw_active_breathing(app, center_x, center_y);
 
-    switch (app->inbe.screen) {
-    case InbeScreenStart:
+    switch (app->breathing.screen) {
+    case ScreenStart:
         {
             if(!practice_fullscreen_modal &&
                app->main_tab == APP_MAIN_TAB_NONE) {
@@ -2670,18 +2676,18 @@ updateapp(InbeApp *app)
         }
         // Skip drawing on the same frame modal opens to prevent click propagation
         if(app->modal.active && app->modal.type == UIModalMeditationSetup &&
-           app->blocked_input_frame != app->inbe.frame) {
+           app->blocked_input_frame != app->breathing.frame) {
             const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
             if(practice->draw_setup_modal != NULL)
                 practice->draw_setup_modal(app);
         }
         break;
 
-    case InbeScreenSession:
+    case ScreenSession:
         practice_update_active_breathing(app, center_x, center_y, &hover);
         break;
 
-    case InbeScreenMeditation:
+    case ScreenMeditation:
         {
             const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
             if(practice->draw_active_session != NULL)
@@ -2689,14 +2695,14 @@ updateapp(InbeApp *app)
         }
         break;
 
-    case InbeScreenSunSalutation:
+    case ScreenSunSalutation:
         {
             const PracticeDefinition *practice = practice_get(PRACTICE_SUN_SALUTATION);
             if(practice->draw_active_session != NULL)
                 practice->draw_active_session(app, center_x, center_y);
         }
         break;
-    case InbeScreenPatterns:
+    case ScreenPatterns:
         {
             const PracticeDefinition *practice = practice_get(PRACTICE_PATTERNS);
             if(practice->draw_active_session != NULL)
@@ -2704,7 +2710,7 @@ updateapp(InbeApp *app)
         }
         break;
 
-    case InbeScreenResults:
+    case ScreenResults:
         practice_draw_results(app, center_x, center_y, &hover);
         break;
 
@@ -2727,12 +2733,12 @@ finish_frame:
     DrawToast();
     app_flush_deferred_settings(app);
     app_observe_direct_route_change(app, frame_route);
-    app->inbe.frame++;
+    app->breathing.frame++;
 }
 
 void
 app_update_draw(void *vapp, Rectangle viewport) {
-    InbeApp *app = vapp;
+    InnerBreeze*app = vapp;
     double profile_frame_start = app_profile_now();
     double profile_update_start;
     double profile_habits_start;
@@ -2761,7 +2767,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
     /* Update DPI cache */
     UpdateUIDPI(view_width, view_height);
     if(!(GetUIDPIScale() > 0.0f) || GetUIDPIScale() > 8.0f) {
-        TraceLog(LOG_WARNING, "INBE_EMBED: repairing invalid dpi %.2f for %dx%d",
+        TraceLog(LOG_WARNING, "APP_EMBED: repairing invalid dpi %.2f for %dx%d",
                  GetUIDPIScale(), view_width, view_height);
         InitUIDPI();
         UpdateUIDPI(view_width, view_height);
@@ -2795,7 +2801,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
                                   app_content_bottom_reserved(app));
 
     app_device_preferences_update(app);
-    inbe_update_check_poll();
+    update_check_poll();
     app_refresh_theme(app);
     SetUITransitionCuesEnabled(0);
 
@@ -2815,7 +2821,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
                       content_x != last_content_x || content_w != last_content_w;
 
         if(changed && (last_log_time < 0.0 || now - last_log_time >= 0.25)) {
-            TraceLog(LOG_INFO, "INBE_EMBED: geometry viewport=%dx%d layout=%dx%d content_x=%d content=%dx%d render_scale=%.2f",
+            TraceLog(LOG_INFO, "APP_EMBED: geometry viewport=%dx%d layout=%dx%d content_x=%d content=%dx%d render_scale=%.2f",
                      full_width, full_height, layout_width, layout_height,
                      layout_content_x, layout_content_w, layout_height,
                      GetRenderScale());
@@ -2882,7 +2888,7 @@ app_unload_texture(Texture2D texture) {
 void
 app_destroy(void *vapp)
 {
-    InbeApp *app = vapp;
+    InnerBreeze*app = vapp;
     int i;
 
     if (app == NULL) return;
@@ -2925,7 +2931,7 @@ app_destroy(void *vapp)
 }
 
 int
-app_should_use_tab_bar(const InbeApp *app)
+app_should_use_tab_bar(const InnerBreeze*app)
 {
     if(app == NULL)
         return 0;

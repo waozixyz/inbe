@@ -1,9 +1,9 @@
-#ifndef INBE_APP_SETTING_KEYS_H
-#define INBE_APP_SETTING_KEYS_H
+#ifndef APP_APP_SETTING_KEYS_H
+#define APP_APP_SETTING_KEYS_H
 
 #include <string.h>
 
-#define INBE_IMPORTABLE_SETTING_KEYS(X) \
+#define IMPORTABLE_SETTING_KEYS(X) \
     X("speed") \
     X("max_rounds") \
     X("max_breaths") \
@@ -115,11 +115,11 @@ app_setting_key_has_custom_audio_suffix(const char *key, const char *prefix)
 static inline int
 app_setting_key_importable(const char *key)
 {
-#define INBE_SETTING_KEY_ENTRY(name) name,
+#define SETTING_KEY_ENTRY(name) name,
     static const char *const keys[] = {
-        INBE_IMPORTABLE_SETTING_KEYS(INBE_SETTING_KEY_ENTRY)
+        IMPORTABLE_SETTING_KEYS(SETTING_KEY_ENTRY)
     };
-#undef INBE_SETTING_KEY_ENTRY
+#undef SETTING_KEY_ENTRY
 
     if(key == NULL || key[0] == '\0')
         return 0;

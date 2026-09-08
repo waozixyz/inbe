@@ -5,7 +5,7 @@
 #import "stdio.h"
 
 MeditationConfigScrollPageContext :: struct {
-    app: InbeApp*
+    app: InnerBreeze*
 }
 
 meditation_config_preset_count :: () -> int #private {
@@ -22,7 +22,7 @@ meditation_config_duration_height :: (content_w: int) -> int #private {
            Scale(108) + Scale(84) + Scale(18) + Scale(112)
 }
 
-meditation_config_content_height :: (app: InbeApp*, content_w: int) -> int #private {
+meditation_config_content_height :: (app: InnerBreeze*, content_w: int) -> int #private {
     bottom_padding := (practice_screen_subscreen_integrated(app, UIModalPracticeConfig)
                            ? app_content_bottom_reserved(app)
                            : 0) +
@@ -34,7 +34,7 @@ meditation_config_content_height :: (app: InbeApp*, content_w: int) -> int #priv
            bottom_padding
 }
 
-meditation_config_save :: (app: InbeApp*) #private {
+meditation_config_save :: (app: InnerBreeze*) #private {
     if app == NULL {
         return
     }
@@ -42,7 +42,7 @@ meditation_config_save :: (app: InbeApp*) #private {
     save_settings(app)
 }
 
-meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     labels: [6] const char* = {
         GetLocaleText("duration_5m"),
         GetLocaleText("duration_15m"),
@@ -191,7 +191,7 @@ meditation_config_scroll_page_content_height :: (content_w: int, user_data: void
     return meditation_config_content_height(ctx->app, content_w)
 }
 
-meditation_config_screen_draw :: (app: InbeApp*) {
+meditation_config_screen_draw :: (app: InnerBreeze*) {
     layout := (PracticeSubscreenLayout){0}
 
     app->practice_config_tab = 0

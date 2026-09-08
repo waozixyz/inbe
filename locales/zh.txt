@@ -1778,3 +1778,17 @@ Dismiss forever
 [habit_routine_title]
 计划与提醒
 ---
+[tab_elist]
+清单
+[elist_title]
+清单
+[elist_new_list]
+新建清单
+[elist_create_list]
+创建清单
+[elist_add_item]
+添加
+[elist_empty_title]
+还没有清单
+[elist_empty_detail]
+创建清单，在一个地方添加任务和备注。

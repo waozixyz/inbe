@@ -6,7 +6,7 @@ route nav_sidebar {
     page nav_sidebar
 }
 
-nav_sidebar :: (app: InbeApp*) #ui {
+nav_sidebar :: (app: InnerBreeze*) #ui {
     Screen root: {
     unused app
     }

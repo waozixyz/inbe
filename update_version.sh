@@ -6,13 +6,13 @@ set -e
 
 CHANGELOG_FILE="CHANGELOG.md"
 GRADLE_FILE="droid/app/build.gradle"
-WINDOWS_RC_FILE="windows/inbe.rc"
+WINDOWS_RC_FILE="windows/breathing.rc"
 CHANGELOG_DIR="fastlane/metadata/android/en-US/changelogs"
 CLICK_MANIFEST_FILE="packaging/click/manifest.json"
 CLICK_CONTROL_FILE="packaging/click/control"
-CLICK_METAINFO_FILE="packaging/click/inbe.metainfo.xml"
-LINUX_APPDATA_FILE="packaging/linux/appimage/inbe.appdata.xml"
-SNAP_METAINFO_FILE="packaging/snap/snap/gui/inbe.metainfo.xml"
+CLICK_METAINFO_FILE="packaging/click/breathing.metainfo.xml"
+LINUX_APPDATA_FILE="packaging/linux/appimage/breathing.appdata.xml"
+SNAP_METAINFO_FILE="packaging/snap/snap/gui/breathing.metainfo.xml"
 FIREFOX_ADDONS_MANIFEST_FILE="packaging/firefox-addons/manifest.json"
 
 replace_in_file() {
@@ -80,10 +80,10 @@ if [ ! -f "$VERSION_H_FILE" ]; then
     exit 1
 fi
 
-replace_in_file "s/^#define INBE_VERSION_MAJOR .*/#define INBE_VERSION_MAJOR $MAJOR/" "$VERSION_H_FILE"
-replace_in_file "s/^#define INBE_VERSION_MINOR .*/#define INBE_VERSION_MINOR $MINOR/" "$VERSION_H_FILE"
-replace_in_file "s/^#define INBE_VERSION_PATCH .*/#define INBE_VERSION_PATCH $PATCH/" "$VERSION_H_FILE"
-replace_in_file "s/^#define INBE_VERSION_STRING .*/#define INBE_VERSION_STRING \"$LATEST_VERSION\"/" "$VERSION_H_FILE"
+replace_in_file "s/^#define APP_VERSION_MAJOR .*/#define APP_VERSION_MAJOR $MAJOR/" "$VERSION_H_FILE"
+replace_in_file "s/^#define APP_VERSION_MINOR .*/#define APP_VERSION_MINOR $MINOR/" "$VERSION_H_FILE"
+replace_in_file "s/^#define APP_VERSION_PATCH .*/#define APP_VERSION_PATCH $PATCH/" "$VERSION_H_FILE"
+replace_in_file "s/^#define APP_VERSION_STRING .*/#define APP_VERSION_STRING \"$LATEST_VERSION\"/" "$VERSION_H_FILE"
 
 echo "✓ Updated $VERSION_H_FILE"
 

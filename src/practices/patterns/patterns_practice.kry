@@ -15,7 +15,7 @@
 # with optional breath cues, saved as one session of its own activity kind.
 
 PatternsConfigContext :: struct {
-    app: InbeApp*
+    app: InnerBreeze*
 }
 
 #enum {
@@ -66,7 +66,7 @@ patterns_preset_label_key :: (preset: int) -> const char* {
     return "patterns_preset_box"
 }
 
-pattern_ratio :: (app: const InbeApp*, out: int*) #private {
+pattern_ratio :: (app: const InnerBreeze*, out: int*) #private {
     preset := app != nil ? app->patterns.preset : PATTERNS_PRESET_BOX
 
     if preset < 0 || preset >= PATTERNS_PRESET_COUNT {
@@ -90,7 +90,7 @@ pattern_ratio :: (app: const InbeApp*, out: int*) #private {
     }
 }
 
-patterns_ratio_text :: (app: const InbeApp*, out: char*, out_size: size_t) {
+patterns_ratio_text :: (app: const InnerBreeze*, out: char*, out_size: size_t) {
     if out == nil || out_size == 0 {
         return
     }
@@ -104,7 +104,7 @@ patterns_preset_count :: () -> int {
     return PATTERNS_PRESET_COUNT
 }
 
-patterns_practice_init :: (app: InbeApp*) {
+patterns_practice_init :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -115,13 +115,13 @@ patterns_practice_init :: (app: InbeApp*) {
     app->patterns.duration_minutes = 5
 }
 
-patterns_practice_destroy :: (app: InbeApp*) {
+patterns_practice_destroy :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
 }
 
-patterns_practice_start :: (app: InbeApp*) {
+patterns_practice_start :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -134,15 +134,15 @@ patterns_practice_start :: (app: InbeApp*) {
     app->patterns.cycle = 0
     app->patterns.elapsed_seconds = 0
     app_close_modal(app)
-    app_switch_screen(app, InbeScreenPatterns)
+    app_switch_screen(app, ScreenPatterns)
     practice_background_start(app, PRACTICE_PATTERNS)
 }
 
-patterns_practice_leave_config :: (app: InbeApp*) {
+patterns_practice_leave_config :: (app: InnerBreeze*) {
     unused app
 }
 
-patterns_request_exit :: (app: InbeApp*) {
+patterns_request_exit :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -162,7 +162,7 @@ patterns_phase_label_key :: (phase: int) -> const char* {
     return "patterns_phase_inhale"
 }
 
-patterns_phase_remaining_seconds :: (app: const InbeApp*) -> int {
+patterns_phase_remaining_seconds :: (app: const InnerBreeze*) -> int {
     ratio: [4] int
     phase := app != nil ? app->patterns.phase : PATTERNS_PHASE_INHALE
     left: int
@@ -178,7 +178,7 @@ patterns_phase_remaining_seconds :: (app: const InbeApp*) -> int {
     return left
 }
 
-finish_session :: (app: InbeApp*) #private {
+finish_session :: (app: InnerBreeze*) #private {
     duration: int = app->patterns.elapsed_seconds
     result_path: [FS_PATH_MAX] char = {0}
     ratio_text: [32] char = {0}
@@ -199,10 +199,10 @@ finish_session :: (app: InbeApp*) #private {
     app_prepare_session_results(app, EXERCISE_PATTERNS, duration,
                                 app->patterns.cycle, ratio_text, nil, 0,
                                 result_path)
-    app_switch_screen(app, InbeScreenResults)
+    app_switch_screen(app, ScreenResults)
 }
 
-handle_exit_modal :: (app: InbeApp*) -> int #private {
+handle_exit_modal :: (app: InnerBreeze*) -> int #private {
     result: SessionExitModalResult
 
     if app == nil || !app->modal.active ||
@@ -231,12 +231,12 @@ handle_exit_modal :: (app: InbeApp*) -> int #private {
         app->patterns.active = 0
         app->patterns.paused = 0
         app_close_modal(app)
-        app_switch_screen(app, InbeScreenStart)
+        app_switch_screen(app, ScreenStart)
     }
     return 1
 }
 
-advance_second :: (app: InbeApp*) #private {
+advance_second :: (app: InnerBreeze*) #private {
     ratio: [4] int
     total := 0
 
@@ -278,9 +278,9 @@ advance_second :: (app: InbeApp*) #private {
     }
 }
 
-patterns_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
+patterns_advance_elapsed :: (app: InnerBreeze*, elapsed_ms: int) {
     if app == nil || elapsed_ms <= 0 ||
-       app->inbe.screen != InbeScreenPatterns || app->patterns.paused {
+       app->breathing.screen != ScreenPatterns || app->patterns.paused {
         return
     }
     app->patterns.second_accumulator += (double)elapsed_ms / 1000.0
@@ -290,7 +290,7 @@ patterns_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
     }
 }
 
-draw_config :: (app: InbeApp*) #private {
+draw_config :: (app: InnerBreeze*) #private {
     layout := (PracticeSubscreenLayout){0}
     hover := 0
 
@@ -452,7 +452,7 @@ draw_config :: (app: InbeApp*) #private {
 
 patterns_config_content_height_cb :: (content_w: int, user_data: void*) -> int #private {
     ctx := (PatternsConfigContext*)user_data
-    app: InbeApp* = ctx != nil ? ctx->app : nil
+    app: InnerBreeze* = ctx != nil ? ctx->app : nil
     btn_h := Scale(48)
     gap := Scale(8)
     height := Scale(24)
@@ -469,7 +469,7 @@ patterns_config_content_height_cb :: (content_w: int, user_data: void*) -> int #
     return height
 }
 
-patterns_config_screen_draw :: (app: InbeApp*) {
+patterns_config_screen_draw :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -477,11 +477,11 @@ patterns_config_screen_draw :: (app: InbeApp*) {
     draw_config(app)
 }
 
-patterns_draw_session_title_bar :: (app: InbeApp*, title: const char*, height: int) -> int #private {
+patterns_draw_session_title_bar :: (app: InnerBreeze*, title: const char*, height: int) -> int #private {
     return app_draw_active_practice_title_bar(app, title, height)
 }
 
-patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
+patterns_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     ratio: [4] int
     time_text: [32] char
     hover := 0
@@ -636,7 +636,7 @@ pattern_circle_max_radius :: () -> int #private {
     return max_r
 }
 
-pattern_circle_draw :: (app: InbeApp*, center_x: int, center_y: int,
+pattern_circle_draw :: (app: InnerBreeze*, center_x: int, center_y: int,
                           fraction: float) #private {
     max_r := pattern_circle_max_radius()
     min_r := max_r * 38 / 100
@@ -669,7 +669,7 @@ route patterns {
     page patterns
 }
 
-patterns :: (app: InbeApp*) #ui {
+patterns :: (app: InnerBreeze*) #ui {
     Screen root: {
     patterns_draw_screen(app, view_width / 2, view_height / 2)
     }

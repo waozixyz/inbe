@@ -8,17 +8,17 @@ static int saves, syncs;
 void PushUIInspectSource(const char *p, int n) { (void)p; (void)n; }
 void PopUIInspectSource(void) {}
 void SetUIFocusTextInputActive(int active) { (void)active; }
-void app_switch_screen(InbeApp *app, int screen) { app->inbe.screen = screen; }
-void save_settings(InbeApp *app) { (void)app; }
-int app_auto_sync(InbeApp *app) { (void)app; ++syncs; return 0; }
-void habits_save(InbeHabits *habits) { (void)habits; ++saves; }
-int habits_name_exists(const InbeHabits *habits, const char *name, int exclude)
+void app_switch_screen(InnerBreeze*app, int screen) { app->breathing.screen = screen; }
+void save_settings(InnerBreeze*app) { (void)app; }
+int app_auto_sync(InnerBreeze*app) { (void)app; ++syncs; return 0; }
+void habits_save(Habits *habits) { (void)habits; ++saves; }
+int habits_name_exists(const Habits *habits, const char *name, int exclude)
 {
     for(int i = 0; i < habits->count; ++i)
         if(i != exclude && strcmp(habits->items[i].name, name) == 0) return 1;
     return 0;
 }
-int habits_add_custom(InbeHabits *habits, const char *name, Color color, int mode, int activity)
+int habits_add_custom(Habits *habits, const char *name, Color color, int mode, int activity)
 {
     int index = habits->count++;
     snprintf(habits->items[index].name, sizeof(habits->items[index].name), "%s", name);
@@ -30,12 +30,12 @@ int habits_add_custom(InbeHabits *habits, const char *name, Color color, int mod
 
 int main(void)
 {
-    static InbeApp app;
+    static InnerBreeze app;
     habit_edit_begin_new(&app);
-    assert(app.inbe.screen == InbeScreenHabitEdit);
+    assert(app.breathing.screen == ScreenHabitEdit);
     assert(app.habit_edit.text[0] == 0);
     assert(app.habit_edit.reminder_hour == -1);
-    assert(app.habit_edit.weekdays == INBE_HABIT_SCHEDULE_OFF);
+    assert(app.habit_edit.weekdays == HABIT_SCHEDULE_OFF);
     assert(app.habit_edit.sections[0]);
     assert(!app.habit_edit.sections[1] && app.habit_edit.sections[2]);
     habit_edit_commit(&app);
@@ -55,7 +55,7 @@ int main(void)
     assert(saves == 1 && syncs == 1);
     assert(app.habits.items[0].counter_enabled == 1);
     assert(app.habits.items[0].sync_activity == 3);
-    assert(app.habits.items[0].sync_mode == INBE_HABIT_SYNC_ACTIVITIES);
+    assert(app.habits.items[0].sync_mode == HABIT_SYNC_ACTIVITIES);
     assert(app.habits.items[0].weekdays == 31 && app.habits.items[0].reminder_hour == 9);
     assert(strcmp(app.habits.items[0].description, "Only for testing") == 0);
     habit_edit_begin_new(&app);
@@ -65,7 +65,7 @@ int main(void)
     habit_edit_cancel(&app);
     assert(saves == 1 && app.habits.screen_mode == HABITS_SCREEN_OVERVIEW);
     habit_edit_begin(&app, 0);
-    assert(app.inbe.screen == InbeScreenHabitEdit && !app.habit_edit.is_new);
+    assert(app.breathing.screen == ScreenHabitEdit && !app.habit_edit.is_new);
     assert(app.habit_edit.counter_enabled && app.habit_edit.sync_activity == 3);
     strcpy(app.habit_edit.text, "Unsaved edit");
     habit_edit_cancel(&app);

@@ -15,7 +15,7 @@
 #endif
 
 #if defined(PLATFORM_WEB)
-EM_JS(int, inbe_web_extension_host_js, (void), {
+EM_JS(int, web_extension_host_js, (void), {
     if(typeof window === 'undefined')
         return 0;
     if(window.__inbeExtension)
@@ -24,7 +24,7 @@ EM_JS(int, inbe_web_extension_host_js, (void), {
             typeof chrome !== 'undefined' && chrome.runtime) ? 1 : 0;
 });
 
-EM_JS(void, inbe_web_extension_break_now_js, (int break_type), {
+EM_JS(void, web_extension_break_now_js, (int break_type), {
     if (typeof window !== 'undefined' &&
         typeof window.__inbeExtensionBreakNow === 'function') {
         window.__inbeExtensionBreakNow(break_type);
@@ -42,13 +42,13 @@ void app_web_launch_practice(int practice_id);
 EMSCRIPTEN_KEEPALIVE
 int app_web_test_complete_practice(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     if(app == NULL) return 0;
     web_test_completion_stage = 1;
     app->meditation.duration_mode = 5;
     app->meditation.custom_minutes = 1;
     app->meditation.show_extend_controls = 0;
-    app->inbe.play_in_background = 1;
+    app->breathing.play_in_background = 1;
     app_web_launch_practice(EXERCISE_MEDITATION);
     web_test_completion_stage = 2;
     practice_active_advance_elapsed(app, 1000);
@@ -75,7 +75,7 @@ int app_web_test_completion_stage(void) { return web_test_completion_stage; }
 EMSCRIPTEN_KEEPALIVE
 int app_web_test_completed_practice_persisted(void)
 {
-    InbeStorageSessionCheckin checkin = {0};
+    StorageSessionCheckin checkin = {0};
     const char *path = storage_get_setting_text("test_completed_session");
     return path != NULL && storage_load_session_checkin(path, &checkin) &&
            checkin.mood_after == 4;
@@ -116,18 +116,18 @@ web_test_make_sync_account(SyncAccount *account)
 }
 
 static int
-web_test_first_run_guide_expected(const InbeApp *app)
+web_test_first_run_guide_expected(const InnerBreeze*app)
 {
     return app != NULL &&
            !app->tutorial_seen &&
            !app->modal.active &&
            app->exercise_type != EXERCISE_SUN_SALUTATION &&
-           app->inbe.screen == InbeScreenStart &&
+           app->breathing.screen == ScreenStart &&
            app->main_tab != APP_MAIN_TAB_NONE;
 }
 
 static void
-web_test_save_onboarding_settings(const InbeApp *app)
+web_test_save_onboarding_settings(const InnerBreeze*app)
 {
     if(app == NULL)
         return;
@@ -152,15 +152,15 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_get_play_in_background(void)
 {
-    InbeApp *app = get_global_inbe_app();
-    return app != NULL && app->inbe.play_in_background;
+    InnerBreeze*app = get_global_app();
+    return app != NULL && app->breathing.play_in_background;
 }
 
 EMSCRIPTEN_KEEPALIVE
 void
 app_web_set_backgrounded(int active)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL)
         return;
@@ -172,7 +172,7 @@ EMSCRIPTEN_KEEPALIVE
 void
 app_web_background_tick(int elapsed_ms)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL || elapsed_ms <= 0)
         return;
@@ -184,7 +184,7 @@ EMSCRIPTEN_KEEPALIVE
 void
 app_web_launch_practice(int practice_id)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     const PracticeDefinition *practice;
 
     if(app == NULL)
@@ -205,7 +205,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_extension_host(void)
 {
-    return inbe_web_extension_host_js();
+    return web_extension_host_js();
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -214,14 +214,14 @@ app_web_extension_break_now(int break_type)
 {
     if(!app_web_extension_host())
         return;
-    inbe_web_extension_break_now_js(break_type);
+    web_extension_break_now_js(break_type);
 }
 
 EMSCRIPTEN_KEEPALIVE
 int
 app_web_extension_breaks_enabled(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL || !app_web_extension_host())
         return 0;
@@ -229,7 +229,7 @@ app_web_extension_breaks_enabled(void)
 }
 
 static BreakTimer *
-web_extension_break_timer(InbeApp *app, int break_type)
+web_extension_break_timer(InnerBreeze*app, int break_type)
 {
     if(app == NULL || break_type < 0 || break_type >= BREAK_TYPE_COUNT)
         return NULL;
@@ -240,7 +240,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_extension_break_timer_enabled(int break_type)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     BreakTimer *timer = web_extension_break_timer(app, break_type);
 
     return timer != NULL && timer->enabled ? 1 : 0;
@@ -250,7 +250,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_extension_break_timer_limit_s(int break_type)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     BreakTimer *timer = web_extension_break_timer(app, break_type);
 
     return timer != NULL ? timer->limit_s : 0;
@@ -260,7 +260,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_extension_break_timer_duration_s(int break_type)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     BreakTimer *timer = web_extension_break_timer(app, break_type);
 
     return timer != NULL ? timer->duration_s : 0;
@@ -270,7 +270,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_extension_break_timer_postpone_s(int break_type)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     BreakTimer *timer = web_extension_break_timer(app, break_type);
 
     return timer != NULL ? timer->postpone_s : 0;
@@ -280,7 +280,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_extension_break_timer_max_prompts(int break_type)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     BreakTimer *timer = web_extension_break_timer(app, break_type);
 
     return timer != NULL ? timer->max_prompts : 0;
@@ -290,7 +290,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_extension_break_timer_show_skip(int break_type)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     BreakTimer *timer = web_extension_break_timer(app, break_type);
 
     return timer != NULL && timer->show_skip ? 1 : 0;
@@ -300,7 +300,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_extension_break_timer_show_postpone(int break_type)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     BreakTimer *timer = web_extension_break_timer(app, break_type);
 
     return timer != NULL && timer->show_postpone ? 1 : 0;
@@ -310,7 +310,7 @@ EMSCRIPTEN_KEEPALIVE
 void
 app_web_extension_open_break_settings(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL)
         return;
@@ -318,14 +318,14 @@ app_web_extension_open_break_settings(void)
     app->main_tab = APP_MAIN_TAB_PRACTICE;
     if(app->modal.active)
         app_close_modal(app);
-    app_switch_screen(app, InbeScreenSettings);
+    app_switch_screen(app, ScreenSettings);
 }
 
 EMSCRIPTEN_KEEPALIVE
 void
 app_web_extension_open_habits(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL)
         return;
@@ -335,14 +335,14 @@ app_web_extension_open_habits(void)
     app->habits.focus_selected_tab = 1;
     if(app->modal.active)
         app_close_modal(app);
-    app_switch_screen(app, InbeScreenHabits);
+    app_switch_screen(app, ScreenHabits);
 }
 
 EMSCRIPTEN_KEEPALIVE
 void
 app_web_test_save_onboarding_state(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL)
         return;
@@ -359,7 +359,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_onboarding_state(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL)
         return 0;
@@ -372,7 +372,7 @@ EMSCRIPTEN_KEEPALIVE
 void
 app_web_test_show_first_run_guide(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL)
         return;
@@ -398,7 +398,7 @@ app_web_test_show_first_run_guide(void)
     web_test_sync_key_import_status = 0;
     if(app->modal.active)
         app_close_modal(app);
-    app->inbe.screen = InbeScreenStart;
+    app->breathing.screen = ScreenStart;
     web_test_save_onboarding_settings(app);
 }
 
@@ -406,7 +406,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_first_run_guide_active(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     return web_test_first_run_guide_expected(app);
 }
@@ -415,7 +415,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_first_run_guide_step(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     return app != NULL ? app->tutorial_step : -1;
 }
@@ -427,7 +427,7 @@ app_web_test_first_run_guide_text_clipped(void)
     UIGuideOverlayDebug debug;
 
     if(!GetUIGuideOverlayDebug(&debug))
-        return web_test_first_run_guide_expected(get_global_inbe_app()) ? 0 : -1;
+        return web_test_first_run_guide_expected(get_global_app()) ? 0 : -1;
     return debug.text_clipped;
 }
 
@@ -482,7 +482,7 @@ web_test_rect_valid(Rectangle rect)
 }
 
 static Rectangle
-web_test_first_run_guide_action_anchor(InbeApp *app)
+web_test_first_run_guide_action_anchor(InnerBreeze*app)
 {
     static const Rectangle zero_rect;
     Rectangle manual;
@@ -530,7 +530,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_first_run_guide_anchor_x(void)
 {
-    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_inbe_app());
+    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_app());
 
     return (int)anchor.x;
 }
@@ -539,7 +539,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_first_run_guide_anchor_y(void)
 {
-    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_inbe_app());
+    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_app());
 
     return (int)anchor.y;
 }
@@ -548,7 +548,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_first_run_guide_anchor_w(void)
 {
-    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_inbe_app());
+    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_app());
 
     return (int)anchor.width;
 }
@@ -557,7 +557,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_first_run_guide_anchor_h(void)
 {
-    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_inbe_app());
+    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_app());
 
     return (int)anchor.height;
 }
@@ -603,7 +603,7 @@ EMSCRIPTEN_KEEPALIVE
 void
 app_web_test_show_practice_home(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL)
         return;
@@ -617,14 +617,14 @@ app_web_test_show_practice_home(void)
     app->exercise_type = EXERCISE_WIM_HOF;
     if(app->modal.active)
         app_close_modal(app);
-    app->inbe.screen = InbeScreenStart;
+    app->breathing.screen = ScreenStart;
 }
 
 EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_practice_selected(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     return app != NULL ? app->exercise_type : -1;
 }
 
@@ -632,16 +632,16 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_screen(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
-    return app != NULL ? (int)app->inbe.screen : -1;
+    return app != NULL ? (int)app->breathing.screen : -1;
 }
 
 EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_practice_start_click_x(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL || !web_test_rect_valid(app->practice_home_bounds_start))
         return -1;
@@ -653,7 +653,7 @@ EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_practice_start_click_y(void)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
 
     if(app == NULL || !web_test_rect_valid(app->practice_home_bounds_start))
         return -1;
@@ -665,7 +665,7 @@ EMSCRIPTEN_KEEPALIVE
 void
 app_web_test_enable_extension_breaks(int limit_s)
 {
-    InbeApp *app = get_global_inbe_app();
+    InnerBreeze*app = get_global_app();
     BreakTimer *timer;
 
     if(app == NULL || !app_web_extension_host())

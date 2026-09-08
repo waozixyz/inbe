@@ -90,7 +90,7 @@ insert_session_at_ex :: (started_at: long long, local_date: int,
                             topic: int, activity: int, source: const char*,
                             out_id: char*, out_id_size: size_t, out_inserted: int*) -> int {
     stmt: sqlite3_stmt* = nil
-    id: [INBE_STORAGE_ID_SIZE] char
+    id: [STORAGE_ID_SIZE] char
     rc: int
     inserted: int
     rhash: unsigned int
@@ -222,7 +222,7 @@ storage_load_session :: (path_or_id: const char*, round_times: int*,
                             day: int*, hour: int*, minute: int*,
                             second: int*) -> int {
     stmt: sqlite3_stmt* = nil
-    id: [INBE_STORAGE_ID_SIZE] char
+    id: [STORAGE_ID_SIZE] char
     count: int = 0
     started_at: long long = 0
     local_date: int = 0
@@ -289,9 +289,9 @@ storage_load_session :: (path_or_id: const char*, round_times: int*,
 }
 
 storage_save_session_checkin :: (path_or_id: const char*,
-                                    checkin: const InbeStorageSessionCheckin*) -> int {
+                                    checkin: const StorageSessionCheckin*) -> int {
     stmt: sqlite3_stmt* = nil
-    id: [INBE_STORAGE_ID_SIZE] char
+    id: [STORAGE_ID_SIZE] char
 
     if !parse_db_id(path_or_id, id, sizeof(id)) || checkin == nil {
         return 0
@@ -321,9 +321,9 @@ storage_save_session_checkin :: (path_or_id: const char*,
 }
 
 storage_load_session_checkin :: (path_or_id: const char*,
-                                    checkin: InbeStorageSessionCheckin*) -> int {
+                                    checkin: StorageSessionCheckin*) -> int {
     stmt: sqlite3_stmt* = nil
-    id: [INBE_STORAGE_ID_SIZE] char
+    id: [STORAGE_ID_SIZE] char
 
     if checkin != nil {
         memset(checkin, 0, sizeof(*checkin))
@@ -357,7 +357,7 @@ storage_load_session_checkin :: (path_or_id: const char*,
 }
 
 storage_mood_stats :: (activity_mask: int, days: int,
-                          stats: InbeStorageMoodStats*) -> int {
+                          stats: StorageMoodStats*) -> int {
     stmt: sqlite3_stmt* = nil
     cutoff: long long = 0
     after_total: long long = 0
@@ -434,7 +434,7 @@ storage_mood_stats :: (activity_mask: int, days: int,
 storage_replace_session :: (path_or_id: const char*, round_times: const int*,
                                round_count: int) -> int {
     stmt: sqlite3_stmt* = nil
-    id: [INBE_STORAGE_ID_SIZE] char
+    id: [STORAGE_ID_SIZE] char
     saved: [MaxRounds] int
     saved_count: int
 
@@ -481,7 +481,7 @@ fail:
 storage_rename_session_time :: (path_or_id: const char*, hour: int,
                                    minute: int) -> int {
     stmt: sqlite3_stmt* = nil
-    id: [INBE_STORAGE_ID_SIZE] char
+    id: [STORAGE_ID_SIZE] char
     started_at: long long = 0
     t: time_t
     tm: struct tm*
@@ -531,7 +531,7 @@ storage_rename_session_time :: (path_or_id: const char*, hour: int,
 
 storage_delete_session :: (path_or_id: const char*) -> int {
     stmt: sqlite3_stmt* = nil
-    id: [INBE_STORAGE_ID_SIZE] char
+    id: [STORAGE_ID_SIZE] char
 
     if !parse_db_id(path_or_id, id, sizeof(id)) {
         return 0
@@ -554,7 +554,7 @@ storage_delete_session :: (path_or_id: const char*) -> int {
     return 1
 }
 
-storage_list_session_records :: (callback: InbeStorageSessionRecordCallback,
+storage_list_session_records :: (callback: StorageSessionRecordCallback,
                                     user: void*) {
     stmt: sqlite3_stmt* = nil
 
@@ -568,7 +568,7 @@ storage_list_session_records :: (callback: InbeStorageSessionRecordCallback,
         return
     }
     while sqlite3_step(stmt) == SQLITE_ROW {
-        dbid: [INBE_STORAGE_ID_SIZE + 4] char
+        dbid: [STORAGE_ID_SIZE + 4] char
         rounds: [MaxRounds] int
         count: int = 0
         id: const char* = (const char*)sqlite3_column_text(stmt, 0)

@@ -10,13 +10,13 @@ ANDROID :: ANDROID_BUILD
     #import <android/log.h>
     #import <unistd.h>
 
-    static timer_log_tag: const char* = "INBE_TIMER"
+    static timer_log_tag: const char* = "APP_TIMER"
     TARGET_FPS :: #define 10
     FRAME_TIME_US :: #define (1000000 / TARGET_FPS)
 
     timer_thread :: pthread_t #global
     timer_mutex :: pthread_mutex_t = PTHREAD_MUTEX_INITIALIZER #global
-    inbe_state_mutex :: pthread_mutex_t = PTHREAD_MUTEX_INITIALIZER #global
+    app_state_mutex :: pthread_mutex_t = PTHREAD_MUTEX_INITIALIZER #global
     timer_running :: int = 0 #global
     timer_active :: int = 0 #global
     g_app :: void* = nil #global
@@ -64,11 +64,11 @@ ANDROID :: ANDROID_BUILD
             if should_run {
                 frame_count++
 
-                pthread_mutex_lock(&inbe_state_mutex)
-                app := (InbeApp*)g_app
+                pthread_mutex_lock(&app_state_mutex)
+                app := (InnerBreeze*)g_app
                 practice_active_advance_elapsed(app,
                     monotonic_elapsed_ms(&last_tick))
-                pthread_mutex_unlock(&inbe_state_mutex)
+                pthread_mutex_unlock(&app_state_mutex)
 
                 usleep(FRAME_TIME_US)
             } else {
@@ -93,7 +93,7 @@ ANDROID :: ANDROID_BUILD
     }
 
     android_timer_get_mutex :: () -> pthread_mutex_t* #export {
-        return &inbe_state_mutex
+        return &app_state_mutex
     }
 
     android_timer_start :: () #export {

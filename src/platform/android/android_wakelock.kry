@@ -7,7 +7,7 @@ ANDROID :: ANDROID_BUILD
     #import <android/log.h>
     #import <jni.h>
 
-    static wakelock_log_tag: const char* = "INBE_WAKE"
+    static wakelock_log_tag: const char* = "APP_WAKE"
 
     g_jvm :: JavaVM* = nil #global
     g_activity :: jobject = nil #global

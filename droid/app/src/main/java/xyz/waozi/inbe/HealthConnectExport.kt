@@ -23,7 +23,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.startCoroutine
 
 /**
- * One-way push of finished inbe sessions into Health Connect: meditation
+ * One-way push of finished sessions into Health Connect: meditation
  * and the breathwork practices become mindfulness sessions (meditation /
  * breathing types), sun salutation becomes a yoga exercise session. The
  * native side writes the session list (start,end,activity per CSV line);

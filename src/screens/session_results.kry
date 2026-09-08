@@ -113,7 +113,7 @@ session_result_draw_mood_face :: (mood: int, cx: int, cy: int,
     }
 }
 
-session_result_draw_mood_picker :: (app: InbeApp*, x: int, y: int, w: int,
+session_result_draw_mood_picker :: (app: InnerBreeze*, x: int, y: int, w: int,
                                     hover: int*) -> int #private {
     title_h := Scale(28)
     button_h := Scale(64)
@@ -174,8 +174,8 @@ session_result_draw_mood_picker :: (app: InbeApp*, x: int, y: int, w: int,
     return title_h + Scale(8) + button_h
 }
 
-practice_draw_results :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
-    result: InbeSessionResult*
+practice_draw_results :: (app: InnerBreeze*, center_x: int, center_y: int, hover: int*) {
+    result: SessionResult*
     box_x: int
     box_w: int
     title_font: int

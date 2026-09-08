@@ -1,5 +1,5 @@
-#ifndef INBE_ANDROID_INSETS_H
-#define INBE_ANDROID_INSETS_H
+#ifndef APP_ANDROID_INSETS_H
+#define APP_ANDROID_INSETS_H
 
 #include "android_surface.h"
 #include "platform.h"

@@ -7,7 +7,7 @@
 /*
  * Breath-engine timing test.
  *
- * Drives inbestep() tick by tick (60 ticks == 1 second) through complete Wim
+ * Drives breath_session_step() tick by tick (60 ticks == 1 second) through complete Wim
  * Hof sessions and asserts the between-round countdown ("3-2-1") honors the
  * round-0 special case and the user's configured pause for later rounds. This
  * is the area that regressed when the auto-play and manual round-advance paths
@@ -56,11 +56,11 @@ count_value(const char *v)
 
 /* Step the engine until phase transitions away from `phase` or `max_steps` hit. */
 static int
-run_while_phase(Inbe *l, int phase, int max_steps)
+run_while_phase(BreathSession *l, int phase, int max_steps)
 {
     int steps = 0;
     while (l->phase == phase && steps < max_steps && !l->completed) {
-        inbestep(l);
+        breath_session_step(l);
         steps++;
     }
     return steps;
@@ -68,11 +68,11 @@ run_while_phase(Inbe *l, int phase, int max_steps)
 
 /* Measure how many ticks the Starting countdown lasts for the current round. */
 static int
-measure_starting_ticks(Inbe *l)
+measure_starting_ticks(BreathSession *l)
 {
     int ticks = 0;
-    while (l->phase == InbePhaseStarting && ticks < 4000 && !l->completed) {
-        inbestep(l);
+    while (l->phase == BreathPhaseStarting && ticks < 4000 && !l->completed) {
+        breath_session_step(l);
         ticks++;
     }
     return ticks;
@@ -80,30 +80,30 @@ measure_starting_ticks(Inbe *l)
 
 /*
  * Run one round from Starting through to the start of the next round's
- * Starting (or completion). Holds are ended immediately via inbe_end_hold so
+ * Starting (or completion). Holds are ended immediately via end_hold so
  * the session progresses without a user tap.
  */
 static void
-run_one_round(Inbe *l)
+run_one_round(BreathSession *l)
 {
     /* Starting countdown -> Breathe. */
-    run_while_phase(l, InbePhaseStarting, 4000);
+    run_while_phase(l, BreathPhaseStarting, 4000);
     /* Breathe until max breaths -> Hold. */
-    run_while_phase(l, InbePhaseBreathe, 200000);
+    run_while_phase(l, BreathPhaseBreathe, 200000);
     /* End the hold immediately (simulates the breath tap). */
-    if (l->phase == InbePhaseHold) {
-        inbe_end_hold(l);
+    if (l->phase == BreathPhaseHold) {
+        end_hold(l);
     }
     /* Recover -> Next -> Starting (or completion). */
-    run_while_phase(l, InbePhaseRecover, 200000);
-    run_while_phase(l, InbePhaseNext, 200000);
+    run_while_phase(l, BreathPhaseRecover, 200000);
+    run_while_phase(l, BreathPhaseNext, 200000);
 }
 
 static void
 test_round_zero_uses_three_second_countdown(void)
 {
-    Inbe l;
-    inbeinit(&l);
+    BreathSession l;
+    breath_session_init(&l);
     l.pause_seconds = 15;          /* a configured pause that must NOT apply to round 0 */
     l.breath_half_ticks = 120;
     l.max_rounds = 3;
@@ -112,24 +112,24 @@ test_round_zero_uses_three_second_countdown(void)
     int ticks = measure_starting_ticks(&l);
     expect(ticks == 3 * 60,
            "round 0 countdown should be exactly 3s (180 ticks)");
-    expect(l.phase == InbePhaseBreathe,
+    expect(l.phase == BreathPhaseBreathe,
            "round 0 should transition to Breathe after 3s");
 
-    /* inbe_effective_pause_seconds must report 3 for round 0. */
+    /* effective_pause_seconds must report 3 for round 0. */
     l.round = 0;
-    expect(inbe_effective_pause_seconds(&l) == 3,
+    expect(effective_pause_seconds(&l) == 3,
            "effective pause for round 0 should be 3");
 }
 
 static void
 test_later_rounds_use_configured_pause(void)
 {
-    Inbe l;
-    inbeinit(&l);
+    BreathSession l;
+    breath_session_init(&l);
     l.pause_seconds = 15;          /* configured "Pause after round" */
     l.breath_half_ticks = 120;
     l.max_rounds = 3;
-    l.phase = InbePhaseStarting;
+    l.phase = BreathPhaseStarting;
     l.round = 0;
 
     /* Complete round 0 so we land in round 1's Starting. */
@@ -137,7 +137,7 @@ test_later_rounds_use_configured_pause(void)
     expect(l.round == 1, "should advance to round 1 after round 0");
 
     /* The bug: round 1 used to count down from 3 (180 ticks) instead of 15. */
-    expect(inbe_effective_pause_seconds(&l) == 15,
+    expect(effective_pause_seconds(&l) == 15,
            "effective pause for round 1 should be configured (15)");
     int ticks = measure_starting_ticks(&l);
     expect(ticks == 15 * 60,
@@ -147,18 +147,18 @@ test_later_rounds_use_configured_pause(void)
 static void
 test_configured_pause_zero_skips_countdown(void)
 {
-    Inbe l;
-    inbeinit(&l);
+    BreathSession l;
+    breath_session_init(&l);
     l.pause_seconds = 0;           /* no pause between rounds configured */
     l.breath_half_ticks = 120;
     l.max_rounds = 2;
-    l.phase = InbePhaseStarting;
+    l.phase = BreathPhaseStarting;
     l.round = 0;
 
     run_one_round(&l);
     expect(l.round == 1, "should advance to round 1");
 
-    expect(inbe_effective_pause_seconds(&l) == 0,
+    expect(effective_pause_seconds(&l) == 0,
            "effective pause for round 1 should be 0 when configured 0");
     /* With pause 0, Starting must not linger (transitions within a couple ticks). */
     int ticks = measure_starting_ticks(&l);
@@ -169,14 +169,14 @@ test_configured_pause_zero_skips_countdown(void)
 static void
 test_results_populated_each_round(void)
 {
-    Inbe l;
+    BreathSession l;
     int i;
 
-    inbeinit(&l);
+    breath_session_init(&l);
     l.pause_seconds = 2;
     l.breath_half_ticks = 120;
     l.max_rounds = 3;
-    l.phase = InbePhaseStarting;
+    l.phase = BreathPhaseStarting;
     l.round = 0;
 
     /* Run rounds 0 and 1 to completion of their holds. */
@@ -194,12 +194,12 @@ test_results_populated_each_round(void)
 static void
 test_final_round_completes(void)
 {
-    Inbe l;
-    inbeinit(&l);
+    BreathSession l;
+    breath_session_init(&l);
     l.pause_seconds = 2;
     l.breath_half_ticks = 120;
     l.max_rounds = 2;
-    l.phase = InbePhaseStarting;
+    l.phase = BreathPhaseStarting;
     l.round = 0;
 
     /* Run all rounds to completion. */
@@ -208,20 +208,20 @@ test_final_round_completes(void)
     run_one_round(&l);                 /* -> final round completes */
     expect(l.completed,
            "session should be marked complete after final round");
-    expect(inbe_just_completed(&l),
-           "inbe_just_completed should report true after final round");
+    expect(just_completed(&l),
+           "just_completed should report true after final round");
 
     /* Once complete, stepping must be a no-op (no phantom round). */
     int phase_before = l.phase;
     int round_before = l.round;
-    inbestep(&l);
+    breath_session_step(&l);
     expect(l.phase == phase_before && l.round == round_before,
            "completed engine must not advance on further steps");
 
     /* Clearing completion resets the flag (the app layer does this on save). */
-    inbe_clear_completed(&l);
-    expect(!inbe_just_completed(&l),
-           "inbe_clear_completed should clear the flag");
+    clear_completed(&l);
+    expect(!just_completed(&l),
+           "clear_completed should clear the flag");
 }
 
 int

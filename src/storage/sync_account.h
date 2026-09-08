@@ -1,5 +1,5 @@
-#ifndef INBE_SYNC_ACCOUNT_H
-#define INBE_SYNC_ACCOUNT_H
+#ifndef APP_SYNC_ACCOUNT_H
+#define APP_SYNC_ACCOUNT_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -7,17 +7,17 @@
 #include <sync/account.h>
 #include <sync_crypto.h>
 
-typedef enum InbeSyncAccountSaveResult {
-    INBE_SYNC_ACCOUNT_SAVE_FAILED = 0,
-    INBE_SYNC_ACCOUNT_SAVE_OK = 1,
-    INBE_SYNC_ACCOUNT_SAVE_NEEDS_CLEAR = 2
-} InbeSyncAccountSaveResult;
+typedef enum SyncAccountSaveResult {
+    SYNC_ACCOUNT_SAVE_FAILED = 0,
+    SYNC_ACCOUNT_SAVE_OK = 1,
+    SYNC_ACCOUNT_SAVE_NEEDS_CLEAR = 2
+} SyncAccountSaveResult;
 
 int sync_account_available(void);
 int sync_account_load(SyncAccount *account);
 int sync_account_generate(SyncAccount *account);
 int sync_account_import_private_key_preview(SyncAccount *account, const char *filename);
-InbeSyncAccountSaveResult sync_account_save(SyncAccount *account, int clear_local_data);
+SyncAccountSaveResult sync_account_save(SyncAccount *account, int clear_local_data);
 int sync_account_clear(void);
 int sync_account_export_private_key(const SyncAccount *account, const char *filename);
 void sync_sha256_hex(const uint8_t *data, size_t len, char out_hex[65]);

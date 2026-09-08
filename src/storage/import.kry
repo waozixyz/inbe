@@ -5,7 +5,7 @@
 #import "storage/db.h" #private
 #import "screens/habits_screen.h" #private
 #import "core/breath_engine.h" #private
-#import "miniz.h"
+#import "kry_archive.h"
 #import "version.h" #private
 #import "kryon.h"
 #import <sqlite3.h>
@@ -252,11 +252,12 @@ import_upsert_habit_day :: (stmt: sqlite3_stmt*, habit_id: const char*, local_da
 }
 
 storage_export_zip :: (path: const char*) -> int #export {
-    archive: mz_zip_archive
+    archive: Archive
     fp: FILE*
     buf: char*
     size: long
     metadata: [512] char
+    ok: int = 0
 
     if path == nil || path[0] == '\0' || g_storage.db == nil {
         return 0
@@ -285,19 +286,19 @@ storage_export_zip :: (path: const char*) -> int #export {
     }
     fclose(fp)
     memset(&archive, 0, sizeof(archive))
-    if !mz_zip_writer_init_file(&archive, path, 0) {
+    if !ArchiveCreateZip(&archive, path) {
         free(buf)
         return 0
     }
     snprintf(metadata, sizeof(metadata),
-             "{\n\"format\":\"inbe-data-sqlite\",\n\"format_version\":1,\n\"app_version\":\"%s\",\n\"user_id\":\"%s\",\n\"session_count\":%d,\n\"habit_count\":%d\n}\n",
-             INBE_VERSION_STRING, g_storage.user_id, storage_session_count(), storage_habit_count())
-    mz_zip_writer_add_mem(&archive, "inbe-data/metadata.json", metadata, strlen(metadata), MZ_NO_COMPRESSION)
-    mz_zip_writer_add_mem(&archive, "inbe-data/inbe.db", buf, (size_t)size, MZ_BEST_COMPRESSION)
+             "{\n\"format\":\"breathing-data-sqlite\",\n\"format_version\":1,\n\"app_version\":\"%s\",\n\"user_id\":\"%s\",\n\"session_count\":%d,\n\"habit_count\":%d\n}\n",
+             APP_VERSION_STRING, g_storage.user_id, storage_session_count(), storage_habit_count())
+    ok = ArchiveAddMemory(&archive, "breathing-data/metadata.json", metadata, strlen(metadata), ARCHIVE_STORE) &&
+         ArchiveAddMemory(&archive, "breathing-data/breathing.db", buf, (size_t)size, ARCHIVE_DEFLATE) &&
+         ArchiveFinishZip(&archive)
     free(buf)
-    mz_zip_writer_finalize_archive(&archive)
-    mz_zip_writer_end(&archive)
-    return 1
+    ArchiveClose(&archive)
+    return ok
 }
 
 tickmate_color_from_int :: (value: int, index: int) -> Color #private {
@@ -367,11 +368,11 @@ parse_legacy_session_filename :: (filename: const char*, year: int*, month: int*
         return 0
     }
     for p = filename; *p != '\0'; p++ {
-        if sscanf(p, "sessions/%4d/%2d/%2d/inbe-%2d%2d%2d",
+        if sscanf(p, "sessions/%4d/%2d/%2d/breathing-%2d%2d%2d",
                   year, month, day, hour, minute, second) == 6 {
             return 1
         }
-        if sscanf(p, "%4d/%2d/%2d/inbe-%2d%2d%2d",
+        if sscanf(p, "%4d/%2d/%2d/breathing-%2d%2d%2d",
                   year, month, day, hour, minute, second) == 6 {
             return 1
         }
@@ -409,17 +410,17 @@ import_legacy_session_bytes :: (name: const char*, bytes: const char*, size: siz
                                 0, 0, "legacy-file-import", nil, 0, nil)
 }
 
-import_legacy_session_zip :: (archive: mz_zip_archive*) -> int #private {
-    file_count: mz_uint
+import_legacy_session_zip :: (archive: Archive*) -> int #private {
+    file_count: int
     imported: int = 0
 
     if archive == nil {
         return 0
     }
     g_storage.materialize_defer++
-    file_count = mz_zip_reader_get_num_files(archive)
-    for mz_uint i = 0; i < file_count; i++ {
-        stat: mz_zip_archive_file_stat
+    file_count = ArchiveEntryCount(archive)
+    for int i = 0; i < file_count; i++ {
+        stat: ArchiveEntry
         year: int
         month: int
         day: int
@@ -429,24 +430,24 @@ import_legacy_session_zip :: (archive: mz_zip_archive*) -> int #private {
         text_size: size_t = 0
         text: char*
 
-        if !mz_zip_reader_file_stat(archive, i, &stat) {
+        if !ArchiveReadEntry(archive, i, &stat) {
             continue
         }
-        if stat.m_is_directory {
+        if stat.is_directory {
             continue
         }
-        if !parse_legacy_session_filename(stat.m_filename,
+        if !parse_legacy_session_filename(stat.name,
                                           &year, &month, &day,
                                           &hour, &minute, &second) {
             continue
         }
 
-        text = mz_zip_reader_extract_to_heap(archive, i, &text_size, 0)
+        text = ArchiveReadEntryHeap(archive, i, &text_size)
         if text == nil {
-            TraceLog(LOG_WARNING, "DATA: legacy import failed to extract %s", stat.m_filename)
+            TraceLog(LOG_WARNING, "DATA: legacy import failed to extract %s", stat.name)
             continue
         }
-        if import_legacy_session_bytes(stat.m_filename, text, text_size) {
+        if import_legacy_session_bytes(stat.name, text, text_size) {
             imported++
         }
         free(text)
@@ -590,7 +591,7 @@ migrate_legacy_file_sessions_in_dir :: (dir_path: const char*, imported: Importe
         return 0
     }
     while (entry = readdir(dir)) != nil {
-        child: [INBE_STORAGE_PATH_SIZE] char
+        child: [STORAGE_PATH_SIZE] char
         st: struct stat
 
         if strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 {
@@ -685,7 +686,7 @@ import_tickmate_db :: (src: sqlite3*) -> int #private {
     exec_sql("BEGIN IMMEDIATE")
     while sqlite3_step(stmt) == SQLITE_ROW {
         import_habit_id: [64] char
-        local_habit_id: [INBE_STORAGE_ID_SIZE] char
+        local_habit_id: [STORAGE_ID_SIZE] char
         name: const char* = (const char*)sqlite3_column_text(stmt, 1)
         track_id: int = sqlite3_column_int(stmt, 0)
         sort_order: int = sqlite3_column_int(stmt, 3)
@@ -702,7 +703,7 @@ import_tickmate_db :: (src: sqlite3*) -> int #private {
             continue
         }
         if import_upsert_habit(write_stmt, local_habit_id, name, color,
-                               INBE_HABIT_SYNC_NONE, 0, counter_enabled,
+                               HABIT_SYNC_NONE, 0, counter_enabled,
                                1, sort_order, imported_at) {
             ok = 1
         }
@@ -725,7 +726,7 @@ import_tickmate_db :: (src: sqlite3*) -> int #private {
         }
         while sqlite3_step(stmt) == SQLITE_ROW {
             import_habit_id: [64] char
-            local_habit_id: [INBE_STORAGE_ID_SIZE] char
+            local_habit_id: [STORAGE_ID_SIZE] char
             track_id: int = sqlite3_column_int(stmt, 0)
             name: const char* = (const char*)sqlite3_column_text(stmt, 1)
             year: int = sqlite3_column_int(stmt, 2)
@@ -806,7 +807,7 @@ import_settings_from_source :: (src: sqlite3*) -> int #private {
     return imported
 }
 
-inspect_sqlite_db_file :: (db_path: const char*, info: InbeStorageImportInfo*) -> int #private {
+inspect_sqlite_db_file :: (db_path: const char*, info: StorageImportInfo*) -> int #private {
     src: sqlite3* = nil
     ok: int = 0
 
@@ -853,7 +854,7 @@ import_session_checkin :: (src: sqlite3*, source_id: const char*, target_id: con
     fields: [6] const char* = {"mood_before", "mood_after", "energy", "stress", "note", "tags"}
     sql: [512] char = "SELECT "
     stmt: sqlite3_stmt* = nil
-    checkin: InbeStorageSessionCheckin = {0}
+    checkin: StorageSessionCheckin = {0}
     for int i = 0; i < 6; i++ {
         if i > 0 {
             strncat(sql, ",", sizeof(sql) - strlen(sql) - 1)
@@ -882,7 +883,7 @@ import_session_checkin :: (src: sqlite3*, source_id: const char*, target_id: con
     return storage_save_session_checkin(target_id, &checkin)
 }
 
-import_sqlite_db_file :: (db_path: const char*, mode: InbeStorageImportMode) -> int #private {
+import_sqlite_db_file :: (db_path: const char*, mode: StorageImportMode) -> int #private {
     src: sqlite3* = nil
     stmt: sqlite3_stmt* = nil
     hstmt: sqlite3_stmt* = nil
@@ -929,7 +930,7 @@ import_sqlite_db_file :: (db_path: const char*, mode: InbeStorageImportMode) -> 
         }
         sqlite3_finalize(rstmt)
         if count > 0 {
-            imported_id: [INBE_STORAGE_ID_SIZE] char = {0}
+            imported_id: [STORAGE_ID_SIZE] char = {0}
             inserted := 0
             if !insert_session_at_ex(started_at, local_date, rounds, count,
                                       topic, activity, "sqlite-import", imported_id, sizeof(imported_id), &inserted) {
@@ -982,7 +983,7 @@ import_sqlite_db_file :: (db_path: const char*, mode: InbeStorageImportMode) -> 
         while sqlite3_step(stmt) == SQLITE_ROW {
             import_habit_id: const char* = (const char*)sqlite3_column_text(stmt, 0)
             name: const char* = (const char*)sqlite3_column_text(stmt, 1)
-            local_habit_id: [INBE_STORAGE_ID_SIZE] char
+            local_habit_id: [STORAGE_ID_SIZE] char
             color: Color = {(unsigned char)sqlite3_column_int(stmt, 2),
                            (unsigned char)sqlite3_column_int(stmt, 3),
                            (unsigned char)sqlite3_column_int(stmt, 4), 255}
@@ -1035,7 +1036,7 @@ after_habits:
     sqlite3_finalize(day_write_stmt)
     day_write_stmt = nil
 
-    if mode == INBE_STORAGE_IMPORT_DATA_AND_SETTINGS {
+    if mode == STORAGE_IMPORT_DATA_AND_SETTINGS {
         imported_settings = import_settings_from_source(src)
     }
     if imported_settings > 0 {
@@ -1049,7 +1050,7 @@ try_tickmate:
     stmt = nil
     ok = import_tickmate_db(src)
     if !ok {
-        TraceLog(LOG_WARNING, "DATA: sqlite import was neither Inbe nor supported Tickmate schema")
+        TraceLog(LOG_WARNING, "DATA: sqlite import was neither BreathSession nor supported Tickmate schema")
     }
 
 done:
@@ -1078,11 +1079,11 @@ done:
 }
 
 storage_import_zip :: (path: const char*) -> int #export {
-    return storage_import_zip_ex(path, INBE_STORAGE_IMPORT_DATA_ONLY)
+    return storage_import_zip_ex(path, STORAGE_IMPORT_DATA_ONLY)
 }
 
-storage_import_zip_ex :: (path: const char*, mode: InbeStorageImportMode) -> int #export {
-    archive: mz_zip_archive
+storage_import_zip_ex :: (path: const char*, mode: StorageImportMode) -> int #export {
+    archive: Archive
     ok: int = 0
 
     if path == nil || path[0] == '\0' {
@@ -1094,19 +1095,19 @@ storage_import_zip_ex :: (path: const char*, mode: InbeStorageImportMode) -> int
         return 0
     }
     memset(&archive, 0, sizeof(archive))
-    if !mz_zip_reader_init_file(&archive, path, 0) {
+    if !ArchiveOpenZip(&archive, path) {
         return import_sqlite_db_file(path, mode)
     }
-    if mz_zip_reader_locate_file(&archive, "inbe-data/inbe.db", nil, 0) >= 0 {
+    if ArchiveFindEntry(&archive, "breathing-data/breathing.db") >= 0 {
         db_bytes: char*
         db_size: size_t = 0
-        temp_path: [INBE_STORAGE_PATH_SIZE] char
+        temp_path: [STORAGE_PATH_SIZE] char
         fp: FILE*
-        db_bytes = mz_zip_reader_extract_file_to_heap(&archive, "inbe-data/inbe.db", &db_size, 0)
-        if !storage_join_path(temp_path, sizeof(temp_path), g_storage.root, "import-inbe.db") {
+        db_bytes = ArchiveReadNamedEntryHeap(&archive, "breathing-data/breathing.db", &db_size)
+        if !storage_join_path(temp_path, sizeof(temp_path), g_storage.root, "import-breathing.db") {
             TraceLog(LOG_ERROR, "DATA: import temp path is too long")
             free(db_bytes)
-            mz_zip_reader_end(&archive)
+            ArchiveClose(&archive)
             return 0
         }
         fp = fopen(temp_path, "wb")
@@ -1116,10 +1117,10 @@ storage_import_zip_ex :: (path: const char*, mode: InbeStorageImportMode) -> int
             ok = import_sqlite_db_file(temp_path, mode)
             remove(temp_path)
             if !ok {
-                TraceLog(LOG_ERROR, "DATA: archive contained inbe-data/inbe.db but sqlite import failed")
+                TraceLog(LOG_ERROR, "DATA: archive contained breathing-data/breathing.db but sqlite import failed")
             }
         } else {
-            TraceLog(LOG_ERROR, "DATA: failed to extract inbe-data/inbe.db from archive")
+            TraceLog(LOG_ERROR, "DATA: failed to extract breathing-data/breathing.db from archive")
         }
         if fp != nil {
             fclose(fp)
@@ -1128,7 +1129,7 @@ storage_import_zip_ex :: (path: const char*, mode: InbeStorageImportMode) -> int
     } else {
         ok = import_legacy_session_zip(&archive)
     }
-    mz_zip_reader_end(&archive)
+    ArchiveClose(&archive)
     if !ok {
         TraceLog(LOG_ERROR, "DATA: import failed for %s", path)
     } else {
@@ -1137,8 +1138,8 @@ storage_import_zip_ex :: (path: const char*, mode: InbeStorageImportMode) -> int
     return ok
 }
 
-storage_inspect_import :: (path: const char*, info: InbeStorageImportInfo*) -> int #export {
-    archive: mz_zip_archive
+storage_inspect_import :: (path: const char*, info: StorageImportInfo*) -> int #export {
+    archive: Archive
     ok: int = 0
 
     if info != nil {
@@ -1149,20 +1150,20 @@ storage_inspect_import :: (path: const char*, info: InbeStorageImportInfo*) -> i
     }
 
     memset(&archive, 0, sizeof(archive))
-    if !mz_zip_reader_init_file(&archive, path, 0) {
+    if !ArchiveOpenZip(&archive, path) {
         return inspect_sqlite_db_file(path, info)
     }
 
-    if mz_zip_reader_locate_file(&archive, "inbe-data/inbe.db", nil, 0) >= 0 {
+    if ArchiveFindEntry(&archive, "breathing-data/breathing.db") >= 0 {
         db_bytes: char*
         db_size: size_t = 0
-        temp_path: [INBE_STORAGE_PATH_SIZE] char
+        temp_path: [STORAGE_PATH_SIZE] char
         fp: FILE*
-        db_bytes = mz_zip_reader_extract_file_to_heap(&archive, "inbe-data/inbe.db", &db_size, 0)
+        db_bytes = ArchiveReadNamedEntryHeap(&archive, "breathing-data/breathing.db", &db_size)
         if !storage_join_path(temp_path, sizeof(temp_path), g_storage.root,
-                              "import-inspect-inbe.db") {
+                              "import-inspect-breathing.db") {
             free(db_bytes)
-            mz_zip_reader_end(&archive)
+            ArchiveClose(&archive)
             return 0
         }
         fp = fopen(temp_path, "wb")
@@ -1177,9 +1178,9 @@ storage_inspect_import :: (path: const char*, info: InbeStorageImportInfo*) -> i
         }
         free(db_bytes)
     } else {
-        file_count: mz_uint = mz_zip_reader_get_num_files(&archive)
-        for mz_uint i = 0; i < file_count; i++ {
-            stat: mz_zip_archive_file_stat
+        file_count: int = ArchiveEntryCount(&archive)
+        for int i = 0; i < file_count; i++ {
+            stat: ArchiveEntry
             year: int
             month: int
             day: int
@@ -1187,10 +1188,10 @@ storage_inspect_import :: (path: const char*, info: InbeStorageImportInfo*) -> i
             minute: int
             second: int
 
-            if !mz_zip_reader_file_stat(&archive, i, &stat) || stat.m_is_directory {
+            if !ArchiveReadEntry(&archive, i, &stat) || stat.is_directory {
                 continue
             }
-            if parse_legacy_session_filename(stat.m_filename, &year, &month, &day,
+            if parse_legacy_session_filename(stat.name, &year, &month, &day,
                                              &hour, &minute, &second) {
                 info->session_count++
             }
@@ -1199,6 +1200,6 @@ storage_inspect_import :: (path: const char*, info: InbeStorageImportInfo*) -> i
         info->valid = info->has_sessions
         ok = info->valid
     }
-    mz_zip_reader_end(&archive)
+    ArchiveClose(&archive)
     return ok
 }

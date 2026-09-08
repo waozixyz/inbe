@@ -14,10 +14,10 @@ case "$UNAME_M" in
   *) ARCH="$UNAME_M" ;;
 esac
 
-BIN="${1:-"$ROOT_DIR/build/bin/$PLATFORM/inbe-$PLATFORM-$ARCH"}"
+BIN="${1:-"$ROOT_DIR/build/bin/$PLATFORM/breathing-$PLATFORM-$ARCH"}"
 OUT_DIR="${TERMI_SCREENSHOT_OUT_DIR:-"$ROOT_DIR/build/termi-screenshots"}"
 SCENES="${TERMI_SCREENSHOT_SCENE:-home wim_hof_session}"
-TITLE="inbe-termi-shot-$$"
+TITLE="breathing-termi-shot-$$"
 
 for tool in Xvfb xterm xdotool xwd convert python3; do
   if ! command -v "$tool" >/dev/null 2>&1; then
@@ -83,15 +83,15 @@ xwd_1="$4"
 xwd_2="$5"
 scene="$6"
 
-INBE_SHOT_WINDOW=1 \
-INBE_NO_TRAY=1 \
-INBE_DATA_ROOT="$data_root" \
+APP_SHOT_WINDOW=1 \
+APP_NO_TRAY=1 \
+APP_DATA_ROOT="$data_root" \
 TERMI_SIXEL=0 \
 TERMI_COLS=120 \
 TERMI_ROWS=42 \
 xterm -geometry 120x42 -fa Monospace -fs 10 -title "$title" \
   -e "$bin" \
-  --screenshot /tmp/inbe-termi-unused.png \
+  --screenshot /tmp/breathing-termi-unused.png \
   --screenshot-scene "$scene" \
   --screenshot-width 960 \
   --screenshot-height 672 \

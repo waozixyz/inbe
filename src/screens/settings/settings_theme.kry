@@ -22,7 +22,7 @@ content_height :: (content_w: int) -> int {
     }
 }
 
-draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
+draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*) {
     result := (UIThemeSettingsResult){0}
 
     if app == NULL || y == NULL || state == NULL {
@@ -70,7 +70,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
     *y += Scale(58)
 }
 
-draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     scale_value := scale_drag_active ? scale_drag_value : app->ui_scale_tenths
     multiplier := scale_value / 10.0f
     effective: float = multiplier * GetUIDPIScale()
@@ -131,7 +131,7 @@ draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     *y += Scale(66)
 }
 
-settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
+settings_screen_draw_theme_picker_modal :: (app: InnerBreeze*) #export {
     modal_w := Scale(320)
     modal_h := Scale(360)
     title := GetLocaleText("theme_picker_title")

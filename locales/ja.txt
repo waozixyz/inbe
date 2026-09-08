@@ -1780,3 +1780,17 @@ Dismiss forever
 [habit_routine_title]
 スケジュールとリマインダー
 ---
+[tab_elist]
+リスト
+[elist_title]
+リスト
+[elist_new_list]
+新しいリスト
+[elist_create_list]
+リストを作成
+[elist_add_item]
+追加
+[elist_empty_title]
+リストはまだありません
+[elist_empty_detail]
+リストを作成して、タスクとメモをまとめて管理できます。

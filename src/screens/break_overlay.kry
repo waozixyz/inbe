@@ -3,22 +3,22 @@ pscr :: #import "screens/practice_screen"
 
 # Defined in breaks/app_breaks.kry; declared extern to keep the module
 # graph acyclic (app_breaks imports this module for the overlay window).
-app_breaks_start_practice :: (app: InbeApp*, t: int, practice_id: int) #extern
-app_breaks_open_habits :: (app: InbeApp*, t: int) #extern
+app_breaks_start_practice :: (app: InnerBreeze*, t: int, practice_id: int) #extern
+app_breaks_open_habits :: (app: InnerBreeze*, t: int) #extern
 
 #enum {
     BREAK_OVERLAY_HABITS_CHIP_ID = -1
     BREAK_OVERLAY_CHIP_MAX = 5
 }
 
-break_overlay_active :: (app: const InbeApp*) -> int {
+break_overlay_active :: (app: const InnerBreeze*) -> int {
     if app == nil {
         return 0
     }
-    return app->inbe.screen == InbeScreenBreak
+    return app->breathing.screen == ScreenBreak
 }
 
-break_overlay_remaining_s :: (app: const InbeApp*, t: int) -> int {
+break_overlay_remaining_s :: (app: const InnerBreeze*, t: int) -> int {
     timer: const BreakTimer* = &app->breaks.timers[t]
     left := timer->duration_s - timer->idle_s
     if left < 0 {
@@ -47,7 +47,7 @@ break_overlay_draw_bar :: (x: int, y: int, w: int, h: int, fraction: int) #priva
 # (app_breaks_start_practice takes it and freezes scheduling for the
 # session). Shared by the draw path and both click paths so the geometry
 # has a single source of truth.
-break_overlay_practice_chips :: (app: InbeApp*, view_w: int, view_h: int,
+break_overlay_practice_chips :: (app: InnerBreeze*, view_w: int, view_h: int,
                                  out_rects: Rectangle*, out_ids: int*) -> int {
     if app == nil || out_rects == nil || out_ids == nil {
         return 0
@@ -120,7 +120,7 @@ break_overlay_practice_chips :: (app: InbeApp*, view_w: int, view_h: int,
     return count
 }
 
-break_overlay_draw_practice_chips :: (app: InbeApp*, w: int, h: int) #private {
+break_overlay_draw_practice_chips :: (app: InnerBreeze*, w: int, h: int) #private {
     rects: [BREAK_OVERLAY_CHIP_MAX] Rectangle
     ids: [BREAK_OVERLAY_CHIP_MAX] int = {0, 0, 0, 0, 0}
     chips := break_overlay_practice_chips(app, w, h, rects, ids)
@@ -148,7 +148,7 @@ break_overlay_draw_practice_chips :: (app: InbeApp*, w: int, h: int) #private {
     }
 }
 
-break_overlay_draw_sized :: (app: InbeApp*, w: int, h: int) {
+break_overlay_draw_sized :: (app: InnerBreeze*, w: int, h: int) {
     if app == nil {
         return
     }
@@ -180,7 +180,7 @@ break_overlay_draw_sized :: (app: InbeApp*, w: int, h: int) {
     Rect(0, 0, w, h, scrim, scrim)
 
     muted := DarkenUIColor(GetThemeText(), 40)
-    activity_flash := app->break_input_active != 0 && (app->inbe.frame / 30) % 2 == 0
+    activity_flash := app->break_input_active != 0 && (app->breathing.frame / 30) % 2 == 0
     border: Color = activity_flash ? (Color){222, 140, 44, 255} : DarkenUIColor(GetThemeText(), 62)
     fill := DarkenUIColor(GetThemeBackground(), 12)
 
@@ -321,14 +321,14 @@ break_overlay_draw_sized :: (app: InbeApp*, w: int, h: int) {
     break_overlay_draw_practice_chips(app, w, h)
 }
 
-# Main-window route (InbeScreenBreak): the overlay sized to the app view.
-break_overlay_draw :: (app: InbeApp*) {
+# Main-window route (ScreenBreak): the overlay sized to the app view.
+break_overlay_draw :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
     t := break_engine_active_break(&app->breaks)
     if t < 0 {
-        app_switch_screen(app, app->break_prev_screen != 0 ? app->break_prev_screen : InbeScreenStart)
+        app_switch_screen(app, app->break_prev_screen != 0 ? app->break_prev_screen : ScreenStart)
         return
     }
     break_overlay_draw_sized(app, view_width, view_height)

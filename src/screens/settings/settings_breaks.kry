@@ -17,7 +17,7 @@ settings_breaks_timer_row_h :: (label: const char*, w: int) -> int #private {
     return row
 }
 
-settings_breaks_content_height :: (app: InbeApp*, content_w: int) -> int {
+settings_breaks_content_height :: (app: InnerBreeze*, content_w: int) -> int {
     unused app
     label_w := content_w > 0 ? content_w : Scale(240)
     height := Scale(120)
@@ -49,7 +49,7 @@ settings_breaks_content_height :: (app: InbeApp*, content_w: int) -> int {
     return height
 }
 
-settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+settings_breaks_draw_status :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("settings_breaks_status")),
@@ -128,7 +128,7 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
     *y += Scale(12)
 }
 
-settings_breaks_draw_timer :: (app: InbeApp*, t: int, x: int, w: int, y: int*) #private {
+settings_breaks_draw_timer :: (app: InnerBreeze*, t: int, x: int, w: int, y: int*) #private {
     timer: BreakTimer* = &app->breaks.timers[t]
     header: const char*
     limit_min := timer->limit_s / 60
@@ -214,7 +214,7 @@ settings_breaks_draw_timer :: (app: InbeApp*, t: int, x: int, w: int, y: int*) #
     *y += Scale(10)
 }
 
-settings_breaks_draw_week :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+settings_breaks_draw_week :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     unused app
     unused w
     rows: [42] BreakDayRow
@@ -272,7 +272,7 @@ settings_breaks_draw_week :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     *y += Scale(12)
 }
 
-settings_breaks_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
+settings_breaks_draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     enabled := app->breaks_enabled
     sounds := app->break_sounds_enabled
     reading := app->breaks.reading_mode

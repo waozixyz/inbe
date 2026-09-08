@@ -88,7 +88,7 @@ android_device_set_orientation_mode(int mode)
 
     method = (*env)->GetMethodID(env, activity_class, "applyOrientationMode", "(I)V");
     if(method == NULL) {
-        __android_log_write(ANDROID_LOG_ERROR, "INBE_DEVICE", "applyOrientationMode not found");
+        __android_log_write(ANDROID_LOG_ERROR, "APP_DEVICE", "applyOrientationMode not found");
         goto done;
     }
 
@@ -132,7 +132,7 @@ android_device_set_soft_keyboard_visible(int visible)
 
     method = (*env)->GetMethodID(env, activity_class, "setSoftKeyboardVisible", "(Z)V");
     if(method == NULL) {
-        __android_log_write(ANDROID_LOG_ERROR, "INBE_DEVICE", "setSoftKeyboardVisible not found");
+        __android_log_write(ANDROID_LOG_ERROR, "APP_DEVICE", "setSoftKeyboardVisible not found");
         goto done;
     }
 
@@ -180,7 +180,7 @@ android_device_copy_text_and_toast(const char *text, const char *toast)
     method = (*env)->GetMethodID(env, activity_class, "copyTextAndShowToast",
                                  "(Ljava/lang/String;Ljava/lang/String;)V");
     if(method == NULL) {
-        __android_log_write(ANDROID_LOG_ERROR, "INBE_DEVICE",
+        __android_log_write(ANDROID_LOG_ERROR, "APP_DEVICE",
                             "copyTextAndShowToast not found");
         goto done;
     }

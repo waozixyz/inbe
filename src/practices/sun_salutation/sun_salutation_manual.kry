@@ -24,7 +24,7 @@ static sun_manual_title_keys: [SUN_MANUAL_PAGES] const char* = {
     "practice_configure_button"
 }
 
-sun_manual_close :: (app: InbeApp*, mark_seen: int) {
+sun_manual_close :: (app: InnerBreeze*, mark_seen: int) {
     if app == NULL {
         return
     }
@@ -38,10 +38,10 @@ sun_manual_close :: (app: InbeApp*, mark_seen: int) {
     app->tutorial_step = 0
     app->manual_scroll = 0
     app->practice_tab = PRACTICE_TAB_PLAY
-    app_switch_screen(app, InbeScreenStart)
+    app_switch_screen(app, ScreenStart)
 }
 
-sun_manual_start :: (app: InbeApp*) #private {
+sun_manual_start :: (app: InnerBreeze*) #private {
     mark_exercise_manual_seen(app, EXERCISE_SUN_SALUTATION)
     app->tutorial_step = 0
     app->manual_scroll = 0
@@ -77,7 +77,7 @@ sun_manual_draw_pose :: (Texture2D sheet, int pose, Rectangle bounds) #private {
     }
 }
 
-sun_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
+sun_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
                            step: int, y: int*) #private {
     visual_h := Scale(178)
     visual := (Rectangle){(float)page.content_x, (float)*y,
@@ -152,7 +152,7 @@ sun_manual_draw_visual :: (app: InbeApp*, page: UIScrollPage,
     *y += visual_h + Scale(18)
 }
 
-sun_manual_draw :: (app: InbeApp*) {
+sun_manual_draw :: (app: InnerBreeze*) {
     layout := (PracticeManualLayout){0}
     responsive_max_w := (int)(view_width * 0.96f)
     step := clampi(app->tutorial_step, 0, SUN_MANUAL_PAGES - 1)

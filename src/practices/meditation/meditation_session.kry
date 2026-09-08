@@ -18,7 +18,7 @@ static duration_presets: [5] const int = {
     2 * 60 * 60
 }
 
-meditation_start_seconds :: (app: InbeApp*, seconds: int) #private {
+meditation_start_seconds :: (app: InnerBreeze*, seconds: int) #private {
     if app == nil {
         return
     }
@@ -36,7 +36,7 @@ meditation_start_seconds :: (app: InbeApp*, seconds: int) #private {
     app->session_paused = 0
     app->volume_popup_active = 0
     app_close_modal(app)
-    app_switch_screen(app, InbeScreenMeditation)
+    app_switch_screen(app, ScreenMeditation)
     app_play_bell_cue(app, 1.0f)
     meditation_music_start_session(app)
     practice_background_start(app, PRACTICE_MEDITATION)
@@ -46,7 +46,7 @@ meditation_start_seconds :: (app: InbeApp*, seconds: int) #private {
 # runs (foreground tick and background advance both funnel through here).
 static last_bell_index: int = 0
 
-maybe_interval_bell :: (app: InbeApp*) #private {
+maybe_interval_bell :: (app: InnerBreeze*) #private {
     interval := app->meditation.interval_bell_minutes * 60
 
     if interval <= 0 || app->meditation.complete_waiting {
@@ -59,7 +59,7 @@ maybe_interval_bell :: (app: InbeApp*) #private {
     }
 }
 
-meditation_configured_duration_seconds :: (app: const InbeApp*) -> int {
+meditation_configured_duration_seconds :: (app: const InnerBreeze*) -> int {
     mode: int
 
     if app == nil {
@@ -73,11 +73,11 @@ meditation_configured_duration_seconds :: (app: const InbeApp*) -> int {
     return clampi(app->meditation.custom_minutes, 1, 240) * 60
 }
 
-meditation_start_configured :: (app: InbeApp*) {
+meditation_start_configured :: (app: InnerBreeze*) {
     meditation_start_seconds(app, meditation_configured_duration_seconds(app))
 }
 
-finish :: (app: InbeApp*) #private {
+finish :: (app: InnerBreeze*) #private {
     duration: int
     result_path: [FS_PATH_MAX] char = {0}
 
@@ -116,10 +116,10 @@ finish :: (app: InbeApp*) #private {
     practice_active_background_stop(app)
     app_prepare_session_results(app, EXERCISE_MEDITATION, duration, 0, nil,
                                 nil, 0, result_path)
-    app_switch_screen(app, InbeScreenResults)
+    app_switch_screen(app, ScreenResults)
 }
 
-timer_complete :: (app: InbeApp*) #private {
+timer_complete :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -138,14 +138,14 @@ timer_complete :: (app: InbeApp*) #private {
     finish(app)
 }
 
-meditation_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
+meditation_advance_elapsed :: (app: InnerBreeze*, elapsed_ms: int) {
     elapsed_total: int
     elapsed_seconds: int
 
     if app == nil || elapsed_ms <= 0 {
         return
     }
-    if app->inbe.screen != InbeScreenMeditation || app->session_paused {
+    if app->breathing.screen != ScreenMeditation || app->session_paused {
         background_remainder_ms = 0
         return
     }
@@ -170,7 +170,7 @@ meditation_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
     }
 }
 
-elapsed_seconds :: (app: InbeApp*) -> int #private {
+elapsed_seconds :: (app: InnerBreeze*) -> int #private {
     elapsed: int
 
     if app == nil {
@@ -188,7 +188,7 @@ elapsed_seconds :: (app: InbeApp*) -> int #private {
     return elapsed
 }
 
-save_elapsed :: (app: InbeApp*) -> int #private {
+save_elapsed :: (app: InnerBreeze*) -> int #private {
     elapsed: int
 
     if app == nil {
@@ -212,7 +212,7 @@ save_elapsed :: (app: InbeApp*) -> int #private {
     return 0
 }
 
-exit_to_start :: (app: InbeApp*) #private {
+exit_to_start :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -227,17 +227,17 @@ exit_to_start :: (app: InbeApp*) #private {
     app->volume_popup_active = 0
     app_close_modal(app)
     practice_active_background_stop(app)
-    app_switch_screen(app, InbeScreenStart)
+    app_switch_screen(app, ScreenStart)
 }
 
-meditation_request_exit :: (app: InbeApp*) {
+meditation_request_exit :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
     app_open_modal(app, UIModalConfirmExitSession)
 }
 
-handle_exit_modal :: (app: InbeApp*) -> int #private {
+handle_exit_modal :: (app: InnerBreeze*) -> int #private {
     elapsed: int
     result: SessionExitModalResult
 
@@ -295,7 +295,7 @@ draw_duration_button :: (x: int, y: int, w: int, h: int,
                                ButtonStylePrimary, 0, &hover)
 }
 
-extend_session :: (app: InbeApp*, seconds: int) #private {
+extend_session :: (app: InnerBreeze*, seconds: int) #private {
     was_complete: int
 
     if app == nil || seconds <= 0 {
@@ -312,7 +312,7 @@ extend_session :: (app: InbeApp*, seconds: int) #private {
     }
 }
 
-meditation_draw_setup_modal :: (app: InbeApp*) {
+meditation_draw_setup_modal :: (app: InnerBreeze*) {
     labels: [5] const char* = {
         GetLocaleText("duration_5m"),
         GetLocaleText("duration_15m"),
@@ -409,7 +409,7 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
     }
 }
 
-draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
+draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
     add_seconds: [3] const int = {60, 5 * 60, 10 * 60}
     labels: [3] const char* = {"+1", "+5", "+10"}
     gap := Scale(8)
@@ -468,7 +468,7 @@ draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
     }
 }
 
-meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
+meditation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     time_text: [32] char
     font := Text24
     max_w: int
@@ -526,7 +526,7 @@ route meditation {
     page meditation
 }
 
-meditation :: (app: InbeApp*) #ui {
+meditation :: (app: InnerBreeze*) #ui {
     Screen root: {
     meditation_draw_screen(app, view_width / 2, view_height / 2)
     }

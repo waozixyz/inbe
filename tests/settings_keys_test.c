@@ -4,7 +4,7 @@
  * every save_setting_int / storage_set_setting_text literal forms the saved
  * set; every load_bool_setting / load_clamped_setting / settings_cache_get_int
  * / settings_cache_get literal forms the loaded set; the
- * INBE_IMPORTABLE_SETTING_KEYS registry forms the import set. Every saved key
+ * IMPORTABLE_SETTING_KEYS registry forms the import set. Every saved key
  * must be loaded (modulo derived keys) and every importable key must be
  * saved (modulo keys written through helpers).
  */
@@ -209,7 +209,7 @@ main(void)
         failures++;
     }
     scan_macro_x_literals(&imported, setting_keys_src,
-                          "INBE_IMPORTABLE_SETTING_KEYS");
+                          "IMPORTABLE_SETTING_KEYS");
     if(!app_setting_key_importable("audio_custom_sound_0_title") ||
        !app_setting_key_importable("audio_custom_sound_0_path") ||
        !app_setting_key_importable("audio_custom_music_12_title") ||

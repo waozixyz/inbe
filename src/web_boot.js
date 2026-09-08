@@ -11,7 +11,7 @@ function storageOriginLooksPersistent() {
 function reportStorageOriginProblem() {
   if (storageOriginLooksPersistent()) return;
   console.error(
-    'INBE: persistent storage needs an http://localhost or https:// origin. ' +
+    'APP: persistent storage needs an http://localhost or https:// origin. ' +
     'Opening the web build directly as a file can prevent Firefox IndexedDB/IDBFS saves.'
   );
 }
@@ -33,7 +33,7 @@ window.__inbeLoadApp = function(src) {
 };
 
 function routineRuntimeLog(text) {
-  return /^(AUDIO: Loaded sound asset|AUDIO: Cannot play sound because sound is not loaded|DATA: root directory|INBE: app init|INBE: DPI scale|INBE: Global app pointer set|INBE: Loaded play_in_background setting|INBE_EMBED: geometry|SYNC: queued local changes|SYNC: starting background sync|SYNC: payload|SYNC: dispatched|SYNC: background sync complete|SYNC: refreshing social cache|SYNC: social cache refreshed|SYNC: websocket event listener started)/.test(text || '');
+  return /^(AUDIO: Loaded sound asset|AUDIO: Cannot play sound because sound is not loaded|DATA: root directory|APP: app init|APP: DPI scale|APP: Global app pointer set|APP: Loaded play_in_background setting|APP_EMBED: geometry|SYNC: queued local changes|SYNC: starting background sync|SYNC: payload|SYNC: dispatched|SYNC: background sync complete|SYNC: refreshing social cache|SYNC: social cache refreshed|SYNC: websocket event listener started)/.test(text || '');
 }
 
 function mirrorRuntimeLog(text, isErrorStream) {
@@ -107,7 +107,7 @@ function publishExtensionBreakConfig(force) {
   text = JSON.stringify(config);
   if (!force && text === extensionBridgeLastConfig) return;
   extensionBridgeLastConfig = text;
-  runtime.sendMessage({ type: 'inbe.breakConfig', config: config }, function() {
+  runtime.sendMessage({ type: 'breathing.breakConfig', config: config }, function() {
     var lastError = chrome.runtime && chrome.runtime.lastError;
     if (lastError) console.warn('Inner Breeze extension break sync failed:', lastError.message);
   });
@@ -117,7 +117,7 @@ window.__inbeExtensionBreakNow = function(breakType) {
   var runtime = extensionRuntime();
   publishExtensionBreakConfig(true);
   if (!runtime) return;
-  runtime.sendMessage({ type: 'inbe.breakNow', breakType: breakType | 0 }, function() {
+  runtime.sendMessage({ type: 'breathing.breakNow', breakType: breakType | 0 }, function() {
     var lastError = chrome.runtime && chrome.runtime.lastError;
     if (lastError) console.warn('Inner Breeze extension rest-now failed:', lastError.message);
   });
@@ -152,7 +152,7 @@ function markRuntimeReady() {
 }
 
 function noteAppReadyFromLog(text) {
-  if (!/INBE: Global app pointer set(?:$| to 0x[0-9a-fA-F]+)/.test(text)) return;
+  if (!/APP: Global app pointer set(?:$| to 0x[0-9a-fA-F]+)/.test(text)) return;
   Module.__inbeAppReady = true;
   markRuntimeReady();
 }
@@ -285,7 +285,7 @@ var Module = {
     }
     Module.__kryonStorageMounted = true;
 
-    addRunDependency('inbe-idbfs');
+    addRunDependency('breathing-idbfs');
     FS.syncfs(true, function(err) {
       if (err) {
         Module.__kryonStorageLastError = err && err.message ? err.message : String(err);
@@ -296,7 +296,7 @@ var Module = {
         Module.__kryonStorageLastSuccessMs = Date.now();
         console.log('IDBFS initialized');
       }
-      removeRunDependency('inbe-idbfs');
+      removeRunDependency('breathing-idbfs');
     });
   }],
   postRun: [function() {
@@ -391,7 +391,7 @@ function launchPracticeId(value) {
 
 function runLaunchCommand() {
   var params = new URLSearchParams(window.location.search || '');
-  var launch = params.get('inbe_launch');
+  var launch = params.get('launch');
   var practice = params.get('practice');
   var practiceId;
 

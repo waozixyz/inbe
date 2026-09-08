@@ -23,7 +23,7 @@ route session {
     page session
 }
 
-session :: (app: InbeApp*) #ui {
+session :: (app: InnerBreeze*) #ui {
     Screen root: {
     hover: int = 0
     practice_draw_active_breathing(app, view_width / 2, view_height / 2)
@@ -41,13 +41,13 @@ text_color_for_background :: (background: Color) -> Color #private {
     return luma >= 128000 ? BLACK : WHITE
 }
 
-set_circle_bounds :: (inbe: Inbe*, rmin: int, rmax: int) #private {
+set_circle_bounds :: (breathing: BreathSession*, rmin: int, rmax: int) #private {
     old_rmin: int
     old_rmax: int
     old_span: int
     new_span: int
 
-    if inbe == nil {
+    if breathing == nil {
         return
     }
 
@@ -58,13 +58,13 @@ set_circle_bounds :: (inbe: Inbe*, rmin: int, rmax: int) #private {
         rmax = rmin + 8
     }
 
-    old_rmin = inbe->rmin
-    old_rmax = inbe->rmax
+    old_rmin = breathing->rmin
+    old_rmax = breathing->rmax
     old_span = old_rmax - old_rmin
     new_span = rmax - rmin
 
     if old_span > 0 {
-        t: float = (float)(inbe->r - old_rmin) / (float)old_span
+        t: float = (float)(breathing->r - old_rmin) / (float)old_span
 
         if t < 0.0f {
             t = 0.0f
@@ -73,22 +73,22 @@ set_circle_bounds :: (inbe: Inbe*, rmin: int, rmax: int) #private {
             t = 1.0f
         }
 
-        inbe->r = rmin + t * (float)new_span
+        breathing->r = rmin + t * (float)new_span
     } else {
-        inbe->r = rmin
+        breathing->r = rmin
     }
 
-    inbe->rmin = rmin
-    inbe->rmax = rmax
-    if inbe->r < rmin {
-        inbe->r = rmin
+    breathing->rmin = rmin
+    breathing->rmax = rmax
+    if breathing->r < rmin {
+        breathing->r = rmin
     }
-    if inbe->r > rmax {
-        inbe->r = rmax
+    if breathing->r > rmax {
+        breathing->r = rmax
     }
 }
 
-session_update_circle_bounds_for_view :: (inbe: Inbe*, top_reserve: int, bottom_reserve: int) {
+session_update_circle_bounds_for_view :: (breathing: BreathSession*, top_reserve: int, bottom_reserve: int) {
     available_w: int = view_width - CIRCLE_SIDE_PAD * 2
     available_h: int = view_height - top_reserve - bottom_reserve - CIRCLE_SIDE_PAD * 2
     rmax: int
@@ -116,10 +116,10 @@ session_update_circle_bounds_for_view :: (inbe: Inbe*, top_reserve: int, bottom_
     if rmin > rmax - 8 {
         rmin = rmax - 8
     }
-    set_circle_bounds(inbe, rmin, rmax)
+    set_circle_bounds(breathing, rmin, rmax)
 }
 
-update_preview_bounds :: (inbe: Inbe*, content_w: int, content_h: int) {
+update_preview_bounds :: (breathing: BreathSession*, content_w: int, content_h: int) {
     span: int = content_w
     rmax: int
     rmin: int
@@ -142,43 +142,43 @@ update_preview_bounds :: (inbe: Inbe*, content_w: int, content_h: int) {
     if rmin > rmax - Scale(10) {
         rmin = rmax - Scale(10)
     }
-    set_circle_bounds(inbe, rmin, rmax)
+    set_circle_bounds(breathing, rmin, rmax)
 }
 
-session_reset_round_breathe :: (inbe: Inbe*) {
-    inbe->phase = InbePhaseBreathe
-    inbe->dir = 0
-    inbe->r = inbe->rmin
-    inbe->breath_frame = 0
-    inbe->breathtick = 0
-    inbe->sectick = 0
-    inbe->halftick = 0
-    cpcount(inbe->count, "000")
+session_reset_round_breathe :: (breathing: BreathSession*) {
+    breathing->phase = BreathPhaseBreathe
+    breathing->dir = 0
+    breathing->r = breathing->rmin
+    breathing->breath_frame = 0
+    breathing->breathtick = 0
+    breathing->sectick = 0
+    breathing->halftick = 0
+    cpcount(breathing->count, "000")
 }
 
-reset_round_start :: (inbe: Inbe*) #private {
-    session_reset_round_breathe(inbe)
-    if inbe->pause_seconds > 0 {
-        inbe->phase = InbePhaseStarting
+reset_round_start :: (breathing: BreathSession*) #private {
+    session_reset_round_breathe(breathing)
+    if breathing->pause_seconds > 0 {
+        breathing->phase = BreathPhaseStarting
     }
 }
 
-remember_sound_state :: (app: InbeApp*) #private {
+remember_sound_state :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
 
-    if app->inbe.screen != InbeScreenSession ||
-       app->inbe.phase != InbePhaseHold {
+    if app->breathing.screen != ScreenSession ||
+       app->breathing.phase != BreathPhaseHold {
         app->retention_marker_last_bucket = 0
     }
-    app->sound_last_screen = app->inbe.screen
-    app->sound_last_phase = app->inbe.phase
-    app->sound_last_dir = app->inbe.dir
-    cpcount(app->sound_last_count, app->inbe.count)
+    app->sound_last_screen = app->breathing.screen
+    app->sound_last_phase = app->breathing.phase
+    app->sound_last_dir = app->breathing.dir
+    cpcount(app->sound_last_count, app->breathing.count)
 }
 
-update_retention_marker :: (app: InbeApp*, phase_changed: int) #private {
+update_retention_marker :: (app: InnerBreeze*, phase_changed: int) #private {
     seconds: int
     bucket: int
 
@@ -186,7 +186,7 @@ update_retention_marker :: (app: InbeApp*, phase_changed: int) #private {
         return
     }
     if !app->retention_marker_enabled ||
-       app->inbe.phase != InbePhaseHold {
+       app->breathing.phase != BreathPhaseHold {
         app->retention_marker_last_bucket = 0
         return
     }
@@ -194,7 +194,7 @@ update_retention_marker :: (app: InbeApp*, phase_changed: int) #private {
         app->retention_marker_last_bucket = 0
     }
 
-    seconds = int_from_count(app->inbe.count)
+    seconds = int_from_count(app->breathing.count)
     bucket = seconds / 30
     if bucket <= 0 || bucket <= app->retention_marker_last_bucket {
         return
@@ -205,7 +205,7 @@ update_retention_marker :: (app: InbeApp*, phase_changed: int) #private {
 }
 
 #if ANDROID {
-session_update_notification :: (app: InbeApp*) #private {
+session_update_notification :: (app: InnerBreeze*) #private {
     text: [96] char = ""
     count: int
     notification_pause: int
@@ -214,28 +214,28 @@ session_update_notification :: (app: InbeApp*) #private {
         return
     }
 
-    if app->inbe.screen == InbeScreenResults {
+    if app->breathing.screen == ScreenResults {
         FormatLocaleText(text, sizeof(text), "notification_results")
-    } else if app->inbe.screen == InbeScreenSession {
-        count = int_from_count(app->inbe.count)
-        switch app->inbe.phase {
-        case InbePhaseBreathe:
+    } else if app->breathing.screen == ScreenSession {
+        count = int_from_count(app->breathing.count)
+        switch app->breathing.phase {
+        case BreathPhaseBreathe:
             FormatLocaleText(text, sizeof(text), "notification_breathing_count", count)
             break
-        case InbePhaseHold:
+        case BreathPhaseHold:
             FormatLocaleText(text, sizeof(text), "notification_hold_seconds", count)
             break
-        case InbePhaseRecover:
+        case BreathPhaseRecover:
             FormatLocaleText(text, sizeof(text), "notification_breath_in_seconds", count)
             break
-        case InbePhaseStarting:
-            notification_pause = inbe_effective_pause_seconds(&app->inbe)
+        case BreathPhaseStarting:
+            notification_pause = effective_pause_seconds(&app->breathing)
             FormatLocaleText(text, sizeof(text), "notification_starting_seconds",
                           notification_pause > 0
-                              ? notification_pause - app->inbe.sectick / 60
+                              ? notification_pause - app->breathing.sectick / 60
                               : 0)
             break
-        case InbePhaseNext:
+        case BreathPhaseNext:
         default:
             break
         }
@@ -252,37 +252,37 @@ session_update_notification :: (app: InbeApp*) #private {
 }
 }
 
-update_session_sounds :: (app: InbeApp*) {
+update_session_sounds :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
 
-    if app->inbe.screen != InbeScreenSession ||
-       (app->session_paused && !(app->backgrounded && app->inbe.play_in_background)) {
+    if app->breathing.screen != ScreenSession ||
+       (app->session_paused && !(app->backgrounded && app->breathing.play_in_background)) {
         remember_sound_state(app)
         return
     }
 
-    screen_changed: int = app->sound_last_screen != InbeScreenSession
-    phase_changed: int = app->sound_last_phase != app->inbe.phase
-    dir_changed: int = app->sound_last_dir != app->inbe.dir
-    count_changed: int = !(app->sound_last_count[0] == app->inbe.count[0] &&
-                          app->sound_last_count[1] == app->inbe.count[1] &&
-                          app->sound_last_count[2] == app->inbe.count[2])
+    screen_changed: int = app->sound_last_screen != ScreenSession
+    phase_changed: int = app->sound_last_phase != app->breathing.phase
+    dir_changed: int = app->sound_last_dir != app->breathing.dir
+    count_changed: int = !(app->sound_last_count[0] == app->breathing.count[0] &&
+                          app->sound_last_count[1] == app->breathing.count[1] &&
+                          app->sound_last_count[2] == app->breathing.count[2])
 
-    if app->inbe.phase == InbePhaseBreathe {
+    if app->breathing.phase == BreathPhaseBreathe {
         if screen_changed || phase_changed || dir_changed {
-            app_play_breath_cue(app, app->inbe.dir)
+            app_play_breath_cue(app, app->breathing.dir)
         }
         if count_changed {
-            count_value: int = int_from_count(app->inbe.count)
-            maxbreaths_value: int = int_from_count(app->inbe.maxbreaths)
+            count_value: int = int_from_count(app->breathing.count)
+            maxbreaths_value: int = int_from_count(app->breathing.maxbreaths)
             if count_value == maxbreaths_value - 1 {
                 app_play_bell_cue(app, 0.8f)
             }
         }
     } else if phase_changed {
-        if app->inbe.phase == InbePhaseNext && app->sound_last_phase == InbePhaseRecover {
+        if app->breathing.phase == BreathPhaseNext && app->sound_last_phase == BreathPhaseRecover {
             app_play_breath_cue(app, 1)
         }
     }
@@ -291,7 +291,7 @@ update_session_sounds :: (app: InbeApp*) {
     remember_sound_state(app)
 }
 
-session_background_start :: (app: InbeApp*) {
+session_background_start :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -302,14 +302,14 @@ session_background_start :: (app: InbeApp*) {
     remember_sound_state(app)
 }
 
-session_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
+session_advance_elapsed :: (app: InnerBreeze*, elapsed_ms: int) {
     elapsed_total: int
     frame_count: int
 
     if app == nil || elapsed_ms <= 0 {
         return
     }
-    if app->inbe.screen != InbeScreenSession || app->session_paused {
+    if app->breathing.screen != ScreenSession || app->session_paused {
         return
     }
 
@@ -321,9 +321,9 @@ session_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
     frame_count = (elapsed_total * 60) / 1000
     whm_background_remainder_ms = elapsed_total - (frame_count * 1000) / 60
 
-    for int i = 0; i < frame_count && app->inbe.screen == InbeScreenSession; i++ {
-        inbestep(&app->inbe)
-        if inbe_just_completed(&app->inbe) {
+    for int i = 0; i < frame_count && app->breathing.screen == ScreenSession; i++ {
+        breath_session_step(&app->breathing)
+        if just_completed(&app->breathing) {
             session_complete(app)
             break
         }
@@ -334,22 +334,22 @@ session_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
     }
 }
 
-session_start :: (app: InbeApp*) {
-    speed: int = app->inbe.speed_level
-    max_rounds: int = app->inbe.max_rounds
-    max_breaths: int = int_from_count(app->inbe.maxbreaths)
-    pause_seconds: int = app->inbe.pause_seconds
-    progressive_speed: int = app->inbe.progressive_speed
-    progressive_start_speed: int = app->inbe.progressive_start_speed
-    play_in_background: int = app->inbe.play_in_background
+session_start :: (app: InnerBreeze*) {
+    speed: int = app->breathing.speed_level
+    max_rounds: int = app->breathing.max_rounds
+    max_breaths: int = int_from_count(app->breathing.maxbreaths)
+    pause_seconds: int = app->breathing.pause_seconds
+    progressive_speed: int = app->breathing.progressive_speed
+    progressive_start_speed: int = app->breathing.progressive_start_speed
+    play_in_background: int = app->breathing.play_in_background
 
-    inbeinit(&app->inbe)
-    app->inbe.progressive_speed = progressive_speed
-    app->inbe.progressive_start_speed = progressive_start_speed
-    app->inbe.play_in_background = play_in_background
-    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
-    session_update_circle_bounds_for_view(&app->inbe, GetNodeHeight(NodeTitleBar(0)), Scale(56) + 80)
-    app_switch_screen(app, InbeScreenSession)
+    breath_session_init(&app->breathing)
+    app->breathing.progressive_speed = progressive_speed
+    app->breathing.progressive_start_speed = progressive_start_speed
+    app->breathing.play_in_background = play_in_background
+    apply_settings(&app->breathing, speed, max_rounds, max_breaths, pause_seconds)
+    session_update_circle_bounds_for_view(&app->breathing, GetNodeHeight(NodeTitleBar(0)), Scale(56) + 80)
+    app_switch_screen(app, ScreenSession)
     app->session_paused = 0
     app->results_saved = 0
     app->results_path[0] = '\0'
@@ -359,7 +359,7 @@ session_start :: (app: InbeApp*) {
 #if ANDROID {
     android_keep_screen_on()
 }
-    TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background)
+    TraceLog(LOG_INFO, "APP: Starting session - play_in_background = %d", app->breathing.play_in_background)
     meditation_music_start_session(app)
     practice_background_start(app, PRACTICE_WHM)
 #if ANDROID {
@@ -368,7 +368,7 @@ session_start :: (app: InbeApp*) {
 }
 }
 
-collect_result_rounds :: (app: InbeApp*, round_times: int*, max_rounds: int) -> int #private {
+collect_result_rounds :: (app: InnerBreeze*, round_times: int*, max_rounds: int) -> int #private {
     rounds: int
     count: int = 0
 
@@ -376,19 +376,19 @@ collect_result_rounds :: (app: InbeApp*, round_times: int*, max_rounds: int) -> 
         return 0
     }
 
-    rounds = app->inbe.round + 1
+    rounds = app->breathing.round + 1
     if rounds < 1 {
         rounds = 1
     }
-    if rounds > app->inbe.max_rounds {
-        rounds = app->inbe.max_rounds
+    if rounds > app->breathing.max_rounds {
+        rounds = app->breathing.max_rounds
     }
     if rounds > max_rounds {
         rounds = max_rounds
     }
 
     for int i = 0; i < rounds; i++ {
-        seconds: int = int_from_count(app->inbe.results[i])
+        seconds: int = int_from_count(app->breathing.results[i])
         if seconds > 0 {
             round_times[count++] = seconds
         }
@@ -397,7 +397,7 @@ collect_result_rounds :: (app: InbeApp*, round_times: int*, max_rounds: int) -> 
     return count
 }
 
-session_ensure_results_saved :: (app: InbeApp*) -> int {
+session_ensure_results_saved :: (app: InnerBreeze*) -> int {
     round_times: [MaxRounds] int
     rounds: int
 
@@ -420,15 +420,15 @@ session_ensure_results_saved :: (app: InbeApp*) -> int {
         app->results_saved = 1
         sync_habits_for_activity(app, app->exercise_type)
         app_auto_sync(app)
-        TraceLog(LOG_INFO, "INBE: session saved successfully")
+        TraceLog(LOG_INFO, "APP: session saved successfully")
         return 1
     }
 
-    TraceLog(LOG_WARNING, "INBE: session save failed")
+    TraceLog(LOG_WARNING, "APP: session save failed")
     return 0
 }
 
-session_discard_saved_results :: (app: InbeApp*) {
+session_discard_saved_results :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -441,31 +441,31 @@ session_discard_saved_results :: (app: InbeApp*) {
     }
 }
 
-session_has_completed_rounds :: (app: InbeApp*) -> int {
+session_has_completed_rounds :: (app: InnerBreeze*) -> int {
     round_times: [MaxRounds] int
     return collect_result_rounds(app, round_times, MaxRounds) > 0
 }
 
-finish_hold :: (app: InbeApp*) #private {
-    inbe_end_hold(&app->inbe)
+finish_hold :: (app: InnerBreeze*) #private {
+    end_hold(&app->breathing)
     app_play_breath_cue(app, 0)
 }
 
-finish_round :: (app: InbeApp*) #private {
-    app->inbe.breathtick = 0
-    app->inbe.sectick = 0
-    cpcount(app->inbe.count, "000")
+finish_round :: (app: InnerBreeze*) #private {
+    app->breathing.breathtick = 0
+    app->breathing.sectick = 0
+    cpcount(app->breathing.count, "000")
 
-    if app->inbe.round < app->inbe.max_rounds - 1 {
-        app->inbe.round++
-        reset_round_start(&app->inbe)
+    if app->breathing.round < app->breathing.max_rounds - 1 {
+        app->breathing.round++
+        reset_round_start(&app->breathing)
     } else {
-        inbe_clear_completed(&app->inbe)
+        clear_completed(&app->breathing)
         session_complete(app)
     }
 }
 
-session_complete :: (app: InbeApp*) #private {
+session_complete :: (app: InnerBreeze*) #private {
     if session_ensure_results_saved(app) {
         round_times: [MaxRounds] int
         rounds := collect_result_rounds(app, round_times, MaxRounds)
@@ -477,13 +477,13 @@ session_complete :: (app: InbeApp*) #private {
         app_notifications_send_session_complete(app)
         app_prepare_session_results(app, EXERCISE_WIM_HOF, 0, 0, nil,
                                     round_times, rounds, app->results_path)
-        app_switch_screen(app, InbeScreenResults)
+        app_switch_screen(app, ScreenResults)
     } else {
         app_init(app)
     }
 }
 
-clear_round_results_from :: (app: InbeApp*, first_round: int) #private {
+clear_round_results_from :: (app: InnerBreeze*, first_round: int) #private {
     if app == nil {
         return
     }
@@ -496,159 +496,159 @@ clear_round_results_from :: (app: InbeApp*, first_round: int) #private {
     }
 
     for int i = first_round; i < MaxRounds; i++ {
-        cpcount(app->inbe.results[i], "000")
+        cpcount(app->breathing.results[i], "000")
     }
     app->results_saved = 0
     app->results_path[0] = '\0'
 }
 
-session_round_has_starting_step :: (app: InbeApp*) -> int #private {
+session_round_has_starting_step :: (app: InnerBreeze*) -> int #private {
     if app == nil {
         return 0
     }
 
-    return app->inbe.round == 0 || app->inbe.pause_seconds > 0
+    return app->breathing.round == 0 || app->breathing.pause_seconds > 0
 }
 
-session_enter_starting_step :: (app: InbeApp*) #private {
-    app->inbe.phase = InbePhaseStarting
-    app->inbe.dir = 0
-    app->inbe.r = app->inbe.rmin
-    app->inbe.breath_frame = 0
-    app->inbe.breathtick = 0
-    app->inbe.sectick = 0
-    app->inbe.halftick = 0
-    cpcount(app->inbe.count, "000")
+session_enter_starting_step :: (app: InnerBreeze*) #private {
+    app->breathing.phase = BreathPhaseStarting
+    app->breathing.dir = 0
+    app->breathing.r = app->breathing.rmin
+    app->breathing.breath_frame = 0
+    app->breathing.breathtick = 0
+    app->breathing.sectick = 0
+    app->breathing.halftick = 0
+    cpcount(app->breathing.count, "000")
 }
 
-session_enter_previous_round_last_step :: (app: InbeApp*) #private {
-    if app->inbe.round <= 0 {
+session_enter_previous_round_last_step :: (app: InnerBreeze*) #private {
+    if app->breathing.round <= 0 {
         return
     }
 
-    clear_round_results_from(app, app->inbe.round)
-    app->inbe.round--
-    app->inbe.phase = InbePhaseNext
-    app->inbe.dir = 0
-    app->inbe.r = app->inbe.rmax
-    app->inbe.breath_frame = 0
-    app->inbe.breathtick = 0
-    app->inbe.sectick = 0
-    app->inbe.halftick = 0
-    cpcount(app->inbe.count, "000")
+    clear_round_results_from(app, app->breathing.round)
+    app->breathing.round--
+    app->breathing.phase = BreathPhaseNext
+    app->breathing.dir = 0
+    app->breathing.r = app->breathing.rmax
+    app->breathing.breath_frame = 0
+    app->breathing.breathtick = 0
+    app->breathing.sectick = 0
+    app->breathing.halftick = 0
+    cpcount(app->breathing.count, "000")
 }
 
-session_step_back :: (app: InbeApp*) #private {
+session_step_back :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
 
-    switch app->inbe.phase {
-    case InbePhaseStarting:
-        if app->inbe.round > 0 {
+    switch app->breathing.phase {
+    case BreathPhaseStarting:
+        if app->breathing.round > 0 {
             session_enter_previous_round_last_step(app)
         }
         else {
             session_enter_starting_step(app)
         }
         break
-    case InbePhaseBreathe:
-        clear_round_results_from(app, app->inbe.round)
+    case BreathPhaseBreathe:
+        clear_round_results_from(app, app->breathing.round)
         if session_round_has_starting_step(app) {
             session_enter_starting_step(app)
         }
-        else if app->inbe.round > 0 {
+        else if app->breathing.round > 0 {
             session_enter_previous_round_last_step(app)
         }
         else {
-            session_reset_round_breathe(&app->inbe)
+            session_reset_round_breathe(&app->breathing)
         }
         break
-    case InbePhaseHold:
-        clear_round_results_from(app, app->inbe.round)
-        session_reset_round_breathe(&app->inbe)
+    case BreathPhaseHold:
+        clear_round_results_from(app, app->breathing.round)
+        session_reset_round_breathe(&app->breathing)
         break
-    case InbePhaseRecover:
-        app->inbe.phase = InbePhaseHold
-        app->inbe.dir = 0
-        app->inbe.r = app->inbe.rmin
-        app->inbe.breath_frame = 0
-        app->inbe.breathtick = 0
-        app->inbe.sectick = 0
-        app->inbe.halftick = 0
-        cpcount(app->inbe.count, app->inbe.results[app->inbe.round])
-        clear_round_results_from(app, app->inbe.round)
+    case BreathPhaseRecover:
+        app->breathing.phase = BreathPhaseHold
+        app->breathing.dir = 0
+        app->breathing.r = app->breathing.rmin
+        app->breathing.breath_frame = 0
+        app->breathing.breathtick = 0
+        app->breathing.sectick = 0
+        app->breathing.halftick = 0
+        cpcount(app->breathing.count, app->breathing.results[app->breathing.round])
+        clear_round_results_from(app, app->breathing.round)
         break
-    case InbePhaseNext:
-        app->inbe.phase = InbePhaseRecover
-        app->inbe.dir = 0
-        app->inbe.r = app->inbe.rmax
-        app->inbe.breath_frame = 0
-        app->inbe.breathtick = 0
-        app->inbe.sectick = 0
-        app->inbe.halftick = 0
-        count_from_int(app->inbe.count, 14)
+    case BreathPhaseNext:
+        app->breathing.phase = BreathPhaseRecover
+        app->breathing.dir = 0
+        app->breathing.r = app->breathing.rmax
+        app->breathing.breath_frame = 0
+        app->breathing.breathtick = 0
+        app->breathing.sectick = 0
+        app->breathing.halftick = 0
+        count_from_int(app->breathing.count, 14)
         break
     }
 
     remember_sound_state(app)
 }
 
-session_step_forward :: (app: InbeApp*) #private {
-    switch app->inbe.phase {
-    case InbePhaseStarting:
-        session_reset_round_breathe(&app->inbe)
+session_step_forward :: (app: InnerBreeze*) #private {
+    switch app->breathing.phase {
+    case BreathPhaseStarting:
+        session_reset_round_breathe(&app->breathing)
         break
-    case InbePhaseBreathe:
-        app->inbe.phase = InbePhaseHold
-        app->inbe.r = app->inbe.rmin
-        app->inbe.breath_frame = 0
-        app->inbe.breathtick = 0
-        app->inbe.sectick = 0
-        cpcount(app->inbe.count, "000")
+    case BreathPhaseBreathe:
+        app->breathing.phase = BreathPhaseHold
+        app->breathing.r = app->breathing.rmin
+        app->breathing.breath_frame = 0
+        app->breathing.breathtick = 0
+        app->breathing.sectick = 0
+        cpcount(app->breathing.count, "000")
         break
-    case InbePhaseHold:
+    case BreathPhaseHold:
         finish_hold(app)
         break
-    case InbePhaseRecover:
-        app->inbe.phase = InbePhaseNext
-        app->inbe.breath_frame = 0
-        app->inbe.sectick = 0
-        cpcount(app->inbe.count, "000")
+    case BreathPhaseRecover:
+        app->breathing.phase = BreathPhaseNext
+        app->breathing.breath_frame = 0
+        app->breathing.sectick = 0
+        cpcount(app->breathing.count, "000")
         break
-    case InbePhaseNext:
+    case BreathPhaseNext:
         finish_round(app)
         break
     }
 }
 
-draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
+draw_session_counter :: (app: InnerBreeze*, center_x: int, center_y: int) #private {
     text: [16] char
     count: int
     font: int = Text24
     text_color: Color = text_color_for_background(GetThemeCircle())
-    display_text: const char* = app->inbe.count
+    display_text: const char* = app->breathing.count
 
-    if app->inbe.phase == InbePhaseStarting {
-        total_seconds: int = inbe_effective_pause_seconds(&app->inbe)
+    if app->breathing.phase == BreathPhaseStarting {
+        total_seconds: int = effective_pause_seconds(&app->breathing)
         remaining: int
 
         if total_seconds <= 0 {
             remaining = 0
         }
         else {
-            remaining = total_seconds - app->inbe.sectick / 60
+            remaining = total_seconds - app->breathing.sectick / 60
             if remaining < 1 {
                 remaining = 1
             }
         }
         snprintf(text, sizeof(text), "%d", remaining)
         display_text = text
-    } else if app->inbe.phase == InbePhaseRecover {
-        if app->inbe.r < app->inbe.rmax {
+    } else if app->breathing.phase == BreathPhaseRecover {
+        if app->breathing.r < app->breathing.rmax {
             display_text = "000"
         } else {
-            count = int_from_count(app->inbe.count)
+            count = int_from_count(app->breathing.count)
             if count < 15 {
                 count_from_int(text, 15 - count)
                 display_text = text
@@ -656,7 +656,7 @@ draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
                 display_text = "000"
             }
         }
-    } else if app->inbe.phase == InbePhaseNext {
+    } else if app->breathing.phase == BreathPhaseNext {
         display_text = "000"
     }
 
@@ -678,9 +678,9 @@ color_with_alpha :: (color: Color, alpha: unsigned char) -> Color #private {
     return color
 }
 
-session_circle_progress :: (app: InbeApp*, total_ticks: int*, progress: float*,
+session_circle_progress :: (app: InnerBreeze*, total_ticks: int*, progress: float*,
                            countdown: int*) #private {
-    total: int = int_from_count(app->inbe.maxbreaths)
+    total: int = int_from_count(app->breathing.maxbreaths)
     amount: float = 0.0f
     is_countdown: int = 0
     total_seconds: int = 0
@@ -696,41 +696,41 @@ session_circle_progress :: (app: InbeApp*, total_ticks: int*, progress: float*,
         return
     }
 
-    switch app->inbe.phase {
-    case InbePhaseStarting:
-        total_seconds = inbe_effective_pause_seconds(&app->inbe)
+    switch app->breathing.phase {
+    case BreathPhaseStarting:
+        total_seconds = effective_pause_seconds(&app->breathing)
         total_frames = total_seconds * 60
 
         total = total_seconds > 0 ? total_seconds : 1
         if total_frames > 0 {
-            amount = (float)app->inbe.sectick / (float)total_frames
+            amount = (float)app->breathing.sectick / (float)total_frames
         }
         is_countdown = 1
         break
-    case InbePhaseBreathe:
-        amount = ((float)clampi(int_from_count(app->inbe.count), 0, total) +
-                  current_breath_progress(&app->inbe)) / (float)total
+    case BreathPhaseBreathe:
+        amount = ((float)clampi(int_from_count(app->breathing.count), 0, total) +
+                  current_breath_progress(&app->breathing)) / (float)total
         break
-    case InbePhaseHold:
+    case BreathPhaseHold:
         total_frames = 60 * 60
-        frame_in_minute = (int_from_count(app->inbe.count) * 60 + app->inbe.sectick) %
+        frame_in_minute = (int_from_count(app->breathing.count) * 60 + app->breathing.sectick) %
                           total_frames
 
         total = 60
         amount = (float)frame_in_minute / (float)total_frames
         break
-    case InbePhaseRecover:
-        count = int_from_count(app->inbe.count)
+    case BreathPhaseRecover:
+        count = int_from_count(app->breathing.count)
 
         total = 15
-        if app->inbe.r >= app->inbe.rmax {
+        if app->breathing.r >= app->breathing.rmax {
             amount = ((float)clampi(count, 0, total) +
-                      (float)clampi(app->inbe.sectick, 0, 59) / 60.0f) /
+                      (float)clampi(app->breathing.sectick, 0, 59) / 60.0f) /
                      (float)total
         }
         is_countdown = 1
         break
-    case InbePhaseNext:
+    case BreathPhaseNext:
     default:
         amount = 0.0f
         break
@@ -748,7 +748,7 @@ session_circle_progress :: (app: InbeApp*, total_ticks: int*, progress: float*,
     *countdown = is_countdown
 }
 
-draw_session_progress_circle :: (app: InbeApp*, center_x: int, center_y: int, radius: float) {
+draw_session_progress_circle :: (app: InnerBreeze*, center_x: int, center_y: int, radius: float) {
     total_ticks: int = 1
     countdown: int = 0
     progress: float = 0.0f
@@ -848,14 +848,14 @@ draw_session_progress_circle :: (app: InbeApp*, center_x: int, center_y: int, ra
     }
 }
 
-session_draw_inbe :: (app: InbeApp*, center_x: int, center_y: int) {
-    radius: float = draw_radius(&app->inbe)
+session_draw_inbe :: (app: InnerBreeze*, center_x: int, center_y: int) {
+    radius: float = draw_radius(&app->breathing)
 
     draw_session_progress_circle(app, center_x, center_y, radius)
     draw_session_counter(app, center_x, center_y)
 }
 
-session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> int {
+session_draw_start_preview :: (app: InnerBreeze*, center_x: int, center_y: int) -> int {
     hovered: int = 0
     clicked: int = 0
     play_text: const char* = GetLocaleText("play_button")
@@ -922,36 +922,36 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
     return clicked
 }
 
-draw_session_status :: (app: InbeApp*, center_x: int, center_y: int) #private {
+draw_session_status :: (app: InnerBreeze*, center_x: int, center_y: int) #private {
     unused app
     unused center_x
     unused center_y
 }
 
-session_round_label :: (app: InbeApp*, text: char*, text_size: size_t) #private {
+session_round_label :: (app: InnerBreeze*, text: char*, text_size: size_t) #private {
     if text == nil || text_size == 0 {
         return
     }
-    FormatLocaleText(text, text_size, "session_round_label", app->inbe.round + 1)
+    FormatLocaleText(text, text_size, "session_round_label", app->breathing.round + 1)
 }
 
-session_draw_round_title_bar :: (app: InbeApp*, title: const char*, height: int) -> int #private {
+session_draw_round_title_bar :: (app: InnerBreeze*, title: const char*, height: int) -> int #private {
     return app_draw_active_practice_title_bar(app, title, height)
 }
 
-draw_preview_inbe :: (inbe: Inbe*, center_x: int, center_y: int) {
-    r: float = draw_radius(inbe) * 0.72f
+draw_breath_preview :: (breathing: BreathSession*, center_x: int, center_y: int) {
+    r: float = draw_radius(breathing) * 0.72f
     DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, GetThemeCircle())
     DrawRing((Vector2){(float)center_x, (float)center_y}, r - 0.75f, r + 0.75f,
              0.0f, 360.0f, 96, GetThemeText())
 }
 
-stop_android_background_session :: (app: InbeApp*) #private {
+stop_android_background_session :: (app: InnerBreeze*) #private {
     meditation_music_stop(app)
     practice_active_background_stop(app)
 }
 
-session_request_exit :: (app: InbeApp*) #private {
+session_request_exit :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -963,7 +963,7 @@ session_request_exit :: (app: InbeApp*) #private {
     app_open_modal(app, UIModalConfirmExitSession)
 }
 
-session_handle_exit_modal :: (app: InbeApp*) -> int #private {
+session_handle_exit_modal :: (app: InnerBreeze*) -> int #private {
     result: SessionExitModalResult
 
     if app == nil || !app->modal.active ||
@@ -988,7 +988,7 @@ session_handle_exit_modal :: (app: InbeApp*) -> int #private {
     return 1
 }
 
-session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
+session_update_screen :: (app: InnerBreeze*, center_x: int, center_y: int, hover: int*) {
     breath_max_y: int = view_height - Scale(44)
     title_h: int = app_active_practice_title_height()
     title: [32] char
@@ -1048,11 +1048,11 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
         pthread_mutex_t*timer_mutex = android_timer_get_mutex()
         if timer_mutex {
             pthread_mutex_lock(timer_mutex)
-            inbestep(&app->inbe)
+            breath_session_step(&app->breathing)
             update_session_sounds(app)
             pthread_mutex_unlock(timer_mutex)
         } else {
-            inbestep(&app->inbe)
+            breath_session_step(&app->breathing)
             update_session_sounds(app)
         }
         session_update_notification(app)
@@ -1065,21 +1065,21 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
 }
     }
 
-    if inbe_just_completed(&app->inbe) {
+    if just_completed(&app->breathing) {
         session_complete(app)
         return
     }
 
-    if app->inbe.phase != InbePhaseHold {
+    if app->breathing.phase != BreathPhaseHold {
         app->breath_tap_last_time = 0.0
     }
 
-    if app->inbe.phase == InbePhaseHold {
+    if app->breathing.phase == BreathPhaseHold {
         breath_label: const char* = GetLocaleText("breath_button")
         breath_font: int = Text16
         breath_w: int = TextWidth(breath_label, breath_font) + Scale(72)
         breath_h: int = TextLineHeight(breath_font) + Scale(28)
-        breath_y: int = center_y + app->inbe.rmax - Scale(42)
+        breath_y: int = center_y + app->breathing.rmax - Scale(42)
         breath_x: int
         breath_hover: int = 0
 
@@ -1087,7 +1087,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
             hint: const char* = GetLocaleText("double_tap_to_breathe_hint")
             hint_font: int = GetFontSize()
             hint_w: int = TextWidth(hint, hint_font)
-            hint_y: int = center_y + app->inbe.rmax + Scale(12)
+            hint_y: int = center_y + app->breathing.rmax + Scale(12)
 
             if hint_y > breath_max_y {
                 hint_y = breath_max_y
@@ -1133,7 +1133,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
     }
 }
 
-session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
+session_draw_results_screen :: (app: InnerBreeze*, center_x: int, center_y: int, hover: int*) {
     box_x: int
     box_y: int = Scale(78)
     box_w: int

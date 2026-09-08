@@ -579,7 +579,7 @@ UIReturnTitleBar(Texture2D return_icon, const char *title, int height)
 }
 
 int
-app_draw_close_title_bar(InbeApp *app, const char *title, int height)
+app_draw_close_title_bar(InnerBreeze*app, const char *title, int height)
 {
     (void)app;
     (void)title;
@@ -723,21 +723,21 @@ clampi(int value, int min, int max)
 }
 
 void
-app_switch_screen(InbeApp *app, int screen)
+app_switch_screen(InnerBreeze*app, int screen)
 {
     if(app != NULL)
-        app->inbe.screen = screen;
+        app->breathing.screen = screen;
 }
 
 AppRoute
-app_current_route(const InbeApp *app)
+app_current_route(const InnerBreeze*app)
 {
     AppRoute route;
 
     memset(&route, 0, sizeof(route));
     if(app == NULL)
         return route;
-    route.screen = app->inbe.screen;
+    route.screen = app->breathing.screen;
     route.exercise_type = app->exercise_type;
     route.practice_tab = app->practice_tab;
     route.practice_config_tab = app->practice_config_tab;
@@ -750,11 +750,11 @@ app_current_route(const InbeApp *app)
 }
 
 void
-app_switch_route(InbeApp *app, AppRoute route)
+app_switch_route(InnerBreeze*app, AppRoute route)
 {
     if(app == NULL)
         return;
-    app->inbe.screen = route.screen;
+    app->breathing.screen = route.screen;
     app->exercise_type = route.exercise_type;
     app->practice_tab = route.practice_tab;
     app->practice_config_tab = route.practice_config_tab;
@@ -766,21 +766,21 @@ app_switch_route(InbeApp *app, AppRoute route)
 }
 
 void
-app_leave_practice_config(InbeApp *app)
+app_leave_practice_config(InnerBreeze*app)
 {
     if(app != NULL)
         app->practice_tab = PRACTICE_TAB_PLAY;
 }
 
 void
-save_settings(InbeApp *app)
+save_settings(InnerBreeze*app)
 {
     (void)app;
     save_settings_count++;
 }
 
 void
-reset_settings_preview(InbeApp *app)
+reset_settings_preview(InnerBreeze*app)
 {
     (void)app;
     reset_settings_preview_count++;
@@ -807,14 +807,14 @@ storage_get_setting_text(const char *key)
 }
 
 void
-app_block_current_click(InbeApp *app)
+app_block_current_click(InnerBreeze*app)
 {
     if(app != NULL)
-        app->blocked_input_frame = app->inbe.frame;
+        app->blocked_input_frame = app->breathing.frame;
 }
 
 void
-app_open_modal(InbeApp *app, UIModalType type)
+app_open_modal(InnerBreeze*app, UIModalType type)
 {
     if(app == NULL)
         return;
@@ -824,7 +824,7 @@ app_open_modal(InbeApp *app, UIModalType type)
 }
 
 void
-app_close_modal(InbeApp *app)
+app_close_modal(InnerBreeze*app)
 {
     if(app == NULL)
         return;
@@ -834,14 +834,14 @@ app_close_modal(InbeApp *app)
 }
 
 int
-profile_social_friends_count(InbeApp *app)
+profile_social_friends_count(InnerBreeze*app)
 {
     (void)app;
     return 0;
 }
 
 int
-profile_social_pending_count(InbeApp *app)
+profile_social_pending_count(InnerBreeze*app)
 {
     (void)app;
     return 0;
@@ -849,14 +849,14 @@ profile_social_pending_count(InbeApp *app)
 
 #include "../build/kryon/generated/src/app/app_nav.c"
 
-static InbeApp
+static InnerBreeze
 test_app(void)
 {
-    InbeApp app;
+    InnerBreeze app;
 
     memset(&app, 0, sizeof(app));
-    app.inbe.screen = InbeScreenStart;
-    app.inbe.frame = 42;
+    app.breathing.screen = ScreenStart;
+    app.breathing.frame = 42;
     app.practice_tab = PRACTICE_TAB_PLAY;
     app.main_tab = APP_MAIN_TAB_PRACTICE;
     app_reset_bottom_nav_routes(&app);
@@ -864,32 +864,34 @@ test_app(void)
 }
 
 static void
-test_default_bottom_nav_routes_are_habits_practice_settings(void)
+test_default_bottom_nav_routes_include_elist(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     app_draw_bottom_nav(&app);
 
     expect(bottom_nav_draw_count == 1,
            "default bottom nav should draw");
-    expect(bottom_nav_last.count == 3,
-           "default bottom nav should have three items");
+    expect(bottom_nav_last.count == 4,
+           "default bottom nav should have four items");
     expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_HABITS,
            "default first bottom nav item should be habits");
-    expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_PRACTICE,
-           "default second bottom nav item should be practice");
-    expect(bottom_nav_last.items[2].route == APP_NAV_ROUTE_SETTINGS,
-           "default third bottom nav item should be settings");
+    expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_ELIST,
+           "default second bottom nav item should be EList");
+    expect(bottom_nav_last.items[2].route == APP_NAV_ROUTE_PRACTICE,
+           "default third bottom nav item should be practice");
+    expect(bottom_nav_last.items[3].route == APP_NAV_ROUTE_SETTINGS,
+           "default fourth bottom nav item should be settings");
 }
 
 static void
 test_same_frame_modal_close_consumes_bottom_nav_click(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
-    app.blocked_input_frame = app.inbe.frame;
+    app.blocked_input_frame = app.breathing.frame;
     mouse_released = 1;
     bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
@@ -897,7 +899,7 @@ test_same_frame_modal_close_consumes_bottom_nav_click(void)
 
     expect(bottom_nav_draw_count == 0,
            "same-frame modal close must skip bottom nav draw");
-    expect(app.inbe.screen == InbeScreenStart,
+    expect(app.breathing.screen == ScreenStart,
            "same-frame modal close must not route");
     expect(reset_settings_preview_count == 0,
            "same-frame modal close must not run settings route side effects");
@@ -906,10 +908,10 @@ test_same_frame_modal_close_consumes_bottom_nav_click(void)
 static void
 test_unblocked_bottom_nav_click_still_routes(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
-    app.blocked_input_frame = app.inbe.frame - 1;
+    app.blocked_input_frame = app.breathing.frame - 1;
     mouse_released = 1;
     bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
@@ -917,7 +919,7 @@ test_unblocked_bottom_nav_click_still_routes(void)
 
     expect(bottom_nav_draw_count == 1,
            "unblocked frame should draw bottom nav");
-    expect(app.inbe.screen == InbeScreenHabits,
+    expect(app.breathing.screen == ScreenHabits,
            "unblocked bottom nav click should route to habits");
     expect(reset_settings_preview_count == 0,
            "habits route should not reset settings preview");
@@ -930,7 +932,7 @@ test_unblocked_bottom_nav_click_still_routes(void)
 static void
 test_edge_bottom_nav_routes_are_applied(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
@@ -938,7 +940,7 @@ test_edge_bottom_nav_routes_are_applied(void)
 
     expect(bottom_nav_draw_count == 1,
            "habits edge route should draw bottom nav");
-    expect(app.inbe.screen == InbeScreenHabits,
+    expect(app.breathing.screen == ScreenHabits,
            "habits edge route should switch to habits");
 
     expect(bottom_nav_last.bottom_margin == 0,
@@ -948,35 +950,37 @@ test_edge_bottom_nav_routes_are_applied(void)
 static void
 test_profile_draws_mobile_nav_without_profile_item(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
-    app.inbe.screen = InbeScreenProfile;
+    app.breathing.screen = ScreenProfile;
 
     app_draw_bottom_nav(&app);
 
     expect(bottom_nav_draw_count == 1,
            "profile should keep mobile bottom nav available");
-    expect(bottom_nav_last.count == 3,
-           "profile mobile bottom nav should have three items");
+    expect(bottom_nav_last.count == 4,
+           "profile mobile bottom nav should have four items");
     expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_HABITS,
            "profile mobile nav first item should be habits");
-    expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_PRACTICE,
-           "profile mobile nav second item should be practice");
-    expect(bottom_nav_last.items[2].route == APP_NAV_ROUTE_SETTINGS,
-           "profile mobile nav third item should be settings");
+    expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_ELIST,
+           "profile mobile nav second item should be EList");
+    expect(bottom_nav_last.items[2].route == APP_NAV_ROUTE_PRACTICE,
+           "profile mobile nav third item should be practice");
+    expect(bottom_nav_last.items[3].route == APP_NAV_ROUTE_SETTINGS,
+           "profile mobile nav fourth item should be settings");
     expect(app_current_nav_route(&app) == APP_NAV_ROUTE_PROFILE,
            "profile should still expose its route for state tracking");
     expect(app_content_bottom_reserved(&app) == 80,
            "profile should reserve mobile bottom nav height");
-    expect(app.inbe.screen == InbeScreenProfile,
+    expect(app.breathing.screen == ScreenProfile,
            "profile mobile nav should not route without a click");
 }
 
 static void
 test_practice_manual_hides_bottom_nav(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     app.practice_tab = PRACTICE_TAB_MANUAL;
@@ -990,14 +994,14 @@ test_practice_manual_hides_bottom_nav(void)
            "practice manual should not expose a bottom nav route");
     expect(app_content_bottom_reserved(&app) == 0,
            "practice manual should not reserve bottom nav height");
-    expect(app.inbe.screen == InbeScreenStart,
+    expect(app.breathing.screen == ScreenStart,
            "practice manual hidden nav should not route clicks");
 }
 
 static void
 test_practice_config_hides_bottom_nav(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     app.practice_tab = PRACTICE_TAB_CONFIG;
@@ -1011,14 +1015,14 @@ test_practice_config_hides_bottom_nav(void)
            "practice config should not expose a bottom nav route");
     expect(app_content_bottom_reserved(&app) == 0,
            "practice config should not reserve bottom nav height");
-    expect(app.inbe.screen == InbeScreenStart,
+    expect(app.breathing.screen == ScreenStart,
            "practice config hidden nav should not route clicks");
 }
 
 static void
 test_file_dialog_hides_bottom_nav(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     app.file_dialog_active = 1;
@@ -1028,14 +1032,14 @@ test_file_dialog_hides_bottom_nav(void)
 
     expect(bottom_nav_draw_count == 0,
            "active file dialog should not draw bottom nav");
-    expect(app.inbe.screen == InbeScreenStart,
+    expect(app.breathing.screen == ScreenStart,
            "active file dialog should not route bottom nav clicks");
 }
 
 static void
 test_empty_bottom_nav_recovers_settings_item(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     view_width = 720;
@@ -1053,7 +1057,7 @@ test_empty_bottom_nav_recovers_settings_item(void)
            "empty bottom nav should contain only settings");
     expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_SETTINGS,
            "empty bottom nav only item should be settings");
-    expect(app.inbe.screen == InbeScreenSettings,
+    expect(app.breathing.screen == ScreenSettings,
            "empty bottom nav settings should open settings");
     expect(app_content_bottom_reserved(&app) == 80,
            "empty bottom nav should reserve settings bar space");
@@ -1063,10 +1067,10 @@ test_empty_bottom_nav_recovers_settings_item(void)
 static void
 test_customize_nav_delete_last_does_not_add_same_frame(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
-    app.inbe.screen = InbeScreenCustomizeNav;
+    app.breathing.screen = ScreenCustomizeNav;
     app.main_tab = APP_MAIN_TAB_HABITS;
     app.bottom_nav_route_count = 1;
     app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
@@ -1092,10 +1096,10 @@ test_customize_nav_delete_last_does_not_add_same_frame(void)
 static void
 test_customize_nav_delete_icon_draws_on_narrow_rows(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
-    app.inbe.screen = InbeScreenCustomizeNav;
+    app.breathing.screen = ScreenCustomizeNav;
     app.bottom_nav_config_route_count = 1;
     app.bottom_nav_config_routes[0] = APP_NAV_ROUTE_HABITS;
     scroll_page_content_w_override = 180;
@@ -1109,10 +1113,10 @@ test_customize_nav_delete_icon_draws_on_narrow_rows(void)
 static void
 test_bottom_nav_config_save_stays_on_customize_screen(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
-    app.inbe.screen = InbeScreenCustomizeNav;
+    app.breathing.screen = ScreenCustomizeNav;
     app.main_tab = APP_MAIN_TAB_NONE;
     app.bottom_nav_route_count = 0;
     for(int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++)
@@ -1122,7 +1126,7 @@ test_bottom_nav_config_save_stays_on_customize_screen(void)
 
     app_save_bottom_nav_config(&app);
 
-    expect(app.inbe.screen == InbeScreenCustomizeNav,
+    expect(app.breathing.screen == ScreenCustomizeNav,
            "adding first nav item should stay on customize nav screen");
     expect(app.main_tab == APP_MAIN_TAB_HABITS,
            "adding first nav item should select a valid main tab");
@@ -1137,15 +1141,15 @@ test_bottom_nav_config_save_stays_on_customize_screen(void)
 static void
 test_open_main_tab_none_returns_blank_start(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
-    app.inbe.screen = InbeScreenCustomizeNav;
+    app.breathing.screen = ScreenCustomizeNav;
     app.main_tab = APP_MAIN_TAB_NONE;
 
     app_open_main_tab(&app, app.main_tab, 0);
 
-    expect(app.inbe.screen == InbeScreenStart &&
+    expect(app.breathing.screen == ScreenStart &&
            app.main_tab == APP_MAIN_TAB_NONE,
            "closing customize nav with no routes should return to blank start");
 }
@@ -1153,34 +1157,34 @@ test_open_main_tab_none_returns_blank_start(void)
 static void
 test_compact_sidebar_close_footer_closes_to_home(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     view_width = 320;
-    app.inbe.screen = InbeScreenNavSidebar;
+    app.breathing.screen = ScreenNavSidebar;
     app.nav_sidebar_open = 1;
-    app.nav_sidebar_open_frame = app.inbe.frame - 1;
+    app.nav_sidebar_open_frame = app.breathing.frame - 1;
     invisible_button_clicked_id = 9199;
 
     app_draw_bottom_nav(&app);
 
     expect(app.nav_sidebar_open == 0,
            "sidebar footer close should close sidebar");
-    expect(app.inbe.screen == InbeScreenStart,
+    expect(app.breathing.screen == ScreenStart,
            "sidebar footer close should return to current home screen");
-    expect(app.blocked_input_frame == app.inbe.frame,
+    expect(app.blocked_input_frame == app.breathing.frame,
            "sidebar footer close should block same-frame bottom nav clicks");
 }
 
 static void
 test_overlay_sidebar_outside_release_blocks_bottom_nav(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     view_width = 720;
     app.nav_sidebar_open = 1;
-    app.nav_sidebar_open_frame = app.inbe.frame - 1;
+    app.nav_sidebar_open_frame = app.breathing.frame - 1;
     mouse_released = 1;
     mouse_position = (Vector2){520, 20};
 
@@ -1190,19 +1194,19 @@ test_overlay_sidebar_outside_release_blocks_bottom_nav(void)
            "outside release should close overlay sidebar");
     expect(pointer_release_consumed == 1,
            "outside release should be consumed");
-    expect(app.blocked_input_frame == app.inbe.frame,
+    expect(app.blocked_input_frame == app.breathing.frame,
            "outside release close should block same-frame bottom nav clicks");
 }
 
 static void
 test_consumed_pfp_release_does_not_close_sidebar(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     view_width = 720;
     app.nav_sidebar_open = 1;
-    app.nav_sidebar_open_frame = app.inbe.frame - 1;
+    app.nav_sidebar_open_frame = app.breathing.frame - 1;
     app.modal.active = 0;
     mouse_released = 1;
     pointer_release_consumed = 1;
@@ -1217,22 +1221,22 @@ test_consumed_pfp_release_does_not_close_sidebar(void)
 static void
 test_sidebar_child_back_returns_to_compact_sidebar(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     view_width = 320;
-    app.inbe.screen = InbeScreenNavSidebar;
+    app.breathing.screen = ScreenNavSidebar;
     app.nav_sidebar_open = 1;
 
     app_apply_nav_route(&app, APP_NAV_ROUTE_ACCOUNT);
-    expect(app.inbe.screen == InbeScreenProfile,
+    expect(app.breathing.screen == ScreenProfile,
            "sidebar account route should open profile");
     expect(app.nav_sidebar_return_on_back == 1,
            "sidebar child route should remember compact sidebar return");
 
     expect(app_return_to_nav_sidebar_if_needed(&app) == 1,
            "profile back should return to compact sidebar");
-    expect(app.inbe.screen == InbeScreenNavSidebar &&
+    expect(app.breathing.screen == ScreenNavSidebar &&
            app.nav_sidebar_open == 1,
            "profile back should reopen sidebar screen");
 }
@@ -1240,11 +1244,11 @@ test_sidebar_child_back_returns_to_compact_sidebar(void)
 static void
 test_sidebar_screen_closes_when_width_expands(void)
 {
-    InbeApp app = test_app();
+    InnerBreeze app = test_app();
 
     reset_state();
     view_width = 320;
-    app.inbe.screen = InbeScreenNavSidebar;
+    app.breathing.screen = ScreenNavSidebar;
     app.nav_sidebar_open = 1;
 
     view_width = 720;
@@ -1252,14 +1256,14 @@ test_sidebar_screen_closes_when_width_expands(void)
 
     expect(app.nav_sidebar_open == 0,
            "expanded sidebar should close instead of becoming overlay");
-    expect(app.inbe.screen == InbeScreenStart,
+    expect(app.breathing.screen == ScreenStart,
            "expanded sidebar should return to home screen");
 }
 
 int
 main(void)
 {
-    test_default_bottom_nav_routes_are_habits_practice_settings();
+    test_default_bottom_nav_routes_include_elist();
     test_same_frame_modal_close_consumes_bottom_nav_click();
     test_unblocked_bottom_nav_click_still_routes();
     test_edge_bottom_nav_routes_are_applied();

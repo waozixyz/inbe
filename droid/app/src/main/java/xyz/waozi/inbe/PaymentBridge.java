@@ -27,7 +27,7 @@ final class PaymentBridge {
             public void run() {
                 try {
                     String body = "{\"app_id\":\"inbe\",\"product_id\":\"" + jsonEscape(productId) + "\"}";
-                    String response = SyncNetwork.httpRequest("INBE_PAYMENTS", "POST",
+                    String response = SyncNetwork.httpRequest("PAYMENTS", "POST",
                             DAOCHI_BASE_URL + "/api/v1/tokens/purchases/monero/invoices",
                             body, authHeaders(authToken));
                     final Invoice invoice = parseInvoice(response);
@@ -47,7 +47,7 @@ final class PaymentBridge {
                     showToast(activity, "Monero invoice failed");
                 }
             }
-        }, "inbe-monero-token-invoice").start();
+        }, "monero-token-invoice").start();
     }
 
     private static String gplayChannel() {

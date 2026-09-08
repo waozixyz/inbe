@@ -4,8 +4,8 @@
 #import "practices/practice_registry.h"
 #import "stdio.h"
 
-ManualGuideStartFn :: void (*)(InbeApp*) #type
-ManualGuideCloseFn :: void (*)(InbeApp*, int) #type
+ManualGuideStartFn :: void (*)(InnerBreeze*) #type
+ManualGuideCloseFn :: void (*)(InnerBreeze*, int) #type
 
 ManualGuideNav :: struct {
     page: int
@@ -19,7 +19,7 @@ ManualGuideNav :: struct {
     close: ManualGuideCloseFn
 }
 
-manual_screen_reset_layouts :: (app: InbeApp*) {
+manual_screen_reset_layouts :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
@@ -134,7 +134,7 @@ manual_screen_draw_hero_progress :: (bounds: Rectangle, page: int,
     }
 }
 
-manual_screen_draw_title_bar :: (app: InbeApp*, title: const char*,
+manual_screen_draw_title_bar :: (app: InnerBreeze*, title: const char*,
                                  title_h: int, close: ManualGuideCloseFn) -> int {
     if app == NULL || close == NULL {
         return 0
@@ -154,7 +154,7 @@ manual_screen_guide_nav_height :: () -> int {
     return Scale(68)
 }
 
-manual_screen_guide_controls :: (app: InbeApp*, nav: ManualGuideNav) {
+manual_screen_guide_controls :: (app: InnerBreeze*, nav: ManualGuideNav) {
     if app == NULL || nav.page_count < 1 {
         return
     }
@@ -222,7 +222,7 @@ manual_screen_guide_controls :: (app: InbeApp*, nav: ManualGuideNav) {
     app->tutorial_step = page
 }
 
-manual_screen_close_tutorial :: (app: InbeApp*, mark_seen: int) {
+manual_screen_close_tutorial :: (app: InnerBreeze*, mark_seen: int) {
     if app == NULL {
         return
     }
@@ -233,7 +233,7 @@ manual_screen_close_tutorial :: (app: InbeApp*, mark_seen: int) {
     }
 }
 
-manual_screen_draw :: (app: InbeApp*) {
+manual_screen_draw :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
@@ -250,7 +250,7 @@ route manual {
     page manual
 }
 
-manual :: (app: InbeApp*) #ui {
+manual :: (app: InnerBreeze*) #ui {
     Screen root: {
     manual_screen_draw(app)
     }

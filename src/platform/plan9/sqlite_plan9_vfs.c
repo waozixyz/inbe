@@ -163,7 +163,7 @@ static const sqlite3_io_methods p9sqlite_io = {
 static void
 p9sqlite_tempname(char *dst, int dst_size)
 {
-    snprintf(dst, dst_size, "/tmp/inbe-sqlite-%ld-%ld", (long)getpid(),
+    snprintf(dst, dst_size, "/tmp/breathing-sqlite-%ld-%ld", (long)getpid(),
              (long)time(0));
 }
 

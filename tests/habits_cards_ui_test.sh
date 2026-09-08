@@ -2,13 +2,13 @@
 set -euo pipefail
 # Run under xvfb-run. Screenshot mode seeds its own temporary database.
 binary="${1:?native binary required}"
-test_dir="$(mktemp -d /tmp/inbe-habits-ui.XXXXXX)"
-INBE_SHOT_WINDOW=1 "$binary" --screenshot "$test_dir/start.png" \
+test_dir="$(mktemp -d /tmp/breathing-habits-ui.XXXXXX)"
+APP_SHOT_WINDOW=1 "$binary" --screenshot "$test_dir/start.png" \
   --screenshot-scene habits_overview --screenshot-width 411 --screenshot-height 813 \
   --screenshot-theme 4 --screenshot-dark 1 --screenshot-style 2 >"$test_dir/app.log" 2>&1 &
 app_pid=$!
 trap 'kill "$app_pid" 2>/dev/null || true' EXIT
-db="/tmp/inbe-screenshot-$app_pid/inbe.db"
+db="/tmp/breathing-screenshot-$app_pid/breathing.db"
 window=""
 for attempt in $(seq 1 80); do
   window="$(xdotool search --onlyvisible --pid "$app_pid" 2>/dev/null | head -1 || true)"

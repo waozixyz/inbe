@@ -10,13 +10,13 @@
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
-HAS_FILE_DIALOG :: #defined(PLATFORM_WEB) || (!ANDROID_BUILD && !#defined(_WIN32) && !#defined(INBE_DISABLE_KRYON_FILE_DIALOG))
+HAS_FILE_DIALOG :: #defined(PLATFORM_WEB) || (!ANDROID_BUILD && !#defined(_WIN32) && !#defined(DISABLE_KRYON_FILE_DIALOG))
 
 #if HAS_FILE_DIALOG {
-    INBE_HAS_KRYON_FILE_DIALOG :: #define 1
+    HAS_KRYON_FILE_DIALOG :: #define 1
 }
 
-NATIVE_FILE_DIALOG :: #defined(INBE_HAS_KRYON_FILE_DIALOG)
+NATIVE_FILE_DIALOG :: #defined(HAS_KRYON_FILE_DIALOG)
 
 #if WEB {
     static audio_web_dialog: FileDialog = {0}
@@ -123,7 +123,7 @@ settings_audio_file_dialog_available :: () -> int #private {
     }
 }
 
-settings_audio_dialog_begin :: (app: InbeApp*, action: int, practice: int) #private {
+settings_audio_dialog_begin :: (app: InnerBreeze*, action: int, practice: int) #private {
     #if ANDROID || WEB {
         if app == nil {
             return
@@ -132,7 +132,7 @@ settings_audio_dialog_begin :: (app: InbeApp*, action: int, practice: int) #priv
         audio_import_practice = practice
         app->file_dialog_active = 1
         audio_dialog_origin.active = 1
-        audio_dialog_origin.screen = app->inbe.screen
+        audio_dialog_origin.screen = app->breathing.screen
         audio_dialog_origin.settings_tab = app->settings_tab
         audio_dialog_origin.settings_scroll = app->settings_scroll
     } #else {
@@ -142,12 +142,12 @@ settings_audio_dialog_begin :: (app: InbeApp*, action: int, practice: int) #priv
     }
 }
 
-settings_audio_dialog_finish :: (app: InbeApp*) -> int #private {
+settings_audio_dialog_finish :: (app: InnerBreeze*) -> int #private {
     #if ANDROID || WEB {
         action := audio_import_action
 
         if app != nil && audio_dialog_origin.active {
-            app->inbe.screen = audio_dialog_origin.screen
+            app->breathing.screen = audio_dialog_origin.screen
             app->settings_tab = audio_dialog_origin.settings_tab
             app->settings_scroll = audio_dialog_origin.settings_scroll
         }
@@ -164,25 +164,25 @@ settings_audio_dialog_finish :: (app: InbeApp*) -> int #private {
     }
 }
 
-settings_audio_cue_sound :: (app: InbeApp*, cue: int) -> Sound #private {
+settings_audio_cue_sound :: (app: InnerBreeze*, cue: int) -> Sound #private {
     empty: Sound = {0}
 
     if app == nil {
         return empty
     }
-    if cue == INBE_AUDIO_CUE_BREATH_IN {
+    if cue == AUDIO_CUE_BREATH_IN {
         return app->breath_in_sound
     }
-    if cue == INBE_AUDIO_CUE_BREATH_OUT {
+    if cue == AUDIO_CUE_BREATH_OUT {
         return app->breath_out_sound
     }
-    if cue == INBE_AUDIO_CUE_BELL {
+    if cue == AUDIO_CUE_BELL {
         return app->bell_sound
     }
     return empty
 }
 
-settings_audio_stop_preview :: (app: InbeApp*) #private {
+settings_audio_stop_preview :: (app: InnerBreeze*) #private {
     if app != nil {
         if app->breath_in_sound.frameCount != 0 {
             StopSound(app->breath_in_sound)
@@ -215,21 +215,21 @@ settings_audio_update_preview :: () #private {
     }
 }
 
-settings_audio_sound_volume :: (app: InbeApp*) -> float #private {
+settings_audio_sound_volume :: (app: InnerBreeze*) -> float #private {
     if app == nil || app->sound_volume <= 0 {
         return 0.0f
     }
     return (float)app->sound_volume / 100.0f
 }
 
-settings_audio_music_volume :: (app: InbeApp*) -> float #private {
+settings_audio_music_volume :: (app: InnerBreeze*) -> float #private {
     if app == nil || app->music_volume <= 0 {
         return 0.0f
     }
     return (float)app->music_volume / 100.0f
 }
 
-settings_audio_preview_cue_playing :: (app: InbeApp*, cue: int) -> int #private {
+settings_audio_preview_cue_playing :: (app: InnerBreeze*, cue: int) -> int #private {
     sound := settings_audio_cue_sound(app, cue)
     if app == nil || !app->audio_ready || sound.frameCount == 0 {
         return 0
@@ -255,7 +255,7 @@ settings_audio_preview_music_playing :: (index: int) -> int #private {
     return IsMusicStreamPlaying(audio_preview_music) ? 1 : 0
 }
 
-settings_audio_toggle_cue_preview :: (app: InbeApp*, cue: int) #private {
+settings_audio_toggle_cue_preview :: (app: InnerBreeze*, cue: int) #private {
     sound := settings_audio_cue_sound(app, cue)
 
     if app == nil || !app->audio_ready || sound.frameCount == 0 {
@@ -272,7 +272,7 @@ settings_audio_toggle_cue_preview :: (app: InbeApp*, cue: int) #private {
     app_play_sound(app, sound, 1.0f)
 }
 
-settings_audio_toggle_custom_sound_preview :: (app: InbeApp*, index: int) #private {
+settings_audio_toggle_custom_sound_preview :: (app: InnerBreeze*, index: int) #private {
     if app == nil || !app->audio_ready ||
        index < 0 || index >= app->audio_custom_sound_count {
         settings_screen_set_status_error(GetLocaleText("audio_preview_failed"))
@@ -294,7 +294,7 @@ settings_audio_toggle_custom_sound_preview :: (app: InbeApp*, index: int) #priva
     PlaySound(audio_preview_sound)
 }
 
-settings_audio_toggle_music_preview :: (app: InbeApp*, index: int) #private {
+settings_audio_toggle_music_preview :: (app: InnerBreeze*, index: int) #private {
     path: [FS_PATH_MAX] char = {0}
 
     if app == nil || !app->audio_ready {
@@ -340,13 +340,13 @@ draw_audio_preview_button :: (x: int, y: int, w: int, playing: int,
 
 audio_action_to_cue :: (action: int) -> int #private {
     if action == SETTINGS_AUDIO_ACTION_SOUND_IN {
-        return INBE_AUDIO_CUE_BREATH_IN
+        return AUDIO_CUE_BREATH_IN
     }
     if action == SETTINGS_AUDIO_ACTION_SOUND_OUT {
-        return INBE_AUDIO_CUE_BREATH_OUT
+        return AUDIO_CUE_BREATH_OUT
     }
     if action == SETTINGS_AUDIO_ACTION_SOUND_BELL {
-        return INBE_AUDIO_CUE_BELL
+        return AUDIO_CUE_BELL
     }
     return -1
 }
@@ -357,7 +357,7 @@ audio_android_kind :: (action: int) -> int #private {
         : ANDROID_IMPORT_KIND_AUDIO_SOUND
 }
 
-audio_import_path :: (app: InbeApp*, action: int, path: const char*) -> int #private {
+audio_import_path :: (app: InnerBreeze*, action: int, path: const char*) -> int #private {
     cue := audio_action_to_cue(action)
     error_code: int = 0
     error_message: const char* = GetLocaleText("audio_import_failed")
@@ -394,13 +394,13 @@ audio_import_path :: (app: InbeApp*, action: int, path: const char*) -> int #pri
     return 0
 }
 
-settings_audio_select_imported_music :: (app: InbeApp*, action: int,
+settings_audio_select_imported_music :: (app: InnerBreeze*, action: int,
                                          practice: int) #private {
     if app == nil || action != SETTINGS_AUDIO_ACTION_MUSIC ||
        app->audio_custom_music_count <= 0 {
         return
     }
-    track := INBE_AUDIO_BUILTIN_MUSIC_COUNT + app->audio_custom_music_count - 1
+    track := AUDIO_BUILTIN_MUSIC_COUNT + app->audio_custom_music_count - 1
     if practice < 0 || practice >= practice_count() {
         app->meditation.music_track = track
         app_audio_music_sanitize_selection(app)
@@ -421,7 +421,7 @@ settings_audio_select_imported_music :: (app: InbeApp*, action: int,
         track, practice)
 }
 
-settings_audio_start_import :: (app: InbeApp*, action: int, practice: int) #private {
+settings_audio_start_import :: (app: InnerBreeze*, action: int, practice: int) #private {
     settings_audio_stop_preview(app)
     audio_status_practice = practice
     #if ANDROID {
@@ -467,7 +467,7 @@ settings_audio_start_import :: (app: InbeApp*, action: int, practice: int) #priv
     }
 }
 
-settings_audio_handle_import :: (app: InbeApp*) {
+settings_audio_handle_import :: (app: InnerBreeze*) {
     #if ANDROID {
         path: [FS_PATH_MAX] char = {0}
         result: int
@@ -519,7 +519,7 @@ settings_audio_handle_import :: (app: InbeApp*) {
     }
 }
 
-settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+settings_audio_draw_output :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     status_label := app->audio_ready ?
         GetLocaleText("audio_status_ready") :
         GetLocaleText("audio_status_unavailable")
@@ -588,21 +588,21 @@ settings_audio_output_height :: (content_w: int) -> int #private {
         settings_ui_audio_meter_height() + Scale(18)
 }
 
-settings_audio_music_assignment_count :: (app: InbeApp*) -> int #private {
+settings_audio_music_assignment_count :: (app: InnerBreeze*) -> int #private {
     count := 0
 
     if app == nil {
         return 0
     }
     for int p = 0; p < practice_count(); p++ {
-        if app->meditation.music_practice_tracks[p] != INBE_AUDIO_MUSIC_NONE {
+        if app->meditation.music_practice_tracks[p] != AUDIO_MUSIC_NONE {
             count++
         }
     }
     return count
 }
 
-settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
+settings_audio_content_height :: (app: InnerBreeze*, content_w: int) -> int {
     custom_sound_count := 0
     custom_music_count := 0
     music_assignment_count := 0
@@ -623,14 +623,14 @@ settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
     if custom_sound_count < 0 {
         custom_sound_count = 0
     }
-    if custom_sound_count > INBE_AUDIO_CUSTOM_SOUND_MAX {
-        custom_sound_count = INBE_AUDIO_CUSTOM_SOUND_MAX
+    if custom_sound_count > AUDIO_CUSTOM_SOUND_MAX {
+        custom_sound_count = AUDIO_CUSTOM_SOUND_MAX
     }
     if custom_music_count < 0 {
         custom_music_count = 0
     }
-    if custom_music_count > INBE_AUDIO_CUSTOM_MUSIC_MAX {
-        custom_music_count = INBE_AUDIO_CUSTOM_MUSIC_MAX
+    if custom_music_count > AUDIO_CUSTOM_MUSIC_MAX {
+        custom_music_count = AUDIO_CUSTOM_MUSIC_MAX
     }
 
     if custom_sound_count > 0 {
@@ -666,7 +666,7 @@ settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
     return height
 }
 
-draw_import_button :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, action: int, practice: int) #private {
+draw_import_button :: (app: InnerBreeze*, x: int, w: int, y: int*, label: const char*, action: int, practice: int) #private {
     hover := 0
     if StyledButton(x, *y, w, Scale(36), label,
                            ButtonStyleSecondary, 0, &hover) {
@@ -679,9 +679,9 @@ draw_import_button :: (app: InbeApp*, x: int, w: int, y: int*, label: const char
     *y += Scale(6)
 }
 
-draw_cue_selector :: (app: InbeApp*, x: int, w: int, y: int*, cue: int,
+draw_cue_selector :: (app: InnerBreeze*, x: int, w: int, y: int*, cue: int,
                      label: const char*, action: int) #private {
-    options: [INBE_AUDIO_CUSTOM_SOUND_MAX + 1] const char*
+    options: [AUDIO_CUSTOM_SOUND_MAX + 1] const char*
     count := app->audio_custom_sound_count + 1
     preview_w := Scale(82)
     control_gap := Scale(8)
@@ -693,8 +693,8 @@ draw_cue_selector :: (app: InbeApp*, x: int, w: int, y: int*, cue: int,
     }
 
     options[0] = GetLocaleText("audio_builtin_label")
-    if count > INBE_AUDIO_CUSTOM_SOUND_MAX + 1 {
-        count = INBE_AUDIO_CUSTOM_SOUND_MAX + 1
+    if count > AUDIO_CUSTOM_SOUND_MAX + 1 {
+        count = AUDIO_CUSTOM_SOUND_MAX + 1
     }
     for int i = 0; i < app->audio_custom_sound_count; i++ {
         options[i + 1] = app->audio_custom_sounds[i].title
@@ -727,7 +727,7 @@ draw_cue_selector :: (app: InbeApp*, x: int, w: int, y: int*, cue: int,
                        action, -1)
 }
 
-draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     button_w := Scale(96)
     preview_w := Scale(82)
     gap := Scale(8)
@@ -777,15 +777,15 @@ draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     *y += Scale(8)
 }
 
-draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     count := app_audio_music_count(app)
     button_w := Scale(96)
     preview_w := Scale(82)
     gap := Scale(8)
 
     app_audio_music_sanitize_selection(app)
-    if count > INBE_AUDIO_MUSIC_COUNT_MAX {
-        count = INBE_AUDIO_MUSIC_COUNT_MAX
+    if count > AUDIO_MUSIC_COUNT_MAX {
+        count = AUDIO_MUSIC_COUNT_MAX
     }
 
     Text((TextProps){
@@ -816,7 +816,7 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         current := app->meditation.music_practice_tracks[p]
         label_w := w - button_w - preview_w - gap * 2
 
-        if current == INBE_AUDIO_MUSIC_NONE {
+        if current == AUDIO_MUSIC_NONE {
             continue
         }
         if current < 0 || current >= count {
@@ -830,9 +830,9 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
             label_w = Scale(40)
         }
         practice_text: [96] char = {0}
-        track_text: [INBE_AUDIO_LABEL_SIZE + 4] char = {0}
+        track_text: [AUDIO_LABEL_SIZE + 4] char = {0}
         snprintf(practice_text, sizeof(practice_text), "%s", practice_label(p))
-        inbe_text_fit_ellipsis(app_audio_music_label(app, current), track_text,
+        text_fit_ellipsis(app_audio_music_label(app, current), track_text,
                                    sizeof(track_text), label_w, Text12)
         Text((TextProps){
             .bounds={(x), (*y + Scale(2)), 0, 0},
@@ -858,7 +858,7 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
                                Scale(32), GetLocaleText("remove_button"),
                                ButtonStyleDanger, 0, &hover) {
             settings_audio_stop_preview(app)
-            app->meditation.music_practice_tracks[p] = INBE_AUDIO_MUSIC_NONE
+            app->meditation.music_practice_tracks[p] = AUDIO_MUSIC_NONE
             app->meditation.music_practice_mask &= ~(1 << p)
             meditation_music_unload(app)
             app->settings_dirty = 1
@@ -892,7 +892,7 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     *y += Scale(30)
     for int i = 0; i < app->audio_custom_music_count; i++ {
         hover := 0
-        track_index := INBE_AUDIO_BUILTIN_MUSIC_COUNT + i
+        track_index := AUDIO_BUILTIN_MUSIC_COUNT + i
         label_w := w - button_w - preview_w - gap * 2
         if label_w < Scale(80) {
             label_w = w - button_w - gap
@@ -900,8 +900,8 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         if label_w < Scale(40) {
             label_w = Scale(40)
         }
-        fitted: [INBE_AUDIO_LABEL_SIZE + 4] char = {0}
-        inbe_text_fit_ellipsis(app->audio_custom_music[i].title, fitted,
+        fitted: [AUDIO_LABEL_SIZE + 4] char = {0}
+        text_fit_ellipsis(app->audio_custom_music[i].title, fitted,
                                    sizeof(fitted), label_w, Text12)
         Text((TextProps){
             .bounds={(x), (*y + Scale(8)), 0, 0},
@@ -929,7 +929,7 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     }
 }
 
-draw_music_download :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+draw_music_download :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     button_h := Scale(36)
     hover := 0
     installed := meditation_music_available(app)
@@ -987,7 +987,7 @@ draw_music_attribution :: (x: int, w: int, track: int, y: int*) #private {
     if y == nil || w <= 0 {
         return
     }
-    if track < 0 || track >= INBE_AUDIO_BUILTIN_MUSIC_COUNT {
+    if track < 0 || track >= AUDIO_BUILTIN_MUSIC_COUNT {
         return
     }
     spec := (ParagraphSpec){
@@ -1000,7 +1000,7 @@ draw_music_attribution :: (x: int, w: int, track: int, y: int*) #private {
     *y += Scale(10)
 }
 
-settings_audio_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
+settings_audio_draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     sound_volume := app->sound_volume
     music_volume := app->music_volume
 
@@ -1028,13 +1028,13 @@ settings_audio_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         }
     }
 
-    draw_cue_selector(app, x, w, y, INBE_AUDIO_CUE_BREATH_IN,
+    draw_cue_selector(app, x, w, y, AUDIO_CUE_BREATH_IN,
                       GetLocaleText("audio_breath_in_label"),
                       SETTINGS_AUDIO_ACTION_SOUND_IN)
-    draw_cue_selector(app, x, w, y, INBE_AUDIO_CUE_BREATH_OUT,
+    draw_cue_selector(app, x, w, y, AUDIO_CUE_BREATH_OUT,
                       GetLocaleText("audio_breath_out_label"),
                       SETTINGS_AUDIO_ACTION_SOUND_OUT)
-    draw_cue_selector(app, x, w, y, INBE_AUDIO_CUE_BELL,
+    draw_cue_selector(app, x, w, y, AUDIO_CUE_BELL,
                       GetLocaleText("audio_bell_label"),
                       SETTINGS_AUDIO_ACTION_SOUND_BELL)
     draw_custom_sound_list(app, x, w, y)

@@ -1,5 +1,5 @@
-#ifndef INBE_ANDROID_TIMER_H
-#define INBE_ANDROID_TIMER_H
+#ifndef APP_ANDROID_TIMER_H
+#define APP_ANDROID_TIMER_H
 
 #include "platform.h"
 

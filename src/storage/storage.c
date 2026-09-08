@@ -72,10 +72,10 @@ storage_json_valid(const char *json);
 #define STORAGE_SYNC_ENCRYPTED_SHADOW_QUEUED_KEY "sync_encrypted_shadow_v4_queued_v2"
 #define STORAGE_SYNC_ENCRYPTED_SHADOW_TOTAL_KEY "sync_encrypted_shadow_v4_total_v2"
 #define STORAGE_SYNC_OP_BATCH_LIMIT 400
-#define STORAGE_SYNC_RECORD_KEY_CONTEXT "inbe-private-record-key-v1"
-#define STORAGE_SYNC_RECORD_KEY_ID "inbe-main-1"
-#define STORAGE_SYNC_LEGACY_RECORD_KEY_CONTEXT "inbe-ksync-record-key-v1"
-#define STORAGE_SYNC_LEGACY_RECORD_KEY_ID "inbe-v4-main"
+#define STORAGE_SYNC_RECORD_KEY_CONTEXT "breathing-private-record-key-v1"
+#define STORAGE_SYNC_RECORD_KEY_ID "breathing-main-1"
+#define STORAGE_SYNC_LEGACY_RECORD_KEY_CONTEXT "breathing-ksync-record-key-v1"
+#define STORAGE_SYNC_LEGACY_RECORD_KEY_ID "breathing-v4-main"
 
 long long
 storage_next_change_time(void)
@@ -199,6 +199,18 @@ storage_enqueue_sync_session(const char *session_id)
     return storage_enqueue_sync_entity("session", session_id, 0);
 }
 
+int
+storage_enqueue_sync_elist_list(const char *list_id)
+{
+    return storage_enqueue_sync_entity("elist_list", list_id, 0);
+}
+
+int
+storage_enqueue_sync_elist_item(const char *item_id)
+{
+    return storage_enqueue_sync_entity("elist_item", item_id, 0);
+}
+
 void
 storage_enqueue_all_sync_state(void)
 {
@@ -222,6 +234,16 @@ storage_enqueue_all_sync_state(void)
              "queued_at=excluded.queued_at");
     exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
              "SELECT 'session',id,0,strftime('%s','now') FROM sessions "
+             "WHERE user_id=(SELECT id FROM users LIMIT 1) "
+             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
+             "queued_at=excluded.queued_at");
+    exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+             "SELECT 'elist_list',id,0,strftime('%s','now') FROM elist_lists "
+             "WHERE user_id=(SELECT id FROM users LIMIT 1) "
+             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
+             "queued_at=excluded.queued_at");
+    exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+             "SELECT 'elist_item',id,0,strftime('%s','now') FROM elist_items "
              "WHERE user_id=(SELECT id FROM users LIMIT 1) "
              "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
              "queued_at=excluded.queued_at");
@@ -645,6 +667,48 @@ storage_append_habit_day_row_json(StorageJsonBuilder *json, sqlite3_stmt *stmt)
 }
 
 static void
+storage_append_elist_list_row_json(StorageJsonBuilder *json, sqlite3_stmt *stmt)
+{
+    storage_json_builder_append(json, "{");
+    storage_json_builder_append_key_string(json, "id",
+                                           (const char *)sqlite3_column_text(stmt, 0));
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "title",
+                                           (const char *)sqlite3_column_text(stmt, 1));
+    storage_json_builder_appendf(json,
+                                 ",\"sort_order\":%d,\"deleted_at\":%lld,\"updated_at\":",
+                                 sqlite3_column_int(stmt, 2),
+                                 sqlite3_column_int64(stmt, 3));
+    storage_json_builder_append_epoch(json, sqlite3_column_int64(stmt, 4));
+    storage_json_builder_append(json, "}");
+}
+
+static void
+storage_append_elist_item_row_json(StorageJsonBuilder *json, sqlite3_stmt *stmt)
+{
+    storage_json_builder_append(json, "{");
+    storage_json_builder_append_key_string(json, "id",
+                                           (const char *)sqlite3_column_text(stmt, 0));
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "list_id",
+                                           (const char *)sqlite3_column_text(stmt, 1));
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "title",
+                                           (const char *)sqlite3_column_text(stmt, 2));
+    storage_json_builder_append(json, ",");
+    storage_json_builder_append_key_string(json, "comment",
+                                           (const char *)sqlite3_column_text(stmt, 3));
+    storage_json_builder_appendf(json,
+                                 ",\"done\":%s,\"sort_order\":%d,\"deleted_at\":%lld,"
+                                 "\"updated_at\":",
+                                 sqlite3_column_int(stmt, 4) ? "true" : "false",
+                                 sqlite3_column_int(stmt, 5),
+                                 sqlite3_column_int64(stmt, 6));
+    storage_json_builder_append_epoch(json, sqlite3_column_int64(stmt, 7));
+    storage_json_builder_append(json, "}");
+}
+
+static void
 storage_append_session_rounds_json(StorageJsonBuilder *json, const char *session_id)
 {
     sqlite3_stmt *stmt = NULL;
@@ -787,6 +851,26 @@ storage_append_session_payload_json(StorageJsonBuilder *json, const char *sessio
 }
 
 static int
+storage_append_elist_list_payload_json(StorageJsonBuilder *json, const char *list_id)
+{
+    return storage_append_id_payload_json(
+        json,
+        "SELECT id,title,sort_order,deleted_at,updated_at FROM elist_lists "
+        "WHERE user_id=?1 AND id=?2",
+        list_id, storage_append_elist_list_row_json);
+}
+
+static int
+storage_append_elist_item_payload_json(StorageJsonBuilder *json, const char *item_id)
+{
+    return storage_append_id_payload_json(
+        json,
+        "SELECT id,list_id,title,comment,done,sort_order,deleted_at,updated_at "
+        "FROM elist_items WHERE user_id=?1 AND id=?2",
+        item_id, storage_append_elist_item_row_json);
+}
+
+static int
 storage_sync_op_is_delete(const char *entity_type, const char *entity_id, int local_date)
 {
     sqlite3_stmt *stmt = NULL;
@@ -826,6 +910,22 @@ storage_sync_op_is_delete(const char *entity_type, const char *entity_id, int lo
         sqlite3_bind_int(stmt, 2, local_date);
         if(sqlite3_step(stmt) != SQLITE_ROW)
             deleted = 1;
+    } else if(strcmp(entity_type, "elist_list") == 0 ||
+              strcmp(entity_type, "elist_item") == 0) {
+        const char *table = strcmp(entity_type, "elist_list") == 0
+                                ? "elist_lists" : "elist_items";
+        char sql[160];
+
+        snprintf(sql, sizeof(sql),
+                 "SELECT deleted_at FROM %s WHERE user_id=?1 AND id=?2", table);
+        if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) != SQLITE_OK)
+            return 0;
+        bind_text(stmt, 1, g_storage.user_id);
+        bind_text(stmt, 2, entity_id);
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            deleted = sqlite3_column_int64(stmt, 0) > 0;
+        else
+            deleted = 1;
     }
     sqlite3_finalize(stmt);
     return deleted;
@@ -843,6 +943,10 @@ storage_append_sync_op_payload(StorageJsonBuilder *json, const char *entity_type
         found = storage_append_habit_day_payload_json(json, entity_id, local_date);
     else if(strcmp(entity_type, "session") == 0)
         found = storage_append_session_payload_json(json, entity_id);
+    else if(strcmp(entity_type, "elist_list") == 0)
+        found = storage_append_elist_list_payload_json(json, entity_id);
+    else if(strcmp(entity_type, "elist_item") == 0)
+        found = storage_append_elist_item_payload_json(json, entity_id);
     if(!found)
         storage_json_builder_append(json, "{}");
 }
@@ -913,6 +1017,10 @@ storage_encrypted_collection_for_entity(const char *entity_type)
         return "private.inbe.v1.habit-days";
     if(strcmp(entity_type, "session") == 0)
         return "private.inbe.v1.sessions";
+    if(strcmp(entity_type, "elist_list") == 0)
+        return "private.inbe.v1.elist-lists";
+    if(strcmp(entity_type, "elist_item") == 0)
+        return "private.inbe.v1.elist-items";
     return NULL;
 }
 
@@ -1115,7 +1223,7 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     g_storage.pending_sync_outbox_seq = through_seq;
     json.ok = 1;
     storage_json_builder_append(&json, "{");
-    storage_json_builder_appendf(&json, "\"protocol_version\":%d,", INBE_SYNC_PROTOCOL_VERSION);
+    storage_json_builder_appendf(&json, "\"protocol_version\":%d,", SYNC_PROTOCOL_VERSION);
     storage_json_builder_append(&json, "\"app_id\":\"inbe\",");
     storage_json_builder_append(&json, "\"client_capabilities\":["
                        "\"v6-device-transactions\","
@@ -1708,17 +1816,24 @@ static const char *
 storage_decrypted_array_name(const char *collection)
 {
     if(strcmp(collection, "private.inbe.v1.habits") == 0 ||
-       strcmp(collection, "inbe.habits") == 0) {
+       strcmp(collection, "private.breathing.v1.habits") == 0 ||
+       strcmp(collection, "breathing.habits") == 0) {
         return "habits";
     }
     if(strcmp(collection, "private.inbe.v1.habit-days") == 0 ||
-       strcmp(collection, "inbe.habit_days") == 0) {
+       strcmp(collection, "private.breathing.v1.habit-days") == 0 ||
+       strcmp(collection, "breathing.habit_days") == 0) {
         return "habit_days";
     }
     if(strcmp(collection, "private.inbe.v1.sessions") == 0 ||
-       strcmp(collection, "inbe.sessions") == 0) {
+       strcmp(collection, "private.breathing.v1.sessions") == 0 ||
+       strcmp(collection, "breathing.sessions") == 0) {
         return "sessions";
     }
+    if(strcmp(collection, "private.inbe.v1.elist-lists") == 0)
+        return "elist_lists";
+    if(strcmp(collection, "private.inbe.v1.elist-items") == 0)
+        return "elist_items";
     return NULL;
 }
 
@@ -1749,6 +1864,10 @@ storage_apply_decrypted_record(const char *collection, const char *plaintext)
              storage_apply_sync_habits_json(response.data);
     } else if(strcmp(array_name, "habit_days") == 0) {
         ok = storage_apply_sync_habit_days_json(response.data);
+    } else if(strcmp(array_name, "elist_lists") == 0) {
+        ok = storage_apply_sync_elist_lists_json(response.data);
+    } else if(strcmp(array_name, "elist_items") == 0) {
+        ok = storage_apply_sync_elist_items_json(response.data);
     } else {
         ok = storage_apply_sync_session_rounds_json(response.data) &&
              storage_apply_sync_sessions_json(response.data);
@@ -1777,7 +1896,7 @@ storage_decrypt_record(const char *collection, const char *record_id,
     if(strcmp(key_id, STORAGE_SYNC_RECORD_KEY_ID) == 0) {
         context = STORAGE_SYNC_RECORD_KEY_CONTEXT;
     } else if(strcmp(key_id, STORAGE_SYNC_LEGACY_RECORD_KEY_ID) == 0 ||
-              strcmp(key_id, "inbe-v5-main") == 0) {
+              strcmp(key_id, "breathing-v5-main") == 0) {
         context = STORAGE_SYNC_LEGACY_RECORD_KEY_CONTEXT;
     } else {
         return 0;
@@ -1915,23 +2034,25 @@ storage_apply_sync_response_json(const char *response_json)
         }
     }
     old_server_version = get_meta_int64("sync_last_server_version", 0);
-    if(!exec_sql("SAVEPOINT inbe_sync_apply"))
+    if(!exec_sql("SAVEPOINT sync_apply"))
         return 0;
     storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
     if(!storage_apply_encrypted_records(response_json) ||
        !storage_reconcile_remote_habit_ids(response_json) ||
        !storage_apply_sync_habits_json(response_json) ||
        !storage_apply_sync_habit_days_json(response_json) ||
+       !storage_apply_sync_elist_lists_json(response_json) ||
+       !storage_apply_sync_elist_items_json(response_json) ||
        !storage_merge_duplicate_habit_names() ||
        !storage_apply_sync_session_rounds_json(response_json) ||
        !storage_apply_sync_sessions_json(response_json) ||
        !storage_apply_sync_meditation_logs_json(response_json) ||
        !storage_apply_sync_social_json(response_json)) {
-        exec_sql("ROLLBACK TO inbe_sync_apply");
-        exec_sql("RELEASE inbe_sync_apply");
+        exec_sql("ROLLBACK TO sync_apply");
+        exec_sql("RELEASE sync_apply");
         return 0;
     }
-    if(!exec_sql("RELEASE inbe_sync_apply")) {
+    if(!exec_sql("RELEASE sync_apply")) {
         return 0;
     }
     storage_materialize_session_habit_days();
@@ -2049,7 +2170,7 @@ storage_last_sync_changed(void)
 }
 
 int
-storage_sync_status(InbeStorageSyncStatus *status)
+storage_sync_status(StorageSyncStatus *status)
 {
     if(status == NULL)
         return 0;
@@ -2066,8 +2187,8 @@ storage_sync_status(InbeStorageSyncStatus *status)
     status->server_version = get_meta_int64("sync_last_server_version", 0);
     status->server_clock = get_meta_int64(STORAGE_SYNC_SERVER_CLOCK_KEY, 0);
     status->latest_protocol = (int)get_meta_int64(STORAGE_SYNC_LATEST_PROTOCOL_KEY,
-                                                  INBE_SYNC_PROTOCOL_VERSION);
-    status->protocol_upgrade_available = status->latest_protocol > INBE_SYNC_PROTOCOL_VERSION;
+                                                  SYNC_PROTOCOL_VERSION);
+    status->protocol_upgrade_available = status->latest_protocol > SYNC_PROTOCOL_VERSION;
     storage_clear_completed_encrypted_shadow_outbox_if_stale();
     status->queued_changes = db_select_int64("SELECT COUNT(*) FROM sync_outbox", 0);
     status->secure_migration_queued = storage_encrypted_shadow_queue_count();

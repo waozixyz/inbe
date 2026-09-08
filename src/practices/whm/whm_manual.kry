@@ -20,7 +20,7 @@ static tutorial_title_keys: [4] const char* = {
 }
 
 WhmManualScrollPageContext :: struct {
-    app: InbeApp*
+    app: InnerBreeze*
     step: int
 }
 
@@ -34,23 +34,23 @@ manual_text_color_for_background :: (background: Color) -> Color #private {
     return luma >= 128000 ? BLACK : WHITE
 }
 
-draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radius: int) #private {
-    previous_phase := app->inbe.phase
+draw_tutorial_hold_preview :: (app: InnerBreeze*, center_x: int, center_y: int, radius: int) #private {
+    previous_phase := app->breathing.phase
     previous_count: [CountSize] char = {0}
-    previous_sectick := app->inbe.sectick
-    previous_r := app->inbe.r
+    previous_sectick := app->breathing.sectick
+    previous_r := app->breathing.r
     text_color := manual_text_color_for_background(GetThemeCircle())
     text: [CountSize] char = {0}
     display_text: [8] char = {0}
 
-    cpcount(previous_count, app->inbe.count)
+    cpcount(previous_count, app->breathing.count)
     snprintf(text, sizeof(text), "0")
     snprintf(display_text, sizeof(display_text), "0:00")
 
-    app->inbe.phase = InbePhaseHold
-    cpcount(app->inbe.count, text)
-    app->inbe.sectick = app->inbe.frame % 60
-    app->inbe.r = (float)radius
+    app->breathing.phase = BreathPhaseHold
+    cpcount(app->breathing.count, text)
+    app->breathing.sectick = app->breathing.frame % 60
+    app->breathing.r = (float)radius
     draw_session_progress_circle(app, center_x, center_y, (float)radius)
     Text((TextProps){
         .bounds = {(float)(center_x - radius), (float)(center_y - radius),
@@ -62,13 +62,13 @@ draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radi
         .vertical_align = TextAlignCenter
     })
 
-    app->inbe.phase = previous_phase
-    cpcount(app->inbe.count, previous_count)
-    app->inbe.sectick = previous_sectick
-    app->inbe.r = previous_r
+    app->breathing.phase = previous_phase
+    cpcount(app->breathing.count, previous_count)
+    app->breathing.sectick = previous_sectick
+    app->breathing.r = previous_r
 }
 
-tutorial_paragraph :: (app: InbeApp*, step: int, content_w: int) -> ParagraphSpec #private {
+tutorial_paragraph :: (app: InnerBreeze*, step: int, content_w: int) -> ParagraphSpec #private {
     paragraph := manual_screen_tutorial_paragraph(
         GetLocaleText(tutorial_keys[step]), content_w)
 
@@ -85,7 +85,7 @@ draw_tutorial_header :: (step: int, content_x: int, y: int*, content_w: int) #pr
                                     content_x, y, content_w)
 }
 
-tutorial_paragraph_height :: (app: InbeApp*, step: int, content_w: int) -> int #private {
+tutorial_paragraph_height :: (app: InnerBreeze*, step: int, content_w: int) -> int #private {
     return GetNodeHeight(NodeParagraph(tutorial_paragraph(app, step, content_w), 0, 0))
 }
 
@@ -147,11 +147,11 @@ whm_manual_hint_height :: (text_key: const char*, content_w: int) -> int #privat
     return h
 }
 
-draw_tutorial_paragraph :: (app: InbeApp*, step: int, content_x: int, y: int*, content_w: int) #private {
+draw_tutorial_paragraph :: (app: InnerBreeze*, step: int, content_x: int, y: int*, content_w: int) #private {
     Paragraph(tutorial_paragraph(app, step, content_w), content_x, y)
 }
 
-manual_tutorial_content_height :: (app: InbeApp*, step: int, content_w: int) -> int #private {
+manual_tutorial_content_height :: (app: InnerBreeze*, step: int, content_w: int) -> int #private {
     actual_content_h := tutorial_header_height()
 
     if step == 0 {
@@ -189,7 +189,7 @@ whm_manual_scroll_page_content_height :: (content_w: int, user_data: void*) -> i
     return manual_tutorial_content_height(ctx->app, ctx->step, content_w)
 }
 
-whm_manual_close :: (app: InbeApp*, mark_seen: int) {
+whm_manual_close :: (app: InnerBreeze*, mark_seen: int) {
     if mark_seen {
         mark_exercise_manual_seen(app, EXERCISE_WIM_HOF)
     }
@@ -200,10 +200,10 @@ whm_manual_close :: (app: InbeApp*, mark_seen: int) {
     app->tutorial_step = 0
     app->manual_scroll = 0
     app->practice_tab = PRACTICE_TAB_PLAY
-    app_switch_screen(app, InbeScreenStart)
+    app_switch_screen(app, ScreenStart)
 }
 
-manual_screen_start_exercise :: (app: InbeApp*) #private {
+manual_screen_start_exercise :: (app: InnerBreeze*) #private {
     mark_exercise_manual_seen(app, EXERCISE_WIM_HOF)
     app->tutorial_step = 0
     app->manual_scroll = 0
@@ -211,8 +211,8 @@ manual_screen_start_exercise :: (app: InbeApp*) #private {
     session_start(app)
 }
 
-whm_manual_draw_breath_visual :: (app: InbeApp*, page: UIScrollPage, y: int*) #private {
-    speed := app->inbe.speed_level
+whm_manual_draw_breath_visual :: (app: InnerBreeze*, page: UIScrollPage, y: int*) #private {
+    speed := app->breathing.speed_level
     visual_h := whm_manual_breath_visual_height()
     hero := manual_screen_hero_bounds(page.content_x, page.content_w,
                                       *y, visual_h)
@@ -229,21 +229,21 @@ whm_manual_draw_breath_visual :: (app: InbeApp*, page: UIScrollPage, y: int*) #p
                        (float)outer + Scale(18),
                        Fade(GetThemeLink(), 0.20f),
                        Fade(GetThemeBackground(), 0.0f))
-    apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
-                      int_from_count(app->inbe.maxbreaths),
-                      app->inbe.pause_seconds)
+    apply_settings(&app->settings_preview, speed, app->breathing.max_rounds,
+                      int_from_count(app->breathing.maxbreaths),
+                      app->breathing.pause_seconds)
     update_preview_bounds(&app->settings_preview, page.content_w, visual_h)
     app->settings_preview.progressive_speed = 0
-    inbestep(&app->settings_preview)
-    if app->settings_preview.phase != InbePhaseBreathe {
+    breath_session_step(&app->settings_preview)
+    if app->settings_preview.phase != BreathPhaseBreathe {
         reset_settings_preview(app)
-        apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
-                          int_from_count(app->inbe.maxbreaths),
-                          app->inbe.pause_seconds)
+        apply_settings(&app->settings_preview, speed, app->breathing.max_rounds,
+                          int_from_count(app->breathing.maxbreaths),
+                          app->breathing.pause_seconds)
         update_preview_bounds(&app->settings_preview, page.content_w, visual_h)
         app->settings_preview.progressive_speed = 0
     }
-    draw_preview_inbe(&app->settings_preview, center_x, center_y)
+    draw_breath_preview(&app->settings_preview, center_x, center_y)
     DrawRing((Vector2){(float)center_x, (float)center_y},
              (float)(outer - ring_thick), (float)outer,
              0.0f, 360.0f, 64, Fade(GetThemeLink(), 0.60f))
@@ -251,8 +251,8 @@ whm_manual_draw_breath_visual :: (app: InbeApp*, page: UIScrollPage, y: int*) #p
     *y += visual_h
 }
 
-whm_manual_draw_breath_info :: (app: InbeApp*, page: UIScrollPage, y: int*) #private {
-    speed := app->inbe.speed_level
+whm_manual_draw_breath_info :: (app: InnerBreeze*, page: UIScrollPage, y: int*) #private {
+    speed := app->breathing.speed_level
     row_h := whm_manual_breath_info_height()
     pad := Scale(18)
 
@@ -264,19 +264,19 @@ whm_manual_draw_breath_info :: (app: InbeApp*, page: UIScrollPage, y: int*) #pri
                     GetLocaleText("speed_label"),
                     SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX,
                     &speed, "", nil) {
-        apply_settings(&app->inbe, speed, app->inbe.max_rounds,
-                          int_from_count(app->inbe.maxbreaths),
-                          app->inbe.pause_seconds)
-        apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
-                          int_from_count(app->inbe.maxbreaths),
-                          app->inbe.pause_seconds)
+        apply_settings(&app->breathing, speed, app->breathing.max_rounds,
+                          int_from_count(app->breathing.maxbreaths),
+                          app->breathing.pause_seconds)
+        apply_settings(&app->settings_preview, speed, app->breathing.max_rounds,
+                          int_from_count(app->breathing.maxbreaths),
+                          app->breathing.pause_seconds)
         app->settings_preview.progressive_speed = 0
         app->settings_dirty = 1
     }
     *y += row_h
 }
 
-whm_manual_draw_hold_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #private {
+whm_manual_draw_hold_preview :: (app: InnerBreeze*, page: UIScrollPage, y: int*) #private {
     visual_h := whm_manual_hold_visual_height()
     hero := manual_screen_hero_bounds(page.content_x, page.content_w,
                                       *y, visual_h)
@@ -333,7 +333,7 @@ whm_manual_draw_hint_card :: (page: UIScrollPage, y: int*, text_key: const char*
     *y += card_h
 }
 
-whm_manual_draw_page :: (app: InbeApp*, page: UIScrollPage, step: int, y: int*) #private {
+whm_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage, step: int, y: int*) #private {
     if step == 0 {
         img_h := Scale(242)
         warning_h := tutorial_safety_warning_height(page.content_w)
@@ -397,7 +397,7 @@ whm_manual_draw_page :: (app: InbeApp*, page: UIScrollPage, step: int, y: int*) 
     }
 }
 
-whm_manual_draw :: (app: InbeApp*) {
+whm_manual_draw :: (app: InnerBreeze*) {
     layout := (PracticeManualLayout){0}
     footer_content_pad := 0
     step := clampi(app->tutorial_step, 0, tutorial_steps_count() - 1)

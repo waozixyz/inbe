@@ -6,7 +6,7 @@ route results {
     page results
 }
 
-results :: (app: InbeApp*) #ui {
+results :: (app: InnerBreeze*) #ui {
     Screen root: {
     unused app
     }

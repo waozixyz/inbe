@@ -1778,3 +1778,17 @@ Wähle abgeschlossene Übungen, die für diese Gewohnheit zählen.
 [habit_routine_title]
 Zeitplan & Erinnerung
 ---
+[tab_elist]
+Listen
+[elist_title]
+Listen
+[elist_new_list]
+Neue Liste
+[elist_create_list]
+Liste erstellen
+[elist_add_item]
+Hinzufugen
+[elist_empty_title]
+Noch keine Listen
+[elist_empty_detail]
+Erstelle eine Liste und fuge Aufgaben und Notizen an einem Ort hinzu.

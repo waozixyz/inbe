@@ -15,20 +15,20 @@
 #import "stdlib.h"
 #import "string.h"
 
-HAS_FILE_DIALOG :: #defined(PLATFORM_WEB) || (!ANDROID_BUILD && !#defined(_WIN32) && !#defined(INBE_DISABLE_KRYON_FILE_DIALOG))
+HAS_FILE_DIALOG :: #defined(PLATFORM_WEB) || (!ANDROID_BUILD && !#defined(_WIN32) && !#defined(DISABLE_KRYON_FILE_DIALOG))
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
 
 #if HAS_FILE_DIALOG {
-    INBE_HAS_KRYON_FILE_DIALOG :: #define 1
+    HAS_KRYON_FILE_DIALOG :: #define 1
 }
 
-NATIVE_FILE_DIALOG :: #defined(INBE_HAS_KRYON_FILE_DIALOG)
+NATIVE_FILE_DIALOG :: #defined(HAS_KRYON_FILE_DIALOG)
 
 #if WEB {
     #import <emscripten.h>
     web_download_file :: (path: const char*, filename: const char*, mime: const char*) -> int #intrinsic "web"
-    static web_export_path: const char* = "/tmp/inbe-web-export.zip"
+    static web_export_path: const char* = "/tmp/breathing-web-export.zip"
     static web_file_dialog: FileDialog = {0}
     static web_file_dialog_ready: int = 0
 }
@@ -74,7 +74,7 @@ clear_pending_import :: () #private {
     memset(&pending_import_info, 0, sizeof(pending_import_info))
 }
 
-file_dialog_begin :: (app: InbeApp*, action: int) #private {
+file_dialog_begin :: (app: InnerBreeze*, action: int) #private {
     #if ANDROID || WEB {
         if app == nil {
             return
@@ -82,7 +82,7 @@ file_dialog_begin :: (app: InbeApp*, action: int) #private {
         data_file_dialog_action = action
         app->file_dialog_active = 1
         file_dialog_origin.active = 1
-        file_dialog_origin.screen = app->inbe.screen
+        file_dialog_origin.screen = app->breathing.screen
         file_dialog_origin.settings_tab = app->settings_tab
         file_dialog_origin.settings_scroll = app->settings_scroll
         file_dialog_origin.profile_view = app->profile_view
@@ -93,11 +93,11 @@ file_dialog_begin :: (app: InbeApp*, action: int) #private {
     }
 }
 
-file_dialog_finish :: (app: InbeApp*) -> int #private {
+file_dialog_finish :: (app: InnerBreeze*) -> int #private {
     #if ANDROID || WEB {
         action := data_file_dialog_action
         if app != nil && file_dialog_origin.active {
-            app->inbe.screen = file_dialog_origin.screen
+            app->breathing.screen = file_dialog_origin.screen
             app->settings_tab = file_dialog_origin.settings_tab
             app->settings_scroll = file_dialog_origin.settings_scroll
             app->profile_view = file_dialog_origin.profile_view
@@ -115,7 +115,7 @@ file_dialog_finish :: (app: InbeApp*) -> int #private {
     }
 }
 
-web_file_dialog_begin :: (app: InbeApp*, action: int, title: const char*, filter: const char*) #private {
+web_file_dialog_begin :: (app: InnerBreeze*, action: int, title: const char*, filter: const char*) #private {
     #if WEB {
         if web_file_dialog_ready {
             CloseFileDialog(&web_file_dialog)
@@ -141,13 +141,13 @@ web_file_dialog_close :: () #private {
     }
 }
 
-import_success :: (app: InbeApp*, imported_settings: int) #private {
+import_success :: (app: InnerBreeze*, imported_settings: int) #private {
     app_reload_after_import(app, imported_settings)
     settings_screen_set_status_success(GetLocaleText("imported_data"), nil)
     TraceLog(LOG_INFO, "DATA: Import successful")
 }
 
-perform_import :: (app: InbeApp*, path: const char*, mode: DataImportMode) -> int #private {
+perform_import :: (app: InnerBreeze*, path: const char*, mode: DataImportMode) -> int #private {
     if app == nil || path == nil || path[0] == '\0' {
         settings_screen_set_status_error(GetLocaleText("import_invalid_file"))
         return 0
@@ -163,7 +163,7 @@ perform_import :: (app: InbeApp*, path: const char*, mode: DataImportMode) -> in
     return 0
 }
 
-begin_import_for_path :: (app: InbeApp*, path: const char*) #private {
+begin_import_for_path :: (app: InnerBreeze*, path: const char*) #private {
     info: DataImportInfo = {0}
 
     if app == nil || path == nil || path[0] == '\0' {
@@ -188,7 +188,7 @@ begin_import_for_path :: (app: InbeApp*, path: const char*) #private {
     perform_import(app, path, DATA_IMPORT_DATA_ONLY)
 }
 
-sync_server_load :: (app: InbeApp*) #private {
+sync_server_load :: (app: InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -206,7 +206,7 @@ register_sync_key_dialogs :: () {
     settings_sync_account_set_import_dialog(start_sync_key_import_dialog)
 }
 
-open_sync_account_config :: (app: InbeApp*) {
+open_sync_account_config :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
@@ -225,7 +225,7 @@ open_sync_account_config :: (app: InbeApp*) {
     settings_screen_clear_status()
 }
 
-start_sync_key_export_dialog :: (app: InbeApp*, filename: const char*) -> int #private {
+start_sync_key_export_dialog :: (app: InnerBreeze*, filename: const char*) -> int #private {
     #if WEB {
         unused filename
         unused app
@@ -258,13 +258,13 @@ start_sync_key_export_dialog :: (app: InbeApp*, filename: const char*) -> int #p
     }
 }
 
-import_sync_key_path :: (app: InbeApp*, path: const char*) -> int #private {
+import_sync_key_path :: (app: InnerBreeze*, path: const char*) -> int #private {
     account: SyncAccount
 
     if path != nil && path[0] != '\0' &&
        sync_account_import_private_key_preview(&account, path) {
         if settings_sync_account_save_prepared(app, &account,
-                                               InbePendingSyncAccountImport, 0) {
+                                               PendingSyncAccountImport, 0) {
             settings_sync_account_connect(app)
             TraceLog(LOG_INFO, "SYNC: Private key imported from %s", path)
         }
@@ -278,7 +278,7 @@ import_sync_key_path :: (app: InbeApp*, path: const char*) -> int #private {
     return 0
 }
 
-start_sync_key_import_dialog :: (app: InbeApp*) -> int #private {
+start_sync_key_import_dialog :: (app: InnerBreeze*) -> int #private {
     #if WEB {
         web_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT,
                                  GetLocaleText("sync_import_key_dialog_title"),
@@ -332,7 +332,7 @@ content_height :: (content_w: int) -> int {
            Scale(40)
 }
 
-draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
+draw_actions :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     account: SyncAccount
     data_button_h := Scale(36)
     hover_import: int = 0
@@ -387,7 +387,7 @@ draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
 }
 
 draw_sync_status :: (x: int, w: int, y: int*) {
-    status: InbeStorageSyncStatus
+    status: StorageSyncStatus
     line: [160] char = {0}
     font: int = GetSmallFontSize()
     label_font: int = GetFontSize()
@@ -500,7 +500,7 @@ draw_sync_status :: (x: int, w: int, y: int*) {
     *y += Scale(74)
 }
 
-handle_android_import :: (app: InbeApp*) {
+handle_android_import :: (app: InnerBreeze*) {
     #if ANDROID {
         import_path: [FS_PATH_MAX] char = {0}
         action: int = data_file_dialog_action
@@ -540,7 +540,7 @@ handle_android_import :: (app: InbeApp*) {
     }
 }
 
-handle_web_import :: (app: InbeApp*) {
+handle_web_import :: (app: InnerBreeze*) {
     #if WEB {
         action: int
         result: int
@@ -588,7 +588,7 @@ handle_web_import :: (app: InbeApp*) {
     }
 }
 
-import_data :: (app: InbeApp*) #private {
+import_data :: (app: InnerBreeze*) #private {
     #if ANDROID {
         file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT)
         if android_import_open_picker_for(ANDROID_IMPORT_KIND_DATA,
@@ -626,7 +626,7 @@ import_data :: (app: InbeApp*) #private {
     }
 }
 
-export_data :: (app: InbeApp*) #private {
+export_data :: (app: InnerBreeze*) #private {
     export_filename: [64] char
     data_default_export_filename(export_filename, sizeof(export_filename))
 
@@ -680,7 +680,7 @@ export_data :: (app: InbeApp*) #private {
     }
 }
 
-request_delete_all_data :: (app: InbeApp*) #private {
+request_delete_all_data :: (app: InnerBreeze*) #private {
     if data_has_any() {
         app_open_modal(app, UIModalConfirmDeleteData)
     } else {
@@ -690,10 +690,10 @@ request_delete_all_data :: (app: InbeApp*) #private {
 
 # Plain-text stats: every practice session (incl. meditation) as CSV rows,
 # shareable into spreadsheets / health dashboards.
-export_csv :: (app: InbeApp*) #private {
+export_csv :: (app: InnerBreeze*) #private {
     #if ANDROID {
         csv_path: [128] char
-        snprintf(csv_path, sizeof(csv_path), "%s/inbe-sessions.csv",
+        snprintf(csv_path, sizeof(csv_path), "%s/breathing-sessions.csv",
                  data_root())
         file_dialog_begin(app, SETTINGS_DATA_ACTION_EXPORT)
         if storage_export_sessions_csv(csv_path) {
@@ -706,7 +706,7 @@ export_csv :: (app: InbeApp*) #private {
     } #else_if WEB {
         unused app
         if storage_export_sessions_csv(web_export_path) &&
-           web_download_file(web_export_path, "inbe-sessions.csv", "text/csv") {
+           web_download_file(web_export_path, "breathing-sessions.csv", "text/csv") {
             settings_screen_set_status_success(GetLocaleText("exported_label"), nil)
         } else {
             settings_screen_set_status_error(GetLocaleText("export_failed"))
@@ -716,7 +716,7 @@ export_csv :: (app: InbeApp*) #private {
         unused app
         InitFileDialog(&dlg)
         if SaveFileDialog(&dlg, GetLocaleText("export_csv_dialog_title"),
-                          "inbe-sessions.csv") {
+                          "breathing-sessions.csv") {
             path := GetFileDialogPath(&dlg)
             if path != nil && storage_export_sessions_csv(path) {
                 settings_screen_set_status_success(GetLocaleText("exported_label"),
@@ -738,7 +738,7 @@ export_csv :: (app: InbeApp*) #private {
 # meditation becomes a mindfulness session, the breathwork practices
 # become yoga exercise sessions. Java owns permissions, the incremental
 # marker and the result toasts.
-export_health_connect :: (app: InbeApp*) #private {
+export_health_connect :: (app: InnerBreeze*) #private {
     #if ANDROID {
         if !data_has_any() {
             settings_screen_set_status_error(GetLocaleText("no_data_to_export"))
@@ -755,7 +755,7 @@ export_health_connect :: (app: InbeApp*) #private {
     }
 }
 
-draw_import_choice_modal :: (app: InbeApp*) -> int {
+draw_import_choice_modal :: (app: InnerBreeze*) -> int {
     frame: UIPanelFrame
     font: int = GetFontSize()
     message: const char* = GetLocaleText("import_choice_message")
@@ -824,7 +824,7 @@ draw_import_choice_modal :: (app: InbeApp*) -> int {
     return 0
 }
 
-draw_sync_review_modal :: (app: InbeApp*) -> int {
+draw_sync_review_modal :: (app: InnerBreeze*) -> int {
     frame: UIPanelFrame
     diff_detail: char* = nil
     intro: ParagraphSpec
@@ -986,7 +986,7 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
     return 0
 }
 
-draw_modals :: (app: InbeApp*) -> int {
+draw_modals :: (app: InnerBreeze*) -> int {
     if app == nil || !app->modal.active {
         return 0
     }
@@ -1068,14 +1068,14 @@ draw_modals :: (app: InbeApp*) -> int {
         if modal_result == 1 {
             app_close_modal(app)
             memset(&app->pending_sync_account, 0, sizeof(app->pending_sync_account))
-            app->pending_sync_account_action = InbePendingSyncAccountNone
+            app->pending_sync_account_action = PendingSyncAccountNone
             settings_screen_set_status_error(GetLocaleText("sync_account_switch_cancelled"))
         } else if modal_result == 2 {
             account: SyncAccount = app->pending_sync_account
-            action: InbePendingSyncAccountAction = app->pending_sync_account_action
+            action: PendingSyncAccountAction = app->pending_sync_account_action
             app_close_modal(app)
             if settings_sync_account_save_prepared(app, &account, action, 1) {
-                if action == InbePendingSyncAccountImport {
+                if action == PendingSyncAccountImport {
                     settings_sync_account_connect(app)
                 } else {
                     app_reload_after_import(app, 0)

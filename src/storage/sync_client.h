@@ -1,5 +1,5 @@
-#ifndef INBE_SYNC_CLIENT_H
-#define INBE_SYNC_CLIENT_H
+#ifndef SYNC_CLIENT_H
+#define SYNC_CLIENT_H
 
 #include "sync.h"
 

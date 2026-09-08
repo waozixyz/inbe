@@ -57,6 +57,12 @@ PopUIInspectSource(void)
 }
 
 void
+habit_linked_cache_clear(Habits *habits)
+{
+    (void)habits;
+}
+
+void
 data_init(void)
 {
     data_init_count++;
@@ -121,7 +127,7 @@ storage_habits_initialized(void)
 static void
 test_date_helpers(void)
 {
-    InbeHabit habit = {0};
+    Habit habit = {0};
     struct tm tm_value = {0};
     char text[32];
 
@@ -149,13 +155,13 @@ test_date_helpers(void)
 static void
 test_count_mutations(void)
 {
-    InbeApp app = {0};
-    InbeHabits *habits = &app.habits;
+    InnerBreeze app = {0};
+    Habits *habits = &app.habits;
     int index;
 
     reset_stubs();
     index = habits_add_custom(habits, "Walk", (Color){1, 2, 3, 255},
-                              INBE_HABIT_SYNC_NONE, 0);
+                              HABIT_SYNC_NONE, 0);
     expect_int("add custom index", index, 0);
     expect_int("add custom count", habits->count, 1);
     expect_str("add custom name", habits->items[0].name, "Walk");
@@ -189,11 +195,11 @@ test_count_mutations(void)
 static void
 test_dirty_flush_on_storage_failure(void)
 {
-    InbeApp app = {0};
+    InnerBreeze app = {0};
 
     reset_stubs();
     habits_add_custom(&app.habits, "Walk", (Color){1, 2, 3, 255},
-                      INBE_HABIT_SYNC_NONE, 0);
+                      HABIT_SYNC_NONE, 0);
     storage_day_save_result = 0;
     habit_toggle_day(&app.habits, 0, 20260828);
     expect_int("failed day save waits for flush", app.habits.dirty, 0);
@@ -213,16 +219,16 @@ test_dirty_flush_on_storage_failure(void)
 static void
 test_move_delete_and_unique_names(void)
 {
-    InbeHabits habits = {0};
-    char unique[INBE_HABIT_NAME_SIZE];
+    Habits habits = {0};
+    char unique[HABIT_NAME_SIZE];
 
     reset_stubs();
     habits_add_custom(&habits, "Walk", (Color){1, 2, 3, 255},
-                      INBE_HABIT_SYNC_NONE, 0);
+                      HABIT_SYNC_NONE, 0);
     habits_add_custom(&habits, "Walk", (Color){1, 2, 3, 255},
-                      INBE_HABIT_SYNC_NONE, 0);
+                      HABIT_SYNC_NONE, 0);
     habits_add_custom(&habits, "Read", (Color){1, 2, 3, 255},
-                      INBE_HABIT_SYNC_NONE, 0);
+                      HABIT_SYNC_NONE, 0);
 
     expect_str("duplicate name gets suffix", habits.items[1].name, "Walk 2");
     expect_int("exclude current duplicate", habits_name_exists(&habits, "Walk", 0), 0);
@@ -248,8 +254,8 @@ test_move_delete_and_unique_names(void)
 static void
 test_defaults_and_activity_matching(void)
 {
-    InbeHabits habits = {0};
-    InbeApp app = {0};
+    Habits habits = {0};
+    InnerBreeze app = {0};
     int today;
 
     reset_stubs();
@@ -266,10 +272,10 @@ test_defaults_and_activity_matching(void)
 
     reset_stubs();
     habits_add_custom(&app.habits, "Linked", (Color){1, 2, 3, 255},
-                      INBE_HABIT_SYNC_ACTIVITIES,
+                      HABIT_SYNC_ACTIVITIES,
                       habit_activity_mask_for(EXERCISE_PATTERNS));
     habits_add_custom(&app.habits, "Manual", (Color){1, 2, 3, 255},
-                      INBE_HABIT_SYNC_NONE, 0);
+                      HABIT_SYNC_NONE, 0);
     app.habits.selected = 1;
     sync_habits_for_activity(&app, EXERCISE_PATTERNS);
     today = habits_today_index();

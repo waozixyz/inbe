@@ -12,7 +12,7 @@ if (hasGplayFirebaseConfig) {
         }
     }
 }
-def inbeOnlyAbi = (project.findProperty('inbe.onlyAbi') ?: '').toString()
+def appOnlyAbi = (project.findProperty('app.onlyAbi') ?: '').toString()
 def buildingAndroidBundle = gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
 def kryonDirOverride = (project.findProperty('kryon.dir') ?: System.getenv("KRYON_DIR") ?: '').toString()
 
@@ -82,18 +82,18 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            buildConfigField "boolean", "INBE_GPLAY", "false"
+            buildConfigField "boolean", "GPLAY", "false"
         }
         gplay {
             initWith release
             signingConfig project.hasProperty('fDroidBuild') ? null : signingConfigs.release
             matchingFallbacks = ['release']
-            buildConfigField "boolean", "INBE_GPLAY", "true"
+            buildConfigField "boolean", "GPLAY", "true"
         }
         debug {
             applicationIdSuffix ".debug"
             signingConfig signingConfigs.debug
-            buildConfigField "boolean", "INBE_GPLAY", "false"
+            buildConfigField "boolean", "GPLAY", "false"
             manifestPlaceholders.inbeAppLabel = "Inner Breeze Debug"
             manifestPlaceholders.inbeUsesCleartextTraffic = "true"
         }
@@ -109,8 +109,8 @@ android {
         abi {
             enable !buildingAndroidBundle
             reset()
-            if (!buildingAndroidBundle && inbeOnlyAbi) {
-                include inbeOnlyAbi
+            if (!buildingAndroidBundle && appOnlyAbi) {
+                include appOnlyAbi
                 universalApk false
             } else if (!buildingAndroidBundle) {
                 include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'

@@ -1,7 +1,7 @@
 #import "app.h"
 #import "app_nav.h"
 
-bottom_nav_route_icon :: (app: InbeApp*, route: int) -> Texture2D #private {
+bottom_nav_route_icon :: (app: InnerBreeze*, route: int) -> Texture2D #private {
     if app == NULL {
         return (Texture2D){0}
     }
@@ -23,61 +23,64 @@ bottom_nav_route_icon :: (app: InbeApp*, route: int) -> Texture2D #private {
     if route == APP_NAV_ROUTE_HABITS {
         return app->icons[UI_ICON_TYPE_ACTIVITY]
     }
+    if route == APP_NAV_ROUTE_ELIST {
+        return app->icons[UI_ICON_TYPE_CHECK]
+    }
     if route == APP_NAV_ROUTE_PRACTICE {
         return app->icons[UI_ICON_TYPE_AMEN]
     }
     return (Texture2D){0}
 }
 
-bottom_nav_practice_fullscreen_subview :: (app: InbeApp*) -> int #private {
-    return app != NULL && app->inbe.screen == InbeScreenStart && (app->practice_tab == PRACTICE_TAB_MANUAL || app->practice_tab == PRACTICE_TAB_CONFIG)
+bottom_nav_practice_fullscreen_subview :: (app: InnerBreeze*) -> int #private {
+    return app != NULL && app->breathing.screen == ScreenStart && (app->practice_tab == PRACTICE_TAB_MANUAL || app->practice_tab == PRACTICE_TAB_CONFIG)
 }
 
-bottom_nav_blank_home :: (app: InbeApp*) -> int #private {
-    return app != NULL && app->inbe.screen == InbeScreenStart && app->main_tab == APP_MAIN_TAB_NONE
+bottom_nav_blank_home :: (app: InnerBreeze*) -> int #private {
+    return app != NULL && app->breathing.screen == ScreenStart && app->main_tab == APP_MAIN_TAB_NONE
 }
 
-bottom_nav_route_active :: (app: InbeApp*, route: int) -> int #private {
+bottom_nav_route_active :: (app: InnerBreeze*, route: int) -> int #private {
     if app == NULL {
         return 0
     }
     if route == APP_NAV_ROUTE_PROFILE {
-        return app->inbe.screen == InbeScreenProfile &&
+        return app->breathing.screen == ScreenProfile &&
                app->profile_view == PROFILE_VIEW_MAIN &&
                app->profile_tab == PROFILE_TAB_OVERVIEW
     }
     if route == APP_NAV_ROUTE_ACCOUNT {
-        return app->inbe.screen == InbeScreenProfile && app->profile_view == PROFILE_VIEW_MAIN && app->profile_tab == PROFILE_TAB_SYNC
+        return app->breathing.screen == ScreenProfile && app->profile_view == PROFILE_VIEW_MAIN && app->profile_tab == PROFILE_TAB_SYNC
     }
     if route == APP_NAV_ROUTE_DATA {
-        return app->inbe.screen == InbeScreenProfile && (app->profile_view == PROFILE_VIEW_DATA || app->profile_tab == PROFILE_TAB_DATA)
+        return app->breathing.screen == ScreenProfile && (app->profile_view == PROFILE_VIEW_DATA || app->profile_tab == PROFILE_TAB_DATA)
     }
     if route == APP_NAV_ROUTE_FRIENDS {
-        return app->inbe.screen == InbeScreenProfile && app->profile_tab == PROFILE_TAB_FRIENDS
+        return app->breathing.screen == ScreenProfile && app->profile_tab == PROFILE_TAB_FRIENDS
     }
     if route == APP_NAV_ROUTE_LEADERBOARD {
-        return app->inbe.screen == InbeScreenProfile && app->profile_tab == PROFILE_TAB_LEADERBOARD
+        return app->breathing.screen == ScreenProfile && app->profile_tab == PROFILE_TAB_LEADERBOARD
     }
     if route == APP_NAV_ROUTE_PRACTICE {
-        return app->inbe.screen == InbeScreenStart && app->main_tab == APP_MAIN_TAB_PRACTICE
+        return app->breathing.screen == ScreenStart && app->main_tab == APP_MAIN_TAB_PRACTICE
     }
     if route == APP_NAV_ROUTE_HABITS {
-        return app->inbe.screen == InbeScreenHabits || app->inbe.screen == InbeScreenHabitEdit || app->inbe.screen == InbeScreenHabitSessionEdit
+        return app->breathing.screen == ScreenHabits || app->breathing.screen == ScreenHabitEdit || app->breathing.screen == ScreenHabitSessionEdit
     }
     if route == APP_NAV_ROUTE_SETTINGS {
-        return app->inbe.screen == InbeScreenSettings
+        return app->breathing.screen == ScreenSettings
     }
     return 0
 }
 
-bottom_nav_should_draw :: (app: InbeApp*) -> int #private {
+bottom_nav_should_draw :: (app: InnerBreeze*) -> int #private {
     if app == NULL {
         return 0
     }
     if app_nav_desktop_rail_enabled(app) {
         return 0
     }
-    if app->inbe.screen == InbeScreenHabitEdit {
+    if app->breathing.screen == ScreenHabitEdit {
         return 0
     }
     if app->file_dialog_active {
@@ -86,7 +89,7 @@ bottom_nav_should_draw :: (app: InbeApp*) -> int #private {
     if app->modal.active && app->modal.type == UIModalEditProgressiveStartSpeed {
         return 0
     }
-    if app->inbe.screen == InbeScreenHabits && app->habits.screen_mode == HABITS_SCREEN_REORDER {
+    if app->breathing.screen == ScreenHabits && app->habits.screen_mode == HABITS_SCREEN_REORDER {
         return 0
     }
     return app_current_nav_route(app) != APP_NAV_ROUTE_NONE || bottom_nav_blank_home(app)
@@ -101,7 +104,7 @@ bottom_nav_draw_icon :: (icon: Texture2D, bounds: Rectangle, tint: Color) #priva
                    bounds, (Vector2){0}, 0.0f, tint)
 }
 
-desktop_rail_route_active :: (app: InbeApp*, route: int) -> int #private {
+desktop_rail_route_active :: (app: InnerBreeze*, route: int) -> int #private {
     return bottom_nav_route_active(app, route)
 }
 
@@ -109,7 +112,7 @@ desktop_rail_route_label :: (route: int) -> const char* #private {
     return app_nav_route_label(route)
 }
 
-desktop_rail_button :: (app: InbeApp*, route: int, rail_x: int, y: int) -> int #private {
+desktop_rail_button :: (app: InnerBreeze*, route: int, rail_x: int, y: int) -> int #private {
     rail_w := app_nav_desktop_rail_width()
     margin := Scale(6)
     item_w := rail_w - margin * 2
@@ -168,7 +171,7 @@ desktop_rail_button :: (app: InbeApp*, route: int, rail_x: int, y: int) -> int #
     return 0
 }
 
-desktop_rail_profile_button :: (app: InbeApp*, rail_x: int, y: int,
+desktop_rail_profile_button :: (app: InnerBreeze*, rail_x: int, y: int,
                                 rail_w: int) -> int #private {
     margin := Scale(6)
     item_w := rail_w - margin * 2
@@ -181,7 +184,7 @@ desktop_rail_profile_button :: (app: InbeApp*, rail_x: int, y: int,
     mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
     bounds := (Rectangle){(float)(rail_x + margin), (float)y,
                           (float)item_w, (float)item_h}
-    active := app != NULL && app->inbe.screen == InbeScreenProfile &&
+    active := app != NULL && app->breathing.screen == ScreenProfile &&
               app->profile_view == PROFILE_VIEW_MAIN
     hover := CheckCollisionPointRec(mouse, bounds)
     fill := active ? Fade(GetThemeButton(), 0.26f) :
@@ -265,7 +268,7 @@ desktop_rail_profile_button :: (app: InbeApp*, rail_x: int, y: int,
     return 0
 }
 
-app_draw_desktop_nav_rail :: (app: InbeApp*) #private {
+app_draw_desktop_nav_rail :: (app: InnerBreeze*) #private {
     rail_w := app_nav_desktop_rail_width()
     rail_x := -rail_w
     route_y := Scale(210)
@@ -299,7 +302,7 @@ app_draw_desktop_nav_rail :: (app: InbeApp*) #private {
     desktop_rail_button(app, APP_NAV_ROUTE_SETTINGS, rail_x, footer_y)
 }
 
-app_draw_bottom_nav :: (app: InbeApp*) {
+app_draw_bottom_nav :: (app: InnerBreeze*) {
     routes := (int[APP_BOTTOM_NAV_CONTENT_MAX + 1]){0}
     route_count := 0
     items := (BottomNavItem[APP_BOTTOM_NAV_CONTENT_MAX + 1]){0}
@@ -321,7 +324,7 @@ app_draw_bottom_nav :: (app: InbeApp*) {
         for int i = 0; i < route_count; i++ {
             routes[i] = app->bottom_nav_routes[i]
         }
-        if app->blocked_input_frame != app->inbe.frame || !IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+        if app->blocked_input_frame != app->breathing.frame || !IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
             for int i = 0; i < route_count; i++ {
                 route := routes[i]
                 items[i] = (BottomNavItem){route, app_nav_route_label(route), bottom_nav_route_icon(app, route), bottom_nav_route_active(app, route), app->modal.active}

@@ -1,10 +1,10 @@
 .DEFAULT_GOAL := all
 
-APP_NAME := inbe
+APP_NAME := breathing
 APP_TITLE := Inner Breeze
-ANDROID_APP_ID := xyz.waozi.inbe
+ANDROID_APP_ID := xyz.waozi.breathing
 ANDROID_DEBUG_APP_ID := $(ANDROID_APP_ID).debug
-ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
+ANDROID_ACTIVITY := xyz.waozi.breathing.MainActivity
 
 CC ?= cc
 CMAKE ?= $(shell if [ -x /usr/bin/cmake ]; then echo /usr/bin/cmake; else command -v cmake; fi)
@@ -21,7 +21,7 @@ ANDROID_GRADLE_ARGS := $(if $(ANDROID_AAPT2),-Pandroid.aapt2FromMavenOverride="$
 ANDROID_JAVA_HOME ?= $(shell for dir in /usr/local/openjdk17 /usr/lib/jvm/java-17-openjdk-amd64 /usr/lib/jvm/java-17-openjdk; do if [ -x "$$dir/bin/java" ]; then printf "%s\n" "$$dir"; break; fi; done)
 ANDROID_GRADLE_ENV := unset ANDROID_HOME; $(if $(ANDROID_JAVA_HOME),JAVA_HOME="$(ANDROID_JAVA_HOME)" PATH="$(ANDROID_JAVA_HOME)/bin:$$PATH")
 ANDROID_KEYSTORE ?= $(HOME)/.android/kryon-release.keystore
-ANDROID_KEY_ALIAS ?= inbe-key
+ANDROID_KEY_ALIAS ?= breathing-key
 
 BUILD_DIR := build
 BUILD_OBJ_DIR := $(BUILD_DIR)/obj
@@ -103,8 +103,8 @@ APP_COMMENT := Syncable breathing, meditation, and habit practice app
 APP_DESC := Inner Breeze is a free, open-source practice app for breathing, meditation, and habit tracking.
 APP_CATEGORIES := Utility;Education;
 APP_MAINTAINER := Waozi <waozi@waozi.xyz>
-APP_WWW := https://inbe.waozi.xyz/
-APP_ORIGIN := games/inbe
+APP_WWW := https://breathing.waozi.xyz/
+APP_ORIGIN := games/breathing
 APP_LICENSE := BSD3CLAUSE
 APP_DESKTOP := $(LINUX_APPIMAGE_DESKTOP)
 APP_ICON := $(LINUX_APPIMAGE_ICON)
@@ -113,8 +113,8 @@ APP_ICON_NAME := $(APP_ID)
 APP_ICON_SIZE := 512x512
 APP_METAINFO := $(LINUX_APPIMAGE_APPDATA)
 FREEBSD_PKG_DEPS := curl:ftp/curl gtk3:x11-toolkits/gtk30 hicolor-icon-theme:misc/hicolor-icon-theme libdrm:graphics/libdrm mesa-libs:graphics/mesa-libs sdl2:devel/sdl20 sqlite3:databases/sqlite3
-CLICK_PACKAGE ?= inbe
-CLICK_ID ?= inbe
+CLICK_PACKAGE ?= breathing
+CLICK_ID ?= breathing
 CLICK_TITLE ?= $(APP_TITLE)
 CLICK_MAINTAINER ?= Waozi <waozi@waozi.xyz>
 CLICK_ARCH ?= arm64
@@ -122,7 +122,7 @@ CLICK_FRAMEWORK ?= ubuntu-sdk-20.04
 CLICK_POLICY_VERSION ?= 20.04
 CLICK_INCLUDE_METAINFO ?= 1
 CLICK_DIR := packaging/click
-CLICK_RUNNER := $(CLICK_DIR)/run-inbe.sh
+CLICK_RUNNER := $(CLICK_DIR)/run-breathing.sh
 CLICK_BUILD_DIR := $(BUILD_OBJ_DIR)/click/$(CLICK_ARCH)
 CLICK_ROOT := $(CLICK_BUILD_DIR)/$(CLICK_PACKAGE)
 CLICK_CONTROL_DIR := $(CLICK_BUILD_DIR)/control
@@ -149,7 +149,7 @@ WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
 CHROME_WEB_STORE_DIR := $(BUILD_DIST_DIR)/chrome-web-store
 VERSION_FILE := src/core/version.h
-APP_VERSION := $(shell awk '/INBE_VERSION_STRING/ { print $$3; exit }' $(VERSION_FILE) 2>/dev/null | tr -d '"')
+APP_VERSION := $(shell awk '/APP_VERSION_STRING/ { print $$3; exit }' $(VERSION_FILE) 2>/dev/null | tr -d '"')
 SOCIAL_PY ?= $(if $(wildcard .local/social-venv/bin/python),.local/social-venv/bin/python,python3)
 
 KRYON_DIR ?= vendor/kryon
@@ -197,15 +197,18 @@ WIN32_CURL_A := $(WIN32_CURL_BUILD_DIR)/lib/libcurl.a
 WIN32_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/liboqs
 WIN32_LIBOQS_A := $(WIN32_LIBOQS_BUILD_DIR)/lib/liboqs.a
 WIN32_LIBOQS_INCLUDE := -I$(WIN32_LIBOQS_BUILD_DIR)/include
-WIN64_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN64_ARCH)/inbe.res
-WIN32_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN32_ARCH)/inbe.res
+WIN64_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN64_ARCH)/breathing.res
+WIN32_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN32_ARCH)/breathing.res
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
 KRYON_ICON_DIR := icons
-KRYON_ICON_FILES := $(shell find $(KRYON_DIR)/$(KRYON_ICON_DIR) -path '*/review/*' -prune -o -type f -name '*.png' -print 2>/dev/null | LC_ALL=C sort)
-KRYON_ICON_ASSETS_C := $(KRYON_DIR)/src/ui/ui_icon_assets.c
-KRYON_ICON_STAMP := $(BUILD_OBJ_DIR)/kryon-icons.sha256
-KRYON_SRCS := $(filter-out $(KRYON_ICON_ASSETS_C),$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C)
+KRYON_ICON_FILES := $(shell find $(KRYON_DIR)/$(KRYON_ICON_DIR) -path '*/review/*' -prune -o -type f \( -name '*.png' -o -name '*.json' \) -print 2>/dev/null | LC_ALL=C sort)
+KRYON_GENERATED_INCLUDE_DIR := $(BUILD_OBJ_DIR)/kryon/generated/include
+KRYON_GENERATED_SRC_DIR := $(BUILD_OBJ_DIR)/kryon/generated/src
+KRYON_ICON_ASSETS_C := $(KRYON_GENERATED_SRC_DIR)/ui/ui_icon_assets.c
+KRYON_ICON_NAMES_C := $(KRYON_GENERATED_SRC_DIR)/ui/ui_icon_names.c
+KRYON_ICON_TYPES_H := $(KRYON_GENERATED_INCLUDE_DIR)/ui_icon_types.h
+KRYON_SRCS := $(filter-out $(KRYON_DIR)/src/ui/ui_icon_assets.c $(KRYON_DIR)/src/ui/ui_icon_names.c,$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C)
 KRYON_SYNC_ICONS := $(KRYON_DIR)/scripts/sync-icons.sh
 WEB_SHARED_ICON_SHEETS := platforms language tiles
 KRYON_LIBDRAW_SRCS := $(filter $(KRYON_DIR)/src/backend/libdraw_%.c,$(KRYON_SRCS))
@@ -220,14 +223,12 @@ KRYON_WEB_SRCS := $(KRYON_SRCS)
 KRYON_WEB_SRCS := $(filter-out $(KRYON_DIR)/src/backend/dom_%.c,$(KRYON_WEB_SRCS))
 KRYON_WINDOWS_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_CLICK_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
-KRYON_INCLUDE := -I$(KRYON_DIR)/include -I$(KRYON_DIR)/vendor/monocypher/src -I$(KRYON_DIR)/vendor/monocypher/src/optional
+KRYON_INCLUDE := -I$(KRYON_GENERATED_INCLUDE_DIR) -I$(KRYON_DIR)/include -I$(KRYON_DIR)/vendor/monocypher/src -I$(KRYON_DIR)/vendor/monocypher/src/optional
 KRYON_SYNC_ACCOUNT_C := $(KRYON_DIR)/src/sync/sync_account.c
 KRYON_SYNC_CRYPTO_C := $(KRYON_DIR)/src/sync/sync_crypto.c $(KRYON_DIR)/src/sync/monocypher.c $(KRYON_DIR)/src/sync/monocypher_ed25519.c
 KRYON_SYNC_C := $(KRYON_DIR)/src/sync/sync.c
 KRYON_SYNC_TRANSPORT_C := $(KRYON_DIR)/src/sync/sync_transport.c
 KRYON_SYNC_ACCOUNT_H := $(KRYON_DIR)/include/sync/account.h
-KRYON_ALLOW_ICON_REGEN ?= 0
-KRYON_ICON_ASSETS_DEPS := $(if $(filter 1,$(KRYON_ALLOW_ICON_REGEN)),$(KRYON_ICON_STAMP) $(KRYON_DIR)/scripts/embed-icons.sh,)
 KRYON_VENDOR_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)
 KRYON_LIBOQS_BUILD_DIR := $(KRYON_VENDOR_BUILD_DIR)/liboqs
 KRYON_WEB_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/liboqs
@@ -251,7 +252,7 @@ KRYON_CURL_EXTRA_CMAKE_FLAGS := \
 	-DCURL_ZLIB=OFF \
 	-DCURL_BROTLI=OFF \
 	-DCURL_ZSTD=OFF
-# inbe is a UI-only app: drop the 2D physics subsystem (Box2D) entirely.
+# breathing is a UI-only app: drop the 2D physics subsystem (Box2D) entirely.
 # := on purpose: this is a property of the app, not a knob. Setting it to 1
 # would also require linking $(KRYON_PHYSICS_DEPS) (libbox2d), which this
 # Makefile does not wire up -- so a ?= here would invite a broken build.
@@ -327,15 +328,14 @@ TESTS += $(TEST_BIN_DIR)/session_results_test
 TESTS += $(TEST_BIN_DIR)/habit_form_test
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
-STORAGE_CORE_SRCS := src/storage/storage.c src/storage/storage_json_builder.c src/storage/storage_habits.c src/storage/storage_habit_materialize.c src/storage/storage_habit_sync.c
+STORAGE_CORE_SRCS := src/storage/storage.c src/storage/storage_json_builder.c src/storage/storage_habits.c src/storage/storage_habit_materialize.c src/storage/storage_habit_sync.c src/storage/storage_elist.c
 
 APP_SRCS := \
-	src/platform/inbe_main_host.c \
+	src/platform/main_host.c \
 	$(sort $(wildcard src/app/*.c)) \
 	$(STORAGE_CORE_SRCS) \
 	src/storage/sync_client.c \
-	src/third_party/miniz.c \
-	src/platform/inbe_activity_monitor.c \
+	src/platform/activity_monitor.c \
 	src/platform/android/android_device.c
 
 ifeq ($(NATIVE_PLATFORM),linux)
@@ -347,21 +347,21 @@ DESKTOP_TRAY_PKG := $(shell if pkg-config --exists ayatana-appindicator3-0.1; th
 ifeq ($(filter ayatana-appindicator3-0.1 appindicator3-0.1,$(DESKTOP_TRAY_PKG)),)
 # GTK-only tray: resolve GTK at runtime through kryon's gtk_dl shim so neither
 # libgtk-3 nor its gdk/pango/cairo chain is linked into the binary. GTK maps
-# only when the tray actually starts (unset INBE_NO_TRAY to skip it entirely).
-DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_TRAY_GTK_DL
+# only when the tray actually starts (unset APP_NO_TRAY to skip it entirely).
+DESKTOP_TRAY_DEFINE := -DDESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_TRAY_GTK_DL
 else ifeq ($(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),ayatana-appindicator3-0.1)
-DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_AYATANA -DKRYON_DESKTOP_TRAY_AYATANA
+DESKTOP_TRAY_DEFINE := -DDESKTOP_TRAY_AYATANA -DKRYON_DESKTOP_TRAY_AYATANA
 else
-DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_APPINDICATOR -DKRYON_DESKTOP_TRAY_APPINDICATOR
+DESKTOP_TRAY_DEFINE := -DDESKTOP_TRAY_APPINDICATOR -DKRYON_DESKTOP_TRAY_APPINDICATOR
 endif
 endif
 ifeq ($(NATIVE_PLATFORM),freebsd)
 DESKTOP_TRAY_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
-DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_TRAY_GTK_DL
+DESKTOP_TRAY_DEFINE := -DDESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_TRAY_GTK_DL
 endif
 ifneq ($(strip $(DESKTOP_TRAY_PKG)),)
-APP_SRCS += src/platform/inbe_desktop_tray.c
-DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED -DKRYON_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
+APP_SRCS += src/platform/desktop_tray.c
+DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DDESKTOP_TRAY_ENABLED -DKRYON_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
 ifeq ($(filter ayatana-appindicator3-0.1 appindicator3-0.1,$(DESKTOP_TRAY_PKG)),)
 # Headers only for the GTK-only tray; the gtk_dl shim owns the symbols.
 DESKTOP_TRAY_LDLIBS :=
@@ -382,11 +382,11 @@ SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_SUBSET_DIR := assets/fonts/subset
 FONT_SUBSET_CORPUS := locales assets/fonts/input_common.txt
 FONT_FILES := \
-	$(FONT_SUBSET_DIR)/NotoSans-Inbe-Regular.ttf \
-	$(FONT_SUBSET_DIR)/NotoSansSC-Inbe-Regular.otf \
-	$(FONT_SUBSET_DIR)/NotoSansJP-Inbe-Regular.otf \
-	$(FONT_SUBSET_DIR)/NotoSansKR-Inbe-Regular.otf \
-	$(FONT_SUBSET_DIR)/NotoSansTC-Inbe-Regular.otf
+	$(FONT_SUBSET_DIR)/NotoSans-App-Regular.ttf \
+	$(FONT_SUBSET_DIR)/NotoSansSC-App-Regular.otf \
+	$(FONT_SUBSET_DIR)/NotoSansJP-App-Regular.otf \
+	$(FONT_SUBSET_DIR)/NotoSansKR-App-Regular.otf \
+	$(FONT_SUBSET_DIR)/NotoSansTC-App-Regular.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
 KRY_GEN_DIR := $(BUILD_DIR)/kryon/generated
@@ -397,11 +397,11 @@ KRY_PROJECT_HDR := $(KRY_GEN_DIR)/kryon_project.h
 KRY_PROJECT_C := $(KRY_GEN_DIR)/kryon_project.c
 KRY_GEN_STAMP := $(KRY_GEN_DIR)/.fresh
 SRC := $(APP_SRCS) $(KRY_GEN_SRCS) $(EMBEDDED_ASSETS_C)
-WINDOWS_SRC := $(filter-out src/platform/inbe_desktop_tray.c,$(SRC)) src/platform/inbe_desktop_tray.c
-KRYON_HOST_APP_SRCS := $(filter-out src/platform/inbe_main_host.c src/platform/inbe_desktop_tray.c,$(APP_SRCS)) $(KRY_GEN_SRCS) $(KRY_PROJECT_C)
+WINDOWS_SRC := $(filter-out src/platform/desktop_tray.c,$(SRC)) src/platform/desktop_tray.c
+KRYON_HOST_APP_SRCS := $(filter-out src/platform/main_host.c src/platform/desktop_tray.c,$(APP_SRCS)) $(KRY_GEN_SRCS) $(KRY_PROJECT_C)
 KRYON_HOST_RUNTIME_SRCS := $(KRYON_DIR)/src/core/embedded_assets.c
 KRYON_HOST_SRC := $(KRYON_HOST_APP_SRCS) $(KRYON_HOST_RUNTIME_SRCS) $(EMBEDDED_ASSETS_C)
-WEB_APP_SRCS := $(filter-out src/platform/inbe_desktop_tray.c,$(APP_SRCS))
+WEB_APP_SRCS := $(filter-out src/platform/desktop_tray.c,$(APP_SRCS))
 WEB_SRC := $(WEB_APP_SRCS) $(KRY_GEN_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform -Isrc/platform/android -Isrc/third_party
@@ -424,12 +424,12 @@ endif
 KRYON_RAYLIB_AUDIO_PERIOD_CONFIG := $(if $(strip $(KRYON_RAYLIB_AUDIO_PERIOD_FRAMES)),-DAUDIO_DEVICE_PERIOD_SIZE_IN_FRAMES=$(KRYON_RAYLIB_AUDIO_PERIOD_FRAMES),)
 KRYON_RAYLIB_AUDIO_PERIODS_CONFIG := $(if $(strip $(KRYON_RAYLIB_AUDIO_PERIODS)),-DAUDIO_DEVICE_PERIODS=$(KRYON_RAYLIB_AUDIO_PERIODS),)
 APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0 $(KRYON_RAYLIB_AUDIO_PERIOD_CONFIG) $(KRYON_RAYLIB_AUDIO_PERIODS_CONFIG)
-COMMON_CFLAGS := -Wall -Wextra -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DUI_WINDOW_HAVE_SDL -DKRYON_WITH_SYNC=1
+COMMON_CFLAGS := -Wall -Wextra -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DUI_EMBEDDED_ONLY=1 -DUI_WINDOW_HAVE_SDL -DKRYON_WITH_SYNC=1
 CFLAGS := $(COMMON_CFLAGS) -std=c99 $(RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(DESKTOP_TRAY_CFLAGS) $(KRYON_NOTIFICATION_CPPFLAGS) $(KRYON_NOTIFICATION_CFLAGS)
-NATIVE_SYSTEM_LDLIBS := $(KRYON_NOTIFICATION_LDLIBS) -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,) $(SYSTEM_THEME_LDLIBS)
-WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DESKTOP_TRAY_ENABLED -DKRYON_WITH_SYNC=1
+NATIVE_SYSTEM_LDLIBS := $(KRYON_NOTIFICATION_LDLIBS) -lz -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,) $(SYSTEM_THEME_LDLIBS)
+WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DUI_EMBEDDED_ONLY=1 -DDESKTOP_TRAY_ENABLED -DKRYON_WITH_SYNC=1
 WEB_CFLAGS := $(filter-out -Os -DUI_WINDOW_HAVE_SDL,$(COMMON_CFLAGS)) -Oz -std=gnu99
-CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DISABLE_KRYON_FILE_DIALOG -DHAS_LIBCURL=1 -DKRYON_WITH_SYNC=1 $(AARCH64_KRYON_CURL_CFLAGS)
+CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DUI_EMBEDDED_ONLY=1 -DDISABLE_KRYON_FILE_DIALOG -DHAS_LIBCURL=1 -DKRYON_WITH_SYNC=1 $(AARCH64_KRYON_CURL_CFLAGS)
 LDFLAGS := -Wl,--gc-sections -s
 WINDOWS_LDFLAGS := -Wl,--gc-sections -static -static-libgcc -mwindows
 # GNU ld's i686 stdcall fixups synthesize an undecorated glReadPixels alias,
@@ -513,7 +513,7 @@ WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
 WEB_SMOKE_BROWSER ?= auto
 WEB_SMOKE_TEST := scripts/web-smoke-test.mjs
 WEB_SIDE_BY_SIDE_TEST := scripts/web-side-by-side-test.sh
-WEB_APP_URL ?= https://inbe.waozi.xyz/
+WEB_APP_URL ?= https://breathing.waozi.xyz/
 CHROME_WEB_STORE_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-chrome-web-store.zip
 CHROME_WEB_STORE_MANIFEST := packaging/chrome-web-store/manifest.json
 CHROME_WEB_STORE_WORKER := packaging/chrome-web-store/service_worker.js
@@ -540,7 +540,7 @@ ADDONS_LINTER ?= npx --yes addons-linter
 WEB_ASSET_FILES := $(filter-out web-assets/dl/% web-assets/canvas_index.html,$(shell find web-assets site-icons -type f 2>/dev/null))
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
-MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
+MEDITATION_AUDIO_ZIP := web-assets/dl/breathing-meditation-audio-v1.zip
 MEDITATION_AUDIO_TRACKS := \
 	Elijah_K/deep-meditation.ogg \
 	Elijah_K/path-of-meditation.ogg \
@@ -576,7 +576,7 @@ $(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS)
 PLAN9_DIR := $(BUILD_DIR)/plan9
 PLAN9_GENERATED := $(PLAN9_DIR)/generated
 PLAN9_FILE_LIST := $(PLAN9_DIR)/generated-c-files.txt
-PLAN9_EMBEDDED_ASSETS_C := $(PLAN9_DIR)/inbe_embedded_assets.c
+PLAN9_EMBEDDED_ASSETS_C := $(PLAN9_DIR)/app_embedded_assets.c
 
 # Native Plan 9 build inputs: k2c emits 8c-safe C directly, the embedded
 # table carries the locales, images, and subset fonts (audio stays
@@ -675,9 +675,9 @@ run-termi-direct: $(TARGET)
 	@./$(TARGET)
 
 run-fresh: $(TARGET)
-	@root=$$(mktemp -d /tmp/inbe-fresh.XXXXXX); \
-	echo "INBE_DATA_ROOT=$$root"; \
-	INBE_FORCE_DARK_MODE=1 INBE_DATA_ROOT="$$root" ./$(TARGET)
+	@root=$$(mktemp -d /tmp/breathing-fresh.XXXXXX); \
+	echo "APP_DATA_ROOT=$$root"; \
+	APP_FORCE_DARK_MODE=1 APP_DATA_ROOT="$$root" ./$(TARGET)
 
 social-install:
 	python3 -m venv .local/social-venv
@@ -751,11 +751,11 @@ habits-cards-ui-test: $(TARGET)
 
 test: clean-text-api-check no-vendor-edits secret-check $(TESTS) font-bundle-check audio-test-fixture-check embedded-image-assets-check
 	bash ./tests/screenshot_scene_test.sh
-	echo "== Inbe tests =="; \
+	echo "== BreathSession tests =="; \
 	status=0; \
 	for test_bin in $(TESTS); do \
 		name=$$(basename "$$test_bin"); \
-		log=$$(mktemp /tmp/inbe-test.XXXXXX); \
+		log=$$(mktemp /tmp/breathing-test.XXXXXX); \
 		printf "%-28s" "$$name"; \
 		if "$$test_bin" >"$$log" 2>&1; then \
 			echo "PASS"; \
@@ -769,9 +769,9 @@ test: clean-text-api-check no-vendor-edits secret-check $(TESTS) font-bundle-che
 		fi; \
 	done; \
 	if [ "$$status" -eq 0 ]; then \
-		echo "== PASS: all Inbe tests =="; \
+		echo "== PASS: all BreathSession tests =="; \
 	else \
-		echo "== FAIL: Inbe tests =="; \
+		echo "== FAIL: BreathSession tests =="; \
 	fi; \
 	exit "$$status"
 
@@ -794,14 +794,14 @@ font-subsets:
 	$(MAKE) -C $(KRYON_DIR) font-subsets \
 		FONT_SUBSET_OUT_DIR="$(abspath $(FONT_SUBSET_DIR))" \
 		FONT_SUBSET_SOURCE_DIR="$(abspath $(KRYON_DIR)/fonts/noto)" \
-		FONT_SUBSET_PREFIX=Inbe \
+		FONT_SUBSET_PREFIX=BreathSession \
 		FONT_SUBSET_CORPUS="$(abspath locales) $(abspath assets/fonts/input_common.txt)"
 
-$(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.h src/screens/habits/habits.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/storage/import.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
@@ -815,16 +815,16 @@ $(SETTINGS_KEYS_TEST): tests/settings_keys_test.c src/app/app_settings.kry src/a
 		tests/settings_keys_test.c
 
 $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(CURL_PROTOCOL_CHECK) $(LIBOQS_A) | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
+	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DSYNC_CLIENT_TESTS -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc/storage -Isrc -Isrc/core $(KRYON_INCLUDE) $(KRYON_CURL_CFLAGS) $(LIBOQS_INCLUDE) -o $@ \
 		tests/sync_url_test.c src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) \
 		$(LIBOQS_A) -Wl,--gc-sections $(KRYON_CURL_LDLIBS) $(NATIVE_SYSTEM_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c src/storage/sync_account.h $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(KRYON_SYNC_ACCOUNT_H) $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c src/storage/sync_account.h $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(KRYON_SYNC_ACCOUNT_H) $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 .PHONY: sync-server-test
@@ -832,16 +832,16 @@ sync-server-test: $(TEST_BIN_DIR)/sync_server_test
 	node scripts/sync-server-test.mjs
 
 $(TEST_BIN_DIR)/sync_server_test: tests/sync_server_test.c tests/test_locale_stub.c $(KRY_GEN_STAMP) $(STORAGE_CORE_SRCS) src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(LIBOQS_A) $(SQLITE_SRC) | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) $(KRYON_CURL_CFLAGS) \
-		-o $@ tests/sync_server_test.c tests/test_locale_stub.c src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/third_party/miniz.c $(SQLITE_SRC) \
+		-o $@ tests/sync_server_test.c tests/test_locale_stub.c src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(KRYON_CURL_LDLIBS) $(NATIVE_SYSTEM_LDLIBS)
 
-$(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
+$(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c src/screens/habits_screen.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_review_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_review_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/screens/habits_screen.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(FONT_LOCALE_TEST): tests/font_locale_test.c src/app/app_font_assets.h $(FONT_FILES) | $(TEST_BIN_DIR)
@@ -904,11 +904,11 @@ $(BREAK_ENGINE_TEST): tests/break_engine_test.c $(KRY_GEN_DIR)/src/breaks/break_
 		$(KRY_GEN_DIR)/src/breaks/break_engine.c
 
 # Plain C (no generated code): dlopen-based X idle monitor with stub fallback.
-$(ACTIVITY_MONITOR_TEST): tests/activity_monitor_test.c src/platform/inbe_activity_monitor.c src/platform/inbe_activity_monitor.h $(KRYON_DIR)/src/platform/kry_activity_monitor.c $(KRYON_DIR)/include/kry_activity_monitor.h | $(TEST_BIN_DIR)
+$(ACTIVITY_MONITOR_TEST): tests/activity_monitor_test.c src/platform/activity_monitor.c src/platform/activity_monitor.h $(KRYON_DIR)/src/platform/kry_activity_monitor.c $(KRYON_DIR)/include/kry_activity_monitor.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-Isrc $(KRYON_INCLUDE) \
 		-o $@ \
-		tests/activity_monitor_test.c src/platform/inbe_activity_monitor.c \
+		tests/activity_monitor_test.c src/platform/activity_monitor.c \
 		$(KRYON_DIR)/src/platform/kry_activity_monitor.c \
 		$(if $(filter linux,$(NATIVE_PLATFORM)),-ldl,)
 
@@ -923,25 +923,15 @@ FORCE:
 $(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(KRYON_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
 	sh $(KRYON_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
 
-$(KRYON_ICON_STAMP): FORCE $(KRYON_ICON_FILES) | $(BUILD_OBJ_DIR)
-	@tmp="$@.tmp"; \
-	find "$(KRYON_DIR)/$(KRYON_ICON_DIR)" -path '*/review/*' -prune -o -type f -name '*.png' -print 2>/dev/null | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
-	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
-
-$(KRYON_ICON_ASSETS_C): $(KRYON_ICON_ASSETS_DEPS)
-	@if [ "$(KRYON_ALLOW_ICON_REGEN)" != "1" ]; then \
-		if [ ! -f "$@" ]; then \
-			echo "Missing Kryon icon assets: $@"; \
-			echo "Regenerate icons in the root Kryon checkout and update vendor/kryon intentionally."; \
-			exit 1; \
-		fi; \
-		exit 0; \
-	fi
-	cd $(KRYON_DIR) && sh scripts/embed-icons.sh "$(KRYON_ICON_DIR)" src/ui/ui_icon_assets.c
+$(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C) $(KRYON_ICON_TYPES_H): $(KRYON_ICON_FILES) $(KRYON_DIR)/scripts/embed-icon-sheets.py $(KRYON_DIR)/include/ui_icons.h | $(BUILD_OBJ_DIR)
+	cd $(KRYON_DIR) && python3 scripts/embed-icon-sheets.py --icon-dir "$(KRYON_ICON_DIR)" \
+		--assets-output "$(abspath $(KRYON_ICON_ASSETS_C))" \
+		--types-output "$(abspath $(KRYON_ICON_TYPES_H))" \
+		--names-output "$(abspath $(KRYON_ICON_NAMES_C))"
 
 sync-web-icons: $(KRYON_SYNC_ICONS)
 	sh $(KRYON_SYNC_ICONS) web-assets/icons $(WEB_SHARED_ICON_SHEETS)
-	cp assets/app/icon.png web-assets/icons/inbe.png
+	cp assets/app/icon.png web-assets/icons/breathing.png
 
 $(WEB_LIBOQS_A): web-tools-check
 
@@ -1137,7 +1127,7 @@ $(CLICK_BIN): Makefile $(SRC) $(KRYON_CLICK_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAM
 		patchelf --set-interpreter "$(CLICK_PATCHELF_INTERPRETER)" --set-rpath '$$ORIGIN/../lib' $@; \
 	fi
 
-$(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_DIR)/inbe.desktop $(CLICK_DIR)/inbe.metainfo.xml $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) $(VERSION_FILE) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
+$(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/breathing.apparmor $(CLICK_DIR)/breathing.desktop $(CLICK_DIR)/breathing.metainfo.xml $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) $(VERSION_FILE) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
 	@command -v click >/dev/null || { \
 		echo "click is missing. Install click or put it on PATH."; \
 		exit 1; \
@@ -1148,8 +1138,8 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_
 	rm -f $(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click
 	mkdir -p $(CLICK_ROOT)/usr/bin $(CLICK_ROOT)/usr/lib $(CLICK_ROOT)/usr/share/applications $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps $(CLICK_ROOT)/usr/share/metainfo
 	cp $(CLICK_BIN_INPUT) $(CLICK_ROOT)/usr/bin/$(APP_NAME)
-	cp $(CLICK_RUNNER) $(CLICK_ROOT)/run-inbe.sh
-	chmod +x $(CLICK_ROOT)/run-inbe.sh $(CLICK_ROOT)/usr/bin/$(APP_NAME)
+	cp $(CLICK_RUNNER) $(CLICK_ROOT)/run-breathing.sh
+	chmod +x $(CLICK_ROOT)/run-breathing.sh $(CLICK_ROOT)/usr/bin/$(APP_NAME)
 	@for lib in $(CLICK_RUNTIME_LIBS); do \
 		if [ -f "$$lib" ]; then \
 			cp -L "$$lib" $(CLICK_ROOT)/usr/lib/; \
@@ -1177,14 +1167,14 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_
 		'  }' \
 		'}' \
 		> $(CLICK_ROOT)/manifest.json
-	cp $(CLICK_DIR)/inbe.apparmor $(CLICK_ROOT)/inbe.apparmor
-	cp $(CLICK_DIR)/inbe.desktop $(CLICK_ROOT)/inbe.desktop
+	cp $(CLICK_DIR)/breathing.apparmor $(CLICK_ROOT)/breathing.apparmor
+	cp $(CLICK_DIR)/breathing.desktop $(CLICK_ROOT)/breathing.desktop
 	@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
 		mkdir -p $(CLICK_ROOT)/usr/share/metainfo; \
-		sed -e 's/<release version="[^"]*"/<release version="$(APP_VERSION)"/' $(CLICK_DIR)/inbe.metainfo.xml > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_ID).metainfo.xml; \
+		sed -e 's/<release version="[^"]*"/<release version="$(APP_VERSION)"/' $(CLICK_DIR)/breathing.metainfo.xml > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_ID).metainfo.xml; \
 	fi
-	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/inbe.png
-	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/inbe.png
+	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/breathing.png
+	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/breathing.png
 	click build $(CLICK_ROOT) $(CLICK_DIST_DIR)
 	@if [ -f "$(CLICK_DIST_DIR)/$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" ]; then \
 		mv "$(CLICK_DIST_DIR)/$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" "$(CLICK_TARGET)"; \
@@ -1193,11 +1183,11 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_
 	fi
 	test -f $@
 
-$(WIN64_RESOURCE): windows/inbe.rc windows/inbe.ico
+$(WIN64_RESOURCE): windows/breathing.rc windows/breathing.ico
 	mkdir -p $(dir $@)
 	$(WIN64_WINDRES) -Iwindows -O coff $< $@
 
-$(WIN32_RESOURCE): windows/inbe.rc windows/inbe.ico
+$(WIN32_RESOURCE): windows/breathing.rc windows/breathing.ico
 	mkdir -p $(dir $@)
 	$(WIN32_WINDRES) -Iwindows -O coff $< $@
 
@@ -1310,7 +1300,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		LIBRARY_FLAGS=""; \
 		echo "Building on FHS system - linuxdeploy will auto-detect libraries"; \
 	fi; \
-	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) LDAI_UPDATE_INFORMATION='gh-releases-zsync|waozixyz|inbe|latest|$(APPIMAGE_NAME)' $(LINUXDEPLOY) \
+	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) LDAI_UPDATE_INFORMATION='gh-releases-zsync|waozixyz|breathing|latest|$(APPIMAGE_NAME)' $(LINUXDEPLOY) \
 		--appdir $(APP_NAME).AppDir \
 		--executable $(abspath $(LINUX_APPDIR)/usr/bin/$(APP_NAME)) \
 		--desktop-file $(abspath $(LINUX_APPDIR)/usr/share/applications/$(APP_DESKTOP_ID).desktop) \
@@ -1322,12 +1312,12 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 deb-check:
 	@command -v dpkg-deb >/dev/null 2>&1 || { \
 		echo "dpkg-deb is missing. On FreeBSD install it with: pkg install dpkg"; \
-		echo "To build a Debian package on FreeBSD, pass DEB_BIN_SOURCE=/path/to/linux/inbe."; \
+		echo "To build a Debian package on FreeBSD, pass DEB_BIN_SOURCE=/path/to/linux/breathing."; \
 		exit 1; \
 	}
 	@if [ -z "$(strip $(DEB_BIN_INPUT))" ]; then \
 		echo "No Linux binary is available for the Debian package."; \
-		echo "Run this target on Linux, or on FreeBSD pass DEB_BIN_SOURCE=/path/to/linux/inbe."; \
+		echo "Run this target on Linux, or on FreeBSD pass DEB_BIN_SOURCE=/path/to/linux/breathing."; \
 		exit 1; \
 	fi
 
@@ -1363,12 +1353,12 @@ $(DEB_TARGET): $(DEB_TARGET_PREREQS) deb-check | $(DEB_BUILD_DIR) $(DEB_DIST_DIR
 rpm-check:
 	@command -v rpmbuild >/dev/null 2>&1 || { \
 		echo "rpmbuild is missing. On FreeBSD install it with: pkg install rpm4"; \
-		echo "To build an RPM package on FreeBSD, pass RPM_BIN_SOURCE=/path/to/linux/inbe."; \
+		echo "To build an RPM package on FreeBSD, pass RPM_BIN_SOURCE=/path/to/linux/breathing."; \
 		exit 1; \
 	}
 	@if [ -z "$(strip $(RPM_BIN_INPUT))" ]; then \
 		echo "No Linux binary is available for the RPM package."; \
-		echo "Run this target on Linux, or on FreeBSD pass RPM_BIN_SOURCE=/path/to/linux/inbe."; \
+		echo "Run this target on Linux, or on FreeBSD pass RPM_BIN_SOURCE=/path/to/linux/breathing."; \
 		exit 1; \
 	fi
 
@@ -1431,7 +1421,7 @@ $(SNAP_TARGET): Makefile packaging/snap/snap/snapcraft.yaml | $(SNAP_BUILD_DIR) 
 		-w /work \
 		--entrypoint "$(SNAP_ENTRYPOINT)" \
 		$(SNAP_IMAGE) \
-		-lc 'set -eu; printf "%s\n" "APT::Cache-Start \"100000000\";" > /etc/apt/apt.conf.d/99cache-start; apt-get update; rm -rf /tmp/inbe-snap; cp -a /work /tmp/inbe-snap; cd /tmp/inbe-snap; rm -rf build snap; mkdir snap; cp packaging/snap/snap/snapcraft.yaml snap/snapcraft.yaml; sed -i "s/^version:.*/version: '\''$(APP_VERSION)'\''/" snap/snapcraft.yaml; snapcraft pack --destructive-mode; cp *.snap /work/$(SNAP_DIST_DIR)/'
+		-lc 'set -eu; printf "%s\n" "APT::Cache-Start \"100000000\";" > /etc/apt/apt.conf.d/99cache-start; apt-get update; rm -rf /tmp/breathing-snap; cp -a /work /tmp/breathing-snap; cd /tmp/breathing-snap; rm -rf build snap; mkdir snap; cp packaging/snap/snap/snapcraft.yaml snap/snapcraft.yaml; sed -i "s/^version:.*/version: '\''$(APP_VERSION)'\''/" snap/snapcraft.yaml; snapcraft pack --destructive-mode; cp *.snap /work/$(SNAP_DIST_DIR)/'
 	created=$$(find $(SNAP_DIST_DIR) -maxdepth 1 -type f -name '*.snap' | head -n 1); \
 	if [ -z "$$created" ]; then echo "snapcraft did not produce a snap"; exit 1; fi; \
 	mv "$$created" $(SNAP_TARGET)
@@ -1443,7 +1433,7 @@ $(FLATPAK_TARGET): Makefile $(FLATPAK_MANIFEST) | $(FLATPAK_BUILD_DIR) $(FLATPAK
 		-v "$(abspath .):/work" \
 		-w /work \
 		$(FLATPAK_IMAGE) \
-		sh -lc 'set -eu; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''inbe-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/inbe; install -D -m644 packaging/linux/appimage/inbe.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/inbe.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/inbe.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
+		sh -lc 'set -eu; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''breathing-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/breathing; install -D -m644 packaging/linux/appimage/breathing.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/breathing.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/breathing.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
 	test -f $@
 
 $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRY_GEN_STAMP) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
@@ -1606,7 +1596,7 @@ android-copy-release-apks: | $(ANDROID_BUILD_DIR)
 		exit 1; \
 	fi; \
 	if [ -z "$(APP_VERSION)" ]; then \
-		echo "Could not read INBE_VERSION_STRING from $(VERSION_FILE)"; \
+		echo "Could not read APP_VERSION_STRING from $(VERSION_FILE)"; \
 		exit 1; \
 	fi; \
 	release_universal="$$(find droid/app/build/outputs/apk -path '*/release/*' -name "app-universal-release*.apk" | head -n 1)"; \
@@ -1636,7 +1626,7 @@ android-copy-bundle: | $(ANDROID_BUILD_DIR)
 		exit 1; \
 	fi; \
 	if [ -z "$(APP_VERSION)" ]; then \
-		echo "Could not read INBE_VERSION_STRING from $(VERSION_FILE)"; \
+		echo "Could not read APP_VERSION_STRING from $(VERSION_FILE)"; \
 		exit 1; \
 	fi; \
 	gplay_bundle="$$(find droid/app/build/outputs/bundle -path "*gplay*" -name "app-gplay.aab" | head -n 1)"; \
@@ -1658,7 +1648,7 @@ android-install: android-copy-assets android-local-properties
 		exit 1; \
 	fi; \
 	echo "Android target ABI: $$abi"; \
-	$(ANDROID_GRADLE_ENV) $(GRADLE) -p droid assembleDebug -Pinbe.onlyAbi="$$abi" $(ANDROID_GRADLE_ARGS)
+	$(ANDROID_GRADLE_ENV) $(GRADLE) -p droid assembleDebug -Papp.onlyAbi="$$abi" $(ANDROID_GRADLE_ARGS)
 	$(MAKE) android-copy-debug-apks
 	ADB='$(ADB)' sh scripts/android-install-apk.sh \
 		"$(ANDROID_DEBUG_APP_ID)" "$(ANDROID_ACTIVITY)" \
@@ -1671,7 +1661,7 @@ android-install-release: android-release
 
 android-avd:
 	@if [ "$(UNAME_S)" = "FreeBSD" ]; then \
-		HOME="$${ANDROID_TOOL_HOME:-/tmp/inbe-android-home}" ANDROID_SDK_ROOT="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" ANDROID_HOME="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" bash scripts/emulator.sh; \
+		HOME="$${ANDROID_TOOL_HOME:-/tmp/breathing-android-home}" ANDROID_SDK_ROOT="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" ANDROID_HOME="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" bash scripts/emulator.sh; \
 	else \
 		bash scripts/emulator.sh; \
 	fi
@@ -1739,7 +1729,7 @@ windows:
 		$(WIN32_ARCH)/$(WIN32_BINARY_NAME)
 
 WINDOWS_SETUP := $(WINDOWS_DIST_DIR)/$(APP_NAME)-windows-setup-$(APP_VERSION).exe
-WINDOWS_SETUP_SCRIPT := packaging/windows/inbe-setup.nsi
+WINDOWS_SETUP_SCRIPT := packaging/windows/breathing-setup.nsi
 
 windows-setup-check:
 	@command -v makensis >/dev/null || { \
@@ -1894,25 +1884,25 @@ NEEDS_CLICK_ENV := $(filter click click-verify,$(MAKECMDGOALS))
 ifneq ($(strip $(NEEDS_CLICK_ENV)),)
 ifeq ($(strip $(CLICK_BIN_SOURCE)),)
 ifeq ($(strip $(AARCH64_CC)),)
-$(error AARCH64_CC is not set. Install an AArch64 cross compiler, set AARCH64_CC, or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_CC is not set. Install an AArch64 cross compiler, set AARCH64_CC, or pass CLICK_BIN_SOURCE=/path/to/breathing)
 endif
 ifeq ($(strip $(AARCH64_AR)),)
-$(error AARCH64_AR is not set. Install AArch64 binutils, set AARCH64_AR, or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_AR is not set. Install AArch64 binutils, set AARCH64_AR, or pass CLICK_BIN_SOURCE=/path/to/breathing)
 endif
 ifeq ($(strip $(AARCH64_RANLIB)),)
-$(error AARCH64_RANLIB is not set. Install AArch64 binutils, set AARCH64_RANLIB, or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RANLIB is not set. Install AArch64 binutils, set AARCH64_RANLIB, or pass CLICK_BIN_SOURCE=/path/to/breathing)
 endif
 ifeq ($(strip $(AARCH64_RAY_CFLAGS)),)
-$(error AARCH64_RAY_CFLAGS is not set. Set AARCH64_RAY_CFLAGS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RAY_CFLAGS is not set. Set AARCH64_RAY_CFLAGS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/breathing)
 endif
 ifeq ($(strip $(AARCH64_RAY_LDLIBS)),)
-$(error AARCH64_RAY_LDLIBS is not set. Set AARCH64_RAY_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RAY_LDLIBS is not set. Set AARCH64_RAY_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/breathing)
 endif
 ifeq ($(strip $(AARCH64_RAY_SDL_INCLUDE_DIR)),)
-$(error AARCH64_RAY_SDL_INCLUDE_DIR is not set. Set AARCH64_RAY_SDL_INCLUDE_DIR for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RAY_SDL_INCLUDE_DIR is not set. Set AARCH64_RAY_SDL_INCLUDE_DIR for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/breathing)
 endif
 ifeq ($(strip $(AARCH64_KRYON_CURL_LDLIBS)),)
-$(error AARCH64_KRYON_CURL_LDLIBS is not set. Set AARCH64_KRYON_CURL_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_KRYON_CURL_LDLIBS is not set. Set AARCH64_KRYON_CURL_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/breathing)
 endif
 endif
 endif

@@ -12,15 +12,15 @@
 
 WEB :: #defined(PLATFORM_WEB)
 
-static inbe_sync_server_url_key: const char* = "sync_server_url"
-static inbe_sync_input_quiet_seconds: const double = 0.45
-static inbe_sync_ui_quiet_seconds: const double = 1.50
+static sync_server_url_key: const char* = "sync_server_url"
+static sync_input_quiet_seconds: const double = 0.45
+static sync_ui_quiet_seconds: const double = 1.50
 
 #enum {
-    INBE_SOCIAL_ACTION_QUEUE_MAX = 8
+    SOCIAL_ACTION_QUEUE_MAX = 8
 }
 
-InbeSyncCoordinator :: struct {
+SyncCoordinator :: struct {
     dirty_sync_at: double
     last_input_at: double
     sync_running: int
@@ -30,15 +30,15 @@ InbeSyncCoordinator :: struct {
     remote_sync_due: int
     social_action_head: int
     social_action_count: int
-    social_actions: [INBE_SOCIAL_ACTION_QUEUE_MAX][16] char
-    social_action_values: [INBE_SOCIAL_ACTION_QUEUE_MAX][96] char
+    social_actions: [SOCIAL_ACTION_QUEUE_MAX][16] char
+    social_action_values: [SOCIAL_ACTION_QUEUE_MAX][96] char
 }
 
-InbeSyncWorkerArgs :: struct {
+SyncWorkerArgs :: struct {
     url: [256] char
 }
 
-InbeSocialWorkerArgs :: struct {
+SocialWorkerArgs :: struct {
     url: [256] char
     practice: [32] char
     metric: [32] char
@@ -48,13 +48,13 @@ InbeSocialWorkerArgs :: struct {
     action_value: [96] char
 }
 
-InbeSyncWorkerResult :: struct {
+SyncWorkerResult :: struct {
     finished: int
     result: int
     changed: int
 }
 
-InbeSocialWorkerResult :: struct {
+SocialWorkerResult :: struct {
     finished: int
     result: int
     friend_requests_json: [8192] char
@@ -65,13 +65,13 @@ InbeSocialWorkerResult :: struct {
     leaderboard_avg_key: [96] char
 }
 
-static g_sync: InbeSyncCoordinator = {0}
+static g_sync: SyncCoordinator = {0}
 static g_sync_events_url: [256] char
 
 #if !WEB {
     static g_sync_mutex: KryMutex = KRY_MUTEX_INIT
-    static g_sync_result: InbeSyncWorkerResult = {0, SYNC_OK, 0}
-    static g_social_result: InbeSocialWorkerResult = {0, SYNC_OK, "", "", "", "", "", ""}
+    static g_sync_result: SyncWorkerResult = {0, SYNC_OK, 0}
+    static g_social_result: SocialWorkerResult = {0, SYNC_OK, "", "", "", "", "", ""}
     static g_sync_events_running: int = 0
 } #else {
     static g_sync_events_retry_at: double = 0.0
@@ -108,7 +108,7 @@ app_queue_social_refresh :: () #private {
     g_sync.social_refresh_pending = 1
 }
 
-app_mark_used :: (app: const InbeApp*) #private {
+app_mark_used :: (app: const InnerBreeze*) #private {
     if app == nil {
         return
     }
@@ -160,7 +160,7 @@ app_social_pop_action :: (action: char*, action_size: size_t,
     g_sync.social_actions[index][0] = '\0'
     g_sync.social_action_values[index][0] = '\0'
     g_sync.social_action_head = (g_sync.social_action_head + 1) %
-                                INBE_SOCIAL_ACTION_QUEUE_MAX
+                                SOCIAL_ACTION_QUEUE_MAX
     g_sync.social_action_count--
     return 1
 }
@@ -171,12 +171,12 @@ app_social_push_action :: (action: const char*, value: const char*) -> int #priv
     if action == nil || action[0] == '\0' || value == nil || value[0] == '\0' {
         return 0
     }
-    if g_sync.social_action_count >= INBE_SOCIAL_ACTION_QUEUE_MAX {
+    if g_sync.social_action_count >= SOCIAL_ACTION_QUEUE_MAX {
         TraceLog(LOG_WARNING, "SYNC: social action queue full")
         return 0
     }
     index = (g_sync.social_action_head + g_sync.social_action_count) %
-            INBE_SOCIAL_ACTION_QUEUE_MAX
+            SOCIAL_ACTION_QUEUE_MAX
     snprintf(g_sync.social_actions[index], sizeof(g_sync.social_actions[index]),
                 "%s", action)
     snprintf(g_sync.social_action_values[index],
@@ -238,7 +238,7 @@ app_social_fetch :: (url: const char*, practice: const char*, metric: const char
     if friends_result != SYNC_OK {
         return friends_result
     }
-    leaderboard_result = sync_client_get_friend_stats(url, "inbe", practice,
+    leaderboard_result = sync_client_get_friend_stats(url, "breathing", practice,
                                                       metric, leaderboard_json,
                                                       leaderboard_size)
     return leaderboard_result
@@ -269,12 +269,12 @@ app_social_leaderboard_key :: (out: char*, out_size: size_t,
     if out == nil || out_size == 0 {
         return
     }
-    snprintf(out, out_size, "leaderboard.inbe.%s.%s",
+    snprintf(out, out_size, "leaderboard.breathing.%s.%s",
                 app_social_practice_id(practice),
                 app_social_metric_id(practice, metric))
 }
 
-app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
+app_social_apply_result :: (app: InnerBreeze*, requests_json: const char*,
                            friends_json: const char*,
                            leaderboard_json: const char*,
                            leaderboard_key: const char*,
@@ -323,7 +323,7 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
 
 #if !WEB {
     app_sync_worker :: (userdata: void*) -> void* #private {
-        args := (InbeSyncWorkerArgs*)userdata
+        args := (SyncWorkerArgs*)userdata
         result: SyncResult = SYNC_INVALID_URL
         changed := 0
 
@@ -343,7 +343,7 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
     }
 
     app_social_worker :: (userdata: void*) -> void* #private {
-        args := (InbeSocialWorkerArgs*)userdata
+        args := (SocialWorkerArgs*)userdata
         result: SyncResult = SYNC_INVALID_URL
         requests_json: [8192] char
         friends_json: [8192] char
@@ -361,7 +361,7 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
             if result == SYNC_OK && strcmp(args->practice, "whm") == 0 {
                 avg_metric: const char* = strcmp(args->practice, "meditation") == 0 ? "avg_time" : "avg_hold"
                 leaderboard_avg_result = sync_client_get_friend_stats(
-                    args->url, "inbe", args->practice, avg_metric,
+                    args->url, "breathing", args->practice, avg_metric,
                     leaderboard_avg_json, sizeof(leaderboard_avg_json))
                 if leaderboard_avg_result != SYNC_OK {
                     result = leaderboard_avg_result
@@ -401,7 +401,7 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
     }
 
     app_sync_events_worker :: (userdata: void*) -> void* #private {
-        args := (InbeSyncWorkerArgs*)userdata
+        args := (SyncWorkerArgs*)userdata
 
         if args == nil {
             return nil
@@ -478,7 +478,7 @@ app_collect_finished_sync :: () #private {
 app_ensure_sync_events :: (url: const char*) #private {
     #if !WEB {
         thread: KryThread
-        args: InbeSyncWorkerArgs*
+        args: SyncWorkerArgs*
 
         if url == nil || url[0] == '\0' {
             return
@@ -541,7 +541,7 @@ app_ensure_sync_events :: (url: const char*) #private {
     }
 }
 
-app_background_sync_safe :: (app: const InbeApp*) -> int #private {
+app_background_sync_safe :: (app: const InnerBreeze*) -> int #private {
     if app == nil {
         return 0
     }
@@ -554,16 +554,16 @@ app_background_sync_safe :: (app: const InbeApp*) -> int #private {
        app->profile_friend_input_focused {
         return 0
     }
-    if app->inbe.screen == InbeScreenStart ||
-       app->inbe.screen == InbeScreenPracticeSession ||
-       app->inbe.screen == InbeScreenMeditation ||
-       app->inbe.screen == InbeScreenSunSalutation {
+    if app->breathing.screen == ScreenStart ||
+       app->breathing.screen == ScreenPracticeSession ||
+       app->breathing.screen == ScreenMeditation ||
+       app->breathing.screen == ScreenSunSalutation {
         return 0
     }
     return 1
 }
 
-app_background_secure_migration_safe :: (app: const InbeApp*) -> int #private {
+app_background_secure_migration_safe :: (app: const InnerBreeze*) -> int #private {
     if app == nil {
         return 0
     }
@@ -576,15 +576,15 @@ app_background_secure_migration_safe :: (app: const InbeApp*) -> int #private {
        app->profile_friend_input_focused {
         return 0
     }
-    if app->inbe.screen == InbeScreenPracticeSession ||
-       app->inbe.screen == InbeScreenMeditation ||
-       app->inbe.screen == InbeScreenSunSalutation {
+    if app->breathing.screen == ScreenPracticeSession ||
+       app->breathing.screen == ScreenMeditation ||
+       app->breathing.screen == ScreenSunSalutation {
         return 0
     }
     return 1
 }
 
-app_secure_migration_prompt_safe :: (app: const InbeApp*) -> int #private {
+app_secure_migration_prompt_safe :: (app: const InnerBreeze*) -> int #private {
     if app == nil || app->modal.active {
         return 0
     }
@@ -671,23 +671,23 @@ app_sync_record_input :: (now: double) #private {
 }
 
 app_sync_user_idle :: (now: double) -> int #private {
-    return !app_input_active() && now >= g_sync.last_input_at + inbe_sync_ui_quiet_seconds
+    return !app_input_active() && now >= g_sync.last_input_at + sync_ui_quiet_seconds
 }
 
-app_sync_ui_update_safe :: (app: const InbeApp*, now: double) -> int #private {
+app_sync_ui_update_safe :: (app: const InnerBreeze*, now: double) -> int #private {
     if !app_background_sync_safe(app) {
         return 0
     }
     if !app_sync_user_idle(now) {
         return 0
     }
-    if app->inbe.screen == InbeScreenStart {
+    if app->breathing.screen == ScreenStart {
         return 0
     }
     return 1
 }
 
-app_apply_pending_sync_refresh :: (app: InbeApp*, now: double) #private {
+app_apply_pending_sync_refresh :: (app: InnerBreeze*, now: double) #private {
     if !g_sync.data_refresh_pending || !app_sync_ui_update_safe(app, now) {
         return
     }
@@ -706,7 +706,7 @@ app_sync_url :: (url: char*, url_size: size_t) -> int #private {
     if !storage_sync_server_connected() {
         return 0
     }
-    saved_url = storage_get_setting_text(inbe_sync_server_url_key)
+    saved_url = storage_get_setting_text(sync_server_url_key)
     if saved_url == nil || saved_url[0] == '\0' {
         return 0
     }
@@ -716,7 +716,7 @@ app_sync_url :: (url: char*, url_size: size_t) -> int #private {
     return 1
 }
 
-app_apply_pending_social_refresh :: (app: InbeApp*) #private {
+app_apply_pending_social_refresh :: (app: InnerBreeze*) #private {
     url: [256] char
     action: [16] char = ""
     action_value: [96] char = ""
@@ -732,7 +732,7 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
     }
     #if !WEB {
         thread: KryThread
-        args: InbeSocialWorkerArgs*
+        args: SocialWorkerArgs*
 
         if !app_sync_url(url, sizeof(url)) {
             app_clear_disconnected_sync_work()
@@ -819,7 +819,7 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
         if result == SYNC_OK &&
            app->profile_leaderboard_practice == EXERCISE_WIM_HOF {
             result = sync_client_get_friend_stats(
-                url, "inbe", app_social_practice_id(app->profile_leaderboard_practice),
+                url, "breathing", app_social_practice_id(app->profile_leaderboard_practice),
                 app_social_metric_id(app->profile_leaderboard_practice,
                                      PROFILE_LEADERBOARD_AVG_HOLD),
                 leaderboard_avg_json, sizeof(leaderboard_avg_json))
@@ -840,7 +840,7 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
     }
 }
 
-app_collect_finished_social_refresh :: (app: InbeApp*) #private {
+app_collect_finished_social_refresh :: (app: InnerBreeze*) #private {
     #if !WEB {
         finished: int
         result: int
@@ -893,7 +893,7 @@ app_collect_finished_social_refresh :: (app: InbeApp*) #private {
     }
 }
 
-app_request_social_refresh :: (app: InbeApp*) {
+app_request_social_refresh :: (app: InnerBreeze*) {
     app_mark_used(app)
     app_queue_social_refresh()
 }
@@ -941,27 +941,27 @@ app_request_social_action :: (action: const char*, value: const char*) #private 
     }
 }
 
-app_request_friend_send :: (app: InbeApp*, target: const char*) {
+app_request_friend_send :: (app: InnerBreeze*, target: const char*) {
     app_mark_used(app)
     app_request_social_action("send", target)
 }
 
-app_request_friend_accept :: (app: InbeApp*, request_id: const char*) {
+app_request_friend_accept :: (app: InnerBreeze*, request_id: const char*) {
     app_mark_used(app)
     app_request_social_action("accept", request_id)
 }
 
-app_request_friend_decline :: (app: InbeApp*, request_id: const char*) {
+app_request_friend_decline :: (app: InnerBreeze*, request_id: const char*) {
     app_mark_used(app)
     app_request_social_action("decline", request_id)
 }
 
-app_request_friend_remove :: (app: InbeApp*, friend_user_id: const char*) {
+app_request_friend_remove :: (app: InnerBreeze*, friend_user_id: const char*) {
     app_mark_used(app)
     app_request_social_action("remove", friend_user_id)
 }
 
-app_sync_now :: (app: InbeApp*) -> int #private {
+app_sync_now :: (app: InnerBreeze*) -> int #private {
     url: [256] char
 
     if app == nil || !app_sync_url(url, sizeof(url)) {
@@ -969,7 +969,7 @@ app_sync_now :: (app: InbeApp*) -> int #private {
     }
     #if !WEB {
         thread: KryThread
-        args: InbeSyncWorkerArgs*
+        args: SyncWorkerArgs*
 
         sync_lock()
         if g_sync.sync_running {
@@ -1013,7 +1013,7 @@ app_sync_now :: (app: InbeApp*) -> int #private {
     }
 }
 
-app_auto_sync :: (app: InbeApp*) -> int {
+app_auto_sync :: (app: InnerBreeze*) -> int {
     due: double
     now: double
     url: [256] char
@@ -1023,7 +1023,7 @@ app_auto_sync :: (app: InbeApp*) -> int {
     }
     now = GetTime()
     g_sync.last_input_at = now
-    due = now + inbe_sync_input_quiet_seconds
+    due = now + sync_input_quiet_seconds
     if g_sync.dirty_sync_at <= 0.0 || due < g_sync.dirty_sync_at {
         g_sync.dirty_sync_at = due
     }
@@ -1031,14 +1031,14 @@ app_auto_sync :: (app: InbeApp*) -> int {
     return 1
 }
 
-app_sync_pump :: (app: InbeApp*) {
+app_sync_pump :: (app: InnerBreeze*) {
     now: double
     should_sync := 0
     dirty_due := 0
     repair_due := 0
     migration_due := 0
     url: [256] char
-    sync_status: InbeStorageSyncStatus
+    sync_status: StorageSyncStatus
 
     if app == nil {
         return
@@ -1102,9 +1102,9 @@ app_sync_pump :: (app: InbeApp*) {
     if !should_sync {
         return
     }
-    if now < g_sync.last_input_at + inbe_sync_input_quiet_seconds {
+    if now < g_sync.last_input_at + sync_input_quiet_seconds {
         if g_sync.dirty_sync_at <= 0.0 {
-            g_sync.dirty_sync_at = g_sync.last_input_at + inbe_sync_input_quiet_seconds
+            g_sync.dirty_sync_at = g_sync.last_input_at + sync_input_quiet_seconds
         }
         return
     }
@@ -1114,7 +1114,7 @@ app_sync_pump :: (app: InbeApp*) {
                     "SYNC: delayed; modal=%d type=%s screen=%d pending_review=%d tutorial_seen=%d habits_guide_seen=%d",
                     app->modal.active,
                     app_modal_type_name(app->modal.type),
-                    app->inbe.screen,
+                    app->breathing.screen,
                     storage_sync_review_pending(),
                     app->tutorial_seen,
                     app->habits_guide_seen)
@@ -1129,7 +1129,7 @@ app_sync_pump :: (app: InbeApp*) {
         }
         TraceLog(LOG_INFO, "SYNC: dispatched")
     } else if dirty_due || repair_due || migration_due {
-        g_sync.dirty_sync_at = now + inbe_sync_input_quiet_seconds
+        g_sync.dirty_sync_at = now + sync_input_quiet_seconds
     }
     app_apply_pending_sync_refresh(app, now)
 }

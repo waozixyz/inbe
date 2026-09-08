@@ -1778,3 +1778,17 @@ Elige qué prácticas completadas cuentan para este hábito.
 [habit_routine_title]
 Horario y recordatorio
 ---
+[tab_elist]
+Listas
+[elist_title]
+Listas
+[elist_new_list]
+Nueva lista
+[elist_create_list]
+Crear lista
+[elist_add_item]
+Agregar
+[elist_empty_title]
+Aun no hay listas
+[elist_empty_detail]
+Crea una lista y agrega tareas y notas en un solo lugar.

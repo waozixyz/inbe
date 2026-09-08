@@ -133,7 +133,7 @@ storage_sync_review_path :: (out: char*, out_size: size_t) #private {
 }
 
 storage_sync_review_write_json :: (json: const char*) -> int {
-    path: [INBE_STORAGE_PATH_SIZE] char
+    path: [STORAGE_PATH_SIZE] char
     file: FILE*
     len: size_t
 
@@ -157,7 +157,7 @@ storage_sync_review_write_json :: (json: const char*) -> int {
 }
 
 storage_sync_review_read_json :: () -> char* #private {
-    path: [INBE_STORAGE_PATH_SIZE] char
+    path: [STORAGE_PATH_SIZE] char
     file: FILE*
     size: long
     data: char*
@@ -196,7 +196,7 @@ storage_sync_review_read_json :: () -> char* #private {
 }
 
 storage_sync_review_delete_json :: () {
-    path: [INBE_STORAGE_PATH_SIZE] char
+    path: [STORAGE_PATH_SIZE] char
 
     storage_sync_review_path(path, sizeof(path))
     if path[0] != '\0' {

@@ -1778,3 +1778,17 @@ Pilih latihan selesai yang dihitung untuk kebiasaan ini.
 [habit_routine_title]
 Jadwal & pengingat
 ---
+[tab_elist]
+Daftar
+[elist_title]
+Daftar
+[elist_new_list]
+Daftar baru
+[elist_create_list]
+Buat daftar
+[elist_add_item]
+Tambah
+[elist_empty_title]
+Belum ada daftar
+[elist_empty_detail]
+Buat daftar, lalu tambahkan tugas dan catatan di satu tempat.

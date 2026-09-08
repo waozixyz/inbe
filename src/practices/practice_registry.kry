@@ -14,7 +14,7 @@ ANDROID :: ANDROID_BUILD
     #import "android_timer.h" #private
     #import "android_wakelock.h"
 #private
-    set_global_inbe_app :: (app: InbeApp*) #extern
+    set_global_app :: (app: InnerBreeze*) #extern
     static android_background_session_started: int = 0
 }
 
@@ -26,11 +26,11 @@ PracticeId :: enum {
     PRACTICE_COUNT = 4
 }
 
-PracticeVoidFn :: void (*)(InbeApp*) #type
-PracticeCloseManualFn :: void (*)(InbeApp*, int) #type
-PracticeDrawSessionFn :: void (*)(InbeApp*, int, int) #type
-PracticeIsActiveFn :: int (*)(const InbeApp*) #type
-PracticeAdvanceElapsedFn :: void (*)(InbeApp*, int) #type
+PracticeVoidFn :: void (*)(InnerBreeze*) #type
+PracticeCloseManualFn :: void (*)(InnerBreeze*, int) #type
+PracticeDrawSessionFn :: void (*)(InnerBreeze*, int, int) #type
+PracticeIsActiveFn :: int (*)(const InnerBreeze*) #type
+PracticeAdvanceElapsedFn :: void (*)(InnerBreeze*, int) #type
 
 PracticeDefinition :: struct {
     id: PracticeId
@@ -131,20 +131,20 @@ static practices: [PRACTICE_COUNT] const PracticeDefinition = {
     },
 }
 
-practice_whm_is_active :: (app: const InbeApp*) -> int #private {
-    return app != nil && app->inbe.screen == InbeScreenSession
+practice_whm_is_active :: (app: const InnerBreeze*) -> int #private {
+    return app != nil && app->breathing.screen == ScreenSession
 }
 
-practice_meditation_is_active :: (app: const InbeApp*) -> int #private {
-    return app != nil && app->inbe.screen == InbeScreenMeditation
+practice_meditation_is_active :: (app: const InnerBreeze*) -> int #private {
+    return app != nil && app->breathing.screen == ScreenMeditation
 }
 
-practice_sun_salutation_is_active :: (app: const InbeApp*) -> int #private {
-    return app != nil && app->inbe.screen == InbeScreenSunSalutation
+practice_sun_salutation_is_active :: (app: const InnerBreeze*) -> int #private {
+    return app != nil && app->breathing.screen == ScreenSunSalutation
 }
 
-practice_patterns_is_active :: (app: const InbeApp*) -> int #private {
-    return app != nil && app->inbe.screen == InbeScreenPatterns
+practice_patterns_is_active :: (app: const InnerBreeze*) -> int #private {
+    return app != nil && app->breathing.screen == ScreenPatterns
 }
 
 practice_get :: (id: int) -> const PracticeDefinition* {
@@ -184,7 +184,7 @@ practice_label :: (id: int) -> const char* {
     return GetLocaleText(practice_get(id)->label_key)
 }
 
-practice_active :: (app: const InbeApp*) -> const PracticeDefinition* {
+practice_active :: (app: const InnerBreeze*) -> const PracticeDefinition* {
     for int i = 0; i < practice_count(); i++ {
         practice := practice_get(i)
         if practice->is_active != nil && practice->is_active(app) {
@@ -194,12 +194,12 @@ practice_active :: (app: const InbeApp*) -> const PracticeDefinition* {
     return nil
 }
 
-practice_active_supports_background :: (app: const InbeApp*) -> int {
+practice_active_supports_background :: (app: const InnerBreeze*) -> int {
     practice := practice_active(app)
     return practice != nil && practice->advance_elapsed != nil
 }
 
-practice_background_start :: (app: InbeApp*, id: int) {
+practice_background_start :: (app: InnerBreeze*, id: int) {
     practice: const PracticeDefinition* = nil
 
     if app == nil {
@@ -209,7 +209,7 @@ practice_background_start :: (app: InbeApp*, id: int) {
     practice = practice_get(id)
 
     #if ANDROID {
-        set_global_inbe_app(app)
+        set_global_app(app)
     }
 
     if practice == nil || practice->advance_elapsed == nil {
@@ -221,7 +221,7 @@ practice_background_start :: (app: InbeApp*, id: int) {
     }
 
     #if ANDROID {
-        if app->inbe.play_in_background {
+        if app->breathing.play_in_background {
             android_wakelock_acquire()
             android_timer_set_app(app)
             android_timer_start()
@@ -230,7 +230,7 @@ practice_background_start :: (app: InbeApp*, id: int) {
     }
 }
 
-practice_active_background_start :: (app: InbeApp*) {
+practice_active_background_start :: (app: InnerBreeze*) {
     practice := practice_active(app)
 
     if practice == nil {
@@ -239,7 +239,7 @@ practice_active_background_start :: (app: InbeApp*) {
     practice_background_start(app, practice->id)
 }
 
-practice_active_background_stop :: (app: InbeApp*) {
+practice_active_background_stop :: (app: InnerBreeze*) {
     practice := practice_active(app)
 
     if app == nil {
@@ -261,10 +261,10 @@ practice_active_background_stop :: (app: InbeApp*) {
     }
 }
 
-practice_active_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
+practice_active_advance_elapsed :: (app: InnerBreeze*, elapsed_ms: int) {
     practice: const PracticeDefinition* = nil
 
-    if app == nil || elapsed_ms <= 0 || !app->inbe.play_in_background {
+    if app == nil || elapsed_ms <= 0 || !app->breathing.play_in_background {
         return
     }
 
@@ -280,28 +280,28 @@ practice_active_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
     }
 }
 
-practice_update_circle_bounds :: (app: InbeApp*, top_reserve: int, bottom_reserve: int) {
+practice_update_circle_bounds :: (app: InnerBreeze*, top_reserve: int, bottom_reserve: int) {
     if app != nil {
-        session_update_circle_bounds_for_view(&app->inbe, top_reserve, bottom_reserve)
+        session_update_circle_bounds_for_view(&app->breathing, top_reserve, bottom_reserve)
     }
 }
 
-practice_update_session_sounds :: (app: InbeApp*) {
+practice_update_session_sounds :: (app: InnerBreeze*) {
     update_session_sounds(app)
 }
 
-practice_ensure_results_saved :: (app: InbeApp*) -> int {
+practice_ensure_results_saved :: (app: InnerBreeze*) -> int {
     return session_ensure_results_saved(app)
 }
 
-practice_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> int {
+practice_draw_start_preview :: (app: InnerBreeze*, center_x: int, center_y: int) -> int {
     return session_draw_start_preview(app, center_x, center_y)
 }
 
-practice_draw_active_breathing :: (app: InbeApp*, center_x: int, center_y: int) {
+practice_draw_active_breathing :: (app: InnerBreeze*, center_x: int, center_y: int) {
     session_draw_inbe(app, center_x, center_y)
 }
 
-practice_update_active_breathing :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
+practice_update_active_breathing :: (app: InnerBreeze*, center_x: int, center_y: int, hover: int*) {
     session_update_screen(app, center_x, center_y, hover)
 }

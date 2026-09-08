@@ -38,7 +38,7 @@ APPCPPFLAGS=-I$ROOT/src -I$ROOT/src/app -I$ROOT/src/core -I$ROOT/src/screens \
 	-I$ROOT/src/storage -I$ROOT/src/platform -I$ROOT/src/platform/android \
 	-I$ROOT/src/third_party -I$ROOT/vendor-builds/sqlite \
 	-I$ROOT/build/plan9/generated -I$ROOT/build/plan9/generated/src \
-	-DANDROID_BUILD=0 -DPLATFORM_DESKTOP=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES=1 \
+	-DANDROID_BUILD=0 -DPLATFORM_DESKTOP=1 \
 	-DINBE_DISABLE_KRYON_FILE_DIALOG=1 -DSQLITE_OS_OTHER=1 -DSQLITE_THREADSAFE=0 \
 	-DSQLITE_OMIT_LOAD_EXTENSION=1 -DSQLITE_OMIT_WAL=1 -DSQLITE_TEMP_STORE=3
 LDLIBS=-lmemlayer -lbio -lregexp -lString

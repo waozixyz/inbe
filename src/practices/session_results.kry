@@ -4,11 +4,11 @@
 #import "stdio.h"
 #import "string.h"
 
-app_prepare_session_results :: (app: InbeApp*, activity: int,
+app_prepare_session_results :: (app: InnerBreeze*, activity: int,
                                 primary_value: int, secondary_value: int,
                                 detail: const char*, round_values: const int*,
                                 round_count: int, saved_path: const char*) {
-    result: InbeSessionResult*
+    result: SessionResult*
 
     if app == nil {
         return
@@ -37,7 +37,7 @@ app_prepare_session_results :: (app: InbeApp*, activity: int,
     }
 }
 
-session_result_discard :: (app: InbeApp*) {
+session_result_discard :: (app: InnerBreeze*) {
     if app == nil || !app->session_result.active {
         return
     }
@@ -49,11 +49,11 @@ session_result_discard :: (app: InbeApp*) {
         app_auto_sync(app)
     }
     memset(&app->session_result, 0, sizeof(app->session_result))
-    app_switch_screen(app, InbeScreenStart)
+    app_switch_screen(app, ScreenStart)
 }
 
-session_result_done :: (app: InbeApp*) {
-    checkin: InbeStorageSessionCheckin = {0}
+session_result_done :: (app: InnerBreeze*) {
+    checkin: StorageSessionCheckin = {0}
 
     if app == nil || !app->session_result.active {
         return
@@ -68,5 +68,5 @@ session_result_done :: (app: InbeApp*) {
         app_auto_sync(app)
     }
     memset(&app->session_result, 0, sizeof(app->session_result))
-    app_switch_screen(app, InbeScreenStart)
+    app_switch_screen(app, ScreenStart)
 }

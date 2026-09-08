@@ -1,5 +1,5 @@
-#ifndef INBE_ANDROID_DEVICE_H
-#define INBE_ANDROID_DEVICE_H
+#ifndef APP_ANDROID_DEVICE_H
+#define APP_ANDROID_DEVICE_H
 
 #include "app.h"
 #if ANDROID_BUILD

@@ -22,7 +22,7 @@ storage_habit_count(void)
 int
 storage_habits_load(void *habits_ptr)
 {
-    InbeHabits *habits = habits_ptr;
+    Habits *habits = habits_ptr;
     sqlite3_stmt *stmt = NULL;
     int index = 0;
 
@@ -37,8 +37,8 @@ storage_habits_load(void *habits_ptr)
                           "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id LIMIT 32",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
-    while(index < INBE_HABIT_MAX && sqlite3_step(stmt) == SQLITE_ROW) {
-        InbeHabit *habit = &habits->items[index];
+    while(index < HABIT_MAX && sqlite3_step(stmt) == SQLITE_ROW) {
+        Habit *habit = &habits->items[index];
         snprintf(habit->id, sizeof(habit->id), "%s", (const char *)sqlite3_column_text(stmt, 0));
         snprintf(habits->loaded_ids[index], sizeof(habits->loaded_ids[index]), "%s", habit->id);
         snprintf(habit->name, sizeof(habit->name), "%s",
@@ -109,7 +109,7 @@ storage_mark_habits_initialized(void)
 void
 storage_habits_save(const void *habits_ptr)
 {
-    const InbeHabits *habits = habits_ptr;
+    const Habits *habits = habits_ptr;
     sqlite3_stmt *stmt = NULL;
     sqlite3_stmt *loaded_stmt = NULL;
     sqlite3_stmt *habit_stmt = NULL;
@@ -180,7 +180,7 @@ storage_habits_save(const void *habits_ptr)
                        "OR habit_days.count<>excluded.count "
                        "THEN excluded.updated_at ELSE habit_days.updated_at END",
                        -1, &day_stmt, NULL);
-    for(int i = 0; i < habits->loaded_count && i < INBE_HABIT_MAX; i++) {
+    for(int i = 0; i < habits->loaded_count && i < HABIT_MAX; i++) {
         if(habits->loaded_ids[i][0] == '\0')
             continue;
         if(loaded_stmt == NULL)
@@ -191,7 +191,7 @@ storage_habits_save(const void *habits_ptr)
         sqlite3_step(loaded_stmt);
     }
     for(int i = 0; i < habits->count; i++) {
-        const InbeHabit *habit = &habits->items[i];
+        const Habit *habit = &habits->items[i];
         if(habit_stmt == NULL)
             continue;
         sqlite3_reset(habit_stmt);
@@ -256,10 +256,10 @@ storage_habits_save(const void *habits_ptr)
                           "AND id IN (SELECT id FROM sync_loaded_habits) "
                           "AND id NOT IN (SELECT id FROM sync_seen_habits)",
                           -1, &stmt, NULL) == SQLITE_OK) {
-        char deleted_ids[INBE_HABIT_MAX][INBE_STORAGE_ID_SIZE];
+        char deleted_ids[HABIT_MAX][STORAGE_ID_SIZE];
         int deleted_count = 0;
         bind_text(stmt, 1, g_storage.user_id);
-        while(deleted_count < INBE_HABIT_MAX && sqlite3_step(stmt) == SQLITE_ROW) {
+        while(deleted_count < HABIT_MAX && sqlite3_step(stmt) == SQLITE_ROW) {
             snprintf(deleted_ids[deleted_count], sizeof(deleted_ids[deleted_count]), "%s",
                      (const char *)sqlite3_column_text(stmt, 0));
             deleted_count++;

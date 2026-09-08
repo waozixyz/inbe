@@ -14,41 +14,42 @@
 }
 
 #enum {
-    InbeScreenStart = 0
-    InbeScreenSession
-    InbeScreenPracticeSession = InbeScreenSession
-    InbeScreenMeditation
-    InbeScreenSunSalutation
-    InbeScreenPatterns
-    InbeScreenResults
-    InbeScreenSettings
-    InbeScreenPracticeConfig
-    InbeScreenLanguage
-    InbeScreenManual
-    InbeScreenProfile
-    InbeScreenHabits
-    InbeScreenCustomizeNav
-    InbeScreenNavSidebar
-    InbeScreenHabitEdit
-    InbeScreenHabitSessionEdit
-    InbeScreenBreak
+    ScreenStart = 0
+    ScreenSession
+    ScreenPracticeSession = ScreenSession
+    ScreenMeditation
+    ScreenSunSalutation
+    ScreenPatterns
+    ScreenResults
+    ScreenSettings
+    ScreenPracticeConfig
+    ScreenLanguage
+    ScreenManual
+    ScreenProfile
+    ScreenHabits
+    ScreenCustomizeNav
+    ScreenNavSidebar
+    ScreenHabitEdit
+    ScreenHabitSessionEdit
+    ScreenEList
+    ScreenBreak
 }
 
 #enum {
-    InbePhaseStarting = 0
-    InbePhaseBreathe
-    InbePhaseHold
-    InbePhaseRecover
-    InbePhaseNext
+    BreathPhaseStarting = 0
+    BreathPhaseBreathe
+    BreathPhaseHold
+    BreathPhaseRecover
+    BreathPhaseNext
 }
 
-InbeBreathAnimation :: enum {
-    InbeBreathAnimationLinear = 0
-    InbeBreathAnimationInOut = 1
-    InbeBreathAnimationCount
+BreathAnimation :: enum {
+    BreathAnimationLinear = 0
+    BreathAnimationInOut = 1
+    BreathAnimationCount
 }
 
-Inbe :: struct {
+BreathSession :: struct {
     screen: int
     phase: int
     round: int

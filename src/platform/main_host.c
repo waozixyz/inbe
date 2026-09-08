@@ -35,8 +35,8 @@ int kry_write_png_file(const char *path, const unsigned char *rgba,
 #include <unistd.h>
 #endif
 
-#if defined(INBE_DESKTOP_TRAY_ENABLED)
-#include "platform/inbe_desktop_tray.h"
+#if defined(DESKTOP_TRAY_ENABLED)
+#include "platform/app_desktop_tray.h"
 #endif
 
 #if defined(_WIN32) && !ANDROID_BUILD
@@ -48,15 +48,15 @@ __declspec(dllimport) int __stdcall GetSystemMetrics(int);
 #define MB_OK 0u
 #define MB_ICONERROR 0x10u
 #define WIN_ERROR_LOG_CAP 2048
-#define INBE_APP_ICON_RESOURCE 101
-#define INBE_WM_SETICON 0x0080u
-#define INBE_ICON_SMALL 0u
-#define INBE_ICON_BIG 1u
-#define INBE_IMAGE_ICON 1u
-#define INBE_SM_CXICON 11
-#define INBE_SM_CYICON 12
-#define INBE_SM_CXSMICON 49
-#define INBE_SM_CYSMICON 50
+#define APP_ICON_RESOURCE 101
+#define APP_WM_SETICON 0x0080u
+#define ICON_SMALL 0u
+#define ICON_BIG 1u
+#define APP_IMAGE_ICON 1u
+#define SM_CXICON 11
+#define SM_CYICON 12
+#define SM_CXSMICON 49
+#define SM_CYSMICON 50
 #endif
 
 #if ANDROID_BUILD
@@ -75,22 +75,22 @@ extern struct android_app *GetAndroidApp(void);
 #endif
 
 #if !defined(PLATFORM_WEB) && !ANDROID_BUILD
-static const char *INBE_DESKTOP_APP_ID = "xyz.waozi.inbe";
-static const char *INBE_DESKTOP_APP_NAME = "inbe";
-static const char *INBE_DESKTOP_DISPLAY_NAME = "Inner Breeze";
-static const char *INBE_DESKTOP_SUMMARY =
+static const char *DESKTOP_APP_ID = "xyz.waozi.breathing";
+static const char *DESKTOP_APP_NAME = "breathing";
+static const char *DESKTOP_DISPLAY_NAME = "Inner Breeze";
+static const char *DESKTOP_SUMMARY =
     "Syncable breathing, meditation, and habit practice app.";
 
 static void
-inbe_init_desktop_identity(void)
+init_desktop_identity(void)
 {
     DesktopAppInfo info = {
-        INBE_DESKTOP_APP_ID,
-        INBE_DESKTOP_APP_NAME,
-        INBE_DESKTOP_DISPLAY_NAME,
-        INBE_DESKTOP_SUMMARY,
-        INBE_DESKTOP_APP_ID,
-        INBE_DESKTOP_APP_ID,
+        DESKTOP_APP_ID,
+        DESKTOP_APP_NAME,
+        DESKTOP_DISPLAY_NAME,
+        DESKTOP_SUMMARY,
+        DESKTOP_APP_ID,
+        DESKTOP_APP_ID,
         0
     };
 
@@ -98,15 +98,15 @@ inbe_init_desktop_identity(void)
 #if defined(_WIN32)
     _putenv("SDL_APP_NAME=Inner Breeze");
 #else
-    setenv("SDL_APP_NAME", INBE_DESKTOP_DISPLAY_NAME, 1);
-    setenv("SDL_VIDEO_X11_WMCLASS", INBE_DESKTOP_APP_ID, 1);
-    setenv("SDL_VIDEO_WAYLAND_WMCLASS", INBE_DESKTOP_APP_ID, 1);
-    setenv("SDL_VIDEO_WAYLAND_APP_ID", INBE_DESKTOP_APP_ID, 1);
+    setenv("SDL_APP_NAME", DESKTOP_DISPLAY_NAME, 1);
+    setenv("SDL_VIDEO_X11_WMCLASS", DESKTOP_APP_ID, 1);
+    setenv("SDL_VIDEO_WAYLAND_WMCLASS", DESKTOP_APP_ID, 1);
+    setenv("SDL_VIDEO_WAYLAND_APP_ID", DESKTOP_APP_ID, 1);
 #endif
 }
 #else
 static void
-inbe_init_desktop_identity(void)
+init_desktop_identity(void)
 {
 }
 #endif
@@ -118,10 +118,10 @@ set_desktop_window_icon(void)
 #if defined(_WIN32)
     {
         HWND window=(HWND)GetWindowHandle(); HMODULE instance=GetModuleHandleW(NULL);
-        LPCWSTR resource=(LPCWSTR)(uintptr_t)INBE_APP_ICON_RESOURCE;
-        HICON large=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXICON),GetSystemMetrics(INBE_SM_CYICON),0);
-        HICON small=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXSMICON),GetSystemMetrics(INBE_SM_CYSMICON),0);
-        if(window){if(large)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_BIG,(LPARAM)large);if(small)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_SMALL,(LPARAM)small);}
+        LPCWSTR resource=(LPCWSTR)(uintptr_t)APP_ICON_RESOURCE;
+        HICON large=(HICON)LoadImageW(instance,resource,APP_IMAGE_ICON,GetSystemMetrics(SM_CXICON),GetSystemMetrics(SM_CYICON),0);
+        HICON small=(HICON)LoadImageW(instance,resource,APP_IMAGE_ICON,GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),0);
+        if(window){if(large)SendMessageW(window,APP_WM_SETICON,ICON_BIG,(LPARAM)large);if(small)SendMessageW(window,APP_WM_SETICON,ICON_SMALL,(LPARAM)small);}
     }
 #endif
     const char *path = "assets/app/icon.png";
@@ -129,13 +129,13 @@ set_desktop_window_icon(void)
     Image icon;
 
     if(asset == NULL || asset->data == NULL || asset->size == 0) {
-        TraceLog(LOG_WARNING, "INBE: Missing window icon asset: %s", path);
+        TraceLog(LOG_WARNING, "APP: Missing window icon asset: %s", path);
         return;
     }
 
     icon = LoadImageFromMemory(GetEmbeddedAssetExtension(path), asset->data, (int)asset->size);
     if(icon.data == NULL) {
-        TraceLog(LOG_WARNING, "INBE: Failed to decode window icon asset: %s", path);
+        TraceLog(LOG_WARNING, "APP: Failed to decode window icon asset: %s", path);
         return;
     }
 
@@ -146,7 +146,7 @@ set_desktop_window_icon(void)
 }
 
 #if defined(PLATFORM_WEB)
-static InbeApp *g_web_loop_app;
+static InnerBreeze*g_web_loop_app;
 #endif
 
 static const char *
@@ -196,7 +196,7 @@ static void
 install_trace_log_filter(void)
 {
 #if defined(KRYON_BACKEND_TERMI)
-    if(getenv("INBE_TERMI_LOG") != NULL) {
+    if(getenv("APP_TERMI_LOG") != NULL) {
         SetTraceLogCallback(filtered_trace_log);
         return;
     }
@@ -328,7 +328,7 @@ windows_show_startup_error(void)
 
     snprintf(dialog,
              sizeof(dialog),
-             "Inner Breeze could not create a window.\n\n%s%s\nA full log was written to inbe.log next to the executable.",
+             "Inner Breeze could not create a window.\n\n%s%s\nA full log was written to breathing.log next to the executable.",
              detail,
              hint);
 
@@ -338,7 +338,7 @@ windows_show_startup_error(void)
 static void
 windows_install_logger(void)
 {
-    win_log_file = fopen("inbe.log", "ab");
+    win_log_file = fopen("breathing.log", "ab");
     if(win_log_file != NULL)
         SetTraceLogCallback(windows_trace_log);
 }
@@ -383,7 +383,7 @@ android_log_viewport_if_changed(int width, int height, AndroidViewport viewport)
 #endif
 
 static void
-draw_full_frame(InbeApp *app, int width, int height)
+draw_full_frame(InnerBreeze*app, int width, int height)
 {
     BeginDrawing();
     ClearBackground(GetThemeBackground());
@@ -396,7 +396,7 @@ draw_full_frame(InbeApp *app, int width, int height)
 }
 
 void
-inbe_frame(InbeApp *app)
+app_frame(InnerBreeze*app)
 {
 #if defined(PLATFORM_WEB)
     SyncWebWindowSize();
@@ -455,10 +455,10 @@ inbe_frame(InbeApp *app)
 
 #if defined(PLATFORM_WEB)
 static void
-inbe_web_frame(void)
+web_frame(void)
 {
     if(g_web_loop_app != NULL)
-        inbe_frame(g_web_loop_app);
+        app_frame(g_web_loop_app);
 }
 #endif
 
@@ -557,7 +557,7 @@ screenshot_day_index_offset(int offset_days)
 }
 
 static void
-screenshot_seed_habits(InbeApp *app)
+screenshot_seed_habits(InnerBreeze*app)
 {
     static const int offsets[] = {0, 1, 2, 4, 5, 7, 8, 10, 12, 13,
                                   15, 17, 18, 20, 21, 24, 25, 27};
@@ -573,14 +573,14 @@ screenshot_seed_habits(InbeApp *app)
 
     /* Deterministic preview fixtures, only in the isolated screenshot store. */
     if(app->habits.count == 2) {
-        habits_add_custom(&app->habits, "Sit ups", (Color){180,130,220,255}, INBE_HABIT_SYNC_NONE, 0);
-        habits_add_custom(&app->habits, "Push ups", (Color){100,190,155,255}, INBE_HABIT_SYNC_NONE, 0);
-        habits_add_custom(&app->habits, "Cold Shower", (Color){75,170,155,255}, INBE_HABIT_SYNC_NONE, 0);
-        habits_add_custom(&app->habits, "Jumping Rope", (Color){195,90,130,255}, INBE_HABIT_SYNC_NONE, 0);
+        habits_add_custom(&app->habits, "Sit ups", (Color){180,130,220,255}, HABIT_SYNC_NONE, 0);
+        habits_add_custom(&app->habits, "Push ups", (Color){100,190,155,255}, HABIT_SYNC_NONE, 0);
+        habits_add_custom(&app->habits, "Cold Shower", (Color){75,170,155,255}, HABIT_SYNC_NONE, 0);
+        habits_add_custom(&app->habits, "Jumping Rope", (Color){195,90,130,255}, HABIT_SYNC_NONE, 0);
     }
 
     app->habits.selected = 0;
-    app->habits.items[0].sync_mode = INBE_HABIT_SYNC_ACTIVITIES;
+    app->habits.items[0].sync_mode = HABIT_SYNC_ACTIVITIES;
     app->habits.items[0].sync_activity = habit_activity_mask_for(EXERCISE_WIM_HOF) |
                                          habit_activity_mask_for(EXERCISE_MEDITATION);
     app->habits.items[0].counter_enabled = 0;
@@ -599,7 +599,7 @@ screenshot_seed_habits(InbeApp *app)
         int progress = 6 - day;
         int local_date = screenshot_day_index_offset(day);
         char session_path[FS_PATH_MAX] = {0};
-        InbeStorageSessionCheckin checkin = {0};
+        StorageSessionCheckin checkin = {0};
         int rounds[] = {
             32 + progress * 4,
             37 + progress * 4,
@@ -616,7 +616,7 @@ screenshot_seed_habits(InbeApp *app)
 }
 
 static void
-screenshot_apply_theme(InbeApp *app, int theme_id, int dark_mode)
+screenshot_apply_theme(InnerBreeze*app, int theme_id, int dark_mode)
 {
     if(app == NULL)
         return;
@@ -634,14 +634,14 @@ screenshot_apply_theme(InbeApp *app, int theme_id, int dark_mode)
 }
 
 static void
-screenshot_setup_result_scene(InbeApp *app, int activity)
+screenshot_setup_result_scene(InnerBreeze*app, int activity)
 {
     if(app == NULL)
         return;
 
     app->main_tab = APP_MAIN_TAB_PRACTICE;
     app->exercise_type = activity;
-    app->inbe.screen = InbeScreenResults;
+    app->breathing.screen = ScreenResults;
 
     if(activity == EXERCISE_WIM_HOF) {
         int rounds[] = {48, 61, 74, 69};
@@ -667,7 +667,7 @@ screenshot_setup_result_scene(InbeApp *app, int activity)
 }
 
 static void
-setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
+setup_screenshot_scene(InnerBreeze*app, const ScreenshotRequest *request)
 {
     if(app == NULL || request == NULL)
         return;
@@ -686,35 +686,35 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     if(strcmp(request->scene, "statistics") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->habits.tab = HABIT_TAB_STATISTICS;
-        app->inbe.screen = InbeScreenHabits;
+        app->breathing.screen = ScreenHabits;
     } else if(strcmp(request->scene, "profile") == 0) {
         app->main_tab = APP_MAIN_TAB_NONE;
-        app->inbe.screen = InbeScreenProfile;
+        app->breathing.screen = ScreenProfile;
     } else if(strcmp(request->scene, "habit_edit") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
-        app->inbe.screen = InbeScreenHabitEdit;
+        app->breathing.screen = ScreenHabitEdit;
         habit_edit_begin_new(app);
     } else if(strcmp(request->scene, "language") == 0) {
         app->main_tab = APP_MAIN_TAB_NONE;
-        app->inbe.screen = InbeScreenLanguage;
+        app->breathing.screen = ScreenLanguage;
     } else if(strcmp(request->scene, "first_run_guide") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_WIM_HOF;
         app->tutorial_seen = 0;
         app->tutorial_step = 0;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
     } else if(strcmp(request->scene, "first_run_guide_blank") == 0) {
         app->main_tab = APP_MAIN_TAB_NONE;
         app->exercise_type = EXERCISE_WIM_HOF;
         app->tutorial_seen = 0;
         app->tutorial_step = 0;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
     } else if(strcmp(request->scene, "background_music") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_MEDITATION;
         app->practice_tab = PRACTICE_TAB_CONFIG;
         app->practice_config_tab = 1;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
         app_open_modal(app, UIModalPracticeConfig);
     } else if(strncmp(request->scene, "practice_config_", 16) == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
@@ -727,18 +727,18 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         else
             app->exercise_type = EXERCISE_WIM_HOF;
         app->practice_tab = PRACTICE_TAB_CONFIG;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
         app_open_modal(app, UIModalPracticeConfig);
     } else if(strcmp(request->scene, "practice_manual_whm") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_WIM_HOF;
         app->practice_tab = PRACTICE_TAB_MANUAL;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
         app_open_modal(app, UIModalPracticeManual);
     } else if(strcmp(request->scene, "wim_hof_session") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_WIM_HOF;
-        app->inbe.screen = InbeScreenSession;
+        app->breathing.screen = ScreenSession;
     } else if(strcmp(request->scene, "wim_hof_results") == 0) {
         screenshot_setup_result_scene(app, EXERCISE_WIM_HOF);
     } else if(strcmp(request->scene, "meditation_session") == 0) {
@@ -766,35 +766,35 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->habits.screen_mode = HABITS_SCREEN_HISTORY;
         app->habits.selected = 0;
         app->habits.tab = HABIT_TAB_MONTHLY;
-        app->inbe.screen = InbeScreenHabits;
+        app->breathing.screen = ScreenHabits;
         app->habits.view_mode = HABIT_VIEW_CALENDAR;
     } else if(strcmp(request->scene, "habits_overview") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
         app->habits.tab = HABIT_TAB_WEEKLY;
         app->habits.view_mode = HABIT_VIEW_WEEKLY;
-        app->inbe.screen = InbeScreenHabits;
+        app->breathing.screen = ScreenHabits;
     } else if(strcmp(request->scene, "habits_stats") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->habits.screen_mode = HABITS_SCREEN_STATISTICS;
         app->habits.selected = 0;
         app->habits.tab = HABIT_TAB_STATISTICS;
-        app->inbe.screen = InbeScreenHabits;
+        app->breathing.screen = ScreenHabits;
     } else if(strcmp(request->scene, "theme_selection") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_THEME;
-        app->inbe.screen = InbeScreenSettings;
+        app->breathing.screen = ScreenSettings;
     } else if(strcmp(request->scene, "settings_session") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_DEVICE;
-        app->inbe.screen = InbeScreenSettings;
+        app->breathing.screen = ScreenSettings;
     } else if(strcmp(request->scene, "settings_notifications") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_NOTIFICATIONS;
-        app->inbe.screen = InbeScreenSettings;
+        app->breathing.screen = ScreenSettings;
     } else if(strcmp(request->scene, "nav_sidebar") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
         snprintf(app->profile_display_name, sizeof(app->profile_display_name),
                  "%s", "Waozi");
         storage_set_setting_text("sync_account_alias", "waozi");
@@ -804,23 +804,23 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
               strcmp(request->scene, "profile_data") == 0) {
         app->profile_view = PROFILE_VIEW_MAIN;
         app->profile_tab = PROFILE_TAB_DATA;
-        app->inbe.screen = InbeScreenProfile;
+        app->breathing.screen = ScreenProfile;
     } else if(strcmp(request->scene, "my_practices") == 0 ||
               strcmp(request->scene, "profile_practices") == 0) {
         app->profile_view = PROFILE_VIEW_PRACTICES;
         app->profile_tab = PROFILE_TAB_OVERVIEW;
-        app->inbe.screen = InbeScreenProfile;
+        app->breathing.screen = ScreenProfile;
     } else if(strcmp(request->scene, "configure_account") == 0 ||
               strcmp(request->scene, "profile_sync_account") == 0) {
         app->profile_view = PROFILE_VIEW_MAIN;
         app->profile_tab = PROFILE_TAB_OVERVIEW;
-        app->inbe.screen = InbeScreenProfile;
+        app->breathing.screen = ScreenProfile;
     } else if(strcmp(request->scene, "cobalt_dark") == 0) {
         screenshot_apply_theme(app, THEME_COBALT, 1);
         app->exercise_type = EXERCISE_PATTERNS;
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->practice_tab = PRACTICE_TAB_PLAY;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
     } else if(strcmp(request->scene, "patterns") == 0) {
         app->exercise_type = EXERCISE_PATTERNS;
         app->main_tab = APP_MAIN_TAB_PRACTICE;
@@ -831,13 +831,13 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->exercise_type = EXERCISE_PATTERNS;
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->practice_tab = PRACTICE_TAB_CONFIG;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
     } else if(strcmp(request->scene, "break_settings") == 0) {
 #if !defined(PLATFORM_WEB) && !ANDROID_BUILD
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_BREAKS;
         app->breaks_enabled = 1;
-        app->inbe.screen = InbeScreenSettings;
+        app->breathing.screen = ScreenSettings;
 #endif
     } else if(strcmp(request->scene, "break_micro") == 0 ||
               strcmp(request->scene, "break_rest") == 0 ||
@@ -854,32 +854,32 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->breaks.timers[t].idle_s = app->breaks.timers[t].duration_s > 0
                                            ? app->breaks.timers[t].duration_s / 3
                                            : 0;
-        app->inbe.screen = InbeScreenBreak;
+        app->breathing.screen = ScreenBreak;
 #endif
     } else if(strcmp(request->scene, "tutorial_whm_step0") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
         app->practice_tab = PRACTICE_TAB_MANUAL;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
         app->tutorial_step = 0;
     } else if(strcmp(request->scene, "tutorial_whm_step2") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
         app->practice_tab = PRACTICE_TAB_MANUAL;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
         app->tutorial_step = 2;
     } else if(strcmp(request->scene, "tutorial_meditation") == 0) {
         app->exercise_type = EXERCISE_MEDITATION;
         app->practice_tab = PRACTICE_TAB_MANUAL;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
         app->tutorial_step = 0;
     } else {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->inbe.screen = InbeScreenStart;
+        app->breathing.screen = ScreenStart;
     }
 }
 
 #if defined(PLATFORM_WEB) || ANDROID_BUILD
 static int
-run_screenshot_mode(InbeApp *app, const ScreenshotRequest *request)
+run_screenshot_mode(InnerBreeze*app, const ScreenshotRequest *request)
 {
     (void)app;
     (void)request;
@@ -887,7 +887,7 @@ run_screenshot_mode(InbeApp *app, const ScreenshotRequest *request)
 }
 #else
 static int
-run_screenshot_mode(InbeApp *app, const ScreenshotRequest *request)
+run_screenshot_mode(InnerBreeze*app, const ScreenshotRequest *request)
 {
     Image capture;
     int warmup_frames = 4;
@@ -908,7 +908,7 @@ run_screenshot_mode(InbeApp *app, const ScreenshotRequest *request)
     if(strcmp(request->scene, "tutorial_whm_step2") == 0)
         warmup_frames = 150;
     for(int i = 0; i < warmup_frames; i++)
-        inbe_frame(app);
+        app_frame(app);
 
     if(strcmp(request->scene, "tutorial_whm_step2") == 0) {
         app->tutorial_step = 2;
@@ -917,11 +917,11 @@ run_screenshot_mode(InbeApp *app, const ScreenshotRequest *request)
     } else if(strcmp(request->scene, "tutorial_meditation") == 0) {
         app->tutorial_step = 0;
     }
-    if(getenv("INBE_SHOT_WINDOW") != NULL) {
+    if(getenv("APP_SHOT_WINDOW") != NULL) {
         /* Fallback for GL stacks where LoadImageFromScreen reads blank:
          * hold the warmed-up scene on screen for external capture. */
         for(;;)
-            inbe_frame(app);
+            app_frame(app);
     }
     capture = LoadImageFromScreen();
     if(capture.data == NULL)
@@ -937,7 +937,7 @@ run_screenshot_mode(InbeApp *app, const ScreenshotRequest *request)
 #endif
 
 void
-inbe_native_prepare(int argc, char **argv)
+native_prepare(int argc, char **argv)
 {
     char screenshot_data_root[256] = {0};
 
@@ -952,18 +952,18 @@ inbe_native_prepare(int argc, char **argv)
 #if defined(_WIN32)
         snprintf(screenshot_data_root, sizeof(screenshot_data_root),
                  "build/screenshot-data-%ld", (long)_getpid());
-        _putenv_s("INBE_DATA_ROOT", screenshot_data_root);
+        _putenv_s("APP_DATA_ROOT", screenshot_data_root);
 #elif !defined(PLATFORM_WEB) && !ANDROID_BUILD
         snprintf(screenshot_data_root, sizeof(screenshot_data_root),
-                 "/tmp/inbe-screenshot-%ld", (long)getpid());
-        setenv("INBE_DATA_ROOT", screenshot_data_root, 1);
+                 "/tmp/breathing-screenshot-%ld", (long)getpid());
+        setenv("APP_DATA_ROOT", screenshot_data_root, 1);
 #endif
     }
     install_trace_log_filter();
-    if(getenv("INBE_NO_SINGLE_INSTANCE") != NULL || g_screenshot.active)
+    if(getenv("APP_NO_SINGLE_INSTANCE") != NULL || g_screenshot.active)
         SetSingleInstance(0);
     if(!g_screenshot.active)
-        inbe_init_desktop_identity();
+        init_desktop_identity();
     if(g_screenshot.active) {
         SetTraceLogLevel(LOG_WARNING);
         config.width = g_screenshot.width;
@@ -972,7 +972,7 @@ inbe_native_prepare(int argc, char **argv)
 }
 
 void
-inbe_native_window_size(int *window_w, int *window_h)
+native_window_size(int *window_w, int *window_h)
 {
     int w = ANDROID_BUILD ? 0 : config.width;
     int h = ANDROID_BUILD ? 0 : config.height;
@@ -989,17 +989,17 @@ inbe_native_window_size(int *window_w, int *window_h)
 }
 
 void
-inbe_native_configure_window(void)
+native_configure_window(void)
 {
 #if ANDROID_BUILD
-    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "=== MAIN START ===");
+    __android_log_write(ANDROID_LOG_INFO, "APP_MAIN", "=== MAIN START ===");
 #endif
 
 #if !defined(PLATFORM_WEB) && !ANDROID_BUILD
     /*
      * SDL (the window backend here, plus the tray) disables the OS screensaver
      * by default. On X11 that suspends/reset the server's idle counter - the
-     * same counter inbe_activity_monitor reads to tell active time from idle
+     * same counter activity_monitor reads to tell active time from idle
      * time for break scheduling. With SDL's default the app looks permanently
      * active and the break timers count down even with nobody at the machine.
      * Let SDL leave the screensaver alone: a break reminder app has no
@@ -1021,28 +1021,28 @@ inbe_native_configure_window(void)
 
 #if defined(_WIN32) && !ANDROID_BUILD
     windows_install_logger();
-    TraceLog(LOG_INFO, "INBE: Windows startup");
+    TraceLog(LOG_INFO, "APP: Windows startup");
 #endif
 }
 
 void
-inbe_native_before_window(void)
+native_before_window(void)
 {
 #if ANDROID_BUILD
     android_insets_init();
     android_device_init();
     android_wakelock_init();
     android_runtime_assets_init();
-    if(!ChangeDirectory("/data/user/0/xyz.waozi.inbe/files"))
-        TraceLog(LOG_WARNING, "INBE: failed to switch to Android files directory");
+    if(!ChangeDirectory("/data/user/0/xyz.waozi.breathing/files"))
+        TraceLog(LOG_WARNING, "APP: failed to switch to Android files directory");
 #endif
 }
 
 int
-inbe_native_after_window(void)
+native_after_window(void)
 {
     if(!IsWindowReady()) {
-        TraceLog(LOG_ERROR, "INBE: InitWindow failed");
+        TraceLog(LOG_ERROR, "APP: InitWindow failed");
 #if defined(_WIN32) && !ANDROID_BUILD
         windows_show_startup_error();
         windows_close_logger();
@@ -1068,17 +1068,17 @@ inbe_native_after_window(void)
 }
 
 void
-inbe_native_after_app_init(InbeApp *app, int argc, char **argv)
+native_after_app_init(InnerBreeze*app, int argc, char **argv)
 {
     if(app == NULL)
         return;
-    set_global_inbe_app(app);
-    TraceLog(LOG_INFO, "INBE: Global app pointer set");
+    set_global_app(app);
+    TraceLog(LOG_INFO, "APP: Global app pointer set");
     for(int argi = 1; argi < argc; argi++) {
         if(strcmp(argv[argi], "--break-now") == 0) {
             app->breaks_enabled = 1;
             break_engine_force_break(&app->breaks, BREAK_MICRO);
-            TraceLog(LOG_INFO, "INBE: forced micro break from --break-now");
+            TraceLog(LOG_INFO, "APP: forced micro break from --break-now");
         }
     }
     KryonMemReport("after-app-init");
@@ -1098,46 +1098,46 @@ inbe_native_after_app_init(InbeApp *app, int argc, char **argv)
 
 #if defined(PLATFORM_WEB)
 void
-inbe_native_start_web_loop(InbeApp *app)
+native_start_web_loop(InnerBreeze*app)
 {
     g_web_loop_app = app;
-    emscripten_set_main_loop(inbe_web_frame, 0, 1);
+    emscripten_set_main_loop(web_frame, 0, 1);
 }
 #else
 void
-inbe_native_install_shutdown_handlers(void)
+native_install_shutdown_handlers(void)
 {
     signal(SIGINT, handle_shutdown_signal);
     signal(SIGTERM, handle_shutdown_signal);
 }
 
 int
-inbe_native_shutdown_requested(void)
+native_shutdown_requested(void)
 {
     return g_shutdown_requested != 0;
 }
 #endif
 
 int
-inbe_native_screenshot_active(void)
+native_screenshot_active(void)
 {
     return g_screenshot.active;
 }
 
 int
-inbe_native_run_screenshot(InbeApp *app)
+native_run_screenshot(InnerBreeze*app)
 {
     return run_screenshot_mode(app, &g_screenshot);
 }
 
 int
-inbe_native_should_start_hidden(InbeApp *app)
+native_should_start_hidden(InnerBreeze*app)
 {
-#if defined(INBE_DESKTOP_TRAY_ENABLED)
+#if defined(DESKTOP_TRAY_ENABLED)
     return app != NULL &&
-           app->desktop_startup_mode == INBE_STARTUP_HIDDEN &&
+           app->desktop_startup_mode == STARTUP_HIDDEN &&
            !g_screenshot.active &&
-           inbe_desktop_tray_ready();
+           desktop_tray_ready();
 #else
     (void)app;
     return 0;
@@ -1145,7 +1145,7 @@ inbe_native_should_start_hidden(InbeApp *app)
 }
 
 void
-inbe_native_platform_shutdown(void)
+native_platform_shutdown(void)
 {
 #if defined(_WIN32) && !ANDROID_BUILD
     windows_close_logger();
@@ -1153,7 +1153,7 @@ inbe_native_platform_shutdown(void)
 }
 
 int
-inbe_native_update_apply_at_exit(void)
+native_update_apply_at_exit(void)
 {
-    return inbe_update_apply_at_exit();
+    return update_apply_at_exit();
 }

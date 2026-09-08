@@ -1,5 +1,5 @@
-#ifndef INBE_ANDROID_WAKELOCK_H
-#define INBE_ANDROID_WAKELOCK_H
+#ifndef APP_ANDROID_WAKELOCK_H
+#define APP_ANDROID_WAKELOCK_H
 
 #include "platform.h"
 

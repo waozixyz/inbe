@@ -101,7 +101,7 @@ int
 storage_reconcile_remote_habit_ids(const char *response_json)
 {
     static const char *remote_map_sql =
-        "INSERT OR IGNORE INTO inbe_remote_habit_id_map(old_id,new_id) "
+        "INSERT OR IGNORE INTO remote_habit_id_map(old_id,new_id) "
         "SELECT h.id,COALESCE(json_extract(r.value,'$.id'),'') "
         "FROM (SELECT value FROM json_each(?1,'$.changes.habits') "
         "      UNION ALL SELECT value FROM json_each(?1,'$.data.habits')) AS r "
@@ -113,8 +113,8 @@ storage_reconcile_remote_habit_ids(const char *response_json)
 
     if(response_json == NULL)
         return 0;
-    if(!exec_sql("DROP TABLE IF EXISTS temp.inbe_remote_habit_id_map;"
-                 "CREATE TEMP TABLE inbe_remote_habit_id_map("
+    if(!exec_sql("DROP TABLE IF EXISTS temp.remote_habit_id_map;"
+                 "CREATE TEMP TABLE remote_habit_id_map("
                  " old_id TEXT PRIMARY KEY,"
                  " new_id TEXT NOT NULL"
                  ")"))
@@ -123,56 +123,56 @@ storage_reconcile_remote_habit_ids(const char *response_json)
         return 0;
     if(!exec_sql("UPDATE habit_days "
                  "SET completed=MAX(completed,COALESCE((SELECT d.completed FROM habit_days d "
-                 "    JOIN inbe_remote_habit_id_map m ON m.old_id=d.habit_id "
+                 "    JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
                  "    WHERE m.new_id=habit_days.habit_id "
                  "      AND d.local_date=habit_days.local_date),0)),"
                  " count=MAX(count,COALESCE((SELECT d.count FROM habit_days d "
-                 "    JOIN inbe_remote_habit_id_map m ON m.old_id=d.habit_id "
+                 "    JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
                  "    WHERE m.new_id=habit_days.habit_id "
                  "      AND d.local_date=habit_days.local_date),0)),"
                  " session_count=MAX(session_count,COALESCE((SELECT d.session_count FROM "
                  "habit_days d "
-                 "    JOIN inbe_remote_habit_id_map m ON m.old_id=d.habit_id "
+                 "    JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
                  "    WHERE m.new_id=habit_days.habit_id "
                  "      AND d.local_date=habit_days.local_date),0)),"
                  " updated_at=MAX(updated_at,COALESCE((SELECT d.updated_at FROM habit_days d "
-                 "    JOIN inbe_remote_habit_id_map m ON m.old_id=d.habit_id "
+                 "    JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
                  "    WHERE m.new_id=habit_days.habit_id "
                  "      AND d.local_date=habit_days.local_date),0)) "
-                 "WHERE EXISTS (SELECT 1 FROM inbe_remote_habit_id_map m "
+                 "WHERE EXISTS (SELECT 1 FROM remote_habit_id_map m "
                  "    WHERE m.new_id=habit_days.habit_id)"))
         return 0;
     if(!exec_sql("INSERT INTO habit_days(habit_id,local_date,completed,count,session_count,"
                  "updated_at) "
                  "SELECT m.new_id,d.local_date,d.completed,d.count,d.session_count,d.updated_at "
-                 "FROM habit_days d JOIN inbe_remote_habit_id_map m ON m.old_id=d.habit_id "
+                 "FROM habit_days d JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
                  "WHERE NOT EXISTS (SELECT 1 FROM habit_days k "
                  "    WHERE k.habit_id=m.new_id AND k.local_date=d.local_date)"))
         return 0;
     if(!exec_sql("UPDATE OR IGNORE sync_outbox SET entity_id=(SELECT m.new_id FROM "
-                 "inbe_remote_habit_id_map m WHERE m.old_id=sync_outbox.entity_id) "
+                 "remote_habit_id_map m WHERE m.old_id=sync_outbox.entity_id) "
                  "WHERE entity_type IN ('habit','habit_day') "
-                 "AND EXISTS (SELECT 1 FROM inbe_remote_habit_id_map m "
+                 "AND EXISTS (SELECT 1 FROM remote_habit_id_map m "
                  "    WHERE m.old_id=sync_outbox.entity_id);"
                  "DELETE FROM sync_outbox WHERE entity_type IN ('habit','habit_day') "
-                 "AND EXISTS (SELECT 1 FROM inbe_remote_habit_id_map m "
+                 "AND EXISTS (SELECT 1 FROM remote_habit_id_map m "
                  "    WHERE m.old_id=sync_outbox.entity_id);"
                  "UPDATE OR IGNORE sync_ops SET entity_id=(SELECT m.new_id FROM "
-                 "inbe_remote_habit_id_map m WHERE m.old_id=sync_ops.entity_id) "
+                 "remote_habit_id_map m WHERE m.old_id=sync_ops.entity_id) "
                  "WHERE entity_type IN ('habit','habit_day') "
-                 "AND EXISTS (SELECT 1 FROM inbe_remote_habit_id_map m "
+                 "AND EXISTS (SELECT 1 FROM remote_habit_id_map m "
                  "    WHERE m.old_id=sync_ops.entity_id);"
-                 "UPDATE settings SET value=(SELECT m.new_id FROM inbe_remote_habit_id_map m "
+                 "UPDATE settings SET value=(SELECT m.new_id FROM remote_habit_id_map m "
                  "    WHERE m.old_id=settings.value),updated_at=strftime('%s','now') "
                  "WHERE key='habits_selected_id' "
-                 "AND EXISTS (SELECT 1 FROM inbe_remote_habit_id_map m "
+                 "AND EXISTS (SELECT 1 FROM remote_habit_id_map m "
                  "    WHERE m.old_id=settings.value);"
-                 "DELETE FROM habit_days WHERE EXISTS (SELECT 1 FROM inbe_remote_habit_id_map m "
+                 "DELETE FROM habit_days WHERE EXISTS (SELECT 1 FROM remote_habit_id_map m "
                  "    WHERE m.old_id=habit_days.habit_id);"
-                 "DELETE FROM habits WHERE EXISTS (SELECT 1 FROM inbe_remote_habit_id_map m "
+                 "DELETE FROM habits WHERE EXISTS (SELECT 1 FROM remote_habit_id_map m "
                  "    WHERE m.old_id=habits.id);"))
         return 0;
-    return exec_sql("DROP TABLE IF EXISTS temp.inbe_remote_habit_id_map");
+    return exec_sql("DROP TABLE IF EXISTS temp.remote_habit_id_map");
 }
 
 static int
@@ -305,9 +305,9 @@ storage_migrate_habit_ids_to_uuid(void)
 {
     sqlite3_stmt *stmt = NULL;
     struct {
-        char old_id[INBE_STORAGE_ID_SIZE];
+        char old_id[STORAGE_ID_SIZE];
         char new_id[37];
-    } rows[INBE_HABIT_MAX];
+    } rows[HABIT_MAX];
     int count = 0;
     int ok = 1;
 
@@ -319,7 +319,7 @@ storage_migrate_habit_ids_to_uuid(void)
                           "SELECT id FROM habits WHERE id<>'' ORDER BY sort_order,id",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
-    while(sqlite3_step(stmt) == SQLITE_ROW && count < INBE_HABIT_MAX) {
+    while(sqlite3_step(stmt) == SQLITE_ROW && count < HABIT_MAX) {
         const char *id = (const char *)sqlite3_column_text(stmt, 0);
         if(id != NULL && !storage_is_uuid(id)) {
             snprintf(rows[count].old_id, sizeof(rows[count].old_id), "%s", id);
@@ -380,8 +380,8 @@ storage_merge_duplicate_habit_names(void)
 {
     sqlite3_stmt *stmt = NULL;
     struct {
-        char id[INBE_STORAGE_ID_SIZE];
-        char name[INBE_HABIT_NAME_SIZE];
+        char id[STORAGE_ID_SIZE];
+        char name[HABIT_NAME_SIZE];
         int merged;
     } rows[64];
     int count = 0;
