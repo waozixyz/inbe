@@ -475,7 +475,7 @@ habits_screen_prepare_first_run_guide :: (app: InnerBreeze*) {
         app->habits.screen_mode = HABITS_SCREEN_DETAIL
         app->habits.selected = -1
         app->habits.scroll = 0
-    } else if step == 2 {
+    } else {
         app->habits.screen_mode = HABITS_SCREEN_DETAIL
         if app->habits.count > 0 {
             app->habits.selected =
@@ -484,61 +484,8 @@ habits_screen_prepare_first_run_guide :: (app: InnerBreeze*) {
         app->habits.tab = HABIT_TAB_WEEKLY
         app->habits.view_mode = HABIT_VIEW_WEEKLY
         app->habits.scroll = 0
-    } else if step == 3 || step == 5 {
-        app->habits.screen_mode = HABITS_SCREEN_DETAIL
-        if app->habits.count > 0 {
-            app->habits.selected =
-                clampi(meditation_index, 0, app->habits.count - 1)
-        }
-        app->habits.tab = HABIT_TAB_STATISTICS
-        app->habits.scroll = 0
-    } else if step == 4 {
-        app->habits.screen_mode = HABITS_SCREEN_DETAIL
-        if app->habits.count > 0 {
-            app->habits.selected =
-                clampi(meditation_index, 0, app->habits.count - 1)
-        }
-        app->habits.tab = HABIT_TAB_EDIT
-        app->habits.scroll = 0
     }
 }
-
-habits_screen_tab_anchor :: (app: InnerBreeze*, first_tab: int,
-                            tab_count: int) -> Rectangle #private {
-    bar_x: int = 0
-    bar_y: int = habits_screen_selector_height(app)
-    bar_w: int = view_width
-    tab_h: int = GetNodeHeight(NodeTabBar((TabBarProps){
-        .bounds = (Rectangle){0, 0, 0, 0}
-    }))
-    tab_w: int = bar_w / HABIT_TAB_COUNT
-    x: int
-    w: int = tab_count * tab_w
-
-    if first_tab < 0 {
-        first_tab = 0
-    }
-    if tab_count < 1 {
-        tab_count = 1
-    }
-    if first_tab >= HABIT_TAB_COUNT {
-        first_tab = HABIT_TAB_COUNT - 1
-    }
-    if first_tab + tab_count > HABIT_TAB_COUNT {
-        tab_count = HABIT_TAB_COUNT - first_tab
-    }
-
-    x = bar_x + first_tab * tab_w
-    if first_tab + tab_count >= HABIT_TAB_COUNT {
-        w = bar_x + bar_w - x
-    }
-    if w < 1 {
-        w = 1
-    }
-
-    return (Rectangle){(float)x, (float)bar_y, (float)w, (float)tab_h}
-}
-
 
 habits_cards_progress_anchor :: (app: InnerBreeze*) -> Rectangle #private {
     x: int
@@ -566,6 +513,43 @@ habits_cards_first_anchor :: (app: InnerBreeze*) -> Rectangle #private {
                         &x, &w)
     return (Rectangle){(float)x, (float)y, (float)w,
                        (float)habits_focus_collapsed_height()}
+}
+
+habits_expanded_card_action_anchor :: (app: InnerBreeze*, action: int) -> Rectangle #private {
+    x: int
+    w: int
+    y := habits_screen_top_reserved(app) + Scale(86)
+    gap := Scale(8)
+    action_x: int
+    action_w: int
+
+    GetUICenteredColumn(Scale(CONTENT_MAX_W), GetUIPageSidePadding(),
+                        &x, &w)
+    action_w = (w - Scale(28) - gap * 2) / 3
+    action_x = x + Scale(14) + action * (action_w + gap)
+    return (Rectangle){
+        (float)action_x,
+        (float)(y + Scale(78)),
+        (float)action_w,
+        (float)Scale(52)
+    }
+}
+
+habits_expanded_card_week_anchor :: (app: InnerBreeze*) -> Rectangle #private {
+    x: int
+    w: int
+    y := habits_screen_top_reserved(app) + Scale(86)
+    section_y := y + Scale(144)
+    body_y := section_y + TextLineHeight(GetSmallFontSize()) + Scale(12)
+
+    GetUICenteredColumn(Scale(CONTENT_MAX_W), GetUIPageSidePadding(),
+                        &x, &w)
+    return (Rectangle){
+        (float)(x + Scale(14)),
+        (float)body_y,
+        (float)(w - Scale(28)),
+        (float)Scale(72)
+    }
 }
 
 habits_draw_fitted_text :: (text: const char*, x: int, y: int,
@@ -659,19 +643,19 @@ habits_screen_draw_first_run_guide :: (app: InnerBreeze*) {
         GetLocaleText("habits_guide_overview_grid")
     }
     steps[2] = (UIGuideStep){
-        habits_screen_tab_anchor(app, HABIT_TAB_WEEKLY, 2),
+        habits_expanded_card_action_anchor(app, 0),
         GetLocaleText("habits_guide_meditation_views")
     }
     steps[3] = (UIGuideStep){
-        habits_screen_tab_anchor(app, HABIT_TAB_STATISTICS, 1),
+        habits_expanded_card_action_anchor(app, 1),
         GetLocaleText("habits_guide_meditation_statistics")
     }
     steps[4] = (UIGuideStep){
-        habits_screen_tab_anchor(app, HABIT_TAB_EDIT, 1),
+        habits_expanded_card_action_anchor(app, 2),
         GetLocaleText("habits_guide_meditation_edit")
     }
     steps[5] = (UIGuideStep){
-        habits_screen_tab_anchor(app, HABIT_TAB_STATISTICS, 1),
+        habits_expanded_card_week_anchor(app),
         GetLocaleText("habits_guide_meditation_session_data")
     }
 
