@@ -1088,7 +1088,9 @@ inbe_native_after_app_init(InbeApp *app, int argc, char **argv)
     app->fullscreen_enabled = 0;
     #endif
 #if ANDROID_BUILD
-    SetTargetFPS(30);
+    ConfigureFramePacing(15, 30);
+    SetFramePacingActive(1);
+    UpdateFramePacing();
 #else
     SetTargetFPS(60);
 #endif
