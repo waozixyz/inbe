@@ -900,6 +900,28 @@ practice_home_action_guide_anchor :: (manual: Rectangle, config: Rectangle) -> R
     return (Rectangle){left, top, right - left, bottom - top}
 }
 
+practice_home_carousel_guide_anchor :: (app: const InnerBreeze*) -> Rectangle #private {
+    card := app->practice_home_bounds_card
+    anchor_w := Scale(140)
+    anchor_h := Scale(34)
+    anchor_x := (int)(card.x + (card.width - anchor_w) / 2)
+    anchor_y: int
+
+    if IsUIDesktopMode() {
+        anchor_y = (int)(card.y + card.height) - Scale(140)
+    } else {
+        anchor_y = (int)(card.y + card.height) +
+                   practice_card_banner_bottom_padding()
+    }
+
+    return (Rectangle){
+        (float)anchor_x,
+        (float)anchor_y,
+        (float)anchor_w,
+        (float)anchor_h
+    }
+}
+
 practice_screen_draw_first_run_guide :: (app: InnerBreeze*) {
     steps: [3] UIGuideStep = {0}
     result := (UIGuideResult){0}
@@ -910,7 +932,10 @@ practice_screen_draw_first_run_guide :: (app: InnerBreeze*) {
     if !app->practice_home_bounds_valid {
         return
     }
-    steps[0] = (UIGuideStep){app->practice_home_bounds_card, GetLocaleText("practice_guide_carousel")}
+    steps[0] = (UIGuideStep){
+        practice_home_carousel_guide_anchor(app),
+        GetLocaleText("practice_guide_carousel")
+    }
     steps[1] = (UIGuideStep){app->practice_home_bounds_start, GetLocaleText("practice_guide_start")}
     steps[2] = (UIGuideStep){practice_home_action_guide_anchor(app->practice_home_bounds_manual, app->practice_home_bounds_config), GetLocaleText("practice_guide_manual_config")}
     result = GuideOverlay((GuideOverlayProps){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = app_content_top_reserved(app), .reserved_bottom = app_content_bottom_reserved(app), .max_width = Scale(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
