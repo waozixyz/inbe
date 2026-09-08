@@ -1523,7 +1523,10 @@ Notifications
 Notifications
 ---
 [notifications_friend_request_label]
-Me notifier en cas de demande d'ami
+Notifications de demandes d’amitié
+---
+[notifications_habit_reminders_label]
+Rappels d’habitudes
 ---
 [notifications_friend_request_title]
 Demande d'ami

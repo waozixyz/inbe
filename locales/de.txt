@@ -1523,7 +1523,10 @@ Benachrichtigungen
 Benachrichtigungen
 ---
 [notifications_friend_request_label]
-Bei Freundschaftsanfragen benachrichtigen
+Benachrichtigungen zu Freundschaftsanfragen
+---
+[notifications_habit_reminders_label]
+Gewohnheitserinnerungen
 ---
 [notifications_friend_request_title]
 Freundschaftsanfrage

@@ -32,6 +32,8 @@ content_height :: (app: InbeApp*, content_w: int) -> int {
     height += Scale(34)
     height += settings_ui_toggle_row_height(
         GetLocaleText("notifications_friend_request_label"), content_w)
+    height += settings_ui_toggle_row_height(
+        GetLocaleText("notifications_habit_reminders_label"), content_w)
     height += Scale(16)
     height += Scale(50)
     height += Scale(34)
@@ -245,6 +247,12 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
                                      GetLocaleText("notifications_friend_request_label"),
                                      &friend_toggle, 1) {
         app->notification_friend_request = friend_toggle
+    }
+    habit_toggle := app->notification_habit_reminders
+    if settings_ui_commit_toggle_row(app, x, w, y,
+                                     GetLocaleText("notifications_habit_reminders_label"),
+                                     &habit_toggle, 1) {
+        app->notification_habit_reminders = habit_toggle
     }
     *y += Scale(16)
 

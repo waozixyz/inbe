@@ -28,6 +28,7 @@
     X("main_tab") \
     X("fullscreen") \
     X("on_screen_keyboard") \
+    X("notification_habit_reminders") \
     X("progressive_speed") \
     X("progressive_start_speed") \
     X("breath_animation") \

@@ -1523,7 +1523,10 @@ Notifikace
 Oznámení
 ---
 [notifications_friend_request_label]
-Upozornit na žádosti o přátelství
+Oznámení o žádostech o přátelství
+---
+[notifications_habit_reminders_label]
+Připomínky návyků
 ---
 [notifications_friend_request_title]
 Žádost o přátelství

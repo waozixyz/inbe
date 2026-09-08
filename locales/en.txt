@@ -1581,6 +1581,9 @@ Notifications
 [notifications_friend_request_label]
 Friend request notifications
 ---
+[notifications_habit_reminders_label]
+Habit reminders
+---
 [notifications_friend_request_title]
 Friend request
 ---

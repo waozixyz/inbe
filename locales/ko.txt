@@ -1525,6 +1525,9 @@ Inner Breeze 알림이 작동합니다.
 [notifications_friend_request_label]
 친구 요청 알림
 ---
+[notifications_habit_reminders_label]
+습관 알림
+---
 [notifications_friend_request_title]
 친구 요청
 ---

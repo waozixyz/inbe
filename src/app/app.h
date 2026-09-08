@@ -476,6 +476,7 @@ struct InbeApp {
     int fullscreen_enabled;
     int on_screen_keyboard_enabled;
     int notification_friend_request;
+    int notification_habit_reminders;
     int friend_request_last_count;
     AppReminder reminders[APP_REMINDER_MAX];
     int reminder_count;

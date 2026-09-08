@@ -243,6 +243,8 @@ save_settings :: (app: InbeApp*) {
                         app->on_screen_keyboard_enabled ? 1 : 0)
     save_setting_int("notification_friend_request",
                         app->notification_friend_request ? 1 : 0)
+    save_setting_int("notification_habit_reminders",
+                        app->notification_habit_reminders ? 1 : 0)
     save_setting_int("donation_reminder_dismissed",
                         app->donation_reminder_dismissed ? 1 : 0)
     save_setting_int("donation_reminder_last_prompt_practice_count",
@@ -524,6 +526,8 @@ app_load_settings :: (app: InbeApp*) -> int {
     }
     load_bool_setting(&settings_cache, &app->notification_friend_request,
                          "notification_friend_request", 1)
+    load_bool_setting(&settings_cache, &app->notification_habit_reminders,
+                         "notification_habit_reminders", 0)
     load_bool_setting(&settings_cache, &app->donation_reminder_dismissed,
                          "donation_reminder_dismissed", 0)
     load_clamped_setting(&settings_cache,

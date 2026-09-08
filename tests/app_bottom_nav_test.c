@@ -186,6 +186,12 @@ GetThemeButtonHover(void)
 }
 
 Color
+GetThemeButtonText(void)
+{
+    return (Color){255, 255, 255, 255};
+}
+
+Color
 GetThemeIcon(void)
 {
     return (Color){0};

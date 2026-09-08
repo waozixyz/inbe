@@ -1523,7 +1523,10 @@ Remove
 Уведомления
 ---
 [notifications_friend_request_label]
-Уведомления о заявках в друзья
+Уведомления о запросах в друзья
+---
+[notifications_habit_reminders_label]
+Напоминания о привычках
 ---
 [notifications_friend_request_title]
 Заявка в друзья

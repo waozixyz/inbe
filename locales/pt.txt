@@ -1523,7 +1523,10 @@ Notificações
 Notificações
 ---
 [notifications_friend_request_label]
-Notificar pedidos de amizade
+Notificações de pedidos de amizade
+---
+[notifications_habit_reminders_label]
+Lembretes de hábitos
 ---
 [notifications_friend_request_title]
 Pedido de amizade

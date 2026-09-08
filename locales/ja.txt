@@ -1527,6 +1527,9 @@ Inner Breezeの通知は機能しています。
 [notifications_friend_request_label]
 友達リクエストの通知
 ---
+[notifications_habit_reminders_label]
+習慣のリマインダー
+---
 [notifications_friend_request_title]
 友達リクエスト
 ---

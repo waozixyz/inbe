@@ -1523,7 +1523,10 @@ Notificaciones
 Notificaciones
 ---
 [notifications_friend_request_label]
-Notificar solicitudes de amistad
+Notificaciones de solicitudes de amistad
+---
+[notifications_habit_reminders_label]
+Recordatorios de hábitos
 ---
 [notifications_friend_request_title]
 Solicitud de amistad
