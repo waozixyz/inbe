@@ -15,6 +15,7 @@
 #include "app/app_route_url.h"
 #include "app/app_donation.h"
 #include "app/app_donation_reminder.h"
+#include "app/app_profile.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -66,22 +67,6 @@
 #define APP_DEFAULT_HEIGHT 720
 #endif
 
-typedef struct AppProfileStats {
-    int initialized;
-    int enabled;
-    int frames;
-    double frame_total;
-    double frame_max;
-    double update_total;
-    double update_max;
-    double habits_total;
-    double habits_max;
-    double sync_total;
-    double sync_max;
-} AppProfileStats;
-
-static AppProfileStats g_app_profile;
-
 int
 TextButton(int id, int x, int y, const char *label, int *hover)
 {
@@ -96,65 +81,6 @@ ReadonlyTextBox(ReadonlyTextBoxProps props)
 }
 
 static void app_restore_habits_view_settings(InnerBreeze*app);
-
-static int
-app_profile_enabled(void)
-{
-    if(!g_app_profile.initialized) {
-        const char *env = getenv("APP_PROFILE");
-        g_app_profile.enabled = env != NULL && env[0] != '\0' && env[0] != '0';
-        g_app_profile.initialized = 1;
-    }
-    return g_app_profile.enabled;
-}
-
-static double
-app_profile_now(void)
-{
-    return app_profile_enabled() ? GetTime() : 0.0;
-}
-
-static void
-app_profile_accum(double *total, double *max_value, double start)
-{
-    double elapsed;
-
-    if(!app_profile_enabled() || start <= 0.0)
-        return;
-    elapsed = (GetTime() - start) * 1000.0;
-    *total += elapsed;
-    if(elapsed > *max_value)
-        *max_value = elapsed;
-}
-
-static void
-app_profile_frame_end(double frame_start)
-{
-    double elapsed;
-
-    if(!app_profile_enabled() || frame_start <= 0.0)
-        return;
-    elapsed = (GetTime() - frame_start) * 1000.0;
-    g_app_profile.frame_total += elapsed;
-    if(elapsed > g_app_profile.frame_max)
-        g_app_profile.frame_max = elapsed;
-    g_app_profile.frames++;
-    if(g_app_profile.frames >= 120) {
-        TraceLog(LOG_INFO,
-                 "PROFILE: frame avg=%.2f max=%.2f update avg=%.2f max=%.2f habits avg=%.2f max=%.2f sync avg=%.2f max=%.2f",
-                 g_app_profile.frame_total / g_app_profile.frames,
-                 g_app_profile.frame_max,
-                 g_app_profile.update_total / g_app_profile.frames,
-                 g_app_profile.update_max,
-                 g_app_profile.habits_total / g_app_profile.frames,
-                 g_app_profile.habits_max,
-                 g_app_profile.sync_total / g_app_profile.frames,
-                 g_app_profile.sync_max);
-        memset(&g_app_profile, 0, sizeof(g_app_profile));
-        g_app_profile.initialized = 1;
-        g_app_profile.enabled = 1;
-    }
-}
 
 static void
 app_update_frame_pacing(InnerBreeze*app)
@@ -2364,9 +2290,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
         DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
         profile_update_start = app_profile_now();
         updateapp(app);
-        app_profile_accum(&g_app_profile.update_total,
-                          &g_app_profile.update_max,
-                          profile_update_start);
+        app_profile_record_update(profile_update_start);
         EndUIFrame();
     } else {
     BeginUIClip((int)viewport.x, (int)viewport.y, full_width, full_height);
@@ -2375,23 +2299,17 @@ app_update_draw(void *vapp, Rectangle viewport) {
             profile_update_start = app_profile_now();
             updateapp(app);
             Overlays();
-            app_profile_accum(&g_app_profile.update_total,
-                              &g_app_profile.update_max,
-                              profile_update_start);
+            app_profile_record_update(profile_update_start);
             EndUIFrame();
         EndMode2D();
     EndUIClip();
     }
     profile_habits_start = app_profile_now();
     app_schedule_habits_post_frame_flush(app);
-    app_profile_accum(&g_app_profile.habits_total,
-                      &g_app_profile.habits_max,
-                      profile_habits_start);
+    app_profile_record_habits(profile_habits_start);
     profile_sync_start = app_profile_now();
     app_sync_pump(app);
-    app_profile_accum(&g_app_profile.sync_total,
-                      &g_app_profile.sync_max,
-                      profile_sync_start);
+    app_profile_record_sync(profile_sync_start);
     app_profile_frame_end(profile_frame_start);
 }
 
