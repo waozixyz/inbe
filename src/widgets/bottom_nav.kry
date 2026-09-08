@@ -26,9 +26,6 @@ bottom_nav_route_icon :: (app: InbeApp*, route: int) -> Texture2D #private {
     if route == APP_NAV_ROUTE_PRACTICE {
         return app->icons[UI_ICON_TYPE_AMEN]
     }
-    if route == APP_NAV_ROUTE_STACK {
-        return app->icons[UI_ICON_TYPE_STACK]
-    }
     return (Texture2D){0}
 }
 
@@ -69,9 +66,6 @@ bottom_nav_route_active :: (app: InbeApp*, route: int) -> int #private {
     }
     if route == APP_NAV_ROUTE_SETTINGS {
         return app->inbe.screen == InbeScreenSettings
-    }
-    if route == APP_NAV_ROUTE_STACK {
-        return app_nav_sidebar_screen_active(app) || app->nav_sidebar_open || (app->modal.active && app->modal.type == UIModalBottomNavConfig)
     }
     return 0
 }

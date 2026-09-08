@@ -735,10 +735,10 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
                                accent: Color) -> int {
     mouse_world: Vector2
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
-    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    default_style: int = GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT
     inside: int
     hovered: int
-    fill: Color = material
+    fill: Color = default_style
         ? GetThemeSurface()
         : DarkenUIColor(GetThemeBackground(), 10)
     ring: Color = Fade(GetThemeText(), disabled ? 0.16f : 0.28f)
@@ -779,7 +779,7 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
              !UIInputCapturesClick(mouse_world)
     hovered = inside && UIHoverEffectsEnabled()
 
-    if material {
+    if default_style {
         if hovered {
             fill = LightenUIColor(fill, 8)
             progress_ring = LightenUIColor(progress_ring, 18)
@@ -790,7 +790,7 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
         }
     }
 
-    if material {
+    if default_style {
         DrawRectangleRounded(bounds, 0.24f, 10, fill)
         if hovered {
             DrawRectangleRoundedLinesEx(bounds, 0.32f, 10,
@@ -909,7 +909,7 @@ habit_calendar_draw_weekdays :: (x: int, y: int, w: int,
 }
 
 habit_weekly_row_height :: () -> int #private {
-    return Scale(GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL ? 58 : 52)
+    return Scale(GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT ? 58 : 52)
 }
 
 habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
@@ -1003,12 +1003,12 @@ habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
                                secondary: const char*) -> int #private {
     mouse_world: Vector2
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
-    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    default_style: int = GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT
     active: int
     hovered: int
     fill: Color = completed
         ? GetThemeButton()
-        : (material ? GetThemeSurface() : DarkenUIColor(GetThemeBackground(), 10))
+        : (default_style ? GetThemeSurface() : DarkenUIColor(GetThemeBackground(), 10))
     text_color: Color = disabled
         ? DarkenUIColor(GetThemeText(), 35)
         : GetThemeText()
@@ -1039,7 +1039,7 @@ habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
     hovered = hovered && !disabled
 
     if hovered {
-        fill = material && !completed
+        fill = default_style && !completed
             ? Fade(GetThemeButtonHover(), 0.22f)
             : GetThemeButtonHover()
     }
@@ -1047,7 +1047,7 @@ habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
         text_color = habit_text_color_for_background(fill)
     }
 
-    if material {
+    if default_style {
         DrawRectangleRounded(bounds, 0.18f, 10, fill)
         if hovered {
             DrawRectangleRoundedLinesEx(bounds, 0.18f, 10, 1.0f,
@@ -1096,7 +1096,7 @@ habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
 
 habit_weekly_content_height :: (visible_days: int) -> int #private {
     row_h: int = habit_weekly_row_height()
-    row_gap: int = Scale(GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL ? 10 : 6)
+    row_gap: int = Scale(GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT ? 10 : 6)
     load_h: int = Scale(38)
 
     if visible_days < HABIT_WEEKLY_INITIAL_DAYS {
@@ -1124,7 +1124,7 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
     button_x: int
     button_w: int
     row_h: int = habit_weekly_row_height()
-    row_gap: int = Scale(GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL ? 10 : 6)
+    row_gap: int = Scale(GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT ? 10 : 6)
     day_font: int = Text16
     date_font: int = Text12
     load_h: int = Scale(38)
@@ -1231,7 +1231,7 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
                     (row_tm.tm_year + 1900) % 100)
 
         if label_w > 0 {
-            if GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL {
+            if GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT {
                 DrawRectangleRounded((Rectangle){
                     (float)content_x,
                     (float)y,

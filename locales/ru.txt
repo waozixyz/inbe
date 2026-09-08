@@ -124,9 +124,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_stack]
-Stack
----
 [customize_nav_title]
 Customize Nav
 ---
@@ -1616,10 +1613,10 @@ Inner Breeze
 [theme_style_label]
 Стиль
 ---
-[theme_style_material]
-Material
+[theme_style_default]
+По умолчанию
 ---
-[theme_style_retro]
+[theme_style_classic]
 Ретро
 ---
 [theme_style_system]

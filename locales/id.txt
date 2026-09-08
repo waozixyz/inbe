@@ -124,9 +124,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_stack]
-Stack
----
 [customize_nav_title]
 Customize Nav
 ---
@@ -1616,11 +1613,11 @@ Langit
 [theme_style_label]
 Gaya
 ---
-[theme_style_material]
-Material
+[theme_style_default]
+Default
 ---
-[theme_style_retro]
-Retro
+[theme_style_classic]
+Klasik
 ---
 [theme_style_system]
 Sistem

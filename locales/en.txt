@@ -157,9 +157,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_stack]
-Stack
----
 [customize_nav_title]
 Customize Nav
 ---
@@ -1672,11 +1669,11 @@ Sky
 [theme_style_label]
 Style
 ---
-[theme_style_material]
-Material
+[theme_style_default]
+Default
 ---
-[theme_style_retro]
-Retro
+[theme_style_classic]
+Classic
 ---
 [theme_style_system]
 System

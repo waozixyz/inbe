@@ -124,9 +124,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_stack]
-Stack
----
 [customize_nav_title]
 Customize Nav
 ---
@@ -1616,11 +1613,11 @@ Himmel
 [theme_style_label]
 Stil
 ---
-[theme_style_material]
-Material
+[theme_style_default]
+Standard
 ---
-[theme_style_retro]
-Retro
+[theme_style_classic]
+Klassisch
 ---
 [theme_style_system]
 System

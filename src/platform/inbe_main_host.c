@@ -534,7 +534,7 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
     if(request->height < 320)
         request->height = 320;
     if(request->theme_style < THEME_STYLE_SYSTEM ||
-       request->theme_style > THEME_STYLE_MATERIAL)
+       request->theme_style > THEME_STYLE_DEFAULT)
         request->theme_style = THEME_STYLE_SYSTEM;
     if(request->theme_id < SCREENSHOT_THEME_CURRENT || request->theme_id >= THEME_COUNT)
         request->theme_id = SCREENSHOT_THEME_CURRENT;

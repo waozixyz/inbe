@@ -124,9 +124,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_stack]
-Stack
----
 [customize_nav_title]
 Customize Nav
 ---
@@ -1616,11 +1613,11 @@ Nebe
 [theme_style_label]
 Styl
 ---
-[theme_style_material]
+[theme_style_default]
 Materiál
 ---
-[theme_style_retro]
-Retro
+[theme_style_classic]
+Klasický
 ---
 [theme_style_system]
 Systém

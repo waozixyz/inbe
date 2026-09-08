@@ -446,10 +446,6 @@ app_apply_nav_route :: (app: InbeApp*, route: int) {
         app->nav_sidebar_open = 0
         app->nav_sidebar_return_on_back = return_to_sidebar
         app_open_main_tab(app, APP_MAIN_TAB_HABITS, 1)
-    } else if route == APP_NAV_ROUTE_STACK {
-        if app_nav_sidebar_screen_active(app) || app->nav_sidebar_open {
-            app_close_nav_sidebar(app)
-        }
     } else if route == APP_NAV_ROUTE_SETTINGS {
         #if DESKTOP {
             app_open_settings_tab(app, SETTINGS_TAB_DEVICE)
@@ -541,9 +537,6 @@ app_nav_route_label :: (route: int) -> const char* {
     }
     if route == APP_NAV_ROUTE_PRACTICE {
         return GetLocaleText("tab_practice")
-    }
-    if route == APP_NAV_ROUTE_STACK {
-        return GetLocaleText("tab_stack")
     }
     if route == APP_NAV_ROUTE_SETTINGS {
         return GetLocaleText("settings_title")

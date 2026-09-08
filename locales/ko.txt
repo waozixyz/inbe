@@ -124,9 +124,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_stack]
-Stack
----
 [customize_nav_title]
 Customize Nav
 ---
@@ -1616,10 +1613,10 @@ Inner Breeze
 [theme_style_label]
 스타일
 ---
-[theme_style_material]
+[theme_style_default]
 머티리얼
 ---
-[theme_style_retro]
+[theme_style_classic]
 레트로
 ---
 [theme_style_system]
