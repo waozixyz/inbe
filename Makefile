@@ -328,7 +328,7 @@ TESTS += $(TEST_BIN_DIR)/session_results_test
 TESTS += $(TEST_BIN_DIR)/habit_form_test
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
-STORAGE_CORE_SRCS := src/storage/storage.c src/storage/storage_json_builder.c src/storage/storage_habits.c src/storage/storage_habit_materialize.c src/storage/storage_habit_sync.c src/storage/storage_elist.c
+STORAGE_CORE_SRCS := src/storage/storage.c src/storage/storage_json_builder.c src/storage/storage_habits.c src/storage/storage_habit_materialize.c src/storage/storage_habit_sync.c
 
 APP_SRCS := \
 	src/platform/main_host.c \
@@ -797,11 +797,11 @@ font-subsets:
 		FONT_SUBSET_PREFIX=BreathSession \
 		FONT_SUBSET_CORPUS="$(abspath locales) $(abspath assets/fonts/input_common.txt)"
 
-$(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.h src/screens/habits/habits.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.h src/screens/habits/habits.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/storage/import.c $(SQLITE_SRC) \
+		tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/storage/import.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)

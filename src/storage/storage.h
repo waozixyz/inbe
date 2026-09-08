@@ -157,11 +157,11 @@ int storage_habits_initialized(void);
 void storage_mark_habits_initialized(void);
 
 int storage_elist_load(void *state);
-int storage_elist_create_list(const char *title, char out_id[37]);
+int storage_elist_create_list(const char *title, char *out_id);
 int storage_elist_update_list(const char *id, const char *title, int sort_order);
 int storage_elist_delete_list(const char *id);
 int storage_elist_create_item(const char *list_id, const char *title,
-                              const char *comment, char out_id[37]);
+                              const char *comment, char *out_id);
 int storage_elist_update_item(const char *id, const char *title,
                               const char *comment, int done, int sort_order);
 int storage_elist_delete_item(const char *id);
