@@ -251,13 +251,6 @@ app_close_nav_sidebar :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
-    if app->bottom_nav_route_count == 3 &&
-       app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
-       app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
-       app->bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS {
-        app->bottom_nav_routes[3] = APP_NAV_ROUTE_ELIST
-        app->bottom_nav_route_count = 4
-    }
     was_open = app->nav_sidebar_open || app_nav_sidebar_screen_active(app)
     app->nav_sidebar_open = 0
     app->nav_sidebar_return_on_back = 0
@@ -321,6 +314,13 @@ app_sanitize_bottom_nav_routes :: (app: InnerBreeze*) {
 
     if app == NULL {
         return
+    }
+    if app->bottom_nav_route_count == 3 &&
+       app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
+       app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
+       app->bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS {
+        app->bottom_nav_routes[3] = APP_NAV_ROUTE_ELIST
+        app->bottom_nav_route_count = 4
     }
     allowed[allowed_count] = APP_NAV_ROUTE_HABITS
     allowed_count += 1
