@@ -19,6 +19,7 @@
 #include "app/app_frame_pacing.h"
 #include "app/app_lifecycle.h"
 #include "app/app_persistence.h"
+#include "app/app_modal_state.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -189,96 +190,6 @@ app_content_top_reserved(const InnerBreeze*app)
         return GetNodeHeight(NodeTabBar(tabs));
     }
     return app_toolbar_height();
-}
-
-void
-app_block_current_click(InnerBreeze*app)
-{
-    if(app != NULL)
-        app->blocked_input_frame = app->breathing.frame;
-}
-
-void
-app_open_modal(InnerBreeze*app, UIModalType type)
-{
-    if(app == NULL)
-        return;
-    app->modal.active = 1;
-    app->modal.type = type;
-    app_block_current_click(app);
-}
-
-static void
-app_clear_modal_state(InnerBreeze*app)
-{
-    if(app == NULL)
-        return;
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
-    app_block_current_click(app);
-}
-
-void
-app_close_modal(InnerBreeze*app)
-{
-    UIModalType type;
-
-    if(app == NULL)
-        return;
-    type = app->modal.type;
-    if(type == UIModalEditProgressiveStartSpeed &&
-       app->breathing.screen == ScreenStart &&
-       app->practice_tab == PRACTICE_TAB_CONFIG) {
-        app->modal.type = UIModalPracticeConfig;
-        app_block_current_click(app);
-        return;
-    }
-    if(type == UIModalPracticeConfig) {
-        app_leave_practice_config(app);
-        app->settings_scroll = 0;
-        app->practice_tab = PRACTICE_TAB_PLAY;
-    } else if(type == UIModalPracticeManual) {
-        app->manual_scroll = 0;
-        app->tutorial_step = 0;
-        app->practice_tab = PRACTICE_TAB_PLAY;
-    }
-    app_clear_modal_state(app);
-}
-
-static int
-app_screen_local_modal_valid(const InnerBreeze*app, UIModalType type)
-{
-    if(app == NULL)
-        return 0;
-
-    switch(type) {
-    case UIModalConfirmExitSession:
-        return app->breathing.screen == ScreenSession ||
-               app->breathing.screen == ScreenMeditation ||
-               app->breathing.screen == ScreenSunSalutation ||
-               app->breathing.screen == ScreenPatterns;
-    case UIModalMeditationSetup:
-        return app->breathing.screen == ScreenStart;
-    case UIModalConfirmDeleteHabit:
-    case UIModalHabitPracticePicker:
-        return app->breathing.screen == ScreenHabitEdit ||
-               (app->breathing.screen == ScreenHabits &&
-                app->habits.tab == HABIT_TAB_EDIT);
-    case UIModalBottomNavConfig:
-        return app->breathing.screen == ScreenCustomizeNav;
-    default:
-        return 1;
-    }
-}
-
-static void
-app_clear_invalid_screen_local_modal(InnerBreeze*app)
-{
-    if(app == NULL || !app->modal.active)
-        return;
-    if(app_screen_local_modal_valid(app, app->modal.type))
-        return;
-    app_clear_modal_state(app);
 }
 
 void
