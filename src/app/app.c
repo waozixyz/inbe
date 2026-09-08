@@ -12,6 +12,7 @@
 #include "app_runtime.h"
 #include "app/app_sync.h"
 #include "app/app_route_state.h"
+#include "app/app_route_url.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -93,136 +94,6 @@ ReadonlyTextBox(ReadonlyTextBoxProps props)
 }
 
 static void app_restore_habits_view_settings(InnerBreeze*app);
-
-typedef struct RouteBinding {
-    const char *id;
-    int screen;
-} RouteBinding;
-
-static const RouteBinding route_bindings[] = {
-    {"start", ScreenStart},
-    {"session", ScreenSession},
-    {"meditation", ScreenMeditation},
-    {"sun_salutation", ScreenSunSalutation},
-    {"patterns", ScreenPatterns},
-    {"results", ScreenResults},
-    {"settings", ScreenSettings},
-    {"language", ScreenLanguage},
-    {"manual", ScreenManual},
-    {"profile", ScreenProfile},
-    {"habits", ScreenHabits},
-    {"elist", ScreenEList},
-    {"customize_nav", ScreenCustomizeNav},
-    {"nav_sidebar", ScreenNavSidebar},
-    {"habit_edit", ScreenHabitEdit},
-    {"habit_session_edit", ScreenHabitSessionEdit},
-};
-
-static int g_app_route_version = -1;
-
-static void
-app_route_copy_hash_id(char *dst, size_t dst_size, const char *hash)
-{
-    size_t n = 0;
-
-    if(dst == NULL || dst_size == 0)
-        return;
-    dst[0] = '\0';
-    if(hash == NULL)
-        return;
-    while(*hash == ' ' || *hash == '\t' || *hash == '#')
-        hash++;
-    if(*hash == '/')
-        hash++;
-    while(hash[n] != '\0' && hash[n] != '/' && hash[n] != '?' &&
-          hash[n] != '&' && n + 1 < dst_size) {
-        dst[n] = hash[n];
-        n++;
-    }
-    dst[n] = '\0';
-}
-
-static int
-app_screen_for_route_id(const char *id)
-{
-    size_t i;
-
-    if(id == NULL || id[0] == '\0')
-        return -1;
-    for(i = 0; i < sizeof(route_bindings) / sizeof(route_bindings[0]);
-        i++) {
-        if(strcmp(route_bindings[i].id, id) == 0)
-            return route_bindings[i].screen;
-    }
-    return -1;
-}
-
-static const char *
-app_route_id_for_screen(int screen)
-{
-    size_t i;
-
-    for(i = 0; i < sizeof(route_bindings) / sizeof(route_bindings[0]);
-        i++) {
-        if(route_bindings[i].screen == screen)
-            return route_bindings[i].id;
-    }
-    return NULL;
-}
-
-static void
-app_write_current_route(InnerBreeze*app, int push)
-{
-    const char *id;
-    const char *path;
-    char route[320];
-
-    if(app == NULL)
-        return;
-    id = app_route_id_for_screen(app->breathing.screen);
-    if(id == NULL || id[0] == '\0')
-        return;
-    path = GetRoutePath();
-    if(path == NULL || path[0] == '\0')
-        path = "/";
-    snprintf(route, sizeof(route), "%s#/%s", path, id);
-    if(push)
-        PushRoute(route);
-    else
-        ReplaceRoute(route);
-    g_app_route_version = GetRouteVersion();
-}
-
-static void
-app_sync_route_from_url(InnerBreeze*app)
-{
-    int version;
-    char id[96];
-    int screen;
-    AppRoute route;
-
-    if(app == NULL)
-        return;
-    version = GetRouteVersion();
-    if(version == g_app_route_version)
-        return;
-    g_app_route_version = version;
-
-    app_route_copy_hash_id(id, sizeof(id), GetRouteHash());
-    screen = app_screen_for_route_id(id);
-    if(screen < 0) {
-        app_write_current_route(app, 0);
-        return;
-    }
-    if(screen == ScreenLanguage && app->language_selected) {
-        app_write_current_route(app, 0);
-        return;
-    }
-
-    route = app_current_route(app);
-    route.screen = screen;
-    app_switch_route(app, route);
-}
 
 static int
 app_profile_enabled(void)
@@ -517,8 +388,7 @@ ApplyRoute(void *vapp, const AppRouteInfo *route_info)
 {
     InnerBreeze*app = vapp;
     AppRoute route;
-    int screen = -1;
-    size_t i;
+    int screen;
 
     if(app == NULL || route_info == NULL || route_info->id == NULL)
         return;
@@ -526,13 +396,7 @@ ApplyRoute(void *vapp, const AppRouteInfo *route_info)
         session_start(app);
         return;
     }
-    for(i = 0; i < sizeof(route_bindings) / sizeof(route_bindings[0]);
-        i++) {
-        if(strcmp(route_bindings[i].id, route_info->id) == 0) {
-            screen = route_bindings[i].screen;
-            break;
-        }
-    }
+    screen = screen_for_route_id(route_info->id);
     if(screen < 0)
         return;
     route = app_current_route(app);
@@ -621,16 +485,6 @@ app_leave_practice_config(InnerBreeze*app)
             practice->leave_config(app);
     }
     app->settings_scroll = 0;
-}
-
-static void
-app_observe_direct_route_change(InnerBreeze*app, AppRoute before_route)
-{
-    if(app == NULL || routes_equal(before_route, app_current_route(app)))
-        return;
-    if(app->breathing.screen == ScreenHabits && before_route.screen != ScreenHabits)
-        app->habits.focus_selected_tab = 1;
-    app_write_current_route(app, 1);
 }
 
 static void
