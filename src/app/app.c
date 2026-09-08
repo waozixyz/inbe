@@ -17,6 +17,7 @@
 #include "app/app_donation_reminder.h"
 #include "app/app_profile.h"
 #include "app/app_frame_pacing.h"
+#include "app/app_lifecycle.h"
 #include "app/app_settings.h"
 #include "app/app_update_check.h"
 #include "data.h"
@@ -94,77 +95,7 @@ AppConfig config = {
 int view_width = APP_DEFAULT_WIDTH;
 int view_height = APP_DEFAULT_HEIGHT;
 static int app_full_view_width = APP_DEFAULT_WIDTH;
-static InnerBreeze*g_app_ptr;
 /* Theme colors are now accessed via theme accessor functions */
-
-InnerBreeze*
-get_global_app(void)
-{
-    return g_app_ptr;
-}
-
-void
-set_global_app(InnerBreeze*app)
-{
-    g_app_ptr = app;
-    TraceLog(LOG_INFO, "APP: Global app pointer set to %p", app);
-}
-
-void *
-CreateApp(const char *project_path)
-{
-    InnerBreeze*app;
-
-    app = calloc(1, sizeof(*app));
-    if(app == NULL)
-        return NULL;
-    if(project_path != NULL && project_path[0] != '\0')
-        ChangeDirectory(project_path);
-    app_init(app);
-    set_global_app(app);
-    return app;
-}
-
-void
-DestroyApp(void *vapp)
-{
-    InnerBreeze*app = vapp;
-
-    if(app == NULL)
-        return;
-    app_destroy(app);
-    free(app);
-    set_global_app(NULL);
-}
-
-void
-ApplyRoute(void *vapp, const AppRouteInfo *route_info)
-{
-    InnerBreeze*app = vapp;
-    AppRoute route;
-    int screen;
-
-    if(app == NULL || route_info == NULL || route_info->id == NULL)
-        return;
-    if(strcmp(route_info->id, "session") == 0) {
-        session_start(app);
-        return;
-    }
-    screen = screen_for_route_id(route_info->id);
-    if(screen < 0)
-        return;
-    route = app_current_route(app);
-    route.screen = screen;
-    app_switch_route(app, route);
-}
-
-void
-BeginScreenDraw(void *vapp, Rectangle viewport)
-{
-    (void)vapp;
-    view_width = (int)viewport.width;
-    view_height = (int)viewport.height;
-}
 
 int
 app_draw_close_title_bar(InnerBreeze*app, const char *title, int height)
