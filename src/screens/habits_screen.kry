@@ -1736,6 +1736,10 @@ habits_focus_draw_collapsed :: (app: InbeApp*, index: int,
     surface := GetThemeSurface()
     foreground := GetThemeReadableText(surface)
     muted := Fade(foreground, 0.66f)
+    mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
+    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
+    hover := CheckCollisionPointRec(mouse, bounds) &&
+             !UIInputCapturesClick(mouse)
     description: [INBE_HABIT_DESCRIPTION_SIZE + 4] char = {0}
     weekdays: [7] const char* = {
         "habit_day_mon", "habit_day_tue", "habit_day_wed", "habit_day_thu",
@@ -1743,9 +1747,19 @@ habits_focus_draw_collapsed :: (app: InbeApp*, index: int,
     }
     columns := clampi(w / Scale(48), 5, 7)
     row_y := y + Scale(78)
+    chevron_cx := x + w - Scale(34)
+    chevron_cy := y + Scale(31)
+    chevron_span := Scale(14)
+    chevron_drop := Scale(6)
+    chevron_color := Fade(foreground, hover ? 0.88f : 0.68f)
 
-    DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)h},
-                         0.12f, 8, surface)
+    DrawRectangleRounded(bounds, 0.12f, 8, surface)
+    if hover {
+        DrawCircleGradient((Vector2){(float)chevron_cx, (float)chevron_cy},
+                           (float)Scale(25),
+                           Fade(foreground, 0.10f),
+                           Fade(foreground, 0.0f))
+    }
     DrawRectangle(x + Scale(16), y + Scale(20),
                   Scale(9), Scale(9), habit->color)
     habits_draw_fitted_text(habit->name, x + Scale(36), y + Scale(10),
@@ -1761,13 +1775,16 @@ habits_focus_draw_collapsed :: (app: InbeApp*, index: int,
         .color=(Fade(foreground, 0.66f)),
         .wrap=TextWrapNone
     })
-    Text((TextProps){
-        .bounds={(x + w - Scale(30)), (GetUIControlTextY(">", y, h, GetFontSize())), 0, 0},
-        .text=(">"),
-        .font=(GetFontSize()),
-        .color=(Fade(foreground, 0.72f)),
-        .wrap=TextWrapNone
-    })
+    DrawLineEx((Vector2){(float)(chevron_cx - chevron_span / 2),
+                         (float)(chevron_cy - chevron_drop / 2)},
+               (Vector2){(float)chevron_cx,
+                         (float)(chevron_cy + chevron_drop / 2)},
+               (float)Scale(2), chevron_color)
+    DrawLineEx((Vector2){(float)(chevron_cx + chevron_span / 2),
+                         (float)(chevron_cy - chevron_drop / 2)},
+               (Vector2){(float)chevron_cx,
+                         (float)(chevron_cy + chevron_drop / 2)},
+               (float)Scale(2), chevron_color)
     for int col = 0; col < columns; col++ {
         day := habits_day_index(col)
         cell_x := x + Scale(12) +
@@ -1804,10 +1821,8 @@ habits_focus_draw_collapsed :: (app: InbeApp*, index: int,
             }
         }
     }
-    if InvisibleButton((InvisibleButtonProps){
-        .bounds = {(float)x, (float)y, (float)w, (float)h},
-        .id = 24500 + index
-    }) {
+    if InvisibleButton((InvisibleButtonProps){.bounds = bounds,
+                                              .id = 24500 + index}) {
         habits_select_habit(app, index)
         app->habits.tab = HABIT_TAB_WEEKLY
         app->habits.scroll = 0
