@@ -8,7 +8,7 @@
 #include "app_fwd.h"
 #include "runtime_assets.h"
 #include "screens/habits_screen.h"
-#include "screens/elist_screen.h"
+#include "src/screens/elist_types.h"
 #include "screens/settings/settings_types.h"
 #include "storage/sync_account.h"
 

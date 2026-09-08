@@ -1,7 +1,7 @@
 #import "app.h"
 #import "app_nav.h"
 #import "storage.h"
-#import "screens/elist_screen.h"
+elist_types :: #import "screens/elist_types"
 #import <stdio.h>
 #import <string.h>
 
@@ -12,7 +12,7 @@ elist_field :: (app: InnerBreeze*, bounds: Rectangle) -> TextFieldProps #private
         .text_size = sizeof(app->elist.input),
         .cursor_position = &app->elist.input_cursor,
         .focused = &app->elist.input_focused,
-        .max_codepoints = ELIST_TITLE_SIZE - 1,
+        .max_codepoints = elist_types.ELIST_TITLE_SIZE - 1,
         .font = GetFontSize(),
         .style = (TextInputStyle){
             .background = DarkenUIColor(GetThemeBackground(), 4),
@@ -24,6 +24,17 @@ elist_field :: (app: InnerBreeze*, bounds: Rectangle) -> TextFieldProps #private
             .padding_x = Scale(12)
         }
     }
+}
+
+elist_comment_field :: (app: InnerBreeze*, bounds: Rectangle) -> TextFieldProps #private {
+    field := elist_field(app, bounds)
+
+    field.text = app->elist.comment_input
+    field.text_size = sizeof(app->elist.comment_input)
+    field.cursor_position = &app->elist.comment_cursor
+    field.focused = &app->elist.comment_focused
+    field.max_codepoints = elist_types.ELIST_COMMENT_SIZE - 1
+    return field
 }
 
 elist_reload :: (app: InnerBreeze*) #private {
@@ -39,6 +50,8 @@ elist_begin_input :: (app: InnerBreeze*, editing_item: int,
     snprintf(app->elist.input, sizeof(app->elist.input), "%s",
              text != nil ? text : "")
     app->elist.input_cursor = (int)strlen(app->elist.input)
+    app->elist.comment_input[0] = '\0'
+    app->elist.comment_cursor = 0
     app->elist.input_focused = 1
     app->elist.editing_item = editing_item
 }
@@ -51,18 +64,24 @@ elist_commit_input :: (app: InnerBreeze*) #private {
     }
     if state->editing_item == -2 {
         storage_elist_create_list(state->input, nil)
+    } else if state->editing_item == -3 && state->selected_list >= 0 &&
+              state->selected_list < state->list_count {
+        list := &state->lists[state->selected_list]
+        storage_elist_update_list(list->id, state->input, list->sort_order)
     } else if state->editing_item >= 0 &&
               state->editing_item < state->item_count {
         item := &state->items[state->editing_item]
-        storage_elist_update_item(item->id, state->input, item->comment,
+        storage_elist_update_item(item->id, state->input, state->comment_input,
                                   item->done, item->sort_order)
     } else if state->selected_list >= 0 &&
               state->selected_list < state->list_count {
         storage_elist_create_item(state->lists[state->selected_list].id,
-                                  state->input, "", nil)
+                                  state->input, state->comment_input, nil)
     }
     state->input[0] = '\0'
     state->input_cursor = 0
+    state->comment_input[0] = '\0'
+    state->comment_cursor = 0
     state->input_focused = 0
     state->editing_item = -1
     elist_reload(app)
@@ -92,7 +111,7 @@ elist_draw_empty :: (x: int, y: int, w: int) #private {
 }
 
 draw_elist_screen :: (app: InnerBreeze*) {
-    state: EListState*
+    state: elist_types.EListState*
     left := app_nav_desktop_rail_enabled(app) ? app_nav_desktop_content_offset() : 0
     width := view_width - left
     pad := Scale(16)
@@ -102,7 +121,7 @@ draw_elist_screen :: (app: InnerBreeze*) {
     y := title_h + Scale(12)
     hover := 0
     tab_h := Scale(36)
-    list_options: [ELIST_LIST_MAX] const char* = {0}
+    list_options: [elist_types.ELIST_LIST_MAX] const char* = {0}
 
     if app == nil {
         return
@@ -113,6 +132,11 @@ draw_elist_screen :: (app: InnerBreeze*) {
     }
 
     TitleBar(GetLocaleText("elist_title"), title_h)
+    if state->list_count > 0 && state->selected_list >= 0 &&
+       PaddedIconBtn(0, left + width - Scale(88), Scale(9), Scale(22), Scale(8),
+                     app->icons[UI_ICON_TYPE_EDIT], &hover) {
+        elist_begin_input(app, -3, state->lists[state->selected_list].title)
+    }
     if state->list_count > 0 && state->selected_list >= 0 &&
        PaddedIconBtn(0, left + width - Scale(48), Scale(9), Scale(22), Scale(8),
                      app->icons[UI_ICON_TYPE_TRASH], &hover) {
@@ -137,11 +161,13 @@ draw_elist_screen :: (app: InnerBreeze*) {
     }
     y += tab_h + Scale(16)
 
-    if state->editing_item == -2 {
+    if state->editing_item == -2 || state->editing_item == -3 {
         TextField(elist_field(app, (Rectangle){(float)x, (float)y,
                                                (float)content_w, (float)Scale(44)}))
         y += Scale(52)
-        if StyledButton(x, y, content_w, Scale(40), GetLocaleText("elist_create_list"),
+        if StyledButton(x, y, content_w, Scale(40),
+                        state->editing_item == -3 ? GetLocaleText("done_button") :
+                                                    GetLocaleText("elist_create_list"),
                         ButtonStylePrimary, state->input[0] == '\0', &hover) {
             elist_commit_input(app)
         }
@@ -162,7 +188,10 @@ draw_elist_screen :: (app: InnerBreeze*) {
                     ButtonStylePrimary, state->input[0] == '\0', &hover) {
         elist_commit_input(app)
     }
-    y += Scale(60)
+    y += Scale(52)
+    TextField(elist_comment_field(app, (Rectangle){(float)x, (float)y,
+                                                   (float)content_w, (float)Scale(40)}))
+    y += Scale(52)
 
     selected_id := state->lists[state->selected_list].id
     row_h := Scale(58)
@@ -224,6 +253,9 @@ draw_elist_screen :: (app: InnerBreeze*) {
         if PaddedIconBtn(0, x + content_w - Scale(78), y + Scale(12),
                          Scale(20), Scale(7), app->icons[UI_ICON_TYPE_EDIT], &hover) {
             elist_begin_input(app, i, item->title)
+            snprintf(state->comment_input, sizeof(state->comment_input), "%s",
+                     item->comment)
+            state->comment_cursor = (int)strlen(state->comment_input)
         }
         if PaddedIconBtn(0, x + content_w - Scale(40), y + Scale(12),
                          Scale(20), Scale(7), app->icons[UI_ICON_TYPE_TRASH], &hover) {

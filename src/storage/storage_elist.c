@@ -1,7 +1,7 @@
 #include "storage.h"
 
 #include "db.h"
-#include "screens/elist_screen.h"
+#include "src/screens/elist_types.h"
 
 #include <stdio.h>
 #include <stdlib.h>

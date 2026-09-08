@@ -2,7 +2,7 @@
 #include "kry_archive.h"
 #include "kryon.h"
 #include "screens/habits_screen.h"
-#include "screens/elist_screen.h"
+#include "src/screens/elist_types.h"
 #include "storage.h"
 #include <sqlite3.h>
 

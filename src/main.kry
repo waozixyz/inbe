@@ -1,99 +1,72 @@
 #import "kryon.h"
 #import "app.h"
-#import "app/app_update_check.h"
-#import "breaks/app_breaks.h"
-#import "breaks/break_engine.h"
-#import "platform/app_desktop_tray.h"
+host :: #import "platform/app_host"
+tray :: #import "platform/app_desktop_tray"
 
-ANDROID :: ANDROID_BUILD
-WEB :: #defined(PLATFORM_WEB)
-TRAY :: #defined(DESKTOP_TRAY_ENABLED)
-
-native_prepare :: (argc: int, argv: char**) #extern
-native_window_size :: (window_w: int*, window_h: int*) #extern
-native_configure_window :: () #extern
-native_before_window :: () #extern
-native_after_window :: () -> int #extern
-native_after_app_init :: (app: InnerBreeze*, argc: int, argv: char**) #extern
-native_screenshot_active :: () -> int #extern
-native_run_screenshot :: (app: InnerBreeze*) -> int #extern
-native_should_start_hidden :: (app: InnerBreeze*) -> int #extern
-native_platform_shutdown :: () #extern
-native_update_apply_at_exit :: () -> int #extern
-app_frame :: (app: InnerBreeze*) #extern
-
-#if WEB {
-    native_start_web_loop :: (app: InnerBreeze*) #extern
-} #else {
-    native_install_shutdown_handlers :: () #extern
-    native_shutdown_requested :: () -> int #extern
-}
+WEB_BUILD :: #defined(PLATFORM_WEB)
+DESKTOP_TRAY_BUILD :: #defined(DESKTOP_TRAY_ENABLED)
 
 app :: InnerBreeze #global
 
-app_shutdown :: () {
-    # Desktop self-update may re-exec a staged AppImage after state is saved
-    # and the window/audio stack is down.
-    native_platform_shutdown()
-    if native_update_apply_at_exit() {
-        return
-    }
-}
-
-cleanup_window :: () {
-    #if TRAY {
-        desktop_tray_shutdown()
+destroy_app_window :: () {
+    #if DESKTOP_TRAY_BUILD {
+        tray.TrayShutdown()
     }
     app_destroy(&app)
     set_global_app(nil)
     CloseWindow()
-    native_platform_shutdown()
+    host.Shutdown()
+}
+
+shutdown_application :: () {
+    destroy_app_window()
+
+    # A desktop update may replace the process only after state, audio, and
+    # the platform window have shut down cleanly.
+    host.ApplyPendingUpdate()
 }
 
 run_screenshot_if_requested :: () -> int {
-    result := native_run_screenshot(&app)
+    result := host.CaptureScreenshot(&app)
     if result == 0 {
         return 0
     }
-    # Positive means screenshot saved; negative means capture/save failure.
-    cleanup_window()
+
+    shutdown_application()
     if result > 0 {
         return 0
     }
     return 1
 }
 
-#if TRAY {
-    run_tray_loop :: () {
+#if DESKTOP_TRAY_BUILD {
+    run_desktop_tray_loop :: () {
         quit := 0
 
-        # With a tray, the close button asks whether to keep running in the
-        # background or quit. The native window pump exposes close requests
-        # through StealUICoreWindowClose().
         while !quit {
-            tray_action: DesktopTrayAction = desktop_tray_poll_action()
+            tray_action: tray.DesktopTrayAction = tray.TrayPollAction()
             close_result: AppClosePromptResult = AppClosePromptNone
 
-            if native_shutdown_requested() {
+            if host.ShutdownRequested() {
                 TraceLog(LOG_INFO, "APP: quit requested by shutdown signal")
                 quit = 1
             }
-            if tray_action != DESKTOP_TRAY_ACTION_NONE {
-                desktop_tray_apply_action(&app, tray_action, &quit)
+            if tray_action != tray.DESKTOP_TRAY_ACTION_NONE {
+                tray.TrayApplyAction(&app, tray_action, &quit)
             }
             if StealUICoreWindowClose() {
-                desktop_tray_apply_action(&app,
-                                               DESKTOP_TRAY_ACTION_CLOSE_REQUEST,
-                                               &quit)
+                tray.TrayApplyAction(&app,
+                                      tray.DESKTOP_TRAY_ACTION_CLOSE_REQUEST,
+                                      &quit)
             }
             if !quit {
-                app_frame(&app)
-                desktop_tray_update_status(&app)
+                host.DrawFrame(&app)
+                tray.TrayUpdateStatus(&app)
             }
 
             close_result = app_consume_close_prompt_result(&app)
             if close_result == AppClosePromptKeepRunning {
-                desktop_tray_keep_running()
+                tray.TrayKeepRunning()
             } else if close_result == AppClosePromptQuit {
                 TraceLog(LOG_INFO, "APP: quit requested by close prompt")
                 quit = 1
@@ -104,9 +77,9 @@ run_screenshot_if_requested :: () -> int {
                 quit = 1
             }
 
-            tray_action = desktop_tray_poll_action()
-            if tray_action != DESKTOP_TRAY_ACTION_NONE {
-                desktop_tray_apply_action(&app, tray_action, &quit)
+            tray_action = tray.TrayPollAction()
+            if tray_action != tray.DESKTOP_TRAY_ACTION_NONE {
+                tray.TrayApplyAction(&app, tray_action, &quit)
             }
             if StealUICoreWindowClose() && !app.close_prompt_open {
                 app_request_desktop_close(&app)
@@ -114,15 +87,13 @@ run_screenshot_if_requested :: () -> int {
         }
     }
 } #else {
-    run_plain_loop :: () {
+    run_desktop_window_loop :: () {
         quit := 0
 
-        # No tray: there is nothing to keep running in the background, so any
-        # close request just exits.
-        while !native_shutdown_requested() && !quit {
-            app_frame(&app)
+        while !host.ShutdownRequested() && !quit {
+            host.DrawFrame(&app)
             if WindowShouldClose() || StealUICoreWindowClose() ||
-               native_shutdown_requested() || app.request_quit {
+               host.ShutdownRequested() || app.request_quit {
                 quit = 1
             }
         }
@@ -130,50 +101,47 @@ run_screenshot_if_requested :: () -> int {
 }
 
 main :: (argc: int, argv: char**) -> int {
-    window_w: int = 0
-    window_h: int = 0
+    window_size: host.WindowSize
 
-    native_prepare(argc, argv)
-    native_window_size(&window_w, &window_h)
-    native_configure_window()
-    native_before_window()
+    host.Prepare(argc, argv)
+    window_size = host.InitialWindowSize()
+    host.ConfigureWindow()
 
-    InitWindow(window_w, window_h, config.title)
-    if !native_after_window() {
+    InitWindow(window_size.width, window_size.height, config.title)
+    if !host.FinishWindowSetup() {
         return 1
     }
 
     app_init(&app)
-    native_after_app_init(&app, argc, argv)
+    host.FinishAppSetup(&app, argc, argv)
 
-    #if WEB {
-        native_start_web_loop(&app)
+    #if WEB_BUILD {
+        host.StartWebLoop(&app)
         return 0
     } #else {
-        native_install_shutdown_handlers()
+        host.InstallShutdownHandlers()
 
-        #if TRAY {
-            desktop_tray_init()
-            if native_should_start_hidden(&app) {
+        #if DESKTOP_TRAY_BUILD {
+            tray.TrayInit()
+            if host.ShouldStartHidden(&app) {
                 TraceLog(LOG_INFO, "APP: starting hidden in the tray (startup mode)")
-                desktop_tray_keep_running()
+                tray.TrayKeepRunning()
             }
             KryonMemReport("after-tray-init")
         }
 
         screenshot_exit := run_screenshot_if_requested()
-        if screenshot_exit != 0 || native_screenshot_active() {
+        if screenshot_exit != 0 || host.ScreenshotRequested() {
             return screenshot_exit
         }
 
-        #if TRAY {
-            run_tray_loop()
+        #if DESKTOP_TRAY_BUILD {
+            run_desktop_tray_loop()
         } #else {
-            run_plain_loop()
+            run_desktop_window_loop()
         }
 
-        cleanup_window()
-        app_shutdown()
+        shutdown_application()
         return 0
     }
 }

@@ -1,0 +1,71 @@
+#module "platform.app_desktop_tray"
+#import "app.h"
+
+#enum {
+    DESKTOP_TRAY_ACTION_NONE = 0
+    DESKTOP_TRAY_ACTION_SHOW
+    DESKTOP_TRAY_ACTION_HIDE
+    DESKTOP_TRAY_ACTION_MINIMIZE
+    DESKTOP_TRAY_ACTION_CLOSE_REQUEST
+    DESKTOP_TRAY_ACTION_START_WHM
+    DESKTOP_TRAY_ACTION_START_MEDITATION
+    DESKTOP_TRAY_ACTION_START_SUN_SALUTATION
+    DESKTOP_TRAY_ACTION_START_PATTERNS
+    DESKTOP_TRAY_ACTION_QUIT
+    DESKTOP_TRAY_ACTION_MARK_HABIT_0
+    DESKTOP_TRAY_ACTION_MARK_HABIT_1
+    DESKTOP_TRAY_ACTION_MARK_HABIT_2
+    DESKTOP_TRAY_ACTION_MARK_HABIT_3
+    DESKTOP_TRAY_ACTION_MARK_HABIT_4
+    DESKTOP_TRAY_ACTION_MARK_HABIT_5
+    DESKTOP_TRAY_ACTION_MARK_HABIT_6
+    DESKTOP_TRAY_ACTION_MARK_HABIT_7
+    DESKTOP_TRAY_ACTION_MARK_HABIT_8
+    DESKTOP_TRAY_ACTION_MARK_HABIT_9
+    DESKTOP_TRAY_ACTION_BREAK_REST_NOW
+    DESKTOP_TRAY_ACTION_BREAK_MODE_NORMAL
+    DESKTOP_TRAY_ACTION_BREAK_MODE_QUIET
+    DESKTOP_TRAY_ACTION_BREAK_MODE_SUSPENDED
+    DESKTOP_TRAY_ACTION_BREAK_READING_TOGGLE
+    DESKTOP_TRAY_ACTION_BREAK_SETTINGS
+}
+
+DesktopTrayAction :: int #type
+
+desktop_tray_init :: () -> int #extern #private
+desktop_tray_ready :: () -> int #extern #private
+desktop_tray_shutdown :: () #extern #private
+desktop_tray_poll_action :: () -> DesktopTrayAction #extern #private
+desktop_tray_apply_action :: (app: InnerBreeze*, action: DesktopTrayAction,
+                              quit: int*) #extern #private
+desktop_tray_update_status :: (app: InnerBreeze*) #extern #private
+desktop_tray_keep_running :: () #extern #private
+
+TrayInit :: () -> int {
+    return desktop_tray_init()
+}
+
+TrayReady :: () -> int {
+    return desktop_tray_ready()
+}
+
+TrayShutdown :: () {
+    desktop_tray_shutdown()
+}
+
+TrayPollAction :: () -> DesktopTrayAction {
+    return desktop_tray_poll_action()
+}
+
+TrayApplyAction :: (app: InnerBreeze*, action: DesktopTrayAction,
+                    quit: int*) {
+    desktop_tray_apply_action(app, action, quit)
+}
+
+TrayUpdateStatus :: (app: InnerBreeze*) {
+    desktop_tray_update_status(app)
+}
+
+TrayKeepRunning :: () {
+    desktop_tray_keep_running()
+}

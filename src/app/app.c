@@ -7,6 +7,7 @@
 #endif
 
 #include "app.h"
+#include "src/screens/elist_screen.h"
 #include "app_internal.h"
 #include "app_runtime.h"
 #include "app/app_sync.h"

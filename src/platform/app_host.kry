@@ -1,0 +1,89 @@
+#module "platform.app_host"
+
+#import "app.h"
+
+WindowSize :: struct {
+    width: int
+    height: int
+}
+
+native_prepare :: (argc: int, argv: char**) #extern #private
+native_window_size :: (window_width: int*, window_height: int*) #extern #private
+native_configure_window :: () #extern #private
+native_before_window :: () #extern #private
+native_after_window :: () -> int #extern #private
+native_after_app_init :: (app: InnerBreeze*, argc: int, argv: char**) #extern #private
+native_screenshot_active :: () -> int #extern #private
+native_run_screenshot :: (app: InnerBreeze*) -> int #extern #private
+native_should_start_hidden :: (app: InnerBreeze*) -> int #extern #private
+native_platform_shutdown :: () #extern #private
+native_update_apply_at_exit :: () -> int #extern #private
+app_frame :: (app: InnerBreeze*) #extern #private
+
+#if #defined(PLATFORM_WEB) {
+    native_start_web_loop :: (app: InnerBreeze*) #extern #private
+} #else {
+    native_install_shutdown_handlers :: () #extern #private
+    native_shutdown_requested :: () -> int #extern #private
+}
+
+Prepare :: (argc: int, argv: char**) {
+    native_prepare(argc, argv)
+}
+
+InitialWindowSize :: () -> WindowSize {
+    size := (WindowSize){0}
+    native_window_size(&size.width, &size.height)
+    return size
+}
+
+ConfigureWindow :: () {
+    native_configure_window()
+    native_before_window()
+}
+
+FinishWindowSetup :: () -> int {
+    return native_after_window()
+}
+
+FinishAppSetup :: (app: InnerBreeze*, argc: int, argv: char**) {
+    native_after_app_init(app, argc, argv)
+}
+
+DrawFrame :: (app: InnerBreeze*) {
+    app_frame(app)
+}
+
+ScreenshotRequested :: () -> int {
+    return native_screenshot_active()
+}
+
+CaptureScreenshot :: (app: InnerBreeze*) -> int {
+    return native_run_screenshot(app)
+}
+
+ShouldStartHidden :: (app: InnerBreeze*) -> int {
+    return native_should_start_hidden(app)
+}
+
+Shutdown :: () {
+    native_platform_shutdown()
+}
+
+ApplyPendingUpdate :: () -> int {
+    return native_update_apply_at_exit()
+}
+
+#if #defined(PLATFORM_WEB) {
+    StartWebLoop :: (app: InnerBreeze*) {
+        native_start_web_loop(app)
+    }
+} #else {
+    InstallShutdownHandlers :: () {
+        native_install_shutdown_handlers()
+    }
+
+    ShutdownRequested :: () -> int {
+        return native_shutdown_requested()
+    }
+}
