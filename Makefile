@@ -335,7 +335,6 @@ APP_SRCS := \
 	$(sort $(wildcard src/app/*.c)) \
 	$(STORAGE_CORE_SRCS) \
 	src/storage/sync_client.c \
-	src/platform/activity_monitor.c \
 	src/platform/android/android_device.c
 
 ifeq ($(NATIVE_PLATFORM),linux)
@@ -904,11 +903,11 @@ $(BREAK_ENGINE_TEST): tests/break_engine_test.c $(KRY_GEN_DIR)/src/breaks/break_
 		$(KRY_GEN_DIR)/src/breaks/break_engine.c
 
 # Plain C (no generated code): dlopen-based X idle monitor with stub fallback.
-$(ACTIVITY_MONITOR_TEST): tests/activity_monitor_test.c src/platform/activity_monitor.c src/platform/activity_monitor.h $(KRYON_DIR)/src/platform/kry_activity_monitor.c $(KRYON_DIR)/include/kry_activity_monitor.h | $(TEST_BIN_DIR)
+$(ACTIVITY_MONITOR_TEST): tests/activity_monitor_test.c $(KRYON_DIR)/src/platform/kry_activity_monitor.c $(KRYON_DIR)/include/kry_activity_monitor.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-Isrc $(KRYON_INCLUDE) \
 		-o $@ \
-		tests/activity_monitor_test.c src/platform/activity_monitor.c \
+		tests/activity_monitor_test.c \
 		$(KRYON_DIR)/src/platform/kry_activity_monitor.c \
 		$(if $(filter linux,$(NATIVE_PLATFORM)),-ldl,)
 

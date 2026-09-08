@@ -1,5 +1,5 @@
 #import "app.h"
-#import "platform/activity_monitor.h" #private
+#import "kry_activity_monitor.h" #private
 #import "platform/app_desktop_tray.h" #private
 #import "storage/break_stats.h" #private
 #import "practices/practice_registry.h" #private
@@ -70,7 +70,7 @@ break_fallback_input_seen :: () -> int #private {
 }
 
 break_sample_activity :: (app: InnerBreeze*, idle_ms_out: int*) -> int #private {
-    idle_ms := activity_get_idle_ms()
+    idle_ms := ActivityGetIdleMilliseconds()
     if idle_ms_out != nil {
         *idle_ms_out = (int)idle_ms
     }
@@ -117,12 +117,12 @@ break_engine_open_window :: (app: InnerBreeze*, t: int) #private {
         # Wayland intentionally does not permit a global keyboard grab, but
         # Kryon's SDL UIWindow backend can create a real secondary Wayland
         # surface for the break just like the X11 backend did.
-        if activity_is_wayland() {
+        if ActivityIsWayland() {
             ClearWindowState(FLAG_WINDOW_HIDDEN)
             RestoreWindow()
             SetWindowFocused()
         } else if app->break_block_mode >= 1 {
-            break_set_input_blocked(1)
+            ActivitySetInputBlocked(1)
         }
     }
     app->break_window_taken = 1
@@ -138,8 +138,8 @@ break_engine_close_window :: (app: InnerBreeze*) #private {
         app->break_window = nil
     }
     #if DESKTOP {
-        if !activity_is_wayland() {
-            break_set_input_blocked(0)
+        if !ActivityIsWayland() {
+            ActivitySetInputBlocked(0)
         }
     }
 }

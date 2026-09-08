@@ -1,4 +1,4 @@
-#include "platform/activity_monitor.h"
+#include "kry_activity_monitor.h"
 
 #include <stdio.h>
 
@@ -26,26 +26,26 @@ expect(int condition, const char *message)
 static void
 test_init_is_idempotent(void)
 {
-    activity_monitor_init();
-    activity_monitor_init();
+    ActivityMonitorInit();
+    ActivityMonitorInit();
     expect(1, "init runs twice without crashing");
 }
 
 static void
 test_idle_matches_availability(void)
 {
-    int available = activity_available();
-    long idle = activity_get_idle_ms();
+    int available = ActivityAvailable();
+    long idle = ActivityGetIdleMilliseconds();
 
     printf("activity monitor: %s%s\n",
            available ? "system-wide (X idle counter)" : "unavailable",
-           activity_is_wayland() ? " (Wayland session)" : "");
+           ActivityIsWayland() ? " (Wayland session)" : "");
 
     if(available) {
         expect(idle >= 0, "available monitor reports a non-negative idle");
         /* No input occurs between the two reads, so idle cannot go down. */
         {
-            long again = activity_get_idle_ms();
+            long again = ActivityGetIdleMilliseconds();
 
             expect(again >= idle, "idle does not decrease between reads");
         }
@@ -57,18 +57,18 @@ test_idle_matches_availability(void)
 static void
 test_input_grab_state(void)
 {
-    int supported = break_set_input_blocked(1);
+    int supported = ActivitySetInputBlocked(1);
 
     if(supported) {
-        expect(break_input_blocked(), "grab reports held after request");
-        expect(break_set_input_blocked(1), "re-grabbing is a no-op success");
-        expect(break_set_input_blocked(0), "ungrab succeeds");
-        expect(!break_input_blocked(), "grab reports released");
+        expect(ActivityInputBlocked(), "grab reports held after request");
+        expect(ActivitySetInputBlocked(1), "re-grabbing is a no-op success");
+        expect(ActivitySetInputBlocked(0), "ungrab succeeds");
+        expect(!ActivityInputBlocked(), "grab reports released");
     } else {
-        expect(!break_input_blocked(),
+        expect(!ActivityInputBlocked(),
                "unsupported grab never reports held");
-        expect(break_set_input_blocked(0) == 0 ||
-               break_set_input_blocked(0) == 1,
+        expect(ActivitySetInputBlocked(0) == 0 ||
+               ActivitySetInputBlocked(0) == 1,
                "ungrab without grab does not crash");
     }
 }
