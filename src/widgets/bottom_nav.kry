@@ -135,7 +135,7 @@ desktop_rail_button :: (app: InnerBreeze*, route: int, rail_x: int, y: int) -> i
     if active {
         fill = Fade(GetThemeButton(), 0.34f)
         border = Fade(GetThemeButtonHover(), 0.88f)
-        tint = GetThemeButtonText()
+        tint = GetThemeText()
     } else if hover {
         fill = Fade(GetThemeSurface(), 0.46f)
         border = Fade(GetThemeText(), 0.24f)
@@ -191,7 +191,7 @@ desktop_rail_profile_button :: (app: InnerBreeze*, rail_x: int, y: int,
             (hover ? Fade(GetThemeSurface(), 0.34f) : Fade(GetThemeSurface(), 0.0f))
     border := active ? Fade(GetThemeButtonHover(), 0.72f) :
               (hover ? Fade(GetThemeText(), 0.18f) : Fade(GetThemeText(), 0.0f))
-    tint := active ? GetThemeButtonText() : GetThemeText()
+    tint := GetThemeText()
     label_font := Text14
     sub_font := Text12
     label_w: int
