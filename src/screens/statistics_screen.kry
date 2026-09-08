@@ -25,6 +25,38 @@ StatisticsScrollPageContext :: struct {
     mood_count: int
 }
 
+static statistics_mood_cache: InbeStorageMoodStats = {0}
+static statistics_mood_cache_clock: long long = 0
+static statistics_mood_cache_activity: int = 0
+static statistics_mood_cache_days: int = -1
+static statistics_mood_cache_count: int = 0
+static statistics_mood_cache_valid: int = 0
+
+statistics_cached_mood_stats :: (activity_mask: int, days: int,
+                                 stats: InbeStorageMoodStats*) -> int #private {
+    session_clock := storage_session_change_clock()
+
+    if stats == nil || activity_mask == 0 {
+        return 0
+    }
+    if statistics_mood_cache_valid &&
+       statistics_mood_cache_clock == session_clock &&
+       statistics_mood_cache_activity == activity_mask &&
+       statistics_mood_cache_days == days {
+        *stats = statistics_mood_cache
+        return statistics_mood_cache_count
+    }
+
+    statistics_mood_cache_count = storage_mood_stats(activity_mask, days,
+                                                     &statistics_mood_cache)
+    statistics_mood_cache_clock = session_clock
+    statistics_mood_cache_activity = activity_mask
+    statistics_mood_cache_days = days
+    statistics_mood_cache_valid = 1
+    *stats = statistics_mood_cache
+    return statistics_mood_cache_count
+}
+
 statistics_day_count :: (habit: const InbeHabit*, linked_ctx: const HabitLinkedContext*, day_index: int) -> int {
     count := habit_effective_day_count(habit, day_index, linked_ctx)
 
@@ -463,7 +495,8 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
 
     if active != nil && active->sync_mode == INBE_HABIT_SYNC_ACTIVITIES &&
        active->sync_activity != 0 {
-        mood_count = storage_mood_stats(active->sync_activity, 0, &mood_stats)
+        mood_count = statistics_cached_mood_stats(active->sync_activity, 0,
+                                                  &mood_stats)
     }
 
     if now_tm != NULL {
@@ -609,8 +642,8 @@ draw_statistics_content :: (app: InbeApp*, content_top: int) {
     }
     if active != NULL && active->sync_mode == INBE_HABIT_SYNC_ACTIVITIES &&
        active->sync_activity != 0 {
-        page_mood_count = storage_mood_stats(active->sync_activity, 0,
-                                             &page_mood_stats)
+        page_mood_count = statistics_cached_mood_stats(active->sync_activity, 0,
+                                                       &page_mood_stats)
     }
     page_ctx.linked_count = linked_ctx != NULL ? linked_ctx->count : 0
     page_ctx.mood_count = page_mood_count
