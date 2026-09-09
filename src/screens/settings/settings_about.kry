@@ -165,8 +165,8 @@ settings_about_draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
                 })
                 *y += Scale(22)
             } else {
-                buttons: [1] UIButtonRowItem = {
-                    {update_action_label(), ButtonStyleSecondary, 0}
+                buttons: [1] ButtonRowItem = {
+                    {update_action_label(), ButtonToneNeutral, ButtonEmphasisSoft, 0}
                 }
                 row := (ButtonRowProps){.x = x, .y = *y, .width = w,
                                         .height = Scale(36),

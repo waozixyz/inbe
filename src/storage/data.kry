@@ -18,7 +18,7 @@ WIN32 :: #defined(_WIN32)
     GetAndroidApp :: () -> struct android_app* #extern
 }
 
-DATA_PATH_MAX :: #define 512
+DATA_PATH_MAX :: 512
 
 static g_data_root: [DATA_PATH_MAX] char = ""
 static g_today_dir: [DATA_PATH_MAX] char = ""

@@ -210,9 +210,11 @@ app_draw_close_prompt(InnerBreeze*app)
     ClearUIInputCaptures();
     memset(actions, 0, sizeof(actions));
     actions[0].label = GetLocaleText("desktop_close_keep_running_button");
-    actions[0].style = ButtonStylePrimary;
+    actions[0].tone = ButtonToneAccent;
+    actions[0].emphasis = ButtonEmphasisFilled;
     actions[1].label = GetLocaleText("desktop_close_quit_button");
-    actions[1].style = ButtonStyleDanger;
+    actions[1].tone = ButtonToneDanger;
+    actions[1].emphasis = ButtonEmphasisFilled;
     memset(&props, 0, sizeof(props));
     props.title = GetLocaleText("desktop_close_prompt_title");
     props.message = GetLocaleText("desktop_close_prompt_message");
@@ -1357,11 +1359,14 @@ draw_donation_reminder_modal(InnerBreeze*app)
 
     memset(actions, 0, sizeof(actions));
     actions[0].label = GetLocaleText("donation_reminder_donate_button");
-    actions[0].style = ButtonStylePrimary;
+    actions[0].tone = ButtonToneAccent;
+    actions[0].emphasis = ButtonEmphasisFilled;
     actions[1].label = GetLocaleText("donation_reminder_skip_button");
-    actions[1].style = ButtonStyleSecondary;
+    actions[1].tone = ButtonToneNeutral;
+    actions[1].emphasis = ButtonEmphasisSoft;
     actions[2].label = GetLocaleText("donation_reminder_dismiss_button");
-    actions[2].style = ButtonStyleDanger;
+    actions[2].tone = ButtonToneDanger;
+    actions[2].emphasis = ButtonEmphasisFilled;
     memset(&props, 0, sizeof(props));
     props.title = GetLocaleText("donation_reminder_title");
     props.message = GetLocaleText("donation_reminder_message");

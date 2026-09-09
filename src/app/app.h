@@ -3,6 +3,7 @@
 
 #include "kryon.h"
 #include "platform.h"
+#include "styled_button.h"
 #include "core/breath_engine.h"
 #include "breaks/break_engine.h"
 #include "app_fwd.h"

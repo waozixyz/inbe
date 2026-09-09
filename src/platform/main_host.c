@@ -1033,7 +1033,7 @@ native_before_window(void)
     android_device_init();
     android_wakelock_init();
     android_runtime_assets_init();
-    if(!ChangeDirectory("/data/user/0/xyz.waozi.breathing/files"))
+    if(!ChangeDirectory("/data/user/0/xyz.waozi.inbe/files"))
         TraceLog(LOG_WARNING, "APP: failed to switch to Android files directory");
 #endif
 }

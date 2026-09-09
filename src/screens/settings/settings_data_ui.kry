@@ -19,11 +19,7 @@ HAS_FILE_DIALOG :: #defined(PLATFORM_WEB) || (!ANDROID_BUILD && !#defined(_WIN32
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
 
-#if HAS_FILE_DIALOG {
-    HAS_KRYON_FILE_DIALOG :: #define 1
-}
-
-NATIVE_FILE_DIALOG :: #defined(HAS_KRYON_FILE_DIALOG)
+NATIVE_FILE_DIALOG :: HAS_FILE_DIALOG
 
 #if WEB {
     #import <emscripten.h>

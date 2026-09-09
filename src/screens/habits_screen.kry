@@ -1499,7 +1499,7 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
     if Button((ButtonProps){
         .bounds = {(float)x, (float)action_y, (float)w, (float)action_h},
         .label = today_label, .font = GetFontSize(), .id = 24200,
-        .style = ButtonStylePrimary,
+        .tone = ButtonToneAccent, .emphasis = ButtonEmphasisFilled,
         .disabled = app->modal.active ||
             (!habit_scheduled_day(habit, today) && !today_complete)
     }) {
@@ -1921,7 +1921,7 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
         .bounds = {(float)(x + w - button_w), (float)y,
                    (float)button_w, (float)Scale(48)},
         .label = GetLocaleText("habit_new_button"), .id = 24000,
-        .font = GetFontSize(), .style = ButtonStylePrimary,
+        .font = GetFontSize(), .tone = ButtonToneAccent, .emphasis = ButtonEmphasisFilled,
         .disabled = app->habits.count >= HABIT_MAX || app->modal.active
     }) {
         habits_begin_new_detail(app)

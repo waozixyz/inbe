@@ -12,11 +12,7 @@ ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
 HAS_FILE_DIALOG :: #defined(PLATFORM_WEB) || (!ANDROID_BUILD && !#defined(_WIN32) && !#defined(DISABLE_KRYON_FILE_DIALOG))
 
-#if HAS_FILE_DIALOG {
-    HAS_KRYON_FILE_DIALOG :: #define 1
-}
-
-NATIVE_FILE_DIALOG :: #defined(HAS_KRYON_FILE_DIALOG)
+NATIVE_FILE_DIALOG :: HAS_FILE_DIALOG
 
 #if WEB {
     static audio_web_dialog: FileDialog = {0}
@@ -523,9 +519,9 @@ settings_audio_draw_output :: (app: InnerBreeze*, x: int, w: int, y: int*) #priv
     status_label := app->audio_ready ?
         GetLocaleText("audio_status_ready") :
         GetLocaleText("audio_status_unavailable")
-    buttons: [2] UIButtonRowItem = {
-        {GetLocaleText("audio_test_output_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("audio_reinitialize_button"), ButtonStyleSecondary, 0}
+    buttons: [2] ButtonRowItem = {
+        {GetLocaleText("audio_test_output_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("audio_reinitialize_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0}
     }
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
@@ -577,9 +573,9 @@ settings_audio_import_button_height :: (action: int) -> int #private {
 }
 
 settings_audio_output_height :: (content_w: int) -> int #private {
-    buttons: [2] UIButtonRowItem = {
-        {GetLocaleText("audio_test_output_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("audio_reinitialize_button"), ButtonStyleSecondary, 0}
+    buttons: [2] ButtonRowItem = {
+        {GetLocaleText("audio_test_output_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("audio_reinitialize_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0}
     }
     row := (ButtonRowProps){.width = content_w, .height = Scale(36),
                             .items = buttons, .count = 2}

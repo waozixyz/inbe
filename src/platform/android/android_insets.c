@@ -76,8 +76,7 @@ static void nativeSetBackgroundActive(JNIEnv *env, jobject thiz, jboolean active
 	(void)env;
 	(void)thiz;
 
-	void *app = get_global_app();
-	InnerBreeze*app = (InnerBreeze*)app;
+	InnerBreeze *app = (InnerBreeze*)get_global_app();
 
 	if (active) {
 		if (app != NULL) {
@@ -281,7 +280,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
         return result;
     }
 
-    jclass clazz = (*env)->FindClass(env, "xyz/waozi/breathing/MainActivity");
+    jclass clazz = (*env)->FindClass(env, "xyz/waozi/inbe/MainActivity");
     if (clazz == NULL) {
         TraceLog(LOG_ERROR, "APP: Failed to find MainActivity class");
         return JNI_ERR;

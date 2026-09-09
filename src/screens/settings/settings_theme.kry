@@ -23,7 +23,7 @@ content_height :: (content_w: int) -> int {
 }
 
 draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*) {
-    result := (UIThemeSettingsResult){0}
+    result := (ThemeSettingsResult){0}
 
     if app == NULL || y == NULL || state == NULL {
         return

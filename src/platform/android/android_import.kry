@@ -10,7 +10,7 @@ ANDROID :: ANDROID_BUILD
     #import <android_native_app_glue.h>
     #import <pthread.h>
 
-    ANDROID_IMPORT_PATH_MAX :: #define 512
+    ANDROID_IMPORT_PATH_MAX :: 512
 
     GetAndroidApp :: () -> struct android_app* #extern
 

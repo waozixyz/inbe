@@ -2,9 +2,9 @@
 
 APP_NAME := breathing
 APP_TITLE := Inner Breeze
-ANDROID_APP_ID := xyz.waozi.breathing
+ANDROID_APP_ID := xyz.waozi.inbe
 ANDROID_DEBUG_APP_ID := $(ANDROID_APP_ID).debug
-ANDROID_ACTIVITY := xyz.waozi.breathing.MainActivity
+ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
 
 CC ?= cc
 CMAKE ?= $(shell if [ -x /usr/bin/cmake ]; then echo /usr/bin/cmake; else command -v cmake; fi)
@@ -923,8 +923,8 @@ $(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(KRYON_DIR)/scripts/embe
 	sh $(KRYON_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
 
 $(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C) $(KRYON_ICON_TYPES_H): $(KRYON_ICON_FILES) $(KRYON_DIR)/scripts/embed-icon-sheets.py $(KRYON_DIR)/include/ui_icons.h | $(BUILD_OBJ_DIR)
-	cd $(KRYON_DIR) && python3 scripts/embed-icon-sheets.py --icon-dir "$(KRYON_ICON_DIR)" \
-		--assets-output "$(abspath $(KRYON_ICON_ASSETS_C))" \
+	cd $(KRYON_DIR) && python3 scripts/embed-icon-sheets.py "$(KRYON_ICON_DIR)" \
+		"$(abspath $(KRYON_ICON_ASSETS_C))" \
 		--types-output "$(abspath $(KRYON_ICON_TYPES_H))" \
 		--names-output "$(abspath $(KRYON_ICON_NAMES_C))"
 

@@ -44,7 +44,7 @@ android_share_helper_class(JNIEnv *env, jobject activity)
                                      "(Ljava/lang/String;)Ljava/lang/Class;");
     if(!load_class)
         return NULL;
-    class_name = (*env)->NewStringUTF(env, "xyz.waozi.breathing.ShareHelper");
+    class_name = (*env)->NewStringUTF(env, "xyz.waozi.inbe.ShareHelper");
     share_helper_class = (jclass)(*env)->CallObjectMethod(env, class_loader, load_class, class_name);
     (*env)->DeleteLocalRef(env, class_name);
     (*env)->DeleteLocalRef(env, class_loader);
@@ -205,7 +205,7 @@ int android_share_export(const char *filename)
         return 0;
     }
 
-    jstring class_name = (*env)->NewStringUTF(env, "xyz.waozi.breathing.ShareHelper");
+    jstring class_name = (*env)->NewStringUTF(env, "xyz.waozi.inbe.ShareHelper");
     jclass share_helper_class = (jclass)(*env)->CallObjectMethod(env, class_loader, load_class, class_name);
     (*env)->DeleteLocalRef(env, class_name);
 

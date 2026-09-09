@@ -11,8 +11,8 @@ ANDROID :: ANDROID_BUILD
     #import <unistd.h>
 
     static timer_log_tag: const char* = "APP_TIMER"
-    TARGET_FPS :: #define 10
-    FRAME_TIME_US :: #define (1000000 / TARGET_FPS)
+    TARGET_FPS :: 10
+    FRAME_TIME_US :: (1000000 / TARGET_FPS)
 
     timer_thread :: pthread_t #global
     timer_mutex :: pthread_mutex_t = PTHREAD_MUTEX_INITIALIZER #global

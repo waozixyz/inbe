@@ -21,8 +21,10 @@ set(KRYON_COMPAT_GENERATED_HEADER "${KRYON_RAYLIB_GENERATED_DIR}/kryon_compat.ge
 set(KRYON_RAYLIB_BACKEND_RENAME_HEADER "${KRYON_RAYLIB_GENERATED_DIR}/raylib_backend_rename.h")
 set(KRYON_RAYLIB_WRAPPERS_C "${KRYON_RAYLIB_GENERATED_DIR}/kryon_raylib_wrappers.c")
 set(KRYON_NULL_BACKEND_C "${KRYON_RAYLIB_GENERATED_DIR}/kryon_null_backend.c")
-set(KRYON_ICON_GENERATED_INCLUDE_DIR "${CMAKE_BINARY_DIR}/kryon/generated/include")
-set(KRYON_ICON_GENERATED_SRC_DIR "${CMAKE_BINARY_DIR}/kryon/generated/src")
+# Icon outputs must live outside kryon/generated: the k2c regeneration step
+# wipes that whole directory, which would delete these mid-build.
+set(KRYON_ICON_GENERATED_INCLUDE_DIR "${CMAKE_BINARY_DIR}/kryon/generated-icons/include")
+set(KRYON_ICON_GENERATED_SRC_DIR "${CMAKE_BINARY_DIR}/kryon/generated-icons/src")
 set(KRYON_ICON_ASSETS_C "${KRYON_ICON_GENERATED_SRC_DIR}/ui/ui_icon_assets.c")
 set(KRYON_ICON_NAMES_C "${KRYON_ICON_GENERATED_SRC_DIR}/ui/ui_icon_names.c")
 set(KRYON_ICON_TYPES_H "${KRYON_ICON_GENERATED_INCLUDE_DIR}/ui_icon_types.h")
@@ -119,6 +121,32 @@ add_custom_command(
     DEPENDS ${KRYON_K2C_SOURCES}
     VERBATIM
 )
+# Kryon ships part of its runtime as Kry modules transpiled at build time
+# (runtime/*.kry -> generated/src/runtime/*.c). Downstream C builds compile
+# the generated sources and put their directory on the include path so
+# kryon's own C files can #include "runtime/*.h".
+set(KRYON_RUNTIME_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated-runtime")
+set(KRYON_RUNTIME_KRY_MODULES
+    runtime/button.kry
+    runtime/theme.kry
+    runtime/menu_button.kry
+    runtime/split_button.kry)
+set(KRYON_RUNTIME_KRY_FILES)
+set(KRYON_RUNTIME_GENERATED_C)
+foreach(kryon_module ${KRYON_RUNTIME_KRY_MODULES})
+    list(APPEND KRYON_RUNTIME_KRY_FILES "${KRYON_DIR}/${kryon_module}")
+    string(REGEX REPLACE "\\.kry$" ".c" kryon_module_c "${kryon_module}")
+    list(APPEND KRYON_RUNTIME_GENERATED_C "${KRYON_RUNTIME_GEN_DIR}/${kryon_module_c}")
+endforeach()
+add_custom_command(
+    OUTPUT ${KRYON_RUNTIME_GENERATED_C}
+    COMMAND "${KRYON_K2C}" --strict --no-main --root "${KRYON_DIR}" -o "${KRYON_RUNTIME_GEN_DIR}" ${KRYON_RUNTIME_KRY_MODULES}
+    DEPENDS "${KRYON_K2C}" ${KRYON_RUNTIME_KRY_FILES}
+    WORKING_DIRECTORY "${KRYON_DIR}"
+    VERBATIM
+)
+add_custom_target(kryon_runtime_generated DEPENDS ${KRYON_RUNTIME_GENERATED_C})
+list(APPEND KRYON_SOURCES ${KRYON_RUNTIME_GENERATED_C})
 add_custom_target(app_kry_generated DEPENDS
     ${APP_KRY_GENERATED_SOURCES}
     ${APP_KRY_GENERATED_HEADERS}
@@ -246,7 +274,6 @@ add_library(main SHARED
     "${SRC_DIR}/storage/storage.c"
     "${SRC_DIR}/storage/storage_json_builder.c"
     "${SRC_DIR}/storage/storage_habits.c"
-    "${SRC_DIR}/storage/storage_elist.c"
     "${SRC_DIR}/storage/storage_habit_materialize.c"
     "${SRC_DIR}/storage/storage_habit_sync.c"
     "${SRC_DIR}/storage/sync_client.c"
@@ -260,14 +287,15 @@ add_library(main SHARED
     "${SRC_DIR}/platform/android/android_insets.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
-add_dependencies(main app_kry_generated kryon_raylib_generated)
+add_dependencies(main app_kry_generated kryon_raylib_generated
+    kryon_runtime_generated)
 
 file(GLOB_RECURSE KRYON_ICON_FILES CONFIGURE_DEPENDS "${KRYON_DIR}/icons/*.png" "${KRYON_DIR}/icons/*.json")
 add_custom_command(
     OUTPUT "${KRYON_ICON_ASSETS_C}" "${KRYON_ICON_NAMES_C}" "${KRYON_ICON_TYPES_H}"
     COMMAND "${HOST_PYTHON}" "${KRYON_DIR}/scripts/embed-icon-sheets.py"
-            --icon-dir icons
-            --assets-output "${KRYON_ICON_ASSETS_C}"
+            icons
+            "${KRYON_ICON_ASSETS_C}"
             --types-output "${KRYON_ICON_TYPES_H}"
             --names-output "${KRYON_ICON_NAMES_C}"
     DEPENDS "${KRYON_DIR}/scripts/embed-icon-sheets.py" "${KRYON_DIR}/include/ui_icons.h" ${KRYON_ICON_FILES}
@@ -296,6 +324,7 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}/third_party"
     "${APP_KRY_GEN_DIR}"
     "${APP_KRY_GEN_DIR}/src"
+    "${KRYON_RUNTIME_GEN_DIR}"
     "${NATIVE_APP_GLUE_DIR}"
     "${SQLITE_BUILD_DIR}"
 )

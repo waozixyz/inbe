@@ -470,7 +470,7 @@ button_min_width :: (label: const char*) -> int #private {
            Scale(20)
 }
 
-button_group_fits :: (items: const UIButtonRowItem*, start: int, count: int,
+button_group_fits :: (items: const ButtonRowItem*, start: int, count: int,
                      width: int, gap: int) -> int #private {
     button_w: int
 
@@ -492,7 +492,7 @@ button_group_fits :: (items: const UIButtonRowItem*, start: int, count: int,
     return 1
 }
 
-button_group_count :: (items: const UIButtonRowItem*, start: int, count: int,
+button_group_count :: (items: const ButtonRowItem*, start: int, count: int,
                       width: int, gap: int) -> int #private {
     for int row_count = count; row_count > 1; row_count-- {
         if button_group_fits(items, start, row_count, width, gap) {
@@ -521,16 +521,19 @@ draw_adaptive_button_row :: (row: ButtonRowProps, height_out: int*) -> int #priv
         button_w := (row.width - gap * (count - 1)) / count
 
         for int i = 0; i < count; i++ {
-            hover := 0
             item_index := index + i
             button_x := row.x + i * (button_w + gap)
             draw_w := i == count - 1 ? row.x + row.width - button_x : button_w
 
-            if StyledButton(button_x, draw_y, draw_w, row.height,
-                                   row.items[item_index].label,
-                                   row.items[item_index].style,
-                                   row.items[item_index].disabled,
-                                   &hover) {
+            if Button((ButtonProps){
+                    .bounds = {(float)button_x, (float)draw_y,
+                               (float)draw_w, (float)row.height},
+                    .label = row.items[item_index].label,
+                    .font = GetFontSize(),
+                    .tone = row.items[item_index].tone,
+                    .emphasis = row.items[item_index].emphasis,
+                    .disabled = row.items[item_index].disabled,
+                }) {
                 clicked = item_index
             }
         }
@@ -549,7 +552,7 @@ draw_adaptive_button_row :: (row: ButtonRowProps, height_out: int*) -> int #priv
     return clicked
 }
 
-adaptive_button_row_height :: (items: const UIButtonRowItem*, count: int,
+adaptive_button_row_height :: (items: const ButtonRowItem*, count: int,
                               width: int, button_h: int, gap: int) -> int #private {
     height := 0
     index := 0
@@ -585,9 +588,9 @@ config_content_height :: (content_w: int) -> int {
     }
 
     if !has_account {
-        buttons: [2] UIButtonRowItem = {
-            {GetLocaleText("sync_create_account_button"), ButtonStylePrimary, 0},
-            {GetLocaleText("sync_import_key_button"), ButtonStylePrimary, 0},
+        buttons: [2] ButtonRowItem = {
+            {GetLocaleText("sync_create_account_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
+            {GetLocaleText("sync_import_key_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
         }
 
         h += Scale(12)
@@ -610,17 +613,17 @@ config_content_height :: (content_w: int) -> int {
     h += Scale(18) + btn_h + Scale(12)
     h += btn_h + Scale(12)
 
-    buttons_main: [3] UIButtonRowItem = {
-        {GetLocaleText("sync_copy_id_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("sync_alias_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("sync_backup_key_button"), ButtonStyleSecondary, 0},
+    buttons_main: [3] ButtonRowItem = {
+        {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_backup_key_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
     }
     h += adaptive_button_row_height(buttons_main, 3, content_w, btn_h, gap)
     h += Scale(12)
 
-    buttons_danger: [2] UIButtonRowItem = {
-        {GetLocaleText("sync_logout_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("sync_clear_remote_data_button"), ButtonStyleDanger, 0},
+    buttons_danger: [2] ButtonRowItem = {
+        {GetLocaleText("sync_logout_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_clear_remote_data_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
     }
     h += adaptive_button_row_height(buttons_danger, 2, content_w, btn_h, gap)
     h += Scale(12)
@@ -668,10 +671,10 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     draw_account_id(app, &account, x, w, y, small_font, text_style())
     *y += Scale(4)
 
-    buttons: [3] UIButtonRowItem = {
-        {GetLocaleText("sync_copy_id_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("sync_alias_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("sync_backup_key_button"), ButtonStylePrimary, 0},
+    buttons: [3] ButtonRowItem = {
+        {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_backup_key_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
     }
     row_h := 0
     clicked := draw_adaptive_button_row((ButtonRowProps){
@@ -720,9 +723,9 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     }
 
     if !has_account {
-        buttons: [2] UIButtonRowItem = {
-            {GetLocaleText("sync_create_account_button"), ButtonStylePrimary, 0},
-            {GetLocaleText("sync_import_key_button"), ButtonStylePrimary, 0},
+        buttons: [2] ButtonRowItem = {
+            {GetLocaleText("sync_create_account_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
+            {GetLocaleText("sync_import_key_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
         }
         row_h := 0
         clicked: int
@@ -800,10 +803,10 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     }
     *y += btn_h + Scale(12)
 
-    buttons_main: [3] UIButtonRowItem = {
-        {GetLocaleText("sync_copy_id_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("sync_alias_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("sync_backup_key_button"), ButtonStyleSecondary, 0},
+    buttons_main: [3] ButtonRowItem = {
+        {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_backup_key_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
     }
     row_h_main := 0
     clicked_main := draw_adaptive_button_row((ButtonRowProps){
@@ -827,9 +830,9 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     *y += row_h_main
     *y += Scale(12)
 
-    buttons_danger: [2] UIButtonRowItem = {
-        {GetLocaleText("sync_logout_button"), ButtonStyleSecondary, 0},
-        {GetLocaleText("sync_clear_remote_data_button"), ButtonStyleDanger, 0},
+    buttons_danger: [2] ButtonRowItem = {
+        {GetLocaleText("sync_logout_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_clear_remote_data_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
     }
     row_h_danger := 0
     clicked_danger := draw_adaptive_button_row((ButtonRowProps){
@@ -984,7 +987,7 @@ draw_alias_modal :: (app: InnerBreeze*) -> int {
     y += Scale(34)
     unchanged_alias = has_alias && strcmp(app->sync_alias_input, current_alias) == 0
 
-    buttons: [2] UIButtonRowItem = {
+    buttons: [2] ButtonRowItem = {
         {
             GetLocaleText(app->sync_alias_then_backup ? "skip_button" : "close_button"),
             ButtonStyleSecondary,
@@ -1071,9 +1074,9 @@ draw_public_id_modal :: (app: InnerBreeze*) -> int {
                             &y, GetSmallFontSize(), input_style)
     y += Scale(18)
 
-    buttons: [2] UIButtonRowItem = {
-        {GetLocaleText("sync_copy_id_button"), ButtonStylePrimary, 0},
-        {GetLocaleText("close_button"), ButtonStyleSecondary, 0},
+    buttons: [2] ButtonRowItem = {
+        {GetLocaleText("sync_copy_id_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
+        {GetLocaleText("close_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
     }
     clicked := draw_adaptive_button_row((ButtonRowProps){
         .x = frame.content_x,

@@ -183,7 +183,7 @@ manual_screen_guide_controls :: (app: InnerBreeze*, nav: ManualGuideNav) {
             .bounds = {(float)pad, (float)y, (float)width, (float)height},
             .id = nav.focus_id,
             .label = GetLocaleText("back_button"),
-            .style = ButtonStyleSecondary
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
         }) {
             if page == 0 {
                 close = 1
@@ -195,7 +195,7 @@ manual_screen_guide_controls :: (app: InnerBreeze*, nav: ManualGuideNav) {
             .bounds = {(float)(pad * 2 + width), (float)y, (float)width, (float)height},
             .id = nav.focus_id + 1,
             .label = GetLocaleText(page == nav.page_count - 1 ? "practice_start_button" : "next_button"),
-            .style = ButtonStylePrimary
+            .tone = ButtonToneAccent, .emphasis = ButtonEmphasisFilled
         }) {
             finish = 1
         }

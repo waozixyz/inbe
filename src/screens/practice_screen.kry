@@ -210,7 +210,7 @@ practice_select_home_card :: (app: InnerBreeze*, exercise: int) #private {
 
 practice_home_below_card_height :: (app: const InnerBreeze*, content_w: int) -> int #private {
     practice := practice_get(app != NULL ? app->exercise_type : 0)
-    tokens := GetUIStyleTokens()
+    tokens := GetThemeMetrics()
     gap := Scale(12)
     btn_h := Scale(tokens.touch_target_min + 8)
     height: int = practice_card_banner_bottom_padding() +
@@ -233,7 +233,7 @@ practice_home_card_height :: (app: const InnerBreeze*, y: int, bottom_reserved: 
                              content_w: int) -> int #private {
     card_h: int = view_height - y - bottom_reserved -
               practice_home_below_card_height(app, content_w)
-    tokens := GetUIStyleTokens()
+    tokens := GetThemeMetrics()
     max_card_h := view_height >= Scale(640)
         ? view_height * 52 / 100
         : view_height * 58 / 100
@@ -303,7 +303,7 @@ practice_home_quiet_action_button :: (bounds: Rectangle, label: const char*) -> 
         .label = label,
         .font = GetFontSize(),
         .id = 7100 + (int)bounds.x,
-        .style = ButtonStyleSecondary
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     })
 }
 
@@ -491,7 +491,7 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
     }
 
     practice := practice_get(app->exercise_type)
-    tokens := GetUIStyleTokens()
+    tokens := GetThemeMetrics()
     bottom_reserved := app_content_bottom_reserved(app)
     left_reserved := app_content_left_reserved(app)
     content_view_x := left_reserved
@@ -970,7 +970,7 @@ start :: (app: InnerBreeze*) #ui {
     layout_y := 0
     card_w := 0
     card_h := 0
-    tokens := GetUIStyleTokens()
+    tokens := GetThemeMetrics()
     gap := Scale(12)
     btn_h := Scale(tokens.touch_target_min + 8)
     carousel_count := 0
@@ -1080,7 +1080,7 @@ start :: (app: InnerBreeze*) #ui {
         .bounds = app->practice_home_bounds_start,
         .label = GetLocaleText("practice_start_button"),
         .font = GetFontSize(),
-        .style = ButtonStylePrimary,
+        .tone = ButtonToneAccent, .emphasis = ButtonEmphasisFilled,
     }) {
         if practice->start != NULL {
             practice->start(app)
