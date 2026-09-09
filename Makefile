@@ -205,10 +205,14 @@ KRYON_ICON_DIR := icons
 KRYON_ICON_FILES := $(shell find $(KRYON_DIR)/$(KRYON_ICON_DIR) -path '*/review/*' -prune -o -type f \( -name '*.png' -o -name '*.json' \) -print 2>/dev/null | LC_ALL=C sort)
 KRYON_GENERATED_INCLUDE_DIR := $(BUILD_OBJ_DIR)/kryon/generated/include
 KRYON_GENERATED_SRC_DIR := $(BUILD_OBJ_DIR)/kryon/generated/src
+KRYON_RUNTIME_KRY := $(sort $(wildcard $(KRYON_DIR)/runtime/*.kry))
+KRYON_RUNTIME_C := $(patsubst $(KRYON_DIR)/%.kry,$(KRYON_GENERATED_SRC_DIR)/%.c,$(KRYON_RUNTIME_KRY))
+KRYON_RUNTIME_H := $(KRYON_RUNTIME_C:.c=.h)
+KRYON_RUNTIME_STAMP := $(KRYON_GENERATED_SRC_DIR)/runtime/.fresh
 KRYON_ICON_ASSETS_C := $(KRYON_GENERATED_SRC_DIR)/ui/ui_icon_assets.c
 KRYON_ICON_NAMES_C := $(KRYON_GENERATED_SRC_DIR)/ui/ui_icon_names.c
 KRYON_ICON_TYPES_H := $(KRYON_GENERATED_INCLUDE_DIR)/ui_icon_types.h
-KRYON_SRCS := $(filter-out $(KRYON_DIR)/src/ui/ui_icon_assets.c $(KRYON_DIR)/src/ui/ui_icon_names.c,$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C)
+KRYON_SRCS := $(filter-out $(KRYON_DIR)/src/ui/ui_icon_assets.c $(KRYON_DIR)/src/ui/ui_icon_names.c,$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C) $(KRYON_RUNTIME_C)
 KRYON_SYNC_ICONS := $(KRYON_DIR)/scripts/sync-icons.sh
 WEB_SHARED_ICON_SHEETS := platforms language tiles
 KRYON_LIBDRAW_SRCS := $(filter $(KRYON_DIR)/src/backend/libdraw_%.c,$(KRYON_SRCS))
@@ -223,7 +227,7 @@ KRYON_WEB_SRCS := $(KRYON_SRCS)
 KRYON_WEB_SRCS := $(filter-out $(KRYON_DIR)/src/backend/dom_%.c,$(KRYON_WEB_SRCS))
 KRYON_WINDOWS_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_CLICK_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
-KRYON_INCLUDE := -I$(KRYON_GENERATED_INCLUDE_DIR) -I$(KRYON_DIR)/include -I$(KRYON_DIR)/vendor/monocypher/src -I$(KRYON_DIR)/vendor/monocypher/src/optional
+KRYON_INCLUDE := -I$(KRYON_GENERATED_INCLUDE_DIR) -I$(KRYON_GENERATED_SRC_DIR) -I$(KRYON_DIR)/include -I$(KRYON_DIR)/vendor/monocypher/src -I$(KRYON_DIR)/vendor/monocypher/src/optional
 KRYON_SYNC_ACCOUNT_C := $(KRYON_DIR)/src/sync/sync_account.c
 KRYON_SYNC_CRYPTO_C := $(KRYON_DIR)/src/sync/sync_crypto.c $(KRYON_DIR)/src/sync/monocypher.c $(KRYON_DIR)/src/sync/monocypher_ed25519.c
 KRYON_SYNC_C := $(KRYON_DIR)/src/sync/sync.c
@@ -560,10 +564,19 @@ kryon-host: $(KRYON_HOST_TARGET)
 # All compiler sources, not just main.c: k2c is multi-file now, and a
 # single-file prerequisite lets a stale binary silently regenerate with
 # old behavior (mirrors kryon's own K2C_SRCS).
-K2C_SRCS := $(sort $(wildcard $(KRYON_DIR)/cmd/k2c/*.c)) \
-	$(KRYON_DIR)/cmd/kir/kir.c $(KRYON_DIR)/cmd/kir/kir_parse.c
+K2C_SRCS := $(sort $(wildcard $(KRYON_DIR)/cmd/k2c/*.[ch]) \
+	$(wildcard $(KRYON_DIR)/cmd/kir/*.[ch]))
 $(K2C): $(K2C_SRCS)
 	$(MAKE) -C $(KRYON_DIR) k2c
+
+# Generate shared widget policies into Inbe's build tree, never vendor sources.
+$(KRYON_RUNTIME_STAMP): Makefile $(K2C) $(KRYON_RUNTIME_KRY)
+	mkdir -p $(dir $@)
+	$(K2C) --strict --no-main --root $(abspath $(KRYON_DIR)) -o $(abspath $(KRYON_GENERATED_SRC_DIR)) $(abspath $(KRYON_RUNTIME_KRY))
+	touch $@
+
+$(KRYON_RUNTIME_C) $(KRYON_RUNTIME_H): $(KRYON_RUNTIME_STAMP)
+	@test -f $@
 
 $(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS)
 	rm -rf $(KRY_GEN_DIR)
