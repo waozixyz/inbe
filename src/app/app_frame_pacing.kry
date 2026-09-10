@@ -21,7 +21,7 @@ app_update_frame_pacing :: (app: InnerBreeze*) #export {
 
     if app != nil &&
        (practice_active(app) != nil || app->modal.active ||
-        app->file_dialog_active || mouse_moved ||
+        app->file_dialog_active || TextInputActive() || mouse_moved ||
         IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
         IsMouseButtonDown(MOUSE_BUTTON_LEFT) ||
         IsMouseButtonReleased(MOUSE_BUTTON_LEFT) ||
