@@ -1780,15 +1780,22 @@ Rozvrh a připomenutí
 ---
 [tab_elist]
 Seznamy
+---
 [elist_title]
 Seznamy
+---
 [elist_new_list]
 Novy seznam
+---
 [elist_create_list]
 Vytvorit seznam
+---
 [elist_add_item]
 Pridat
+---
 [elist_empty_title]
 Zatim zadne seznamy
+---
 [elist_empty_detail]
 Vytvorte seznam a pridejte ukoly a poznamky na jednom miste.
+---

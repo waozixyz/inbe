@@ -292,7 +292,7 @@ patterns_advance_elapsed :: (app: InnerBreeze*, elapsed_ms: int) {
 
 draw_config :: (app: InnerBreeze*) #private {
     layout := (PracticeSubscreenLayout){0}
-    hover := 0
+
 
     practice_screen_config_layout(app, UIModalPracticeConfig, Scale(18), &layout)
     practice_screen_handle_config_title(app, GetLocaleText("practice_configure_button"),
@@ -342,11 +342,16 @@ draw_config :: (app: InnerBreeze*) #private {
                  GetLocaleText(patterns_preset_label_key(i)),
                  ratio[0], ratio[1], ratio[2], ratio[3])
         style := app->patterns.preset == i
-            ? ButtonStylePrimary
-            : ButtonStyleSecondary
-        if StyledButton(x,
-                               y + row * (btn_h + gap), preset_w, btn_h,
-                               label, style, 0, &hover) {
+            ? ButtonToneAccent
+            : ButtonToneNeutral
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(y + row * (btn_h + gap)), (float)(preset_w), (float)(btn_h)},
+            .label = label,
+            .font = GetFontSize(),
+            .tone = style,
+            .emphasis = (style) == ButtonToneAccent ? ButtonEmphasisFilled : ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             app->patterns.preset = i
             app->settings_dirty = 1
             save_settings(app)
@@ -378,9 +383,14 @@ draw_config :: (app: InnerBreeze*) #private {
                 .wrap=TextWrapNone
             })
             minus_w := Scale(46)
-            if StyledButton(x + w - minus_w * 2 - gap, y,
-                                   minus_w, btn_h, "-5",
-                                   ButtonStyleSecondary, 0, &hover) {
+            if Button((ButtonProps){
+                .bounds = {(float)(x + w - minus_w * 2 - gap), (float)(y), (float)(minus_w), (float)(btn_h)},
+                .label = "-5",
+                .font = GetFontSize(),
+                .tone = ButtonToneNeutral,
+                .emphasis = ButtonEmphasisSoft,
+                .disabled = 0
+            }) {
                 app->patterns.custom[i] -= 5
                 if app->patterns.custom[i] < 0 {
                     app->patterns.custom[i] = 0
@@ -388,9 +398,14 @@ draw_config :: (app: InnerBreeze*) #private {
                 app->settings_dirty = 1
                 save_settings(app)
             }
-            if StyledButton(x + w - minus_w, y, minus_w, btn_h,
-                                   "+5", ButtonStyleSecondary, 0,
-                                   &hover) {
+            if Button((ButtonProps){
+                .bounds = {(float)(x + w - minus_w), (float)(y), (float)(minus_w), (float)(btn_h)},
+                .label = "+5",
+                .font = GetFontSize(),
+                .tone = ButtonToneNeutral,
+                .emphasis = ButtonEmphasisSoft,
+                .disabled = 0
+            }) {
                 app->patterns.custom[i] += 5
                 if app->patterns.custom[i] > PATTERNS_MAX_SECONDS {
                     app->patterns.custom[i] = PATTERNS_MAX_SECONDS
@@ -433,10 +448,16 @@ draw_config :: (app: InnerBreeze*) #private {
         }
         dur_w := (w - gap * 4) / 5
         style := app->patterns.duration_minutes == duration_values[i]
-            ? ButtonStylePrimary
-            : ButtonStyleSecondary
-        if StyledButton(x + i * (dur_w + gap), y, dur_w, btn_h,
-                               label, style, 0, &hover) {
+            ? ButtonToneAccent
+            : ButtonToneNeutral
+        if Button((ButtonProps){
+            .bounds = {(float)(x + i * (dur_w + gap)), (float)(y), (float)(dur_w), (float)(btn_h)},
+            .label = label,
+            .font = GetFontSize(),
+            .tone = style,
+            .emphasis = (style) == ButtonToneAccent ? ButtonEmphasisFilled : ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             app->patterns.duration_minutes = duration_values[i]
             app->settings_dirty = 1
             save_settings(app)
@@ -484,7 +505,7 @@ patterns_draw_session_title_bar :: (app: InnerBreeze*, title: const char*, heigh
 patterns_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     ratio: [4] int
     time_text: [32] char
-    hover := 0
+
     title_h := app_active_practice_title_height()
     button_w := view_width - Scale(112)
     button_h := Scale(56)
@@ -586,18 +607,26 @@ patterns_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
 
     button_y = center_y + pattern_circle_max_radius() + Scale(42)
     if app->patterns.paused {
-        if StyledButton(center_x - button_w / 2, button_y,
-                               button_w, button_h,
-                               GetLocaleText("patterns_resume_button"),
-                               ButtonStylePrimary, 0, &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(center_x - button_w / 2), (float)(button_y), (float)(button_w), (float)(button_h)},
+            .label = GetLocaleText("patterns_resume_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             app->patterns.paused = 0
         }
         return
     }
-    if IsKeyPressed(KEY_SPACE) || StyledButton(center_x - button_w / 2,
-                          button_y, button_w,
-                          button_h, GetLocaleText("patterns_pause_button"),
-                          ButtonStyleSecondary, 0, &hover) {
+    if IsKeyPressed(KEY_SPACE) || Button((ButtonProps){
+        .bounds = {(float)(center_x - button_w / 2), (float)(button_y), (float)(button_w), (float)(button_h)},
+        .label = GetLocaleText("patterns_pause_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         app->patterns.paused = 1
     }
 

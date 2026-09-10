@@ -111,7 +111,7 @@ trimmed_text :: (app: InnerBreeze*) -> const char* #private {
 practice_picker :: (app: InnerBreeze*) -> int #private {
     modal_w := view_width - Scale(32)
     modal_h := Scale(344)
-    hover := 0
+
     result := 0
     if modal_w > Scale(400) { modal_w = Scale(400) }
     frame := ModalFrame(modal_w, modal_h, GetLocaleText("habit_link_practices"),
@@ -137,9 +137,14 @@ practice_picker :: (app: InnerBreeze*) -> int #private {
         }
         y += GetNodeHeight(NodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     }
-    if StyledButton(frame.content_x, frame.y + frame.h - Scale(56),
-                    frame.content_w, Scale(40), GetLocaleText("done_button"),
-                    ButtonStylePrimary, 0, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(frame.content_x), (float)(frame.y + frame.h - Scale(56)), (float)(frame.content_w), (float)(Scale(40))},
+        .label = GetLocaleText("done_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         result = 1
     }
     if frame.right_clicked { result = 1 }
@@ -344,7 +349,7 @@ draw_form :: (app: InnerBreeze*) #private {
     }
     top := Scale(56)
     footer := Scale(app->habit_edit.name_error ? 92 : 64)
-    hover := 0
+
     font := GetFontSize()
     small := GetSmallFontSize()
     if IsKeyPressed(KEY_ESCAPE) {
@@ -380,8 +385,9 @@ draw_form :: (app: InnerBreeze*) #private {
         open := app->habit_edit.sections[section]
         DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)height},
                              0.08f, 10, GetThemeSurface())
-        if InvisibleButton((InvisibleButtonProps){
-            .bounds = {(float)x, (float)y, (float)w, (float)header}, .id = 7510 + section
+        if Button((ButtonProps){
+            .bounds = {(float)x, (float)y, (float)w, (float)header}, .id = 7510 + section,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
         }) {
             app->habit_edit.sections[section] = !app->habit_edit.sections[section]
             SetUIFocusTextInputActive(0)
@@ -493,35 +499,27 @@ draw_form :: (app: InnerBreeze*) #private {
                 cell: Rectangle = {(float)(px + (c % columns) * Scale(48)),
                     (float)(row + (c / columns) * Scale(44)), (float)Scale(48), (float)Scale(44)}
                 more := c == 6 && !app->habit_edit.more_colors
-                if InvisibleButton((InvisibleButtonProps){.bounds = cell, .id = 7530 + c}) {
+                chosen := !more && app->habit_edit.color.r == colors[c].r &&
+                    app->habit_edit.color.g == colors[c].g &&
+                    app->habit_edit.color.b == colors[c].b
+                color := more ? GetThemeButton() : colors[c]
+                if Button((ButtonProps){
+                    .bounds = {cell.x + Scale(4), cell.y + Scale(2),
+                               (float)Scale(40), (float)Scale(40)},
+                    .id = 7530 + c, .label = more ? "..." : "",
+                    .circle = 1, .selected = chosen,
+                    .icon_type = chosen ? UI_ICON_TYPE_CHECK : UI_ICON_TYPE_NONE,
+                    .font = small,
+                    .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisFilled,
+                    .style.normal = {
+                        .fields = StyleBackground | StyleForeground,
+                        .background = color, .foreground = GetThemeReadableText(color)
+                    }
+                }) {
                     if more {
                         app->habit_edit.more_colors = 1
                     } else {
                         app->habit_edit.color = colors[c]
-                    }
-                }
-                center_x := (int)cell.x + Scale(24)
-                center_y := (int)cell.y + Scale(22)
-                if more {
-                    more_color := GetThemeButtonHover()
-                    DrawCircle(center_x, center_y, Scale(14), more_color)
-                    Text((TextProps){
-                        .bounds={(center_x - TextWidth("...", small) / 2), (GetUIControlTextY("...", (int)cell.y, (int)cell.height, small)), 0, 0},
-                        .text=("..."),
-                        .font=(small),
-                        .color=(GetThemeReadableText(more_color)),
-                        .wrap=TextWrapNone
-                    })
-                } else {
-                    DrawCircle(center_x, center_y, Scale(14), colors[c])
-                    if app->habit_edit.color.r == colors[c].r && app->habit_edit.color.g == colors[c].g && app->habit_edit.color.b == colors[c].b {
-                        check := GetThemeReadableText(colors[c])
-                        DrawLineEx((Vector2){(float)(center_x - Scale(6)), (float)center_y},
-                                   (Vector2){(float)(center_x - Scale(1)), (float)(center_y + Scale(5))},
-                                   Scale(2), check)
-                        DrawLineEx((Vector2){(float)(center_x - Scale(1)), (float)(center_y + Scale(5))},
-                                   (Vector2){(float)(center_x + Scale(7)), (float)(center_y - Scale(6))},
-                                   Scale(2), check)
                     }
                 }
             }
@@ -541,8 +539,14 @@ draw_form :: (app: InnerBreeze*) #private {
             }
             row += Scale(52)
             if schedule_enabled {
-                if StyledButton(px, row, inner, Scale(40), GetLocaleText("habit_every_day"),
-                                app->habit_edit.weekdays == 0 ? ButtonStylePrimary : ButtonStyleSecondary, 0, &hover) {
+                if Button((ButtonProps){
+                    .bounds = {(float)(px), (float)(row), (float)(inner), (float)(Scale(40))},
+                    .label = GetLocaleText("habit_every_day"),
+                    .font = GetFontSize(),
+                    .tone = app->habit_edit.weekdays == 0 ? ButtonToneAccent : ButtonToneNeutral,
+                    .emphasis = (app->habit_edit.weekdays == 0 ? ButtonToneAccent : ButtonToneNeutral) == ButtonToneAccent ? ButtonEmphasisFilled : ButtonEmphasisSoft,
+                    .disabled = 0
+                }) {
                     app->habit_edit.weekdays = 0
                 }
                 row += Scale(44)
@@ -554,17 +558,14 @@ draw_form :: (app: InnerBreeze*) #private {
                     dx := px + (d % columns) * Scale(48)
                     dy := row + (d / columns) * Scale(44)
                     selected := (mask & (1 << d)) != 0
-                    fill := selected ? app->habit_edit.color : GetThemeBackground()
-                    DrawCircle(dx + Scale(24), dy + Scale(24), Scale(17), fill)
-                    Text((TextProps){
-                        .bounds={(dx + (Scale(48) - TextWidth(days[d], small)) / 2), (GetUIControlTextY(days[d], dy, Scale(48), small)), 0, 0},
-                        .text=(days[d]),
-                        .font=(small),
-                        .color=(GetThemeReadableText(fill)),
-                        .wrap=TextWrapNone
-                    })
-                    if InvisibleButton((InvisibleButtonProps){.bounds = {(float)dx, (float)dy,
-                                       (float)Scale(48), (float)Scale(48)}, .id = 7560 + d}) {
+                    if Button((ButtonProps){
+                        .bounds = {(float)(dx + Scale(4)), (float)(dy + Scale(4)),
+                                   (float)Scale(40), (float)Scale(40)},
+                        .id = 7560 + d, .label = days[d], .font = small,
+                        .circle = 1, .selected = selected,
+                        .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
+                        .emphasis = ButtonEmphasisSoft
+                    }) {
                         mask = mask ^ (1 << d)
                         if mask != 0 {
                             app->habit_edit.weekdays = mask == 127 ? 0 : mask
@@ -618,9 +619,14 @@ draw_form :: (app: InnerBreeze*) #private {
                     .color=(GetThemeText()),
                     .wrap=TextWrapNone
                 })
-                if StyledButton(control_x, row, button_w, Scale(44), "-",
-                                ButtonStyleSecondary,
-                                app->habit_edit.counter_target <= 1, &hover) {
+                if Button((ButtonProps){
+                    .bounds = {(float)(control_x), (float)(row), (float)(button_w), (float)(Scale(44))},
+                    .label = "-",
+                    .font = GetFontSize(),
+                    .tone = ButtonToneNeutral,
+                    .emphasis = ButtonEmphasisSoft,
+                    .disabled = app->habit_edit.counter_target <= 1
+                }) {
                     app->habit_edit.counter_target--
                 }
                 snprintf(target_text, sizeof(target_text), "%d",
@@ -632,10 +638,14 @@ draw_form :: (app: InnerBreeze*) #private {
                     .color=(GetThemeText()),
                     .wrap=TextWrapNone
                 })
-                if StyledButton(control_x + control_w - button_w, row,
-                                button_w, Scale(44), "+",
-                                ButtonStyleSecondary,
-                                app->habit_edit.counter_target >= 99, &hover) {
+                if Button((ButtonProps){
+                    .bounds = {(float)(control_x + control_w - button_w), (float)(row), (float)(button_w), (float)(Scale(44))},
+                    .label = "+",
+                    .font = GetFontSize(),
+                    .tone = ButtonToneNeutral,
+                    .emphasis = ButtonEmphasisSoft,
+                    .disabled = app->habit_edit.counter_target >= 99
+                }) {
                     app->habit_edit.counter_target++
                 }
                 row += Scale(52)
@@ -647,7 +657,14 @@ draw_form :: (app: InnerBreeze*) #private {
             linked_summary: [32] char = {0}
             snprintf(linked_summary, sizeof(linked_summary), "%s · %d",
                      GetLocaleText("habit_link_practices"), linked_count)
-            if StyledButton(px, row, inner, Scale(44), linked_summary, ButtonStyleSecondary, 0, &hover) {
+            if Button((ButtonProps){
+                .bounds = {(float)(px), (float)(row), (float)(inner), (float)(Scale(44))},
+                .label = linked_summary,
+                .font = GetFontSize(),
+                .tone = ButtonToneNeutral,
+                .emphasis = ButtonEmphasisSoft,
+                .disabled = 0
+            }) {
                 app_open_modal(app, UIModalHabitPracticePicker)
             }
         }
@@ -669,15 +686,27 @@ draw_form :: (app: InnerBreeze*) #private {
     action_w := w
     if !app->habit_edit.is_new {
         delete_w := Scale(104)
-        if StyledButton(x, view_height - Scale(54), delete_w, Scale(44),
-                        GetLocaleText("habit_delete_button"), ButtonStyleDanger, 0, &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(view_height - Scale(54)), (float)(delete_w), (float)(Scale(44))},
+            .label = GetLocaleText("habit_delete_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneDanger,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             app_open_modal(app, UIModalConfirmDeleteHabit)
         }
         action_x += delete_w + Scale(8)
         action_w -= delete_w + Scale(8)
     }
-    if StyledButton(action_x, view_height - Scale(54), action_w, Scale(44),
-                    GetLocaleText(app->habit_edit.is_new ? "habit_create_button" : "save_button"), ButtonStylePrimary, 0, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(action_x), (float)(view_height - Scale(54)), (float)(action_w), (float)(Scale(44))},
+        .label = GetLocaleText(app->habit_edit.is_new ? "habit_create_button" : "save_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         commit(app)
     }
 }

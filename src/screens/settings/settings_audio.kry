@@ -327,11 +327,16 @@ settings_audio_toggle_music_preview :: (app: InnerBreeze*, index: int) #private 
 
 draw_audio_preview_button :: (x: int, y: int, w: int, playing: int,
                               disabled: int) -> int #private {
-    hover := 0
-    return StyledButton(x, y, w, Scale(32),
-                               playing ? GetLocaleText("pause_button")
+
+    return Button((ButtonProps){
+        .bounds = {(float)(x), (float)(y), (float)(w), (float)(Scale(32))},
+        .label = playing ? GetLocaleText("pause_button")
                                        : GetLocaleText("play_button"),
-                               ButtonStyleSecondary, disabled, &hover)
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = disabled
+    })
 }
 
 audio_action_to_cue :: (action: int) -> int #private {
@@ -663,9 +668,15 @@ settings_audio_content_height :: (app: InnerBreeze*, content_w: int) -> int {
 }
 
 draw_import_button :: (app: InnerBreeze*, x: int, w: int, y: int*, label: const char*, action: int, practice: int) #private {
-    hover := 0
-    if StyledButton(x, *y, w, Scale(36), label,
-                           ButtonStyleSecondary, 0, &hover) {
+
+    if Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(36))},
+        .label = label,
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         settings_audio_start_import(app, action, practice)
     }
     *y += Scale(42)
@@ -741,7 +752,7 @@ draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private 
     })
     *y += Scale(30)
     for int i = 0; i < app->audio_custom_sound_count; i++ {
-        hover := 0
+
         label_w := w - button_w - preview_w - gap * 2
         if label_w < Scale(80) {
             label_w = w - button_w - gap
@@ -759,9 +770,14 @@ draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private 
                                      app == nil || !app->audio_ready) {
             settings_audio_toggle_custom_sound_preview(app, i)
         }
-        if StyledButton(x + w - button_w, *y, button_w,
-                               Scale(32), GetLocaleText("remove_button"),
-                               ButtonStyleDanger, 0, &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x + w - button_w), (float)(*y), (float)(button_w), (float)(Scale(32))},
+            .label = GetLocaleText("remove_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneDanger,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             settings_audio_stop_preview(app)
             app_audio_remove_custom_sound(app, i)
             app->settings_dirty = 1
@@ -808,7 +824,6 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     practice_total := practice_count()
     assigned := 0
     for int p = 0; p < practice_total; p++ {
-        hover := 0
         current := app->meditation.music_practice_tracks[p]
         label_w := w - button_w - preview_w - gap * 2
 
@@ -850,9 +865,14 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
                                      app == nil || !app->audio_ready) {
             settings_audio_toggle_music_preview(app, current)
         }
-        if StyledButton(x + w - button_w, *y, button_w,
-                               Scale(32), GetLocaleText("remove_button"),
-                               ButtonStyleDanger, 0, &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x + w - button_w), (float)(*y), (float)(button_w), (float)(Scale(32))},
+            .label = GetLocaleText("remove_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneDanger,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             settings_audio_stop_preview(app)
             app->meditation.music_practice_tracks[p] = AUDIO_MUSIC_NONE
             app->meditation.music_practice_mask &= ~(1 << p)
@@ -887,7 +907,6 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     })
     *y += Scale(30)
     for int i = 0; i < app->audio_custom_music_count; i++ {
-        hover := 0
         track_index := AUDIO_BUILTIN_MUSIC_COUNT + i
         label_w := w - button_w - preview_w - gap * 2
         if label_w < Scale(80) {
@@ -912,9 +931,14 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
                                      app == nil || !app->audio_ready) {
             settings_audio_toggle_music_preview(app, track_index)
         }
-        if StyledButton(x + w - button_w, *y, button_w,
-                               Scale(32), GetLocaleText("remove_button"),
-                               ButtonStyleDanger, 0, &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x + w - button_w), (float)(*y), (float)(button_w), (float)(Scale(32))},
+            .label = GetLocaleText("remove_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneDanger,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             settings_audio_stop_preview(app)
             app_audio_remove_custom_music(app, i)
             app->settings_dirty = 1
@@ -927,7 +951,7 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
 
 draw_music_download :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     button_h := Scale(36)
-    hover := 0
+
     installed := meditation_music_available(app)
     download_label: const char*
 
@@ -943,8 +967,14 @@ draw_music_download :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     if button_w > w {
         button_w = w
     }
-    if StyledButton(x, *y, button_w, button_h, download_label,
-                           ButtonStylePrimary, 0, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(button_w), (float)(button_h)},
+        .label = download_label,
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         meditation_music_start_download(app)
     }
     *y += button_h + Scale(12)

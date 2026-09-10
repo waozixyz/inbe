@@ -683,7 +683,16 @@ setup_screenshot_scene(InnerBreeze*app, const ScreenshotRequest *request)
     app->theme_style = request->theme_style;
     screenshot_apply_theme(app, request->theme_id, request->dark_mode);
 
-    if(strcmp(request->scene, "statistics") == 0) {
+    if(strcmp(request->scene, "lists") == 0) {
+        char list_id[37];
+        app->main_tab = APP_MAIN_TAB_ELIST;
+        app->breathing.screen = ScreenEList;
+        if(storage_elist_create_list("Shopping", list_id))
+            storage_elist_create_item(list_id, "Fresh fruit", "", NULL);
+        storage_elist_create_list("Home", NULL);
+        storage_elist_create_list("Weekend", NULL);
+        app->elist.loaded = 0;
+    } else if(strcmp(request->scene, "statistics") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->habits.tab = HABIT_TAB_STATISTICS;
         app->breathing.screen = ScreenHabits;

@@ -40,6 +40,14 @@
 
 ## Readability Rule
 
+- Buttons use Kryon's `Button(ButtonProps)` directly, including icon buttons
+  and clickable cards. Do not restore app-local button wrappers or separately
+  painted hover/click surfaces. Keep custom card content and domain gestures,
+  but let the shared button own its surface and activation. Checkboxes and
+  toggles use their own standard widgets. Run `make button-api-check`.
+- The Lists screen starts with list tabs; do not restore a separate Lists
+  title bar or replace the tabs with a dropdown.
+
 - Write conventional, fully readable code. Never compress multiple statements,
   branches, declarations, or error checks onto one line. Use descriptive names,
   explicit control flow, and focused helpers.

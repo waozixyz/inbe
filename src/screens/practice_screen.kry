@@ -256,45 +256,14 @@ practice_home_action_gap :: (content_w: int) -> int #private {
 
 practice_home_action_button :: (app: InnerBreeze*, bounds: Rectangle,
                                 label: const char*, primary: int) -> int #private {
-    mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
-    disabled := app != NULL && app->modal.active
-    hover := !disabled && CheckCollisionPointRec(mouse, bounds) &&
-             !UIInputCapturesClick(mouse)
-    fill := primary ? Fade(GetThemeButton(), 0.72f)
-                    : Fade(GetThemeSurface(), 0.66f)
-    text_color := primary ? WHITE : Fade(GetThemeText(), 0.88f)
-    font := GetFontSize()
-    label_w := TextWidth(label, font)
-    shadow := bounds
-
-    shadow.y += Scale(3)
-
-    if hover {
-        fill = primary ? Fade(GetThemeButtonHover(), 0.78f)
-                       : Fade(GetThemeSurface(), 0.82f)
-    }
-
-    DrawRectangleRounded(shadow, 0.10f, 12, Fade(BLACK, 0.22f))
-    DrawRectangleRounded(bounds, 0.10f, 12, fill)
-    Text((TextProps){
-        .bounds = {(float)(bounds.x + (bounds.width - label_w) / 2),
-                   (float)GetUIControlTextY(label, (int)bounds.y,
-                                            (int)bounds.height, font),
-                   0, 0},
-        .text = label,
-        .font = font,
-        .color = text_color,
-        .wrap = TextWrapNone
+    return Button((ButtonProps){
+        .bounds = bounds,
+        .label = label,
+        .font = GetFontSize(),
+        .disabled = app != NULL && app->modal.active,
+        .tone = primary ? ButtonToneAccent : ButtonToneNeutral,
+        .emphasis = primary ? ButtonEmphasisFilled : ButtonEmphasisSoft
     })
-
-    if hover {
-        MarkUIClickable()
-        if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
-            UIConsumeRelease()
-            return 1
-        }
-    }
-    return 0
 }
 
 practice_home_quiet_action_button :: (bounds: Rectangle, label: const char*) -> int #private {
@@ -805,17 +774,37 @@ practice_screen_draw_floating_actions :: (app: InnerBreeze*) {
     }
     practice := practice_get(app->exercise_type)
     if practice->draw_config != NULL {
-        hover := 0
         x -= button_w
-        if PaddedIconBtn(0, x, y, icon_size, icon_padding, app->icons[UI_ICON_TYPE_WRENCH], &hover) {
+        if Button((ButtonProps){
+            .id = 0,
+            .bounds = {(float)(x), (float)(y),
+                       (float)((icon_size) + (icon_padding) * 2),
+                       (float)((icon_size) + (icon_padding) * 2)},
+            .icon = app->icons[UI_ICON_TYPE_WRENCH], .icon_only = 1,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+            .style = {.normal = {
+                .fields = StyleIconSize,
+                .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
+            }}
+        }) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
         x -= gap
     }
     if practice->draw_manual != NULL {
-        hover := 0
         x -= button_w
-        if PaddedIconBtn(0, x, y, icon_size, icon_padding, app->icons[UI_ICON_TYPE_MANUAL], &hover) {
+        if Button((ButtonProps){
+            .id = 0,
+            .bounds = {(float)(x), (float)(y),
+                       (float)((icon_size) + (icon_padding) * 2),
+                       (float)((icon_size) + (icon_padding) * 2)},
+            .icon = app->icons[UI_ICON_TYPE_MANUAL], .icon_only = 1,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+            .style = {.normal = {
+                .fields = StyleIconSize,
+                .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
+            }}
+        }) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
     }

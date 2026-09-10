@@ -12,6 +12,8 @@ int view_width = 320;
 int view_height = 560;
 
 static int failures = 0;
+static int desktop_mode = 0;
+static int elist_label_count = 0;
 static int mouse_released = 0;
 static int bottom_nav_draw_count = 0;
 static int bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
@@ -22,8 +24,8 @@ static int reset_settings_preview_count = 0;
 static int settings_status_clear_count = 0;
 static const char *generic_button_clicked_label = NULL;
 static int invisible_button_clicked_id = -1;
-static int padded_icon_click_index = -1;
-static int padded_icon_draw_count = 0;
+static int icon_button_click_index = -1;
+static int icon_button_draw_count = 0;
 static int scroll_page_content_w_override = 0;
 static int pointer_release_consumed = 0;
 static Vector2 mouse_position = {0};
@@ -42,6 +44,8 @@ expect(int condition, const char *message)
 static void
 reset_state(void)
 {
+    desktop_mode = 0;
+    elist_label_count = 0;
     mouse_released = 0;
     bottom_nav_draw_count = 0;
     bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
@@ -52,8 +56,8 @@ reset_state(void)
     settings_status_clear_count = 0;
     generic_button_clicked_label = NULL;
     invisible_button_clicked_id = -1;
-    padded_icon_click_index = -1;
-    padded_icon_draw_count = 0;
+    icon_button_click_index = -1;
+    icon_button_draw_count = 0;
     scroll_page_content_w_override = 0;
     pointer_release_consumed = 0;
     mouse_position = (Vector2){0};
@@ -302,7 +306,9 @@ void TestText(TextProps props) __asm__("Text");
 void
 TestText(TextProps props)
 {
-    (void)props;
+    if(props.text != NULL && strcmp(props.text, "tab_elist") == 0) {
+        elist_label_count++;
+    }
 }
 
 void
@@ -377,7 +383,7 @@ IsMouseButtonPressed(int button)
 int
 IsUIDesktopMode(void)
 {
-    return 0;
+    return desktop_mode;
 }
 
 int
@@ -458,19 +464,26 @@ EndUIScrollContainer(UIScrollArea area, UIScrollView view)
 }
 
 int
-StyledButton(int x, int y, int w, int h, const char *label,
-             ButtonStyle style, int disabled, int *hover)
+Button(ButtonProps props)
 {
-    (void)x;
-    (void)y;
-    (void)w;
-    (void)h;
-    (void)style;
-    if(hover != NULL)
-        *hover = 0;
-    if(!disabled && generic_button_clicked_label != NULL &&
-       label != NULL && strcmp(label, generic_button_clicked_label) == 0) {
+    if(props.disabled)
+        return 0;
+    if(props.icon_only && icon_button_draw_count++ == icon_button_click_index) {
+        icon_button_click_index = -1;
+        return 1;
+    }
+    if((int)props.id == invisible_button_clicked_id) {
+        invisible_button_clicked_id = -1;
+        return 1;
+    }
+    if(generic_button_clicked_label != NULL && props.label != NULL &&
+       strcmp(props.label, generic_button_clicked_label) == 0) {
         generic_button_clicked_label = NULL;
+        return 1;
+    }
+    if(mouse_released && !pointer_release_consumed &&
+       CheckCollisionPointRec(mouse_position, props.bounds)) {
+        UIConsumeRelease();
         return 1;
     }
     return 0;
@@ -633,25 +646,6 @@ void
 SetUIDropdownClipBottom(int y)
 {
     (void)y;
-}
-
-int
-PaddedIconBtn(int id, int x, int y, int size, int padding,
-              Texture2D icon, int *hover)
-{
-    (void)id;
-    (void)x;
-    (void)y;
-    (void)size;
-    (void)padding;
-    (void)icon;
-    if(hover != NULL)
-        *hover = 0;
-    if(padded_icon_draw_count++ == padded_icon_click_index) {
-        padded_icon_click_index = -1;
-        return 1;
-    }
-    return 0;
 }
 
 void
@@ -875,10 +869,10 @@ test_default_bottom_nav_routes_include_elist(void)
            "default bottom nav should draw");
     expect(bottom_nav_last.count == 4,
            "default bottom nav should have four items");
-    expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_HABITS,
-           "default first bottom nav item should be habits");
-    expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_ELIST,
-           "default second bottom nav item should be EList");
+    expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_ELIST,
+           "default first bottom nav item should be EList");
+    expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_HABITS,
+           "default second bottom nav item should be habits");
     expect(bottom_nav_last.items[2].route == APP_NAV_ROUTE_PRACTICE,
            "default third bottom nav item should be practice");
     expect(bottom_nav_last.items[3].route == APP_NAV_ROUTE_SETTINGS,
@@ -961,10 +955,10 @@ test_profile_draws_mobile_nav_without_profile_item(void)
            "profile should keep mobile bottom nav available");
     expect(bottom_nav_last.count == 4,
            "profile mobile bottom nav should have four items");
-    expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_HABITS,
-           "profile mobile nav first item should be habits");
-    expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_ELIST,
-           "profile mobile nav second item should be EList");
+    expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_ELIST,
+           "profile mobile nav first item should be EList");
+    expect(bottom_nav_last.items[1].route == APP_NAV_ROUTE_HABITS,
+           "profile mobile nav second item should be habits");
     expect(bottom_nav_last.items[2].route == APP_NAV_ROUTE_PRACTICE,
            "profile mobile nav third item should be practice");
     expect(bottom_nav_last.items[3].route == APP_NAV_ROUTE_SETTINGS,
@@ -1076,7 +1070,7 @@ test_customize_nav_delete_last_does_not_add_same_frame(void)
     app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
     app.bottom_nav_config_route_count = 1;
     app.bottom_nav_config_routes[0] = APP_NAV_ROUTE_HABITS;
-    padded_icon_click_index = 0;
+    icon_button_click_index = 0;
     generic_button_clicked_label = "customize_nav_add";
 
     app_draw_customize_nav_page(&app);
@@ -1106,7 +1100,7 @@ test_customize_nav_delete_icon_draws_on_narrow_rows(void)
 
     app_draw_customize_nav_page(&app);
 
-    expect(padded_icon_draw_count == 1,
+    expect(icon_button_draw_count == 1,
            "customize nav should draw delete icon on narrow rows");
 }
 
@@ -1260,6 +1254,79 @@ test_sidebar_screen_closes_when_width_expands(void)
            "expanded sidebar should return to home screen");
 }
 
+static void
+test_habit_editor_preserves_desktop_rail(void)
+{
+    InnerBreeze app = {0};
+
+    reset_state();
+    desktop_mode = 1;
+    app.breathing.screen = ScreenHabits;
+    expect(app_nav_desktop_rail_enabled(&app), "habits should show desktop rail");
+    app.breathing.screen = ScreenHabitEdit;
+    app.habit_edit.active = 1;
+    for(int is_new = 0; is_new <= 1; is_new++) {
+        app.habit_edit.is_new = is_new;
+        expect(app_nav_desktop_rail_enabled(&app),
+               "new and edit habit should retain desktop rail");
+        expect(app_content_bottom_reserved(&app) == 0,
+               "desktop habit editor should not reserve mobile navigation");
+    }
+    desktop_mode = 0;
+    expect(!app_nav_desktop_rail_enabled(&app),
+           "mobile habit editor must not gain a desktop rail");
+    desktop_mode = 1;
+    app.file_dialog_active = 1;
+    expect(!app_nav_desktop_rail_enabled(&app),
+           "file dialog should still hide desktop rail");
+    app.file_dialog_active = 0;
+    app.breathing.screen = ScreenHabitSessionEdit;
+    expect(!app_nav_desktop_rail_enabled(&app),
+           "session editor should retain its fullscreen behavior");
+    reset_state();
+}
+
+static void
+test_elist_navigation_migration_and_desktop_route(void)
+{
+    const int old_routes[][4] = {
+        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS, 0},
+        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS, APP_NAV_ROUTE_ELIST},
+        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_ELIST, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS}
+    };
+    InnerBreeze app = test_app();
+
+    for(int layout = 0; layout < 3; layout++) {
+        memcpy(app.bottom_nav_routes, old_routes[layout], sizeof(old_routes[layout]));
+        app.bottom_nav_route_count = layout == 0 ? 3 : 4;
+        app_sanitize_bottom_nav_routes(&app);
+        expect(app.bottom_nav_route_count == 4 &&
+               app.bottom_nav_routes[0] == APP_NAV_ROUTE_ELIST &&
+               app.bottom_nav_routes[1] == APP_NAV_ROUTE_HABITS &&
+               app.bottom_nav_routes[2] == APP_NAV_ROUTE_PRACTICE &&
+               app.bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS,
+               "old default navigation should migrate to EList first");
+    }
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_SETTINGS;
+    app.bottom_nav_routes[1] = APP_NAV_ROUTE_ELIST;
+    app.bottom_nav_routes[2] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_route_count = 3;
+    app_sanitize_bottom_nav_routes(&app);
+    expect(app.bottom_nav_routes[0] == APP_NAV_ROUTE_SETTINGS,
+           "migration should preserve unrelated custom navigation orders");
+
+    reset_state();
+    desktop_mode = 1;
+    app_draw_bottom_nav(&app);
+    expect(elist_label_count == 1, "desktop rail should display EList");
+    mouse_position = (Vector2){-60, 220};
+    mouse_released = 1;
+    app_draw_bottom_nav(&app);
+    expect(app.main_tab == APP_MAIN_TAB_ELIST && app.breathing.screen == ScreenEList,
+           "first desktop rail item should open EList");
+    reset_state();
+}
+
 int
 main(void)
 {
@@ -1281,6 +1348,8 @@ main(void)
     test_consumed_pfp_release_does_not_close_sidebar();
     test_sidebar_child_back_returns_to_compact_sidebar();
     test_sidebar_screen_closes_when_width_expands();
+    test_habit_editor_preserves_desktop_rail();
+    test_elist_navigation_migration_and_desktop_route();
 
     if(failures > 0) {
         fprintf(stderr, "%d app bottom nav test failure(s)\n", failures);

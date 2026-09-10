@@ -331,50 +331,75 @@ content_height :: (content_w: int) -> int {
 draw_actions :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     account: SyncAccount
     data_button_h := Scale(36)
-    hover_import: int = 0
-    hover_export: int = 0
-    hover_delete: int = 0
+
+
+
     has_account := sync_account_load(&account)
 
     settings_sync_account_set_save_dialog(start_sync_key_export_dialog)
     settings_sync_account_set_import_dialog(start_sync_key_import_dialog)
 
     *y += Scale(SETTINGS_DATA_TOP_PADDING)
-    if StyledButton(x, *y, w, data_button_h,
-                           GetLocaleText("import_data_button"),
-                           ButtonStylePrimary, 0, &hover_import) {
+    if Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(w), (float)(data_button_h)},
+        .label = GetLocaleText("import_data_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         import_data(app)
     }
     *y += data_button_h + Scale(12)
 
-    if StyledButton(x, *y, w, data_button_h,
-                           GetLocaleText("export_data_button"),
-                           ButtonStylePrimary, 0, &hover_export) {
+    if Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(w), (float)(data_button_h)},
+        .label = GetLocaleText("export_data_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         export_data(app)
     }
     *y += data_button_h + Scale(12)
 
-    if StyledButton(x, *y, w, data_button_h,
-                           GetLocaleText("export_csv_button"),
-                           ButtonStyleSecondary, 0, &hover_export) {
+    if Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(w), (float)(data_button_h)},
+        .label = GetLocaleText("export_csv_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         export_csv(app)
     }
     *y += data_button_h + Scale(12)
 
     #if ANDROID {
-        hover_health: int = 0
-        if StyledButton(x, *y, w, data_button_h,
-                               GetLocaleText("export_health_connect_button"),
-                               ButtonStyleSecondary, 0, &hover_health) {
+
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(*y), (float)(w), (float)(data_button_h)},
+            .label = GetLocaleText("export_health_connect_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             export_health_connect(app)
         }
         *y += data_button_h + Scale(12)
     }
 
     if !has_account {
-        if StyledButton(x, *y, w, data_button_h,
-                               GetLocaleText("clear_local_data_button"),
-                               ButtonStyleDanger, 0, &hover_delete) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(*y), (float)(w), (float)(data_button_h)},
+            .label = GetLocaleText("clear_local_data_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneDanger,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             request_delete_all_data(app)
         }
         *y += data_button_h + Scale(12)
@@ -761,7 +786,7 @@ draw_import_choice_modal :: (app: InnerBreeze*) -> int {
     msg_y: int
     btn_y: int
     btn_w: int
-    hover: int = 0
+
 
     unused app
 
@@ -784,36 +809,36 @@ draw_import_choice_modal :: (app: InnerBreeze*) -> int {
     btn_y = frame.y + frame.h - Scale(24) - btn_h * 2 - row_gap
     btn_w = (frame.content_w - row_gap) / 2
 
-    if StyledButton(frame.content_x,
-                           btn_y,
-                           btn_w,
-                           btn_h,
-                           GetLocaleText("cancel_button"),
-                           ButtonStyleSecondary,
-                           0,
-                           &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(frame.content_x), (float)(btn_y), (float)(btn_w), (float)(btn_h)},
+        .label = GetLocaleText("cancel_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         return 1
     }
 
-    if StyledButton(frame.content_x + btn_w + row_gap,
-                           btn_y,
-                           btn_w,
-                           btn_h,
-                           GetLocaleText("import_data_only_button"),
-                           ButtonStylePrimary,
-                           0,
-                           &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(frame.content_x + btn_w + row_gap), (float)(btn_y), (float)(btn_w), (float)(btn_h)},
+        .label = GetLocaleText("import_data_only_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         return 2
     }
 
-    if StyledButton(frame.content_x,
-                           btn_y + btn_h + row_gap,
-                           frame.content_w,
-                           btn_h,
-                           GetLocaleText("import_data_settings_button"),
-                           ButtonStylePrimary,
-                           0,
-                           &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(frame.content_x), (float)(btn_y + btn_h + row_gap), (float)(frame.content_w), (float)(btn_h)},
+        .label = GetLocaleText("import_data_settings_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         return 3
     }
 
@@ -834,7 +859,7 @@ draw_sync_review_modal :: (app: InnerBreeze*) -> int {
     diff_y: int
     diff_h: int
     legend_y: int
-    hover: int = 0
+
     diff_content_h: int = Scale(40)
     p: const char* = nil
     diff_view: UIScrollView
@@ -954,26 +979,26 @@ draw_sync_review_modal :: (app: InnerBreeze*) -> int {
         .wrap=TextWrapNone
     })
 
-    if StyledButton(frame.content_x,
-                           btn_y,
-                           (frame.content_w - gap) / 2,
-                           btn_h,
-                           GetLocaleText("sync_review_keep_local_button"),
-                           ButtonStyleSecondary,
-                           0,
-                           &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(frame.content_x), (float)(btn_y), (float)((frame.content_w - gap) / 2), (float)(btn_h)},
+        .label = GetLocaleText("sync_review_keep_local_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         free(diff_detail)
         return 1
     }
 
-    if StyledButton(frame.content_x + (frame.content_w + gap) / 2,
-                           btn_y,
-                           (frame.content_w - gap) / 2,
-                           btn_h,
-                           GetLocaleText("sync_review_use_remote_button"),
-                           ButtonStylePrimary,
-                           0,
-                           &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(frame.content_x + (frame.content_w + gap) / 2), (float)(btn_y), (float)((frame.content_w - gap) / 2), (float)(btn_h)},
+        .label = GetLocaleText("sync_review_use_remote_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         free(diff_detail)
         return 2
     }

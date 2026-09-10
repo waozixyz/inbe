@@ -120,7 +120,7 @@ session_result_draw_mood_picker :: (app: InnerBreeze*, x: int, y: int, w: int,
     gap := Scale(8)
     item_w := (w - gap * (SESSION_RESULT_MOOD_COUNT - 1)) /
               SESSION_RESULT_MOOD_COUNT
-    mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
+    unused hover
 
     DrawLeftUIControlTextInRect(GetLocaleText("results_mood_title"),
                                 (Rectangle){(float)x, (float)y,
@@ -133,40 +133,14 @@ session_result_draw_mood_picker :: (app: InnerBreeze*, x: int, y: int, w: int,
         bx := x + i * (item_w + gap)
         bw := i == SESSION_RESULT_MOOD_COUNT - 1 ? x + w - bx : item_w
         bounds := (Rectangle){(float)bx, (float)y, (float)bw, (float)button_h}
-        active := CheckCollisionPointRec(mouse, bounds) &&
-                  !UIInputCapturesClick(mouse)
         selected := app->session_result.mood == i + 1
-        mood_color := session_result_mood_color(i + 1)
-        fill := selected ? LightenUIColor(GetThemeSurface(), 5)
-                         : DarkenUIColor(GetThemeBackground(), 7)
-        border := selected ? GetThemeButton()
-                           : Fade(GetThemeText(), 0.26f)
-
-        if active {
-            MarkUIClickable()
-            if UIHoverEffectsEnabled() {
-                fill = selected ? LightenUIColor(GetThemeSurface(), 10)
-                                : DarkenUIColor(GetThemeBackground(), 3)
-            }
-            if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-               !UIInputCapturesClick(mouse) {
-                app->session_result.mood = i + 1
-            }
-            if hover != nil {
-                *hover = 1
-            }
+        if Button((ButtonProps){
+            .bounds = bounds, .id = 24800 + i,
+            .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft, .selected = selected
+        }) {
+            app->session_result.mood = i + 1
         }
-
-        DrawRectangleRounded(bounds, 0.18f, 10, fill)
-        if selected {
-            DrawRectangleRounded(bounds, 0.18f, 10, Fade(mood_color, 0.16f))
-        } else if active && UIHoverEffectsEnabled() {
-            DrawRectangleRounded(bounds, 0.18f, 10,
-                                 Fade(GetThemeButtonHover(), 0.08f))
-        }
-        DrawRectangleRoundedLinesEx(bounds, 0.18f, 10,
-                                    selected ? (float)Scale(2) : 1.0f,
-                                    border)
         session_result_draw_mood_face(i + 1, bx + bw / 2,
                                       y + button_h / 2,
                                       Scale(32), selected)
@@ -364,21 +338,35 @@ practice_draw_results :: (app: InnerBreeze*, center_x: int, center_y: int, hover
     button_y = view_height - Scale(28) - button_h
     if result->saved {
         button_w = (box_w - gap) / 2
-        if StyledButton(box_x, button_y, button_w, button_h,
-                        GetLocaleText("discard_button"),
-                        ButtonStyleSecondary, 0, &discard_hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(box_x), (float)(button_y), (float)(button_w), (float)(button_h)},
+            .label = GetLocaleText("discard_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             session_result_discard(app)
         }
-        if StyledButton(box_x + button_w + gap, button_y,
-                        box_w - button_w - gap, button_h,
-                        GetLocaleText("done_button"),
-                        ButtonStylePrimary, 0, &done_hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(box_x + button_w + gap), (float)(button_y), (float)(box_w - button_w - gap), (float)(button_h)},
+            .label = GetLocaleText("done_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             session_result_done(app)
         }
     } else {
-        if StyledButton(box_x, button_y, box_w, button_h,
-                        GetLocaleText("done_button"),
-                        ButtonStylePrimary, 0, &done_hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(box_x), (float)(button_y), (float)(box_w), (float)(button_h)},
+            .label = GetLocaleText("done_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             session_result_done(app)
         }
     }

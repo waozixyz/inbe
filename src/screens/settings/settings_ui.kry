@@ -11,33 +11,7 @@ toggle_switch_width :: () -> int {
 }
 
 toggle_switch :: (id: int, x: int, y: int, value: int*) -> int {
-    w := toggle_switch_width()
-    h := Scale(28)
-    knob := Scale(22)
-    pad := (h - knob) / 2
-    on := value != NULL && *value != 0
-    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    hot := CheckCollisionPointRec(GetMousePosition(), bounds) &&
-           !UIInputCapturesClick(GetMousePosition())
-    fill := on ? LightenUIColor(GetThemeButton(), 18) : DarkenUIColor(GetThemeBackground(), 10)
-    border := on ? Fade(GetThemeButtonHover(), 0.82f) : Fade(GetThemeText(), 0.16f)
-    knob_x := x + (on ? w - knob - pad : pad)
-
-    if hot {
-        fill = on ? LightenUIColor(fill, 12) : LightenUIColor(fill, 8)
-        border = on ? GetThemeButtonHover() : Fade(GetThemeText(), 0.28f)
-    }
-    DrawRectangleRounded(bounds, 0.5f, 16, fill)
-    DrawRectangleRoundedLinesEx(bounds, 0.5f, 16, 1.0f, border)
-    DrawCircle(knob_x + knob / 2, y + h / 2, knob / 2,
-               on ? WHITE : Fade(GetThemeText(), 0.72f))
-    if InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = id}) {
-        if value != NULL {
-            *value = !*value
-            return 1
-        }
-    }
-    return 0
+    return Toggle(id, x, y, toggle_switch_width(), Scale(28), value, "", "")
 }
 
 toggle_row_height :: (label: const char*, w: int) -> int {

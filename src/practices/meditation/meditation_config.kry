@@ -61,7 +61,7 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
     row_y := 0
     custom_row_y := 0
     toggle_value := 0
-    hover := 0
+
     custom_text: [64] char = {0}
 
     if app == NULL || y == NULL {
@@ -88,10 +88,16 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
         row := i / columns
         bx := x + col * (btn_w + gap)
         by := *y + row * (btn_h + gap)
-        style := i == mode ? ButtonStylePrimary : ButtonStyleSecondary
+        style := i == mode ? ButtonToneAccent : ButtonToneNeutral
 
-        if StyledButton(bx, by, btn_w, btn_h, labels[i],
-                               style, 0, &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(bx), (float)(by), (float)(btn_w), (float)(btn_h)},
+            .label = labels[i],
+            .font = GetFontSize(),
+            .tone = style,
+            .emphasis = (style) == ButtonToneAccent ? ButtonEmphasisFilled : ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             app->meditation.duration_mode = i
             meditation_config_save(app)
         }
@@ -119,9 +125,14 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
     adjust_y := custom_row_y + Scale(34)
 
     for int i = 0; i < 4; i++ {
-        if StyledButton(adjust_x + i * (adjust_w + gap), adjust_y,
-                               adjust_w, btn_h, adjust_labels[i],
-                               ButtonStyleSecondary, 0, &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(adjust_x + i * (adjust_w + gap)), (float)(adjust_y), (float)(adjust_w), (float)(btn_h)},
+            .label = adjust_labels[i],
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             app->meditation.custom_minutes =
                 clampi(app->meditation.custom_minutes + adjust_values[i], 1, 240)
             app->meditation.duration_mode = meditation_config_preset_count()
@@ -173,9 +184,15 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
     for int i = 0; i < 7; i++ {
         bx := x + (i % bell_columns) * (bell_w + gap)
         by := *y + Scale(26) + (i / bell_columns) * (btn_h + gap)
-        style := i == bell_selected ? ButtonStylePrimary : ButtonStyleSecondary
-        if StyledButton(bx, by, bell_w, btn_h,
-                               bell_labels[i], style, 0, &hover) {
+        style := i == bell_selected ? ButtonToneAccent : ButtonToneNeutral
+        if Button((ButtonProps){
+            .bounds = {(float)(bx), (float)(by), (float)(bell_w), (float)(btn_h)},
+            .label = bell_labels[i],
+            .font = GetFontSize(),
+            .tone = style,
+            .emphasis = (style) == ButtonToneAccent ? ButtonEmphasisFilled : ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             app->meditation.interval_bell_minutes = bell_values[i]
             meditation_config_save(app)
         }

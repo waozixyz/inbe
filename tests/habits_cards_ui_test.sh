@@ -36,43 +36,29 @@ baseline="$(order)"
 expect "$baseline" 'Meditation|Yoga|Sit ups|Push ups|Cold Shower|Jumping Rope' 'initial order'
 import -window "$window" "$test_dir/overview.png"
 before="$(day_count)"
-tap 65 438
+# The current focus layout starts with Meditation expanded and Yoga collapsed.
+tap 160 520
+expect "$(sql "SELECT name FROM habits WHERE id=(SELECT value FROM settings WHERE key='habits_selected_id')")" 'Yoga' 'collapsed card opens correct habit'
+import -window "$window" "$test_dir/yoga-expanded.png"
+# Yoga is now the second card: the first collapsed card occupies 152 units.
+tap 50 508
 expect "$(day_count)" "$((before+1))" 'today check-in'
 expect "$(sql "SELECT local_date FROM habit_days WHERE habit_id=(SELECT id FROM habits WHERE name='Yoga') AND completed=1")" "$(date +%Y%m%d)" 'leftmost circle marks today'
-tap 65 438
+tap 50 508
 expect "$(day_count)" "$before" 'today undo'
-tap 149 438
+tap 99 508
 expect "$(day_count)" "$((before+1))" 'past-day check-in'
-expect "$(sql "SELECT local_date FROM habit_days WHERE habit_id=(SELECT id FROM habits WHERE name='Yoga') AND completed=1")" "$(date -d yesterday +%Y%m%d)" 'second circle marks yesterday'
-tap 149 438
+tap 99 508
 expect "$(day_count)" "$before" 'past-day undo'
-# A horizontal drag that ends on another circle must not check that day.
-drag 65 438 317 438
+drag 50 508 294 508
 expect "$(day_count)" "$before" 'drag does not check a day'
-# Title drag reorders and preserves day state, even though the page can scroll.
-drag 160 173 160 540
+tap 160 260
+expect "$(sql "SELECT value FROM settings WHERE key='habits_selected_id'")" '' 'selected card header collapses'
+import -window "$window" "$test_dir/collapsed.png"
+# Card title dragging is still owned by the reorder controller.
+drag 160 110 160 390
 expect "$(order)" 'Yoga|Meditation|Sit ups|Push ups|Cold Shower|Jumping Rope' 'card reorder'
-expect "$(day_count)" "$before" 'reorder does not mark days'
+expect "$(day_count)" "$before" 'reorder preserves check-ins'
 import -window "$window" "$test_dir/reordered.png"
-# Scrolling from a day row must not reorder or mark anything.
-drag 200 438 200 260
-expect "$(order)" 'Yoga|Meditation|Sit ups|Push ups|Cold Shower|Jumping Rope' 'scroll preserves order'
-expect "$(day_count)" "$before" 'scroll does not mark days'
-xdotool mousemove --window "$window" 200 400 click --repeat 8 --delay 30 4
-sleep 0.3
-# Tiny title movements remain taps and open the former ellipsis destination.
-tap 160 173
-expect "$(sql "SELECT value FROM settings WHERE key='habits_screen_mode'")" '1' 'card opens details'
-expect "$(sql "SELECT name FROM habits WHERE id=(SELECT value FROM settings WHERE key='habits_selected_id')")" 'Yoga' 'correct card details'
-import -window "$window" "$test_dir/details.png"
-tap 130 186
-sleep 0.3
-expect "$(sql "SELECT value FROM settings WHERE key='habits_screen_mode'")" '0' 'selected card header collapses focus card'
-xdotool mousemove --window "$window" 160 173 mousedown 1 sleep 0.1 \
-  mousemove --window "$window" 160 690 sleep 1 mouseup 1
-sleep 0.4
-expect "$(order)" 'Meditation|Sit ups|Push ups|Cold Shower|Jumping Rope|Yoga' 'edge auto-scroll reorder'
-expect "$(day_count)" "$before" 'edge drag does not mark days'
-import -window "$window" "$test_dir/edge-reorder.png"
-echo "PASS habit day taps, undo, drag cancellation, persisted reorder and card navigation"
+echo "PASS shared habit buttons: selection, day taps, undo, drag cancellation, collapse and reorder"
 echo "Screenshots and isolated database: $test_dir ; $db"

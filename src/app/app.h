@@ -3,7 +3,6 @@
 
 #include "kryon.h"
 #include "platform.h"
-#include "styled_button.h"
 #include "core/breath_engine.h"
 #include "breaks/break_engine.h"
 #include "app_fwd.h"
@@ -17,7 +16,6 @@
 extern int view_width;
 extern int view_height;
 
-int TextButton(int id, int x, int y, const char *label, int *hover);
 int app_locale_dropdown(int id, int x, int y, int w, int h,
                         int *selected_index);
 void ReadonlyTextBox(ReadonlyTextBoxProps props);

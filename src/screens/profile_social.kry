@@ -297,10 +297,10 @@ draw_json_people :: (json: const char*, array_key: const char*,
         title: [96] char = {0}
         url: [256] char = {0}
         row_h := with_actions ? Scale(42) : Scale(30)
-        hover_accept := 0
-        hover_decline := 0
-        hover_remove := 0
-        hover_cancel := 0
+
+
+
+
 
         if !storage_json_array_object_text(json, array_path, rows, "id",
                                            id, sizeof(id)) {
@@ -355,10 +355,18 @@ draw_json_people :: (json: const char*, array_key: const char*,
             icon_padding := Scale(6)
             button_w := icon_size + icon_padding * 2
 
-            if PaddedIconBtn(0, x + w - button_w, *y - Scale(6),
-                                   icon_size, icon_padding,
-                                   app->icons[UI_ICON_TYPE_TRASH],
-                                   &hover_remove) {
+            if Button((ButtonProps){
+                .id = 0,
+                .bounds = {(float)(x + w - button_w), (float)(*y - Scale(6)),
+                           (float)((icon_size) + (icon_padding) * 2),
+                           (float)((icon_size) + (icon_padding) * 2)},
+                .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
+                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+                .style = {.normal = {
+                    .fields = StyleIconSize,
+                    .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
+                }}
+            }) {
                 prompt_remove_friend(app, display_id, title)
             }
         } else if with_cancel {
@@ -366,10 +374,18 @@ draw_json_people :: (json: const char*, array_key: const char*,
             icon_padding := Scale(6)
             button_w := icon_size + icon_padding * 2
 
-            if PaddedIconBtn(0, x + w - button_w, *y - Scale(6),
-                                   icon_size, icon_padding,
-                                   app->icons[UI_ICON_TYPE_TRASH],
-                                   &hover_cancel) &&
+            if Button((ButtonProps){
+                .id = 0,
+                .bounds = {(float)(x + w - button_w), (float)(*y - Scale(6)),
+                           (float)((icon_size) + (icon_padding) * 2),
+                           (float)((icon_size) + (icon_padding) * 2)},
+                .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
+                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+                .style = {.normal = {
+                    .fields = StyleIconSize,
+                    .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
+                }}
+            }) &&
                sync_url(url, sizeof(url)) {
                 app_request_friend_decline(app, id)
                 settings_screen_set_status_success(
@@ -380,21 +396,27 @@ draw_json_people :: (json: const char*, array_key: const char*,
         if with_actions {
             btn_w := (w - Scale(8)) / 2
 
-            if StyledButton(x, *y + Scale(22), btn_w,
-                                   Scale(30),
-                                   GetLocaleText("profile_friend_accept_button"),
-                                   ButtonStylePrimary, 0,
-                                   &hover_accept) &&
+            if Button((ButtonProps){
+                .bounds = {(float)(x), (float)(*y + Scale(22)), (float)(btn_w), (float)(Scale(30))},
+                .label = GetLocaleText("profile_friend_accept_button"),
+                .font = GetFontSize(),
+                .tone = ButtonToneAccent,
+                .emphasis = ButtonEmphasisFilled,
+                .disabled = 0
+            }) &&
                sync_url(url, sizeof(url)) {
                 app_request_friend_accept(app, id)
                 settings_screen_set_status_success(
                     GetLocaleText("profile_updating_status"), nil)
             }
-            if StyledButton(x + btn_w + Scale(8),
-                                   *y + Scale(22), btn_w, Scale(30),
-                                   GetLocaleText("profile_friend_decline_button"),
-                                   ButtonStyleSecondary, 0,
-                                   &hover_decline) &&
+            if Button((ButtonProps){
+                .bounds = {(float)(x + btn_w + Scale(8)), (float)(*y + Scale(22)), (float)(btn_w), (float)(Scale(30))},
+                .label = GetLocaleText("profile_friend_decline_button"),
+                .font = GetFontSize(),
+                .tone = ButtonToneNeutral,
+                .emphasis = ButtonEmphasisSoft,
+                .disabled = 0
+            }) &&
                sync_url(url, sizeof(url)) {
                 app_request_friend_decline(app, id)
                 settings_screen_set_status_success(
@@ -409,7 +431,7 @@ draw_json_people :: (json: const char*, array_key: const char*,
 draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     font := GetFontSize()
     btn_h := Scale(34)
-    hover_add := 0
+
     commit := 0
     url: [256] char = {0}
     incoming_count := 0
@@ -461,11 +483,14 @@ draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     })
     *y += Scale(46)
 
-    if (StyledButton(x, *y, w, btn_h,
-                            GetLocaleText("profile_add_friend_button"),
-                            ButtonStylePrimary,
-                            app->profile_friend_input[0] == '\0',
-                            &hover_add) || commit) &&
+    if (Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(w), (float)(btn_h)},
+        .label = GetLocaleText("profile_add_friend_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = app->profile_friend_input[0] == '\0'
+    }) || commit) &&
        app->profile_friend_input[0] != '\0' {
         if sync_url(url, sizeof(url)) {
             target: [80] char = {0}
@@ -1021,17 +1046,13 @@ draw_combined_leaderboard :: (app: InnerBreeze*, x: int, w: int,
     hx := x
     for int c = 0; c < column_count; c++ {
         selected := c > 0 && app->profile_leaderboard_metric == c - 1
-        if OverlayButton((OverlayButtonProps){
+        if Button((ButtonProps){
             .bounds = {(float)hx, (float)*y, (float)widths[c], (float)header_h},
             .label = columns[c],
             .font = GetSmallFontSize(),
             .disabled = c == 0,
-            .background = selected ? DarkenUIColor(GetThemeBackground(), 18)
-                                   : DarkenUIColor(GetThemeBackground(), 8),
-            .hover_background = DarkenUIColor(GetThemeBackground(), 14),
-            .border = DarkenUIColor(GetThemeBackground(), selected ? 40 : 25),
-            .hover_border = DarkenUIColor(GetThemeBackground(), 40),
-            .text = GetThemeText()
+            .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft, .selected = selected
         }) && c > 0 {
             app->profile_leaderboard_metric = c - 1
         }
@@ -1135,23 +1156,14 @@ draw_choice_row :: (app: InnerBreeze*, x: int, w: int, y: int*, value: int*,
         bx := x + i * (btn_w + gap)
         bw := i == count - 1 ? x + w - bx : btn_w
         selected: int = *value == i
-        bg := selected
-                  ? DarkenUIColor(GetThemeBackground(), 18)
-                  : DarkenUIColor(GetThemeBackground(), 6)
-        border := selected
-                      ? GetThemeText()
-                      : DarkenUIColor(GetThemeBackground(), 24)
 
-        if OverlayButton((OverlayButtonProps){
+        if Button((ButtonProps){
             .bounds = {(float)bx, (float)*y, (float)bw, (float)btn_h},
             .label = labels[i],
             .font = GetSmallFontSize(),
             .disabled = selected,
-            .background = bg,
-            .hover_background = DarkenUIColor(GetThemeBackground(), 13),
-            .border = border,
-            .hover_border = DarkenUIColor(GetThemeBackground(), 36),
-            .text = GetThemeText()
+            .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft, .selected = selected
         }) && !selected {
             *value = i
             load_leaderboard_cache(app)

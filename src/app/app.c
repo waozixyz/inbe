@@ -72,13 +72,6 @@
 #define APP_DEFAULT_HEIGHT 720
 #endif
 
-int
-TextButton(int id, int x, int y, const char *label, int *hover)
-{
-    (void)id;
-    return RenderTextButton(x, y, label, hover);
-}
-
 void
 ReadonlyTextBox(ReadonlyTextBoxProps props)
 {
@@ -615,15 +608,12 @@ app_draw_blank_home_easteregg(InnerBreeze*app)
     Texture2D logo;
     Rectangle src;
     Rectangle dst;
-    Vector2 mouse;
     Vector2 origin;
-    Color logo_tint;
     float scale;
     float logo_size;
     float logo_scale;
     int bottom_reserved;
     int available_h;
-    int logo_hover;
 
     if(app == NULL)
         return;
@@ -681,26 +671,15 @@ app_draw_blank_home_easteregg(InnerBreeze*app)
     dst.y = ((float)available_h - (float)logo.height * logo_scale) * 0.5f;
     dst.width = (float)logo.width * logo_scale;
     dst.height = (float)logo.height * logo_scale;
-    mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    logo_hover = CheckCollisionPointRec(mouse, dst) &&
-                 !UIInputCapturesClick(mouse);
-    if(logo_hover) {
-        MarkUIClickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            (void)OpenURI("https://waozi.xyz");
-    }
-    if(logo_hover) {
-        logo_tint.r = 210;
-        logo_tint.g = 210;
-        logo_tint.b = 210;
-        logo_tint.a = 255;
-    } else {
-        logo_tint.r = 150;
-        logo_tint.g = 150;
-        logo_tint.b = 150;
-        logo_tint.a = 255;
-    }
-    DrawTexturePro(logo, src, dst, origin, 0.0f, logo_tint);
+    if(Button((ButtonProps){
+        .bounds = dst, .icon = logo, .icon_only = 1,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisGhost,
+        .style = {.normal = {
+            .fields = StyleIconSize,
+            .icon_size = logo_size * 1000.0f / Scale(1000)
+        }}
+    }))
+        (void)OpenURI("https://waozi.xyz");
 }
 
 static void
@@ -1096,7 +1075,6 @@ app_draw_donation_coin_section(const char *label, const char *address,
     int card_y = y != NULL ? *y : 0;
     int card_h;
     int box_h;
-    int hover = 0;
     TextInputStyle style = app_donation_address_style();
     TextAreaProps text_area;
 
@@ -1152,9 +1130,14 @@ app_draw_donation_coin_section(const char *label, const char *address,
     if(stack_buttons)
         button_w = content_w;
 
-    if(StyledButton(content_x, *y, button_w, button_h,
-                     GetLocaleText("copy_address_button"),
-                     ButtonStyleSecondary, 0, &hover)) {
+    if(Button((ButtonProps){
+        .bounds = {(float)(content_x), (float)(*y), (float)(button_w), (float)(button_h)},
+        .label = GetLocaleText("copy_address_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    })) {
 #if ANDROID_BUILD
         int android_copy_ok =
             android_device_copy_text_and_toast(address,
@@ -1171,20 +1154,29 @@ app_draw_donation_coin_section(const char *label, const char *address,
 
     if(stack_buttons)
         *y += button_h + gap;
-    if(StyledButton(stack_buttons ? content_x : content_x + button_w + gap,
-                     *y, button_w, button_h,
-                     GetLocaleText("open_wallet_button"),
-                     ButtonStyleSecondary, 0, &hover)) {
+    if(Button((ButtonProps){
+        .bounds = {(float)(stack_buttons ? content_x : content_x + button_w + gap), (float)(*y), (float)(button_w), (float)(button_h)},
+        .label = GetLocaleText("open_wallet_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    })) {
         if(!OpenURI(wallet_url))
             ShowToast(GetLocaleText("wallet_not_installed_toast"));
     }
 
     if(stack_buttons)
         *y += button_h + gap;
-    if(StyledButton(stack_buttons ? content_x :
-                     content_x + (button_w + gap) * 2, *y, button_w, button_h,
-                     GetLocaleText("trocador_button"),
-                     ButtonStylePrimary, 0, &hover)) {
+    if(Button((ButtonProps){
+        .bounds = {(float)(stack_buttons ? content_x :
+                     content_x + (button_w + gap) * 2), (float)(*y), (float)(button_w), (float)(button_h)},
+        .label = GetLocaleText("trocador_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    })) {
         (void)OpenURI(trocador_url);
     }
 
@@ -1216,7 +1208,6 @@ draw_about_donation_modal(InnerBreeze*app)
     int coin_y;
     int button_w;
     int button_h = Scale(36);
-    int hover = 0;
     Texture2D empty_icon;
 
     if(app == NULL)
@@ -1338,11 +1329,14 @@ draw_about_donation_modal(InnerBreeze*app)
     }
     EndUIScrollContainer(scroll_area, scroll_view);
 
-    if(StyledButton(frame.x + (frame.w - button_w) / 2,
-                     frame.y + frame.h - button_h - Scale(16),
-                     button_w, button_h,
-                     GetLocaleText("close_button"),
-                     ButtonStyleSecondary, 0, &hover)) {
+    if(Button((ButtonProps){
+        .bounds = {(float)(frame.x + (frame.w - button_w) / 2), (float)(frame.y + frame.h - button_h - Scale(16)), (float)(button_w), (float)(button_h)},
+        .label = GetLocaleText("close_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    })) {
         app_close_modal(app);
     }
 }
@@ -1397,7 +1391,6 @@ draw_secure_migration_modal(InnerBreeze*app)
     int button_y;
     int button_h;
     int gap;
-    int hover = 0;
 
     if(app == NULL)
         return;
@@ -1480,23 +1473,37 @@ draw_secure_migration_modal(InnerBreeze*app)
     button_y = frame.y + frame.h - Scale(24) - button_h;
     if(!status.secure_migration_pending) {
         int button_w = Scale(120);
-        if(StyledButton(frame.x + (frame.w - button_w) / 2, button_y,
-                        button_w, button_h, GetLocaleText("ok_button"),
-                        ButtonStylePrimary, 0, &hover))
+        if(Button((ButtonProps){
+            .bounds = {(float)(frame.x + (frame.w - button_w) / 2), (float)(button_y), (float)(button_w), (float)(button_h)},
+            .label = GetLocaleText("ok_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }))
             app_close_modal(app);
     } else {
         int button_w = (frame.content_w - gap) / 2;
-        if(StyledButton(frame.content_x, button_y, button_w, button_h,
-                        GetLocaleText("sync_secure_migration_later_button"),
-                        ButtonStyleSecondary, 0, &hover)) {
+        if(Button((ButtonProps){
+            .bounds = {(float)(frame.content_x), (float)(button_y), (float)(button_w), (float)(button_h)},
+            .label = GetLocaleText("sync_secure_migration_later_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        })) {
             app->secure_migration_prompt_seen = 1;
             app->secure_migration_deferred = 1;
             app_close_modal(app);
         }
-        if(StyledButton(frame.content_x + button_w + gap, button_y,
-                        button_w, button_h,
-                        GetLocaleText("sync_secure_migration_start_button"),
-                        ButtonStylePrimary, 0, &hover)) {
+        if(Button((ButtonProps){
+            .bounds = {(float)(frame.content_x + button_w + gap), (float)(button_y), (float)(button_w), (float)(button_h)},
+            .label = GetLocaleText("sync_secure_migration_start_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        })) {
             app->secure_migration_prompt_seen = 1;
             app->secure_migration_deferred = 0;
             app->secure_migration_started = 1;
@@ -1617,11 +1624,11 @@ static const struct {
 static void
 updateapp(InnerBreeze*app)
 {
+    int hover = 0;
     int center_x = view_width / 2;
     int frame_view_height = view_height;
     int center_y;
     int i;
-    int hover = 0;
     AppRoute frame_route;
     int first_run_guide_active = 0;
     int habits_guide_active = 0;

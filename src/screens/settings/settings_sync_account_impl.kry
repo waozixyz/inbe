@@ -639,7 +639,7 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     small_font := GetSmallFontSize()
     btn_h := Scale(36)
     gap := Scale(10)
-    hover := 0
+
 
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
@@ -651,9 +651,14 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     *y += Scale(26)
 
     if !has_account {
-        if StyledButton(x, *y, w, btn_h,
-                               GetLocaleText("sync_create_account_button"),
-                               ButtonStylePrimary, 0, &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(*y), (float)(w), (float)(btn_h)},
+            .label = GetLocaleText("sync_create_account_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             create_account(app, &account)
         }
         *y += btn_h + Scale(18)
@@ -707,7 +712,7 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     small_font := GetSmallFontSize()
     btn_h := Scale(36)
     gap := Scale(10)
-    hover := 0
+
     commit := 0
     input_style := text_style()
 
@@ -794,11 +799,16 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     }
     *y += btn_h + Scale(12)
 
-    if StyledButton(x, *y, w, btn_h,
-                           server_connected(app)
+    if Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(w), (float)(btn_h)},
+        .label = server_connected(app)
                                ? GetLocaleText("sync_connected_button")
                                : GetLocaleText("sync_connect_button"),
-                           ButtonStylePrimary, 0, &hover) {
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         run_connect(app)
     }
     *y += btn_h + Scale(12)
@@ -864,7 +874,7 @@ draw_backup_modal :: (app: InnerBreeze*) -> int {
     gap := Scale(10)
     pad_bottom := Scale(24)
     text_button_gap := Scale(40)
-    hover := 0
+
     y: int
     modal_h: int
     button_y: int
@@ -897,15 +907,24 @@ draw_backup_modal :: (app: InnerBreeze*) -> int {
     if button_y + btn_h * 2 + gap + pad_bottom > frame.y + frame.h {
         button_y = frame.y + frame.h - pad_bottom - btn_h * 2 - gap
     }
-    if StyledButton(frame.content_x, button_y, frame.content_w, btn_h,
-                           GetLocaleText("sync_save_key_file_button"),
-                           ButtonStylePrimary, 0, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(frame.content_x), (float)(button_y), (float)(frame.content_w), (float)(btn_h)},
+        .label = GetLocaleText("sync_save_key_file_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         return start_sync_key_export(app, &account)
     }
-    if StyledButton(frame.content_x, button_y + btn_h + gap,
-                           frame.content_w, btn_h,
-                           GetLocaleText("close_button"),
-                           ButtonStyleSecondary, 0, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(frame.content_x), (float)(button_y + btn_h + gap), (float)(frame.content_w), (float)(btn_h)},
+        .label = GetLocaleText("close_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         return 1
     }
 
@@ -990,14 +1009,14 @@ draw_alias_modal :: (app: InnerBreeze*) -> int {
     buttons: [2] ButtonRowItem = {
         {
             GetLocaleText(app->sync_alias_then_backup ? "skip_button" : "close_button"),
-            ButtonStyleSecondary,
+            ButtonToneNeutral,
             0,
         },
         {
             GetLocaleText(has_alias
                           ? "sync_alias_save_button"
                           : "sync_alias_register_button"),
-            ButtonStylePrimary,
+            ButtonToneAccent,
             !alias_valid(app->sync_alias_input) || unchanged_alias,
         },
     }

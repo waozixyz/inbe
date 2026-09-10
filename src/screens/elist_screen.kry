@@ -12,6 +12,8 @@ elist_field :: (app: InnerBreeze*, bounds: Rectangle) -> TextFieldProps #private
         .text_size = sizeof(app->elist.input),
         .cursor_position = &app->elist.input_cursor,
         .focused = &app->elist.input_focused,
+        .focus_id = 6501,
+        .commit_pressed = &app->elist.input_committed,
         .max_codepoints = elist_types.ELIST_TITLE_SIZE - 1,
         .font = GetFontSize(),
         .style = (TextInputStyle){
@@ -33,6 +35,7 @@ elist_comment_field :: (app: InnerBreeze*, bounds: Rectangle) -> TextFieldProps 
     field.text_size = sizeof(app->elist.comment_input)
     field.cursor_position = &app->elist.comment_cursor
     field.focused = &app->elist.comment_focused
+    field.focus_id = 6502
     field.max_codepoints = elist_types.ELIST_COMMENT_SIZE - 1
     return field
 }
@@ -53,31 +56,40 @@ elist_begin_input :: (app: InnerBreeze*, editing_item: int,
     app->elist.comment_input[0] = '\0'
     app->elist.comment_cursor = 0
     app->elist.input_focused = 1
+    app->elist.input_error = 0
+    SetUIFocus(6501)
     app->elist.editing_item = editing_item
 }
 
 elist_commit_input :: (app: InnerBreeze*) #private {
     state := &app->elist
+    saved: int = 0
+    created_id: [37]char = {0}
 
     if state->input[0] == '\0' {
         return
     }
     if state->editing_item == -2 {
-        storage_elist_create_list(state->input, nil)
+        saved = storage_elist_create_list(state->input, created_id)
     } else if state->editing_item == -3 && state->selected_list >= 0 &&
               state->selected_list < state->list_count {
         list := &state->lists[state->selected_list]
-        storage_elist_update_list(list->id, state->input, list->sort_order)
+        saved = storage_elist_update_list(list->id, state->input, list->sort_order)
     } else if state->editing_item >= 0 &&
               state->editing_item < state->item_count {
         item := &state->items[state->editing_item]
-        storage_elist_update_item(item->id, state->input, state->comment_input,
+        saved = storage_elist_update_item(item->id, state->input, state->comment_input,
                                   item->done, item->sort_order)
     } else if state->selected_list >= 0 &&
               state->selected_list < state->list_count {
-        storage_elist_create_item(state->lists[state->selected_list].id,
+        saved = storage_elist_create_item(state->lists[state->selected_list].id,
                                   state->input, state->comment_input, nil)
     }
+    if !saved {
+        state->input_error = 1
+        return
+    }
+    state->input_error = 0
     state->input[0] = '\0'
     state->input_cursor = 0
     state->comment_input[0] = '\0'
@@ -85,7 +97,38 @@ elist_commit_input :: (app: InnerBreeze*) #private {
     state->input_focused = 0
     state->editing_item = -1
     elist_reload(app)
+    if created_id[0] != '\0' {
+        for int i = 0; i < state->list_count; i++ {
+            if strcmp(state->lists[i].id, created_id) == 0 {
+                state->selected_list = i
+                break
+            }
+        }
+    }
     app_auto_sync(app)
+}
+
+elist_content_bounds :: () -> Rectangle #private {
+    pad := Scale(16)
+    return (Rectangle){(float)pad, 0, (float)(view_width - pad * 2), (float)view_height}
+}
+
+elist_select_list :: (app: InnerBreeze*, index: int) #private {
+    state := &app->elist
+    if index < 0 || index >= state->list_count || index == state->selected_list {
+        return
+    }
+    state->selected_list = index
+    state->editing_item = -1
+    state->input[0] = '\0'
+    state->comment_input[0] = '\0'
+    state->input_cursor = 0
+    state->comment_cursor = 0
+    state->input_focused = 0
+    state->comment_focused = 0
+    state->input_error = 0
+    state->input_committed = 0
+    SetUIFocus(0)
 }
 
 elist_draw_empty :: (x: int, y: int, w: int) #private {
@@ -112,16 +155,13 @@ elist_draw_empty :: (x: int, y: int, w: int) #private {
 
 draw_elist_screen :: (app: InnerBreeze*) {
     state: elist_types.EListState*
-    left := app_nav_desktop_rail_enabled(app) ? app_nav_desktop_content_offset() : 0
-    width := view_width - left
-    pad := Scale(16)
-    x := left + pad
-    content_w := width - pad * 2
-    title_h := Scale(58)
-    y := title_h + Scale(12)
-    hover := 0
-    tab_h := Scale(36)
-    list_options: [elist_types.ELIST_LIST_MAX] const char* = {0}
+    content := elist_content_bounds()
+    x := (int)content.x
+    content_w := (int)content.width
+    y := Scale(12)
+
+    tab_h := Scale(44)
+    list_tabs: [elist_types.ELIST_LIST_MAX] Tab = {0}
 
     if app == nil {
         return
@@ -131,15 +171,34 @@ draw_elist_screen :: (app: InnerBreeze*) {
         elist_reload(app)
     }
 
-    TitleBar(GetLocaleText("elist_title"), title_h)
     if state->list_count > 0 && state->selected_list >= 0 &&
-       PaddedIconBtn(0, left + width - Scale(88), Scale(9), Scale(22), Scale(8),
-                     app->icons[UI_ICON_TYPE_EDIT], &hover) {
+       Button((ButtonProps){
+           .id = 0,
+           .bounds = {(float)(view_width - Scale(88)), (float)(Scale(15)),
+                      (float)((Scale(22)) + (Scale(8)) * 2),
+                      (float)((Scale(22)) + (Scale(8)) * 2)},
+           .icon = app->icons[UI_ICON_TYPE_EDIT], .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+           .style = {.normal = {
+               .fields = StyleIconSize,
+               .icon_size = (float)(Scale(22)) * 1000.0f / Scale(1000)
+           }}
+       }) {
         elist_begin_input(app, -3, state->lists[state->selected_list].title)
     }
     if state->list_count > 0 && state->selected_list >= 0 &&
-       PaddedIconBtn(0, left + width - Scale(48), Scale(9), Scale(22), Scale(8),
-                     app->icons[UI_ICON_TYPE_TRASH], &hover) {
+       Button((ButtonProps){
+           .id = 0,
+           .bounds = {(float)(view_width - Scale(48)), (float)(Scale(15)),
+                      (float)((Scale(22)) + (Scale(8)) * 2),
+                      (float)((Scale(22)) + (Scale(8)) * 2)},
+           .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+           .style = {.normal = {
+               .fields = StyleIconSize,
+               .icon_size = (float)(Scale(22)) * 1000.0f / Scale(1000)
+           }}
+       }) {
         storage_elist_delete_list(state->lists[state->selected_list].id)
         state->selected_list = 0
         elist_reload(app)
@@ -147,28 +206,60 @@ draw_elist_screen :: (app: InnerBreeze*) {
         return
     }
     for int i = 0; i < state->list_count; i++ {
-        list_options[i] = state->lists[i].title
+        list_tabs[i] = (Tab){.label = state->lists[i].title}
     }
-    selector_w := content_w - Scale(112)
+    selector_w := content_w - Scale(200)
     if state->list_count > 0 {
-        Dropdown(6500, x, y, selector_w, tab_h, list_options,
-                 state->list_count, &state->selected_list)
+        selected := TabBar((TabBarProps){
+            .id = 6500,
+            .bounds = {(float)x, (float)y, (float)selector_w, (float)tab_h},
+            .tabs = list_tabs,
+            .count = state->list_count,
+            .selected_index = state->selected_list,
+            .font = GetFontSize(),
+            .min_tab_width = Scale(88),
+            .max_tab_width = Scale(180)
+        })
+        elist_select_list(app, selected)
     }
-    if StyledButton(x + selector_w + Scale(8), y, Scale(104), tab_h,
-                    GetLocaleText("elist_new_list"),
-                    ButtonStyleSecondary, 0, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(x + selector_w + Scale(8)), (float)(y), (float)(Scale(104)), (float)(tab_h)},
+        .label = GetLocaleText("elist_new_list"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         elist_begin_input(app, -2, "")
+        return
     }
     y += tab_h + Scale(16)
+
+    if state->input_error {
+        Text((TextProps){
+            .bounds = {(float)x, (float)y, (float)content_w, (float)Scale(40)},
+            .text = GetLocaleText("results_write_failed"),
+            .font = GetSmallFontSize(),
+            .color = GetThemeText(),
+            .wrap = TextWrapAuto
+        })
+        y += Scale(48)
+    }
 
     if state->editing_item == -2 || state->editing_item == -3 {
         TextField(elist_field(app, (Rectangle){(float)x, (float)y,
                                                (float)content_w, (float)Scale(44)}))
         y += Scale(52)
-        if StyledButton(x, y, content_w, Scale(40),
-                        state->editing_item == -3 ? GetLocaleText("done_button") :
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(y), (float)(content_w), (float)(Scale(40))},
+            .label = state->editing_item == -3 ? GetLocaleText("done_button") :
                                                     GetLocaleText("elist_create_list"),
-                        ButtonStylePrimary, state->input[0] == '\0', &hover) {
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = state->input[0] == '\0'
+        }) ||
+           state->input_committed {
             elist_commit_input(app)
         }
         return
@@ -182,10 +273,16 @@ draw_elist_screen :: (app: InnerBreeze*) {
     field_w := content_w - Scale(92)
     TextField(elist_field(app, (Rectangle){(float)x, (float)y,
                                            (float)field_w, (float)Scale(44)}))
-    if StyledButton(x + field_w + Scale(8), y, Scale(84), Scale(44),
-                    state->editing_item >= 0 ? GetLocaleText("done_button") :
+    if Button((ButtonProps){
+        .bounds = {(float)(x + field_w + Scale(8)), (float)(y), (float)(Scale(84)), (float)(Scale(44))},
+        .label = state->editing_item >= 0 ? GetLocaleText("done_button") :
                                                GetLocaleText("elist_add_item"),
-                    ButtonStylePrimary, state->input[0] == '\0', &hover) {
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = state->input[0] == '\0'
+    }) ||
+       state->input_committed {
         elist_commit_input(app)
     }
     y += Scale(52)
@@ -206,27 +303,10 @@ draw_elist_screen :: (app: InnerBreeze*) {
         bounds := (Rectangle){(float)x, (float)y, (float)content_w, (float)row_h}
         DrawRectangleRounded(bounds, 0.08f, 8,
                              DarkenUIColor(GetThemeBackground(), 5))
-        check_bounds := (Rectangle){(float)(x + Scale(10)),
-                                    (float)(y + Scale(17)),
-                                    (float)Scale(24), (float)Scale(24)}
-        DrawRectangleRoundedLines(check_bounds, 0.24f, 6,
-                                  item->done ? GetThemeButton() : GetThemeMutedText())
-        if item->done {
-            DrawLineEx((Vector2){check_bounds.x + Scale(5),
-                                 check_bounds.y + Scale(12)},
-                       (Vector2){check_bounds.x + Scale(10),
-                                 check_bounds.y + Scale(17)},
-                       Scale(2), GetThemeButton())
-            DrawLineEx((Vector2){check_bounds.x + Scale(10),
-                                 check_bounds.y + Scale(17)},
-                       (Vector2){check_bounds.x + Scale(20),
-                                 check_bounds.y + Scale(7)},
-                       Scale(2), GetThemeButton())
-        }
-        if InvisibleButton((InvisibleButtonProps){.bounds = check_bounds,
-                                                   .id = 6400 + i}) {
+        done := item->done
+        if Checkbox(6400 + i, x + Scale(10), y + Scale(17), "", &done) {
             storage_elist_update_item(item->id, item->title, item->comment,
-                                      !item->done, item->sort_order)
+                                      done, item->sort_order)
             elist_reload(app)
             app_auto_sync(app)
             return
@@ -250,15 +330,35 @@ draw_elist_screen :: (app: InnerBreeze*) {
                 .wrap = TextWrapNone
             })
         }
-        if PaddedIconBtn(0, x + content_w - Scale(78), y + Scale(12),
-                         Scale(20), Scale(7), app->icons[UI_ICON_TYPE_EDIT], &hover) {
+        if Button((ButtonProps){
+            .id = 0,
+            .bounds = {(float)(x + content_w - Scale(78)), (float)(y + Scale(12)),
+                       (float)((Scale(20)) + (Scale(7)) * 2),
+                       (float)((Scale(20)) + (Scale(7)) * 2)},
+            .icon = app->icons[UI_ICON_TYPE_EDIT], .icon_only = 1,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+            .style = {.normal = {
+                .fields = StyleIconSize,
+                .icon_size = (float)(Scale(20)) * 1000.0f / Scale(1000)
+            }}
+        }) {
             elist_begin_input(app, i, item->title)
             snprintf(state->comment_input, sizeof(state->comment_input), "%s",
                      item->comment)
             state->comment_cursor = (int)strlen(state->comment_input)
         }
-        if PaddedIconBtn(0, x + content_w - Scale(40), y + Scale(12),
-                         Scale(20), Scale(7), app->icons[UI_ICON_TYPE_TRASH], &hover) {
+        if Button((ButtonProps){
+            .id = 0,
+            .bounds = {(float)(x + content_w - Scale(40)), (float)(y + Scale(12)),
+                       (float)((Scale(20)) + (Scale(7)) * 2),
+                       (float)((Scale(20)) + (Scale(7)) * 2)},
+            .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+            .style = {.normal = {
+                .fields = StyleIconSize,
+                .icon_size = (float)(Scale(20)) * 1000.0f / Scale(1000)
+            }}
+        }) {
             storage_elist_delete_item(item->id)
             elist_reload(app)
             app_auto_sync(app)

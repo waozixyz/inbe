@@ -141,17 +141,16 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
                  GetLocaleText("profile_no_account"))
     }
 
-    if IconButton((IconButtonProps){
+    if Button((ButtonProps){
         .bounds = {(float)x, (float)(*y + Scale(18)),
                    (float)icon_size, (float)icon_size},
         .icon = app->icons[app->profile_picture_icon],
-        .icon_size = icon_size - Scale(18),
-        .icon_padding = Scale(9),
-        .background = DarkenUIColor(GetThemeBackground(), 7),
-        .hover_background = DarkenUIColor(GetThemeBackground(), 14),
-        .border = DarkenUIColor(GetThemeBackground(), 22),
-        .icon_color = WHITE,
-        .radius = 0.5f
+        .icon_only = 1, .circle = 1,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .style = {.normal = {
+            .fields = StyleIconSize,
+            .icon_size = (float)(icon_size - Scale(18)) * 1000.0f / Scale(1000)
+        }}
     }) {
         app->profile_picture_picker_scroll = 0
         app_open_modal(app, UIModalProfilePicturePicker)
@@ -324,19 +323,13 @@ profile_draw_hub_route_card :: (app: InnerBreeze*, x: int, y: int*, w: int,
     if value_w > 0 {
         text_w -= value_w + Scale(12)
     }
-    DrawRectangleRounded(bounds, 0.12f, 12, DarkenUIColor(GetThemeBackground(), 7))
-    DrawRectangleRoundedLinesEx(bounds, 0.12f, 12, 1.0f,
-                                Fade(GetThemeText(), 0.08f))
-    if OverlayButton((OverlayButtonProps){
+    if Button((ButtonProps){
         .bounds = bounds,
         .label = "",
         .font = GetFontSize(),
-        .background = BLANK,
-        .hover_background = Fade(GetThemeText(), 0.06f),
-        .border = BLANK,
-        .hover_border = BLANK,
-        .text = GetThemeText()
-    }) {
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft
+        }) {
         profile_open_tab_card(app, tab)
     }
     DrawCircle(icon_x + icon_box / 2, *y + h / 2, icon_box / 2,
@@ -386,7 +379,7 @@ profile_draw_hub_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
     text_x := avatar_x + avatar + Scale(18)
     title: [96] char = {0}
     subtitle: [160] char = {0}
-    hover := 0
+
     subtitle_y := *y + Scale(64)
 
     if has_account {
@@ -414,17 +407,16 @@ profile_draw_hub_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
                            Fade(GetThemeBackground(), 0.0f))
     DrawRectangleRoundedLinesEx(bounds, 0.14f, 12, 1.0f,
                                 DarkenUIColor(GetThemeButton(), 18))
-    if IconButton((IconButtonProps){
+    if Button((ButtonProps){
         .bounds = {(float)avatar_x, (float)avatar_y,
                    (float)avatar, (float)avatar},
         .icon = app->icons[app->profile_picture_icon],
-        .icon_size = avatar - Scale(26),
-        .icon_padding = Scale(13),
-        .background = DarkenUIColor(GetThemeBackground(), 14),
-        .hover_background = DarkenUIColor(GetThemeBackground(), 22),
-        .border = Fade(GetThemeText(), 0.42f),
-        .icon_color = WHITE,
-        .radius = 0.5f
+        .icon_only = 1, .circle = 1,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .style = {.normal = {
+            .fields = StyleIconSize,
+            .icon_size = (float)(avatar - Scale(26)) * 1000.0f / Scale(1000)
+        }}
     }) {
         app->profile_picture_picker_scroll = 0
         app_open_modal(app, UIModalProfilePicturePicker)
@@ -438,12 +430,15 @@ profile_draw_hub_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
         .font = GetSmallFontSize(),
         .line_gap = Scale(3)
     }, text_x, &subtitle_y)
-    if StyledButton(text_x, *y + Scale(108),
-                    w - (text_x - x) - Scale(18),
-                    Scale(38),
-                    GetLocaleText(has_account ? "sync_account_title"
+    if Button((ButtonProps){
+        .bounds = {(float)(text_x), (float)(*y + Scale(108)), (float)(w - (text_x - x) - Scale(18)), (float)(Scale(38))},
+        .label = GetLocaleText(has_account ? "sync_account_title"
                                                : "sync_create_account_button"),
-                    ButtonStylePrimary, 0, &hover) {
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         profile_open_tab_card(app, PROFILE_TAB_SYNC)
     }
     *y += card_h + Scale(18)
@@ -609,16 +604,12 @@ profile_draw_tabs :: (app: InnerBreeze*, y: int, h: int) -> int #private {
         x := i * tab_w
         w := i == PROFILE_TAB_COUNT - 1 ? view_width - x : tab_w
         selected := i == app->profile_tab
-        if OverlayButton((OverlayButtonProps){
+        if Button((ButtonProps){
             .bounds = {(float)x, (float)y, (float)w, (float)h},
             .label = profile_tab_title(i),
             .font = GetSmallFontSize(),
-            .background = selected ? DarkenUIColor(GetThemeBackground(), 13)
-                                   : BLANK,
-            .hover_background = DarkenUIColor(GetThemeBackground(), 10),
-            .border = BLANK,
-            .hover_border = BLANK,
-            .text = GetThemeText()
+            .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft, .selected = selected
         }) {
             clicked = i
         }
@@ -671,8 +662,8 @@ profile_draw_habits :: (app: InnerBreeze*, x: int, w: int, y: int*) {
 
     for int i = 0; i < app->habits.count; i++ {
         row_y := *y
-        up_hover := 0
-        down_hover := 0
+
+
         controls_w := btn_w * 2 + gap
         name_w := stack_rows ? w : w - controls_w - gap
 
@@ -682,21 +673,27 @@ profile_draw_habits :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         if stack_rows {
             row_y += Scale(36)
         }
-        if StyledButton(stack_rows ? x : x + w - btn_w * 2 - gap,
-                               row_y, btn_w, btn_h,
-                               GetLocaleText("move_up_button"),
-                               ButtonStyleSecondary, i == 0,
-                               &up_hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(stack_rows ? x : x + w - btn_w * 2 - gap), (float)(row_y), (float)(btn_w), (float)(btn_h)},
+            .label = GetLocaleText("move_up_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = i == 0
+        }) {
             if habits_move(&app->habits, i, i - 1) {
                 app_auto_sync(app)
             }
             return
         }
-        if StyledButton(stack_rows ? x + btn_w + gap : x + w - btn_w,
-                               row_y, btn_w, btn_h,
-                               GetLocaleText("move_down_button"),
-                               ButtonStyleSecondary,
-                               i == app->habits.count - 1, &down_hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(stack_rows ? x + btn_w + gap : x + w - btn_w), (float)(row_y), (float)(btn_w), (float)(btn_h)},
+            .label = GetLocaleText("move_down_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = i == app->habits.count - 1
+        }) {
             if habits_move(&app->habits, i, i + 1) {
                 app_auto_sync(app)
             }

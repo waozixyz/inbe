@@ -80,7 +80,7 @@ about_draw_link_icons :: (app: InnerBreeze*, content_x: int, content_w: int, y: 
 }
 
 about_draw_donate_button :: (app: InnerBreeze*, content_x: int, content_w: int, y: int*) #private {
-    hover := 0
+
     button_h := Scale(38)
     button_w := Scale(220)
 
@@ -88,10 +88,14 @@ about_draw_donate_button :: (app: InnerBreeze*, content_x: int, content_w: int, 
         button_w = content_w
     }
 
-    if StyledButton(content_x + (content_w - button_w) / 2, *y,
-                           button_w, button_h,
-                           GetLocaleText("donation_reminder_donate_button"),
-                           ButtonStylePrimary, 0, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(content_x + (content_w - button_w) / 2), (float)(*y), (float)(button_w), (float)(button_h)},
+        .label = GetLocaleText("donation_reminder_donate_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    }) {
         app_open_modal(app, UIModalAboutDonation)
     }
     *y += button_h

@@ -277,7 +277,6 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
     option_h := Scale(118)
     image_h := Scale(72)
     changed := 0
-    mouse := GetMousePosition()
 
     if app == nil || SUN_SALUTATION_ACTIVE_FIGURE_COUNT <= 1 {
         return 0
@@ -308,17 +307,10 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
             (float)image_h
         }
         selected := app->sun_salutation.figure == i
-        hover := CheckCollisionPointRec(mouse, bounds)
-        bg := DarkenUIColor(GetThemeBackground(), hover ? 10 : 6)
-        border := DarkenUIColor(GetThemeText(), 45)
         label: const char*
         text_w: int
         pose_index := sun_salutation_step_pose_index(1)
 
-        if selected {
-            bg = Fade(GetThemeButtonHover(), 0.18f)
-            border = GetThemeButtonHover()
-        }
 
         if i == SUN_SALUTATION_FIGURE_MAN {
             label = GetLocaleText("sun_salutation_figure_man")
@@ -327,8 +319,12 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
         }
         text_w = TextWidth(label, small_font)
 
-        DrawRectangleRec(bounds, bg)
-        DrawRectangleLinesEx(bounds, selected ? 2.0f : 1.0f, border)
+        clicked := Button((ButtonProps){
+            .bounds = bounds, .id = 24900 + i,
+            .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft, .selected = selected,
+            .disabled = app->modal.active
+        })
         draw_preview_pose(app->sun_salutation.pose_sheets[i],
                              pose_index,
                              (int)image_bounds.x,
@@ -344,8 +340,7 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
             .wrap=TextWrapNone
         })
 
-        if hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-           !UIInputCapturesClick(mouse) && !selected {
+        if clicked && !selected {
             app->sun_salutation.figure = i
             changed = 1
         }

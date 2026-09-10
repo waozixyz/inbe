@@ -16,7 +16,7 @@ language_screen_draw :: (app: InnerBreeze*) {
     dropdown_y := 0
     button_x := 0
     button_y := 0
-    next_hover := 0
+
     selected_index: int* = &app->language_index
     language_count := GetLocaleCount()
     selection_changed := 0
@@ -60,7 +60,12 @@ language_screen_draw :: (app: InnerBreeze*) {
         .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
-    if TextButton(0, button_x, button_y, GetLocaleText("next_button"), &next_hover) {
+    if Button((ButtonProps){
+        .id = 0, .label = GetLocaleText("next_button"), .font = GetFontSize(),
+        .bounds = {(button_x) - fmaxf(TextWidth(GetLocaleText("next_button"), GetFontSize()) + Scale(16), Scale(34)) / 2.0f,
+                   (float)(button_y), fmaxf(TextWidth(GetLocaleText("next_button"), GetFontSize()) + Scale(16), Scale(34)), fmaxf(TextLineHeight(GetFontSize()) + Scale(8), Scale(34))},
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+    }) {
         app_accept_language_selection(app)
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->practice_tab = PRACTICE_TAB_PLAY

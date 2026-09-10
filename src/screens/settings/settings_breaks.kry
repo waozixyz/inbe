@@ -328,10 +328,15 @@ settings_breaks_draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     if button_w > Scale(200) {
         button_w = Scale(200)
     }
-    rest_hover := 0
-    if StyledButton(x, *y, button_w, Scale(40),
-                    GetLocaleText("settings_breaks_rest_now"),
-                    ButtonStyleSecondary, 0, &rest_hover) {
+
+    if Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(button_w), (float)(Scale(40))},
+        .label = GetLocaleText("settings_breaks_rest_now"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         app_breaks_rest_break_now(app)
     }
     *y += Scale(60)

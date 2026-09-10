@@ -1122,9 +1122,14 @@ session_update_screen :: (app: InnerBreeze*, center_x: int, center_y: int, hover
             breath_y = breath_max_y
         }
         breath_x = center_x - breath_w / 2
-        if StyledButton(breath_x, breath_y, breath_w, breath_h,
-                                  breath_label, ButtonStylePrimary, 0,
-                                  &breath_hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(breath_x), (float)(breath_y), (float)(breath_w), (float)(breath_h)},
+            .label = breath_label,
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             finish_hold(app)
         }
         if hover != nil {
@@ -1236,11 +1241,21 @@ session_draw_results_screen :: (app: InnerBreeze*, center_x: int, center_y: int,
         row_y += row_h
     }
 
-    if TextButton(0, center_x - box_w / 4, action_y, GetLocaleText("discard_button"), &discard_hover) {
+    if Button((ButtonProps){
+        .id = 0, .label = GetLocaleText("discard_button"), .font = GetFontSize(),
+        .bounds = {(center_x - box_w / 4) - fmaxf(TextWidth(GetLocaleText("discard_button"), GetFontSize()) + Scale(16), Scale(34)) / 2.0f,
+                   (float)(action_y), fmaxf(TextWidth(GetLocaleText("discard_button"), GetFontSize()) + Scale(16), Scale(34)), fmaxf(TextLineHeight(GetFontSize()) + Scale(8), Scale(34))},
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+    }) {
         session_discard_saved_results(app)
         app_init(app)
     }
-    if TextButton(0, center_x + box_w / 4, action_y, GetLocaleText("save_results_button"), &save_hover) {
+    if Button((ButtonProps){
+        .id = 0, .label = GetLocaleText("save_results_button"), .font = GetFontSize(),
+        .bounds = {(center_x + box_w / 4) - fmaxf(TextWidth(GetLocaleText("save_results_button"), GetFontSize()) + Scale(16), Scale(34)) / 2.0f,
+                   (float)(action_y), fmaxf(TextWidth(GetLocaleText("save_results_button"), GetFontSize()) + Scale(16), Scale(34)), fmaxf(TextLineHeight(GetFontSize()) + Scale(8), Scale(34))},
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+    }) {
         if session_ensure_results_saved(app) {
             app_init(app)
         }

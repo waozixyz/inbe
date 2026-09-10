@@ -290,9 +290,15 @@ format_time :: (dst: char*, dst_size: size_t, seconds: int) #private {
 
 draw_duration_button :: (x: int, y: int, w: int, h: int,
                         label: const char*) -> int #private {
-    hover := 0
-    return StyledButton(x, y, w, h, label,
-                               ButtonStylePrimary, 0, &hover)
+
+    return Button((ButtonProps){
+        .bounds = {(float)(x), (float)(y), (float)(w), (float)(h)},
+        .label = label,
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = 0
+    })
 }
 
 extend_session :: (app: InnerBreeze*, seconds: int) #private {
@@ -334,7 +340,7 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
     cancel_w := Scale(120)
     cancel_x: int
     cancel_y: int
-    cancel_hover := 0
+
 
     if modal_w > view_width - Scale(24) {
         modal_w = view_width - Scale(24)
@@ -397,14 +403,14 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
 
     cancel_y = modal_y + modal_h - btn_h - Scale(16)
     cancel_x = modal_x + (modal_w - cancel_w) / 2
-    if StyledButton(cancel_x,
-                           cancel_y,
-                           cancel_w,
-                           btn_h,
-                           GetLocaleText("cancel_button"),
-                           ButtonStyleSecondary,
-                           0,
-                           &cancel_hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(cancel_x), (float)(cancel_y), (float)(cancel_w), (float)(btn_h)},
+        .label = GetLocaleText("cancel_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         app_close_modal(app)
     }
 }
@@ -418,7 +424,7 @@ draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
     finish_w := Scale(96)
     total_w := btn_w * 3 + gap * 2
     x := center_x - total_w / 2
-    hover := 0
+
 
     if app == nil || !app->meditation.show_extend_controls {
         return
@@ -432,14 +438,14 @@ draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
     }
 
     for int i = 0; i < 3; i++ {
-        if StyledButton(x + i * (btn_w + gap),
-                               y,
-                               btn_w,
-                               btn_h,
-                               labels[i],
-                               ButtonStyleSecondary,
-                               0,
-                               &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x + i * (btn_w + gap)), (float)(y), (float)(btn_w), (float)(btn_h)},
+            .label = labels[i],
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             extend_session(app, add_seconds[i])
         }
     }
@@ -455,14 +461,14 @@ draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
             finish_x = view_width - Scale(12) - finish_w
         }
 
-        if StyledButton(finish_x,
-                               finish_y,
-                               finish_w,
-                               btn_h,
-                               GetLocaleText("finish_button"),
-                               ButtonStylePrimary,
-                               0,
-                               &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(finish_x), (float)(finish_y), (float)(finish_w), (float)(btn_h)},
+            .label = GetLocaleText("finish_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             finish(app)
         }
     }

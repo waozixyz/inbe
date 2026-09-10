@@ -44,7 +44,7 @@ app_active_practice_title_height :: () -> int {
 }
 
 app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, height: int) -> int {
-    hover := 0
+
     button_size := Scale(24)
     padding := Scale(10)
     button_total := button_size + padding * 2
@@ -94,8 +94,18 @@ app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, he
         .wrap = TextWrapNone
     })
     if app != NULL && !app->modal.active &&
-       PaddedIconBtn(0, close_x, close_y, button_size, padding,
-                     app->icons[UI_ICON_TYPE_X], &hover) {
+       Button((ButtonProps){
+           .id = 0,
+           .bounds = {(float)(close_x), (float)(close_y),
+                      (float)((button_size) + (padding) * 2),
+                      (float)((button_size) + (padding) * 2)},
+           .icon = app->icons[UI_ICON_TYPE_X], .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+           .style = {.normal = {
+               .fields = StyleIconSize,
+               .icon_size = (float)(button_size) * 1000.0f / Scale(1000)
+           }}
+       }) {
         return 1
     }
     return 0
@@ -151,8 +161,7 @@ app_nav_desktop_rail_enabled :: (app: const InnerBreeze*) -> int {
     if app->modal.active && app->modal.type == UIModalEditProgressiveStartSpeed {
         return 0
     }
-    if app->breathing.screen == ScreenHabitEdit ||
-       app->breathing.screen == ScreenHabitSessionEdit ||
+    if app->breathing.screen == ScreenHabitSessionEdit ||
        app->breathing.screen == ScreenSession ||
        app->breathing.screen == ScreenMeditation ||
        app->breathing.screen == ScreenSunSalutation ||
@@ -162,6 +171,7 @@ app_nav_desktop_rail_enabled :: (app: const InnerBreeze*) -> int {
     }
     return app->breathing.screen == ScreenStart ||
            app->breathing.screen == ScreenHabits ||
+           app->breathing.screen == ScreenHabitEdit ||
            app->breathing.screen == ScreenEList ||
            app->breathing.screen == ScreenProfile ||
            app->breathing.screen == ScreenSettings
@@ -301,8 +311,8 @@ app_reset_bottom_nav_routes :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
-    app->bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS
-    app->bottom_nav_routes[1] = APP_NAV_ROUTE_ELIST
+    app->bottom_nav_routes[0] = APP_NAV_ROUTE_ELIST
+    app->bottom_nav_routes[1] = APP_NAV_ROUTE_HABITS
     app->bottom_nav_routes[2] = APP_NAV_ROUTE_PRACTICE
     app->bottom_nav_routes[3] = APP_NAV_ROUTE_SETTINGS
     app->bottom_nav_route_count = 4
@@ -319,8 +329,16 @@ app_sanitize_bottom_nav_routes :: (app: InnerBreeze*) {
        app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
        app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
        app->bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS {
-        app->bottom_nav_routes[3] = APP_NAV_ROUTE_ELIST
-        app->bottom_nav_route_count = 4
+        app_reset_bottom_nav_routes(app)
+    } else if app->bottom_nav_route_count == 4 &&
+              app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
+              ((app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
+                app->bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS &&
+                app->bottom_nav_routes[3] == APP_NAV_ROUTE_ELIST) ||
+               (app->bottom_nav_routes[1] == APP_NAV_ROUTE_ELIST &&
+                app->bottom_nav_routes[2] == APP_NAV_ROUTE_PRACTICE &&
+                app->bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS)) {
+        app_reset_bottom_nav_routes(app)
     }
     allowed[allowed_count] = APP_NAV_ROUTE_HABITS
     allowed_count += 1
@@ -627,33 +645,12 @@ app_open_settings_tab :: (app: InnerBreeze*, tab: int) #private {
 
 app_sidebar_clean_button :: (x: int, y: int, w: int, h: int,
                              label: const char*, id: int, disabled: int) -> int #private {
-    mouse := GetMousePosition()
-    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    hover := !disabled && CheckCollisionPointRec(mouse, bounds) &&
-             !UIInputCapturesClick(mouse)
-    fill := hover ? Fade(GetThemeSurface(), 0.48f) :
-            Fade(GetThemeSurface(), 0.16f)
-    border := Fade(GetThemeText(), hover ? 0.14f : 0.07f)
-    label_w := TextWidth(label, Text16)
-
-    DrawRectangleRounded(bounds, 0.08f, 10, fill)
-    DrawRectangleRoundedLinesEx(bounds, 0.08f, 10, 1.0f, border)
-    Text((TextProps){
-        .bounds = {
-            (float)(x + (w - label_w) / 2),
-            (float)GetUIControlTextY(label, y, h, Text16),
-            0.0f,
-            0.0f
-        },
-        .text = label,
-        .font = Text16,
-        .color = disabled ? Fade(GetThemeText(), 0.42f) : GetThemeText(),
-        .wrap = TextWrapNone
+    return Button((ButtonProps){
+        .bounds = {(float)x, (float)y, (float)w, (float)h},
+        .id = id, .label = label, .font = Text16,
+        .disabled = disabled,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     })
-    if disabled {
-        return 0
-    }
-    return InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = id})
 }
 
 app_sidebar_settings_button :: (app: InnerBreeze*, x: int, y: int*, w: int,
@@ -1171,7 +1168,6 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     }
 
     for int i = 0; i < draw_count; i++ {
-        trash_hover := 0
         icon_w := Scale(36)
         icon_gap := Scale(8)
         dropdown_x := scaffold.page.content_x + handle_w
@@ -1197,10 +1193,18 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
             action_index = i
             action_route = app_nav_route_for_option(selected[i])
         }
-        if PaddedIconBtn(0, trash_x, dropdown_y - Scale(2),
-                               Scale(20), Scale(8),
-                               app->icons[UI_ICON_TYPE_TRASH],
-                               &trash_hover) &&
+        if Button((ButtonProps){
+            .id = 0,
+            .bounds = {(float)(trash_x), (float)(dropdown_y - Scale(2)),
+                       (float)((Scale(20)) + (Scale(8)) * 2),
+                       (float)((Scale(20)) + (Scale(8)) * 2)},
+            .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+            .style = {.normal = {
+                .fields = StyleIconSize,
+                .icon_size = (float)(Scale(20)) * 1000.0f / Scale(1000)
+            }}
+        }) &&
            action == APP_NAV_CONFIG_ACTION_NONE {
             action = APP_NAV_CONFIG_ACTION_REMOVE
             action_index = i
@@ -1213,7 +1217,6 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     if reorder.dragging && reorder.active_index >= 0 &&
        reorder.active_index < draw_count {
         i := reorder.active_index
-        trash_hover := 0
         icon_w := Scale(36)
         icon_gap := Scale(8)
         dropdown_x := scaffold.page.content_x + handle_w
@@ -1231,7 +1234,6 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
         Dropdown(740 + i, dropdown_x, dropdown_y,
                                 dropdown_w, button_h, options,
                                 option_count, &selected[i])
-        app_nav_mark_int_used(trash_hover)
         Icon(0, trash_x + Scale(8), dropdown_y + Scale(6),
              Scale(20), UI_ICON_TYPE_TRASH, GetThemeIcon())
     }
@@ -1239,10 +1241,15 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     y += row_h * draw_count
 
     if draw_count < option_count {
-        add_hover := 0
-        if StyledButton(scaffold.page.content_x, y, scaffold.page.content_w, button_h,
-                               GetLocaleText("customize_nav_add"),
-                               ButtonStyleSecondary, 0, &add_hover) &&
+
+        if Button((ButtonProps){
+            .bounds = {(float)(scaffold.page.content_x), (float)(y), (float)(scaffold.page.content_w), (float)(button_h)},
+            .label = GetLocaleText("customize_nav_add"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) &&
            action == APP_NAV_CONFIG_ACTION_NONE {
             action = APP_NAV_CONFIG_ACTION_ADD
         }

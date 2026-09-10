@@ -76,6 +76,8 @@ list(REMOVE_ITEM KRYON_SOURCES
     "${KRYON_DIR}/src/scene/node_collision_shape2d.c")
 file(GLOB KRYON_K2C_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/k2c/*.c")
 file(GLOB KRYON_KIR_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/kir/*.c")
+file(GLOB KRYON_K2C_HEADERS CONFIGURE_DEPENDS
+    "${KRYON_DIR}/cmd/k2c/*.h" "${KRYON_DIR}/cmd/kir/*.h")
 list(APPEND KRYON_K2C_SOURCES ${KRYON_KIR_SOURCES})
 list(SORT KRYON_K2C_SOURCES)
 find_program(HOST_CC NAMES cc clang gcc REQUIRED)
@@ -118,7 +120,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/host-tools"
     # VERBATIM escapes embedded quotes, so unquoted -I paths (no spaces here)
     COMMAND "${HOST_CC}" -Wall -Wextra -O2 -I${KRYON_DIR}/cmd/kir -I${KRYON_DIR}/cmd/k2c -o "${KRYON_K2C}" ${KRYON_K2C_SOURCES}
-    DEPENDS ${KRYON_K2C_SOURCES}
+    DEPENDS ${KRYON_K2C_SOURCES} ${KRYON_K2C_HEADERS}
     VERBATIM
 )
 # Kryon ships part of its runtime as Kry modules transpiled at build time
@@ -126,11 +128,13 @@ add_custom_command(
 # the generated sources and put their directory on the include path so
 # kryon's own C files can #include "runtime/*.h".
 set(KRYON_RUNTIME_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated-runtime")
-set(KRYON_RUNTIME_KRY_MODULES
-    runtime/button.kry
-    runtime/theme.kry
-    runtime/menu_button.kry
-    runtime/split_button.kry)
+file(GLOB KRYON_RUNTIME_MODULE_FILES CONFIGURE_DEPENDS
+    "${KRYON_DIR}/runtime/*.kry")
+set(KRYON_RUNTIME_KRY_MODULES)
+foreach(kryon_module_file ${KRYON_RUNTIME_MODULE_FILES})
+    file(RELATIVE_PATH kryon_module "${KRYON_DIR}" "${kryon_module_file}")
+    list(APPEND KRYON_RUNTIME_KRY_MODULES "${kryon_module}")
+endforeach()
 set(KRYON_RUNTIME_KRY_FILES)
 set(KRYON_RUNTIME_GENERATED_C)
 foreach(kryon_module ${KRYON_RUNTIME_KRY_MODULES})

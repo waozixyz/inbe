@@ -37,6 +37,8 @@ EListState :: struct {
     comment_cursor: int
     comment_focused: int
     editing_item: int
+    input_committed: int
+    input_error: int
     input: [ELIST_TITLE_SIZE]char
     comment_input: [ELIST_COMMENT_SIZE]char
 }

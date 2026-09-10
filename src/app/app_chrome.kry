@@ -4,7 +4,7 @@
 
 app_draw_close_title_bar :: (app: InnerBreeze*, title: const char*,
                              height: int) -> int #export {
-    hover := 0
+
     button_size := Scale(22)
     padding := Scale(11)
     button_total := button_size + padding * 2
@@ -13,8 +13,18 @@ app_draw_close_title_bar :: (app: InnerBreeze*, title: const char*,
     if y < 0 { y = 0 }
     TitleBar(title, height)
     if app != nil && !app->modal.active &&
-       PaddedIconBtn(0, x, y, button_size, padding,
-                     app->icons[UI_ICON_TYPE_X], &hover) {
+       Button((ButtonProps){
+           .id = 0,
+           .bounds = {(float)(x), (float)(y),
+                      (float)((button_size) + (padding) * 2),
+                      (float)((button_size) + (padding) * 2)},
+           .icon = app->icons[UI_ICON_TYPE_X], .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+           .style = {.normal = {
+               .fields = StyleIconSize,
+               .icon_size = (float)(button_size) * 1000.0f / Scale(1000)
+           }}
+       }) {
         return 1
     }
     return 0
@@ -28,7 +38,7 @@ app_scaffold_close_title :: (title: const char*, height: int,
 app_draw_close_dropdown_title_bar :: (app: InnerBreeze*,
                                       dropdown: UITitleBarDropdown,
                                       height: int) -> int #export {
-    hover := 0
+
     button_size := Scale(22)
     padding := Scale(11)
     button_total := button_size + padding * 2
@@ -47,8 +57,18 @@ app_draw_close_dropdown_title_bar :: (app: InnerBreeze*,
     Dropdown(dropdown.id, dropdown_x, dropdown_y, dropdown_w, dropdown_h,
              dropdown.options, dropdown.option_count, dropdown.selected_index)
     if app != nil && !app->modal.active &&
-       PaddedIconBtn(0, close_x, close_y, button_size, padding,
-                     app->icons[UI_ICON_TYPE_X], &hover) {
+       Button((ButtonProps){
+           .id = 0,
+           .bounds = {(float)(close_x), (float)(close_y),
+                      (float)((button_size) + (padding) * 2),
+                      (float)((button_size) + (padding) * 2)},
+           .icon = app->icons[UI_ICON_TYPE_X], .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+           .style = {.normal = {
+               .fields = StyleIconSize,
+               .icon_size = (float)(button_size) * 1000.0f / Scale(1000)
+           }}
+       }) {
         return 1
     }
     return 0

@@ -62,9 +62,14 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
     *y += GetNodeHeight(NodeThemeSettings(settings))
     *y += Scale(24)
 
-    hover := 0
-    if StyledButton(x, *y, w, Scale(44), GetLocaleText("customize_nav_button"),
-                    ButtonStylePrimary, app->modal.active, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(44))},
+        .label = GetLocaleText("customize_nav_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled,
+        .disabled = app->modal.active
+    }) {
         app_open_customize_nav(app)
     }
     *y += Scale(58)
@@ -80,12 +85,17 @@ draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     step_y := *y + Scale(28) - Scale(14)
     slider_x := x + step_w + step_gap
     slider_w := w - (step_w + step_gap) * 2
-    minus_hover := 0
-    plus_hover := 0
+
+
     step_changed := 0
     slider_changed := 0
     snprintf(scale_text, sizeof(scale_text), "%.1fx", effective)
-    if TextButton(141, x + step_w / 2, step_y, "-", &minus_hover) {
+    if Button((ButtonProps){
+        .id = 141, .label = "-", .font = GetFontSize(),
+        .bounds = {(x + step_w / 2) - fmaxf(TextWidth("-", GetFontSize()) + Scale(16), Scale(34)) / 2.0f,
+                   (float)(step_y), fmaxf(TextWidth("-", GetFontSize()) + Scale(16), Scale(34)), fmaxf(TextLineHeight(GetFontSize()) + Scale(8), Scale(34))},
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+    }) {
         if scale_value > 5 {
             scale_value = scale_value - 1
             step_changed = 1
@@ -110,7 +120,12 @@ draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         }
     }
     if slider_w < w {
-        if TextButton(142, x + w - step_w / 2, step_y, "+", &plus_hover) {
+        if Button((ButtonProps){
+        .id = 142, .label = "+", .font = GetFontSize(),
+        .bounds = {(x + w - step_w / 2) - fmaxf(TextWidth("+", GetFontSize()) + Scale(16), Scale(34)) / 2.0f,
+                   (float)(step_y), fmaxf(TextWidth("+", GetFontSize()) + Scale(16), Scale(34)), fmaxf(TextLineHeight(GetFontSize()) + Scale(8), Scale(34))},
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+    }) {
             if scale_value < 25 {
                 scale_value = scale_value + 1
                 step_changed = 1

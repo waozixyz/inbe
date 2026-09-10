@@ -72,13 +72,17 @@ draw_entry :: (app: InnerBreeze*, index: int, x: int, w: int, y: int*) -> int #p
         app->settings_dirty = 1
         save_settings(app)
     }
-    if IconButton((IconButtonProps){
+    if Button((ButtonProps){
         .bounds = {(float)(x + w - del),
                    (float)(*y + (row_h - del) / 2),
                    (float)del, (float)del},
         .icon = app->icons[UI_ICON_TYPE_X],
-        .icon_size = Scale(14),
-        .icon_padding = Scale(8)
+        .icon_only = 1, .circle = 0,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .style = {.normal = {
+            .fields = StyleIconSize,
+            .icon_size = (float)(Scale(14)) * 1000.0f / Scale(1000)
+        }}
     }) {
         remove_reminder(app, index)
         return 1
@@ -182,8 +186,8 @@ handle_overlays :: (app: InnerBreeze*) {
 }
 
 draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
-    test_hover := 0
-    add_hover := 0
+
+
     friend_toggle := 0
     i := 0
 
@@ -192,7 +196,7 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     }
 
     #if ANDROID {
-        push_hover := 0
+
 
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
@@ -220,9 +224,14 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
             })
         }
         *y += Scale(44)
-        if StyledButton(x, *y, w, Scale(34),
-                         GetLocaleText("notifications_push_setup"),
-                         ButtonStyleSecondary, 0, &push_hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(34))},
+            .label = GetLocaleText("notifications_push_setup"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             platform_android_push_refresh_distributors(app)
             if app->push_distributor_count > 0 {
                 app->push_picker_open = 1
@@ -256,9 +265,14 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     }
     *y += Scale(16)
 
-    if StyledButton(x, *y, w, Scale(34),
-                     GetLocaleText("notifications_test"),
-                     ButtonStyleSecondary, 0, &test_hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(34))},
+        .label = GetLocaleText("notifications_test"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         app_notifications_send_test_notification(app)
     }
     *y += Scale(50)
@@ -279,9 +293,14 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     }
 
     if app->reminder_count < APP_REMINDER_MAX {
-        if StyledButton(x, *y, w, Scale(34),
-                         GetLocaleText("reminder_add"),
-                         ButtonStyleSecondary, 0, &add_hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(34))},
+            .label = GetLocaleText("reminder_add"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             r: AppReminder* = &app->reminders[app->reminder_count]
             r->practice = 0
             r->hour = 8

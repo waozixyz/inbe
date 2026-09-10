@@ -42,7 +42,7 @@ whm_draw_progressive_start_speed_editor :: (app: InnerBreeze*) #private {
     close_size := Scale(22)
     close_padding := Scale(8)
     close_w := close_size + close_padding * 2
-    close_hover := 0
+
     max_speed := app->breathing.speed_level
     start_speed := clampi(app->breathing.progressive_start_speed,
                           SETTINGS_SPEED_MIN, max_speed)
@@ -87,9 +87,18 @@ whm_draw_progressive_start_speed_editor :: (app: InnerBreeze*) #private {
         .wrap=TextWrapNone
     })
 
-    if PaddedIconBtn(0, modal_x + modal_w - close_w - Scale(6),
-                           modal_y + Scale(6), close_size, close_padding,
-                           app->icons[UI_ICON_TYPE_X], &close_hover) {
+    if Button((ButtonProps){
+        .id = 0,
+        .bounds = {(float)(modal_x + modal_w - close_w - Scale(6)), (float)(modal_y + Scale(6)),
+                   (float)((close_size) + (close_padding) * 2),
+                   (float)((close_size) + (close_padding) * 2)},
+        .icon = app->icons[UI_ICON_TYPE_X], .icon_only = 1,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .style = {.normal = {
+            .fields = StyleIconSize,
+            .icon_size = (float)(close_size) * 1000.0f / Scale(1000)
+        }}
+    }) {
         app_close_modal(app)
         return
     }
@@ -254,7 +263,7 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
     if app->breathing.progressive_speed {
         modify_w := TextWidth(GetLocaleText("modify_start_speed_button"),
                                   GetFontSize()) + Scale(24)
-        modify_hover := 0
+
 
         if modify_w > inner_w {
             modify_w = inner_w
@@ -267,9 +276,14 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
                 app->breathing.progressive_start_speed
             app->settings_dirty = 1
         }
-        if StyledButton(inner_x, inner_y, modify_w, Scale(48),
-                               GetLocaleText("modify_start_speed_button"),
-                               ButtonStyleSecondary, 0, &modify_hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(inner_x), (float)(inner_y), (float)(modify_w), (float)(Scale(48))},
+            .label = GetLocaleText("modify_start_speed_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             app_open_modal(app, UIModalEditProgressiveStartSpeed)
         }
     }
@@ -401,14 +415,19 @@ whm_config_draw_reset_button :: (app: InnerBreeze*, content_x: int, content_w: i
     reset_w := TextWidth(GetLocaleText("reset_to_defaults_label"),
                              GetFontSize()) + Scale(24)
     reset_h := Scale(48)
-    reset_hover := 0
+
 
     if reset_w > content_w {
         reset_w = content_w
     }
-    if StyledButton(content_x + content_w - reset_w, y, reset_w, reset_h,
-                           GetLocaleText("reset_to_defaults_label"),
-                           ButtonStyleSecondary, 0, &reset_hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(content_x + content_w - reset_w), (float)(y), (float)(reset_w), (float)(reset_h)},
+        .label = GetLocaleText("reset_to_defaults_label"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         speed = DefaultSpeedLevel
         max_rounds = DefaultMaxRounds
         max_breaths = DefaultMaxBreaths

@@ -315,7 +315,7 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
             trash_x := content_x + content_w - icon_w
             row_font := GetSmallFontSize()
             summary_x := 0
-            hover_trash := 0
+
 
             if ctx->entries[i].activity != activity {
                 continue
@@ -358,10 +358,18 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                     .color=(DarkenUIColor(GetThemeText(), 12)),
                     .wrap=TextWrapNone
                 })
-                if PaddedIconBtn(0, trash_x, y - Scale(4),
-                                       icon_size, icon_padding,
-                                       app->icons[UI_ICON_TYPE_TRASH],
-                                       &hover_trash) {
+                if Button((ButtonProps){
+                    .id = 0,
+                    .bounds = {(float)(trash_x), (float)(y - Scale(4)),
+                               (float)((icon_size) + (icon_padding) * 2),
+                               (float)((icon_size) + (icon_padding) * 2)},
+                    .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
+                    .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+                    .style = {.normal = {
+                        .fields = StyleIconSize,
+                        .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
+                    }}
+                }) {
                     if data_delete_session(ctx->entries[i].path) {
                         habit_session_changed(app, ctx->count)
                     }
@@ -389,8 +397,8 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                                  app->habit_session_edit.round == r &&
                                  strcmp(app->habit_session_edit.path,
                                         ctx->entries[i].path) == 0
-                hover_round_edit := 0
-                hover_round_trash := 0
+
+
 
                 FormatLocaleText(round_line, sizeof(round_line),
                                     "round_result_label", r + 1,
@@ -411,12 +419,20 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                     draw_round_line(round_line, round_seconds, round_text_x,
                                        y, round_text_w, Scale(24),
                                        row_font, editing_round)
-                    if PaddedIconBtn(0, round_edit_x, y - Scale(6),
-                                           icon_size, icon_padding,
-                                           app->icons[editing_round
+                    if Button((ButtonProps){
+                        .id = 0,
+                        .bounds = {(float)(round_edit_x), (float)(y - Scale(6)),
+                                   (float)((icon_size) + (icon_padding) * 2),
+                                   (float)((icon_size) + (icon_padding) * 2)},
+                        .icon = app->icons[editing_round
                                                       ? UI_ICON_TYPE_SAVE
-                                                      : UI_ICON_TYPE_EDIT],
-                                           &hover_round_edit) {
+                                                      : UI_ICON_TYPE_EDIT], .icon_only = 1,
+                        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+                        .style = {.normal = {
+                            .fields = StyleIconSize,
+                            .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
+                        }}
+                    }) {
                         if editing_round {
                             if habit_session_commit_edit(app, &ctx->entries[i]) {
                                 return y
@@ -426,10 +442,18 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                         }
                         return y
                     }
-                    if PaddedIconBtn(0, round_trash_x, y - Scale(6),
-                                           icon_size, icon_padding,
-                                           app->icons[UI_ICON_TYPE_TRASH],
-                                           &hover_round_trash) {
+                    if Button((ButtonProps){
+                        .id = 0,
+                        .bounds = {(float)(round_trash_x), (float)(y - Scale(6)),
+                                   (float)((icon_size) + (icon_padding) * 2),
+                                   (float)((icon_size) + (icon_padding) * 2)},
+                        .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
+                        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+                        .style = {.normal = {
+                            .fields = StyleIconSize,
+                            .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
+                        }}
+                    }) {
                         if delete_round(&ctx->entries[i], r) {
                             habit_session_changed(app, ctx->count)
                         }
@@ -459,16 +483,21 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
             plus_x := content_x + content_w - step_w
             label_x := minus_x + step_w + gap
             label_w := plus_x - label_x - gap
-            hover := 0
+
             total_text: [64] char = {0}
 
             y += Scale(6)
             if draw {
                 FormatLocaleText(total_text, sizeof(total_text),
                                     "habit_session_total_count", total_count)
-                if StyledButton(minus_x, y, step_w, button_h, "-",
-                                       ButtonStyleSecondary,
-                                       total_count <= minimum_count, &hover) {
+                if Button((ButtonProps){
+                    .bounds = {(float)(minus_x), (float)(y), (float)(step_w), (float)(button_h)},
+                    .label = "-",
+                    .font = GetFontSize(),
+                    .tone = ButtonToneNeutral,
+                    .emphasis = ButtonEmphasisSoft,
+                    .disabled = total_count <= minimum_count
+                }) {
                     habit_apply_count_action(app, app->habit_detail_index,
                                                 ctx->day_filter, -1,
                                                 minimum_count)
@@ -484,8 +513,14 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                     .color=(GetThemeText()),
                     .wrap=TextWrapNone
                 })
-                if StyledButton(plus_x, y, step_w, button_h, "+",
-                                       ButtonStyleSecondary, 0, &hover) {
+                if Button((ButtonProps){
+                    .bounds = {(float)(plus_x), (float)(y), (float)(step_w), (float)(button_h)},
+                    .label = "+",
+                    .font = GetFontSize(),
+                    .tone = ButtonToneNeutral,
+                    .emphasis = ButtonEmphasisSoft,
+                    .disabled = 0
+                }) {
                     habit_apply_count_action(app, app->habit_detail_index,
                                                 ctx->day_filter, 1,
                                                 minimum_count)
@@ -569,10 +604,16 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
 
 keyboard_key :: (x: int, y: int, w: int, h: int,
                     label: const char*) -> int {
-    hover := 0
 
-    return StyledButton(x, y, w, h, label,
-                               ButtonStyleSecondary, 0, &hover)
+
+    return Button((ButtonProps){
+        .bounds = {(float)(x), (float)(y), (float)(w), (float)(h)},
+        .label = label,
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    })
 }
 
 clamp_cursor :: (app: InnerBreeze*) {

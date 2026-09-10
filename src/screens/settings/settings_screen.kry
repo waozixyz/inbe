@@ -265,8 +265,6 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
                             x: int, y: int, w: int, id: int) -> int #private {
     h := Scale(56)
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    mouse := GetMousePosition()
-    hover := CheckCollisionPointRec(mouse, bounds) && !UIInputCapturesClick(mouse)
     icon_size := Scale(24)
     icon_x := x + Scale(14)
     text_x := icon_x + icon_size + Scale(14)
@@ -274,11 +272,12 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
     value_w := TextWidth(row.value, Text14)
     title_w := w - (text_x - x) - value_w - chevron_w - Scale(30)
 
-    DrawRectangleRounded(bounds, 0.05f, 10,
-                         hover ? Fade(GetThemeSurface(), 0.34f)
-                               : Fade(GetThemeSurface(), 0.14f))
-    DrawRectangleRoundedLinesEx(bounds, 0.05f, 10, 1.0f,
-                                Fade(GetThemeText(), hover ? 0.13f : 0.06f))
+    clicked := Button((ButtonProps){
+        .bounds = bounds, .id = id,
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = app->modal.active
+    })
     Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
          row.icon, LightenUIColor(GetThemeButtonHover(), 54))
     Text((TextProps){
@@ -310,7 +309,7 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
         .color=(Fade(GetThemeText(), 0.66f)),
         .wrap=TextWrapNone
     })
-    if InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = id}) {
+    if clicked {
         if row.route != APP_NAV_ROUTE_NONE {
             app_apply_nav_route(app, row.route)
         } else {
@@ -329,18 +328,17 @@ settings_mobile_profile_strip :: (app: InnerBreeze*, x: int, y: int, w: int) -> 
     h := Scale(76)
     avatar := Scale(52)
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    mouse := GetMousePosition()
-    hover := CheckCollisionPointRec(mouse, bounds) && !UIInputCapturesClick(mouse)
     avatar_x := x + Scale(12)
     avatar_y := y + (h - avatar) / 2
     text_x := avatar_x + avatar + Scale(14)
 
     app_nav_profile_identity(app, label, sizeof(label), subtitle, sizeof(subtitle))
-    DrawRectangleRounded(bounds, 0.06f, 10,
-                         hover ? Fade(GetThemeSurface(), 0.36f)
-                               : Fade(GetThemeSurface(), 0.18f))
-    DrawRectangleRoundedLinesEx(bounds, 0.06f, 10, 1.0f,
-                                Fade(GetThemeText(), hover ? 0.14f : 0.07f))
+    clicked := Button((ButtonProps){
+        .bounds = bounds, .id = 7350,
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = app->modal.active
+    })
     DrawCircle(avatar_x + avatar / 2, avatar_y + avatar / 2, avatar / 2,
                LightenUIColor(GetThemeButton(), 30))
     DrawTexturePro(app->icons[app->profile_picture_icon],
@@ -368,7 +366,7 @@ settings_mobile_profile_strip :: (app: InnerBreeze*, x: int, y: int, w: int) -> 
             .wrap=TextWrapNone
         })
     }
-    if InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = 7350}) {
+    if clicked {
         app_apply_nav_route(app, APP_NAV_ROUTE_PROFILE)
         return 1
     }
@@ -468,13 +466,7 @@ settings_draw_tab_content :: (app: InnerBreeze*, tab: int, x: int, w: int,
 settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int,
                                      w: int, h: int, id: int) -> int #private {
     active := app != NULL && app->settings_tab == tab
-    mouse := GetMousePosition()
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    hover := CheckCollisionPointRec(mouse, bounds) && !UIInputCapturesClick(mouse)
-    fill := active ? Fade(GetThemeButton(), 0.38f) :
-            (hover ? Fade(GetThemeSurface(), 0.58f) : Fade(GetThemeSurface(), 0.10f))
-    border := active ? Fade(GetThemeButtonHover(), 0.52f) :
-              Fade(GetThemeText(), hover ? 0.12f : 0.04f)
     text_color := active ? WHITE : GetThemeText()
     icon_color := active ? LightenUIColor(GetThemeButtonHover(), 64) : GetThemeText()
     subtitle_color := active ? Fade(WHITE, 0.72f) : Fade(GetThemeText(), 0.62f)
@@ -484,8 +476,13 @@ settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int
     title_y := y + Scale(16)
     subtitle_y := y + Scale(40)
 
-    DrawRectangleRounded(bounds, 0.055f, 10, fill)
-    DrawRectangleRoundedLinesEx(bounds, 0.055f, 10, 1.0f, border)
+    clicked := Button((ButtonProps){
+        .bounds = bounds, .id = id,
+        .tone = active ? ButtonToneAccent : ButtonToneNeutral,
+        .selected = active,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = app->modal.active
+    })
     Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
          tab == SETTINGS_TAB_ABOUT ? UI_ICON_TYPE_TEXT :
          tab == SETTINGS_TAB_AUDIO ? UI_ICON_TYPE_SOUND :
@@ -512,7 +509,7 @@ settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int
             .wrap=TextWrapNone
         })
     }
-    if InvisibleButton((InvisibleButtonProps){.bounds = bounds, .id = id}) {
+    if clicked {
         if app != NULL && app->settings_tab != tab {
             app->settings_tab = tab
             app->settings_scroll = 0

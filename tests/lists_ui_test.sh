@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+binary="${1:?native binary required}"
+test_dir="$(mktemp -d /tmp/inbe-lists-ui.XXXXXX)"
+APP_SHOT_WINDOW=1 "$binary" --screenshot "$test_dir/start.png" \
+    --screenshot-scene lists --screenshot-width 900 --screenshot-height 720 \
+    --screenshot-dark 1 > "$test_dir/app.log" 2>&1 &
+app_pid=$!
+trap 'kill "$app_pid" 2>/dev/null || true' EXIT
+db="/tmp/breathing-screenshot-$app_pid/breathing.db"
+window=""
+for attempt in {1..80}; do
+    window="$(xdotool search --onlyvisible --pid "$app_pid" 2>/dev/null | head -1 || true)"
+    if [[ -n "$window" && -f "$db" ]]; then break; fi
+    sleep 0.1
+done
+[[ -n "$window" && -f "$db" ]]
+sleep 1
+xdotool windowfocus --sync "$window"
+tap() {
+    xdotool mousemove --window "$window" "$1" "$2" mousedown 1 sleep 0.08 mouseup 1
+    sleep 0.3
+}
+sql() { sqlite3 -cmd '.timeout 2000' "$db" "$1"; }
+expect() {
+    [[ "$1" == "$2" ]] || { echo "FAIL $3: got '$1', expected '$2' ($test_dir)"; exit 1; }
+}
+tap 600 34
+tap 300 90
+xdotool type --clearmodifiers 'Weekend task'
+xdotool keydown Return sleep 0.15 keyup Return
+sleep 0.5
+import -window "$window" "$test_dir/after-task.png"
+expect "$(sql "SELECT l.title FROM elist_items i JOIN elist_lists l ON i.list_id=l.id WHERE i.title='Weekend task'")" 'Weekend' 'tab selects destination list'
+tap 740 34
+tap 300 90
+xdotool type --clearmodifiers 'Travel'
+xdotool keydown Return sleep 0.15 keyup Return
+sleep 0.5
+expect "$(sql "SELECT COUNT(*) FROM elist_lists WHERE title='Travel'")" '1' 'create list with Enter'
+tap 300 90
+xdotool type --clearmodifiers 'Pack bag'
+xdotool keydown Return sleep 0.15 keyup Return
+sleep 0.5
+expect "$(sql "SELECT l.title FROM elist_items i JOIN elist_lists l ON i.list_id=l.id WHERE i.title='Pack bag'")" 'Travel' 'new list is selected'
+import -window "$window" "$test_dir/tabs.png"
+echo "PASS list tabs, task destination and new-list selection ($test_dir)"

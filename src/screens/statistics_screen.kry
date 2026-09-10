@@ -259,46 +259,21 @@ statistics_draw_hold_range_selector :: (app: InnerBreeze*, x: int, y: int, w: in
     h := Scale(34)
     segment_w := w / 2
     clicked := 0
-    mouse_world := GetScreenToWorld2D(GetMousePosition(), app->camera)
 
     for int i = 0; i < 2; i++ {
         segment_x := x + i * segment_w
         current_w := i == 1 ? x + w - segment_x : segment_w
-        rect := (Rectangle){segment_x, y, current_w, h}
-        active_hit := CheckCollisionPointRec(mouse_world, rect) && !UIInputCapturesClick(mouse_world)
-        hovered := active_hit && UIHoverEffectsEnabled()
-        active := i == selected
-        fill := active ? GetThemeButton() : DarkenUIColor(GetThemeBackground(), 10)
-        top := LightenUIColor(fill, 35)
-        bottom := DarkenUIColor(fill, 45)
-        font := GetFontSize()
-        text_w := 0
-
-        if active_hit {
-            MarkUIClickable()
-            if hovered && !active {
-                fill = GetThemeButtonHover()
-                top = DarkenUIColor(GetThemeButtonHover(), 40)
-                bottom = LightenUIColor(GetThemeButtonHover(), 40)
-            }
-        }
-
-        DrawRectangle(segment_x, y, current_w, h, fill)
-        Bevel(segment_x, y, current_w, h, top, bottom)
-        text_w = TextWidth(labels[i], font)
-        Text((TextProps){
-            .bounds={(segment_x + (current_w - text_w) / 2), (GetUIControlTextY(labels[i], y, h, font)), 0, 0},
-            .text=(labels[i]),
-            .font=(font),
-            .color=(GetThemeText()),
-            .wrap=TextWrapNone
-        })
-        if active_hit && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !UIInputCapturesClick(mouse_world) && selected != i {
+        if Button((ButtonProps){
+            .bounds = {(float)segment_x, (float)y, (float)current_w, (float)h},
+            .id = 24700 + i, .label = labels[i], .font = GetFontSize(),
+            .tone = i == selected ? ButtonToneAccent : ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft, .selected = i == selected,
+            .disabled = app->modal.active
+        }) && selected != i {
             app->habits.hold_stats_range_days = values[i]
             clicked = 1
         }
     }
-
     return clicked
 }
 

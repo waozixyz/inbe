@@ -745,6 +745,12 @@ no-vendor-edits:
 clean-text-api-check:
 	python3 $(KRYON_DIR)/scripts/check-clean-text-api.py src tests
 
+.PHONY: button-api-check
+button-api-check:
+	bash scripts/check-button-api.sh
+
+test: button-api-check
+
 secret-check:
 	python3 ./scripts/check-secrets.py --working-tree
 
@@ -760,6 +766,10 @@ embedded-image-assets-check: $(EMBEDDED_ASSETS_C)
 .PHONY: habits-cards-ui-test
 habits-cards-ui-test: $(TARGET)
 	xvfb-run -a bash tests/habits_cards_ui_test.sh "$(abspath $(TARGET))"
+
+.PHONY: lists-ui-test
+lists-ui-test: $(TARGET)
+	xvfb-run -a bash tests/lists_ui_test.sh "$(abspath $(TARGET))"
 
 test: clean-text-api-check no-vendor-edits secret-check $(TESTS) font-bundle-check audio-test-fixture-check embedded-image-assets-check
 	bash ./tests/screenshot_scene_test.sh
@@ -875,6 +885,16 @@ $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/ap
 		$(KRYON_DIR)/src/core/app_shell.c \
 		$(KRY_GEN_DIR)/src/app/customize_nav.c \
 		$(KRY_GEN_DIR)/src/widgets/bottom_nav.c
+
+.PHONY: elist-screen-test
+test: elist-screen-test
+elist-screen-test: $(TEST_BIN_DIR)/elist_screen_test
+	$<
+
+$(TEST_BIN_DIR)/elist_screen_test: tests/elist_screen_test.c $(KRY_GEN_DIR)/src/screens/elist_screen.c src/app/app.h | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
+		-Wl,--gc-sections -o $@ tests/elist_screen_test.c
 
 $(TEST_BIN_DIR)/habit_form_test: tests/habit_form_test.c $(KRY_GEN_DIR)/src/screens/habits/edit.c src/app/app.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \

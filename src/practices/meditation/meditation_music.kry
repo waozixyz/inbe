@@ -664,7 +664,7 @@ meditation_music_draw_practice_settings :: (app: InnerBreeze*,
                                                show_status: int) {
     button_h := Scale(48)
     button_w: int
-    hover := 0
+
     installed: int
     selected_track: int
     selection: int
@@ -748,14 +748,14 @@ meditation_music_draw_practice_settings :: (app: InnerBreeze*,
         if button_w > content_w {
             button_w = content_w
         }
-        if StyledButton(content_x,
-                               *y,
-                               button_w,
-                               button_h,
-                               test_label,
-                               ButtonStyleSecondary,
-                               0,
-                               &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(content_x), (float)(*y), (float)(button_w), (float)(button_h)},
+            .label = test_label,
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             app->meditation.music_track =
                 app->meditation.music_practice_tracks[practice]
             test_track(app)
@@ -775,14 +775,14 @@ meditation_music_draw_practice_settings :: (app: InnerBreeze*,
         if button_w > content_w {
             button_w = content_w
         }
-        if StyledButton(content_x,
-                               *y,
-                               button_w,
-                               button_h,
-                               download_label,
-                               ButtonStylePrimary,
-                               0,
-                               &hover) {
+        if Button((ButtonProps){
+            .bounds = {(float)(content_x), (float)(*y), (float)(button_w), (float)(button_h)},
+            .label = download_label,
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             meditation_music_start_download(app)
         }
         *y += button_h + Scale(12)

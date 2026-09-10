@@ -717,14 +717,7 @@ habit_calendar_day_cell :: (app: InnerBreeze*, x: int, y: int, w: int, h: int,
                                label: const char*, progress: float,
                                disabled: int, current_day: int,
                                accent: Color) -> int {
-    mouse_world: Vector2
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
-    default_style: int = GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT
-    inside: int
-    hovered: int
-    fill: Color = default_style
-        ? GetThemeSurface()
-        : DarkenUIColor(GetThemeBackground(), 10)
     ring: Color = Fade(GetThemeText(), disabled ? 0.16f : 0.28f)
     progress_ring: Color = accent
     today_ring: Color = GetThemeButtonHover()
@@ -752,41 +745,10 @@ habit_calendar_day_cell :: (app: InnerBreeze*, x: int, y: int, w: int, h: int,
         radius = Scale(10)
     }
 
-    if app != nil {
-        mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera)
-    } else {
-        mouse_world = GetMousePosition()
-    }
-
-    inside = !disabled &&
-             CheckCollisionPointRec(mouse_world, bounds) &&
-             !UIInputCapturesClick(mouse_world)
-    hovered = inside && UIHoverEffectsEnabled()
-
-    if default_style {
-        if hovered {
-            fill = LightenUIColor(fill, 8)
-            progress_ring = LightenUIColor(progress_ring, 18)
-        }
-    } else {
-        if hovered {
-            fill = GetThemeButtonHover()
-        }
-    }
-
-    if default_style {
-        DrawRectangleRounded(bounds, 0.24f, 10, fill)
-        if hovered {
-            DrawRectangleRoundedLinesEx(bounds, 0.32f, 10,
-                                          1.0f,
-                                          Fade(GetThemeText(), 0.20f))
-        }
-    } else {
-        DrawRectangle(x, y, w, h, fill)
-        Bevel(x, y, w, h,
-                       LightenUIColor(fill, hovered ? 36 : 28),
-                       DarkenUIColor(fill, hovered ? 42 : 34))
-    }
+    clicked := Button((ButtonProps){
+        .bounds = bounds, .disabled = disabled,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+    })
 
     DrawCircleLinesEx((Vector2){center_x, center_y}, radius,
                       ring_width, ring)
@@ -812,11 +774,7 @@ habit_calendar_day_cell :: (app: InnerBreeze*, x: int, y: int, w: int, h: int,
         .wrap=TextWrapNone
     })
 
-    if inside && app != nil {
-        MarkUIClickable()
-    }
-
-    return inside && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
+    return clicked
 }
 
 habit_calendar_day_metadata :: (app: InnerBreeze*, x: int, y: int,
@@ -985,14 +943,7 @@ habit_weekly_summary_button :: (app: InnerBreeze*, x: int, y: int,
                                w: int, h: int, completed: int,
                                disabled: int, primary: const char*,
                                secondary: const char*) -> int #private {
-    mouse_world: Vector2
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
-    default_style: int = GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT
-    active: int
-    hovered: int
-    fill: Color = completed
-        ? GetThemeButton()
-        : (default_style ? GetThemeSurface() : DarkenUIColor(GetThemeBackground(), 10))
     text_color: Color = disabled
         ? DarkenUIColor(GetThemeText(), 35)
         : GetThemeText()
@@ -1006,43 +957,11 @@ habit_weekly_summary_button :: (app: InnerBreeze*, x: int, y: int,
         return 0
     }
 
-    mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera)
-    active = CheckCollisionPointRec(mouse_world, bounds) &&
-             !UIInputCapturesClick(mouse_world)
-    hovered = active && UIHoverEffectsEnabled()
-
-    if active {
-        if disabled {
-            MarkUIDisabled()
-        } else {
-            MarkUIClickable()
-        }
-    }
-
-    active = active && !disabled
-    hovered = hovered && !disabled
-
-    if hovered {
-        fill = default_style && !completed
-            ? Fade(GetThemeButtonHover(), 0.22f)
-            : GetThemeButtonHover()
-    }
-    if !disabled && completed {
-        text_color = habit_text_color_for_background(fill)
-    }
-
-    if default_style {
-        DrawRectangleRounded(bounds, 0.18f, 10, fill)
-        if hovered {
-            DrawRectangleRoundedLinesEx(bounds, 0.18f, 10, 1.0f,
-                                          Fade(GetThemeText(), 0.22f))
-        }
-    } else {
-        DrawRectangle(x, y, w, h, fill)
-        Bevel(x, y, w, h,
-                       LightenUIColor(fill, 36),
-                       DarkenUIColor(fill, 42))
-    }
+    clicked := Button((ButtonProps){
+        .bounds = bounds, .disabled = disabled,
+        .tone = completed ? ButtonToneAccent : ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft, .selected = completed
+    })
 
     text_x = x + pad
     text_w = w - pad * 2
@@ -1072,10 +991,7 @@ habit_weekly_summary_button :: (app: InnerBreeze*, x: int, y: int,
         }
     }
 
-    if active {
-        return IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
-    }
-    return 0
+    return clicked
 }
 
 habit_weekly_content_height :: (visible_days: int) -> int #private {
@@ -1112,7 +1028,7 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
     day_font: int = Text16
     date_font: int = Text12
     load_h: int = Scale(38)
-    load_hover: int = 0
+
     local: struct tm* = localtime(&now)
 
     if local != nil {
@@ -1243,30 +1159,15 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
         }
 
         if counting_enabled {
-            habit_weekly_summary_button(app, button_x, y,
-                                           button_w, row_h,
-                                           completed, future_day,
-                                           primary, secondary)
             action = habit_counter_day_action(app, selected, day_index,
                                               button_x, y,
                                               button_w, row_h,
                                               future_day,
                                               !has_linked_day)
-            if action == 0 && has_linked_day && !future_day {
-                mouse_world: Vector2 =
-                    GetScreenToWorld2D(GetMousePosition(), app->camera)
-                bounds: Rectangle = {
-                    (float)button_x,
-                    (float)y,
-                    (float)button_w,
-                    (float)row_h
-                }
-
-                if CheckCollisionPointRec(mouse_world, bounds) &&
-                   !UIInputCapturesClick(mouse_world) &&
-                   IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
-                    habit_open_linked_edit_page(app, selected, day_index)
-                }
+            summary_clicked := habit_weekly_summary_button(app, button_x, y,
+                button_w, row_h, completed, future_day, primary, secondary)
+            if action == 0 && has_linked_day && !future_day && summary_clicked {
+                habit_open_linked_edit_page(app, selected, day_index)
             }
         } else if habit_weekly_summary_button(app, button_x, y,
                                               button_w, row_h,
@@ -1323,11 +1224,14 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
     }
 
     y += Scale(8)
-    if StyledButton(content_x, y, content_w, load_h,
-                           GetLocaleText("habit_load_more_button"),
-                           ButtonStyleSecondary,
-                           app->habits.weekly_days >= HABIT_WEEKLY_MAX_DAYS,
-                           &load_hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(content_x), (float)(y), (float)(content_w), (float)(load_h)},
+        .label = GetLocaleText("habit_load_more_button"),
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = app->habits.weekly_days >= HABIT_WEEKLY_MAX_DAYS
+    }) {
         app->habits.weekly_days += HABIT_WEEKLY_LOAD_DAYS
         if app->habits.weekly_days > HABIT_WEEKLY_MAX_DAYS {
             app->habits.weekly_days = HABIT_WEEKLY_MAX_DAYS
@@ -1534,6 +1438,16 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
         radius := Scale(col == 0 ? 11 : 9)
         action := 0
 
+        if counting && !app->modal.active && (!off || complete) {
+            action = habit_counter_day_action(app, selected, day,
+                cell_x, row_y, cell_w, row_h, 0, linked == 0)
+        }
+        clicked := Button((ButtonProps){
+            .bounds = cell, .id = 24300 + col,
+            .disabled = app->modal.active || (off && !complete),
+            .tone = complete ? ButtonToneAccent : ButtonToneNeutral,
+            .emphasis = ButtonEmphasisGhost, .selected = complete
+        })
         Text((TextProps){
             .bounds={(cx - TextWidth(label, label_font) / 2), (row_y), 0, 0},
             .text=(label),
@@ -1572,13 +1486,6 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
             }
         }
         if !app->modal.active && (!off || complete) {
-            if counting {
-                action = habit_counter_day_action(app, selected, day,
-                    cell_x, row_y, cell_w, row_h, 0, linked == 0)
-            }
-            clicked := InvisibleButton((InvisibleButtonProps){
-                .bounds = cell, .id = 24300 + col
-            })
             if action == 1 || action == -1 {
                 habit_apply_count_action(app, selected, day, action, linked)
                 app_auto_sync(app)
@@ -1622,6 +1529,11 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
 
     DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)card_h},
                          0.08f, 10, surface)
+    header_clicked := Button((ButtonProps){
+        .bounds = {(float)x, (float)y, (float)w, (float)Scale(72)},
+        .id = 24090, .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .disabled = app->modal.active
+    })
     DrawRectangle(x + Scale(16), y + Scale(20),
                   Scale(10), Scale(10), habit->color)
     habits_draw_fitted_text(habit->name, x + Scale(38), y + Scale(12),
@@ -1642,51 +1554,53 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
             .wrap=TextWrapNone
         })
     }
-    if IconButton((IconButtonProps){
+    if Button((ButtonProps){
         .bounds = {(float)action_x, (float)action_y,
                    (float)action_w, (float)Scale(52)},
-        .icon = app->icons[UI_ICON_TYPE_CALENDAR], .icon_size = Scale(28),
-        .icon_padding = Scale(12),
-        .background = DarkenUIColor(surface, 5),
-        .hover_background = LightenUIColor(surface, 10),
-        .icon_color = foreground, .radius = 0.18f
+        .icon = app->icons[UI_ICON_TYPE_CALENDAR],
+        .icon_only = 1, .circle = 0,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .style = {.normal = {
+            .fields = StyleIconSize,
+            .icon_size = (float)(Scale(28)) * 1000.0f / Scale(1000)
+        }}
     }) {
         habits_open_history(app)
         return
     }
-    if IconButton((IconButtonProps){
+    if Button((ButtonProps){
         .bounds = {(float)(action_x + action_w + action_gap),
                    (float)action_y,
                    (float)action_w, (float)Scale(52)},
-        .icon = app->icons[UI_ICON_TYPE_STAT], .icon_size = Scale(28),
-        .icon_padding = Scale(12),
-        .background = DarkenUIColor(surface, 5),
-        .hover_background = LightenUIColor(surface, 10),
-        .icon_color = foreground, .radius = 0.18f
+        .icon = app->icons[UI_ICON_TYPE_STAT],
+        .icon_only = 1, .circle = 0,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .style = {.normal = {
+            .fields = StyleIconSize,
+            .icon_size = (float)(Scale(28)) * 1000.0f / Scale(1000)
+        }}
     }) {
         habits_open_statistics(app)
         return
     }
-    if IconButton((IconButtonProps){
+    if Button((ButtonProps){
         .bounds = {(float)(action_x + (action_w + action_gap) * 2),
                    (float)action_y,
                    (float)action_w, (float)Scale(52)},
-        .icon = app->icons[UI_ICON_TYPE_EDIT], .icon_size = Scale(28),
-        .icon_padding = Scale(12),
-        .background = DarkenUIColor(surface, 5),
-        .hover_background = LightenUIColor(surface, 10),
-        .icon_color = foreground, .radius = 0.18f
+        .icon = app->icons[UI_ICON_TYPE_EDIT],
+        .icon_only = 1, .circle = 0,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .style = {.normal = {
+            .fields = StyleIconSize,
+            .icon_size = (float)(Scale(28)) * 1000.0f / Scale(1000)
+        }}
     }) {
         habit_edit_begin(app, selected)
         return
     }
     # The selected card behaves like the collapsed cards: tapping its
     # non-interactive header collapses it. Header actions keep their own taps.
-    if InvisibleButton((InvisibleButtonProps){
-        .bounds = {(float)x, (float)y,
-                   (float)w, (float)Scale(72)},
-        .id = 24090
-    }) {
+    if header_clicked {
         habits_return_to_overview(app)
         return
     }
@@ -1709,10 +1623,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     surface := GetThemeSurface()
     foreground := GetThemeReadableText(surface)
     muted := Fade(foreground, 0.66f)
-    mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    hover := CheckCollisionPointRec(mouse, bounds) &&
-             !UIInputCapturesClick(mouse)
     description: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
     weekdays: [7] const char* = {
         "habit_day_mon", "habit_day_tue", "habit_day_wed", "habit_day_thu",
@@ -1724,15 +1635,13 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     chevron_cy := y + Scale(31)
     chevron_span := Scale(14)
     chevron_drop := Scale(6)
-    chevron_color := Fade(foreground, hover ? 0.88f : 0.68f)
+    chevron_color := Fade(foreground, 0.68f)
 
-    DrawRectangleRounded(bounds, 0.12f, 8, surface)
-    if hover {
-        DrawCircleGradient((Vector2){(float)chevron_cx, (float)chevron_cy},
-                           (float)Scale(25),
-                           Fade(foreground, 0.10f),
-                           Fade(foreground, 0.0f))
-    }
+    clicked := Button((ButtonProps){
+        .bounds = bounds, .id = 24500 + index,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .disabled = app->modal.active
+    })
     DrawRectangle(x + Scale(16), y + Scale(20),
                   Scale(9), Scale(9), habit->color)
     habits_draw_fitted_text(habit->name, x + Scale(36), y + Scale(10),
@@ -1794,8 +1703,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
             }
         }
     }
-    if InvisibleButton((InvisibleButtonProps){.bounds = bounds,
-                                              .id = 24500 + index}) {
+    if clicked {
         habits_select_habit(app, index)
         app->habits.tab = HABIT_TAB_WEEKLY
         app->habits.scroll = 0
@@ -2005,7 +1913,7 @@ draw_habits_screen :: (app: InnerBreeze*) {
     content_w: int
     y: int
     viewport_h: int
-    hover: int = 0
+
     side_padding: int = GetUIPageSidePadding()
     max_w: int = Scale(CONTENT_MAX_W)
     month_h: int = Scale(42)
@@ -2031,7 +1939,7 @@ draw_habits_screen :: (app: InnerBreeze*) {
     forward_disabled: int
     scroll_y: int
     scroll_h: int
-    cell_bounds: Rectangle
+
     cell_clicked: int
     page_ctx: HabitsScrollPageContext
     page: UIScrollPage
@@ -2084,7 +1992,7 @@ draw_habits_screen :: (app: InnerBreeze*) {
         button_h: int = Scale(42)
         empty_y: int = content_top + viewport_h / 2 - Scale(46)
         empty_w: int = TextWidth(empty_text, empty_font)
-        hover_empty_create: int = 0
+
 
         BeginUIClip((int)app->camera.offset.x,
                        (int)(app->camera.offset.y +
@@ -2098,11 +2006,14 @@ draw_habits_screen :: (app: InnerBreeze*) {
             .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
-        if StyledButton(content_x + (content_w - button_w) / 2,
-                               empty_y + Scale(38),
-                               button_w, button_h, create_text,
-                               ButtonStylePrimary, 0,
-                               &hover_empty_create) {
+        if Button((ButtonProps){
+            .bounds = {(float)(content_x + (content_w - button_w) / 2), (float)(empty_y + Scale(38)), (float)(button_w), (float)(button_h)},
+            .label = create_text,
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             habits_begin_new_detail(app)
         }
         EndUIClip()
@@ -2222,14 +2133,24 @@ draw_habits_screen :: (app: InnerBreeze*) {
     }
 
     forward_disabled = app->habits.month_offset >= 0
-    if StyledButton(content_x, y, Scale(44), month_h, "<",
-                           ButtonStyleSecondary, 0, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(content_x), (float)(y), (float)(Scale(44)), (float)(month_h)},
+        .label = "<",
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = 0
+    }) {
         app->habits.month_offset--
     }
-    if StyledButton(content_x + content_w - Scale(44), y,
-                           Scale(44), month_h, ">",
-                           ButtonStyleSecondary,
-                           forward_disabled, &hover) {
+    if Button((ButtonProps){
+        .bounds = {(float)(content_x + content_w - Scale(44)), (float)(y), (float)(Scale(44)), (float)(month_h)},
+        .label = ">",
+        .font = GetFontSize(),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft,
+        .disabled = forward_disabled
+    }) {
         app->habits.month_offset++
     }
     Text((TextProps){
@@ -2293,34 +2214,16 @@ draw_habits_screen :: (app: InnerBreeze*) {
                     target: int = habit_counter_target(active)
                     progress: float = (float)count / (float)target
 
-                    habit_calendar_day_cell(app, cell_x, cell_y,
-                                               cell_w, cell_h, day_label,
-                                               progress, future_day,
-                                               day_index == today_index,
-                                               active->color)
                     action = habit_counter_day_action(app, selected, day_index,
                                                       cell_x, cell_y,
                                                       cell_w, cell_h,
                                                       future_day,
                                                       !has_linked_day)
-                    if action == 0 && has_linked_day && !future_day {
-                        mouse_world: Vector2 =
-                            GetScreenToWorld2D(GetMousePosition(), app->camera)
-
-                        cell_bounds = (Rectangle){
-                            (float)cell_x,
-                            (float)cell_y,
-                            (float)cell_w,
-                            (float)cell_h
-                        }
-                        cell_clicked =
-                            CheckCollisionPointRec(mouse_world, cell_bounds) &&
-                            !UIInputCapturesClick(mouse_world) &&
-                            IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
-                        if cell_clicked {
-                            habit_open_linked_edit_page(app, selected,
-                                                           day_index)
-                        }
+                    cell_clicked = habit_calendar_day_cell(app, cell_x, cell_y,
+                        cell_w, cell_h, day_label, progress, future_day,
+                        day_index == today_index, active->color)
+                    if action == 0 && has_linked_day && !future_day && cell_clicked {
+                        habit_open_linked_edit_page(app, selected, day_index)
                     }
                 } else if habit_calendar_day_cell(app, cell_x, cell_y,
                                                   cell_w, cell_h, day_label,

@@ -247,7 +247,7 @@ app_breaks_window_update :: (app: InnerBreeze*) {
 }
 
 # Manual hit-test of the break overlay's button row (layout mirrored from
-# break_overlay_draw; TextButton centers each button on its x).
+# break_overlay_draw; the action buttons are centered on their x).
 app_breaks_window_click :: (app: InnerBreeze*, t: int, x: int, y: int,
                               view_w: int, view_h: int) {
     timer: BreakTimer* = &app->breaks.timers[t]
