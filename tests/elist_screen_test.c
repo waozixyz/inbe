@@ -9,6 +9,7 @@ int view_height = 720;
 static int focused_id;
 static int save_succeeds = 1;
 static int sync_calls;
+static char saved_comment[ELIST_COMMENT_SIZE];
 
 void PushUIInspectSource(const char *path, int line)
 {
@@ -68,7 +69,7 @@ int storage_elist_create_item(const char *list_id, const char *title,
 {
     (void)list_id;
     (void)title;
-    (void)comment;
+    snprintf(saved_comment, sizeof(saved_comment), "%s", comment);
     (void)out_id;
     return save_succeeds;
 }
@@ -78,7 +79,7 @@ int storage_elist_update_item(const char *id, const char *title,
 {
     (void)id;
     (void)title;
-    (void)comment;
+    snprintf(saved_comment, sizeof(saved_comment), "%s", comment);
     (void)done;
     (void)order;
     return save_succeeds;
@@ -105,15 +106,22 @@ int main(void)
     assert(app.elist.input[0] == '\0' && app.elist.selected_list == 1);
     assert(sync_calls == 1);
     elist_begin_input(&app, 0, "Editing task");
-    snprintf(app.elist.comment_input, sizeof(app.elist.comment_input), "Note");
     elist_select_list(&app, -1);
     assert(app.elist.selected_list == 1 && app.elist.editing_item == 0);
     elist_select_list(&app, 1);
     assert(strcmp(app.elist.input, "Editing task") == 0);
     elist_select_list(&app, 0);
     assert(app.elist.selected_list == 0 && app.elist.editing_item == -1);
-    assert(app.elist.input[0] == '\0' && app.elist.comment_input[0] == '\0');
+    assert(app.elist.input[0] == '\0');
     assert(!app.elist.input_focused && focused_id == 0 && sync_calls == 1);
+    app.elist.item_count = 1;
+    snprintf(app.elist.items[0].comment, sizeof(app.elist.items[0].comment), "Saved note");
+    elist_begin_input(&app, 0, "Renamed task");
+    elist_commit_input(&app);
+    assert(strcmp(saved_comment, "Saved note") == 0);
+    elist_begin_input(&app, -1, "New task");
+    elist_commit_input(&app);
+    assert(saved_comment[0] == '\0');
     puts("Lists layout, creation focus, save failure, and selection tests passed");
     return 0;
 }

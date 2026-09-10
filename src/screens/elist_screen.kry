@@ -28,18 +28,6 @@ elist_field :: (app: InnerBreeze*, bounds: Rectangle) -> TextFieldProps #private
     }
 }
 
-elist_comment_field :: (app: InnerBreeze*, bounds: Rectangle) -> TextFieldProps #private {
-    field := elist_field(app, bounds)
-
-    field.text = app->elist.comment_input
-    field.text_size = sizeof(app->elist.comment_input)
-    field.cursor_position = &app->elist.comment_cursor
-    field.focused = &app->elist.comment_focused
-    field.focus_id = 6502
-    field.max_codepoints = elist_types.ELIST_COMMENT_SIZE - 1
-    return field
-}
-
 elist_reload :: (app: InnerBreeze*) #private {
     if app == nil {
         return
@@ -53,8 +41,6 @@ elist_begin_input :: (app: InnerBreeze*, editing_item: int,
     snprintf(app->elist.input, sizeof(app->elist.input), "%s",
              text != nil ? text : "")
     app->elist.input_cursor = (int)strlen(app->elist.input)
-    app->elist.comment_input[0] = '\0'
-    app->elist.comment_cursor = 0
     app->elist.input_focused = 1
     app->elist.input_error = 0
     SetUIFocus(6501)
@@ -78,12 +64,12 @@ elist_commit_input :: (app: InnerBreeze*) #private {
     } else if state->editing_item >= 0 &&
               state->editing_item < state->item_count {
         item := &state->items[state->editing_item]
-        saved = storage_elist_update_item(item->id, state->input, state->comment_input,
+        saved = storage_elist_update_item(item->id, state->input, item->comment,
                                   item->done, item->sort_order)
     } else if state->selected_list >= 0 &&
               state->selected_list < state->list_count {
         saved = storage_elist_create_item(state->lists[state->selected_list].id,
-                                  state->input, state->comment_input, nil)
+                                  state->input, "", nil)
     }
     if !saved {
         state->input_error = 1
@@ -92,8 +78,6 @@ elist_commit_input :: (app: InnerBreeze*) #private {
     state->input_error = 0
     state->input[0] = '\0'
     state->input_cursor = 0
-    state->comment_input[0] = '\0'
-    state->comment_cursor = 0
     state->input_focused = 0
     state->editing_item = -1
     elist_reload(app)
@@ -121,11 +105,8 @@ elist_select_list :: (app: InnerBreeze*, index: int) #private {
     state->selected_list = index
     state->editing_item = -1
     state->input[0] = '\0'
-    state->comment_input[0] = '\0'
     state->input_cursor = 0
-    state->comment_cursor = 0
     state->input_focused = 0
-    state->comment_focused = 0
     state->input_error = 0
     state->input_committed = 0
     SetUIFocus(0)
@@ -286,9 +267,6 @@ draw_elist_screen :: (app: InnerBreeze*) {
         elist_commit_input(app)
     }
     y += Scale(52)
-    TextField(elist_comment_field(app, (Rectangle){(float)x, (float)y,
-                                                   (float)content_w, (float)Scale(40)}))
-    y += Scale(52)
 
     selected_id := state->lists[state->selected_list].id
     row_h := Scale(58)
@@ -343,9 +321,6 @@ draw_elist_screen :: (app: InnerBreeze*) {
             }}
         }) {
             elist_begin_input(app, i, item->title)
-            snprintf(state->comment_input, sizeof(state->comment_input), "%s",
-                     item->comment)
-            state->comment_cursor = (int)strlen(state->comment_input)
         }
         if Button((ButtonProps){
             .id = 0,
