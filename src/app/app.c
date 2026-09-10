@@ -1588,36 +1588,6 @@ draw_global_modal(InnerBreeze*app)
     }
 }
 
-#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
-static void
-app_update_desktop_background_state(InnerBreeze*app)
-{
-    int backgrounded;
-    double now;
-    int elapsed_ms;
-
-    if(app == NULL)
-        return;
-
-    backgrounded = (!IsWindowFocused() || IsWindowMinimized()) ? 1 : 0;
-    now = GetTime();
-    if(!backgrounded) {
-        app->backgrounded = 0;
-        app->desktop_background_last_time = 0.0;
-        return;
-    }
-
-    if(!app->backgrounded || app->desktop_background_last_time <= 0.0)
-        app->desktop_background_last_time = now;
-    elapsed_ms = (int)((now - app->desktop_background_last_time) * 1000.0);
-    app->backgrounded = 1;
-    app->desktop_background_last_time = now;
-
-    if(elapsed_ms > 0)
-        practice_active_advance_elapsed(app, elapsed_ms);
-}
-#endif
-
 /* Wrappers for screen draws that return int (e.g. "handled?"); the dispatcher
  * in updateapp() always finishes the frame after them, so the return is unused. */
 static void app_draw_settings_screen(InnerBreeze*app)      { (void)settings_screen_draw(app); }
@@ -1696,9 +1666,6 @@ updateapp(InnerBreeze*app)
     }
 #endif
 
-#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
-    app_update_desktop_background_state(app);
-#endif
     app_breaks_update(app);
     app_update_nav_sidebar_mode(app);
     app_notifications_tick(app);
@@ -1955,7 +1922,6 @@ app_update_draw(void *vapp, Rectangle viewport) {
     app_device_preferences_update(app);
     update_check_poll();
     app_refresh_theme(app);
-    SetUITransitionCuesEnabled(0);
 
     DrawRectangleRec(viewport, GetThemeBackground());
 

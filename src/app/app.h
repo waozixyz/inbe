@@ -574,7 +574,6 @@ struct InnerBreeze {
     int file_dialog_active;
     int session_paused;
     int backgrounded;
-    double desktop_background_last_time;
     int results_saved;
     SessionResult session_result;
     int blocked_input_frame;

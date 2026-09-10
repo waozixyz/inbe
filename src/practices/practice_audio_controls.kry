@@ -1,4 +1,5 @@
 #import "app.h"
+#import "app_nav.h"
 
 #enum {
     PRACTICE_AUDIO_SOUND_POPUP_ID = 15000
@@ -33,9 +34,9 @@ practice_audio_music_icon :: (app: InnerBreeze*) -> Texture2D #private {
 }
 
 practice_draw_audio_controls :: (app: InnerBreeze*) {
-    title_h := GetNodeHeight(NodeTitleBar(0))
-    icon_size := Scale(18)
-    icon_padding := Scale(5)
+    title_h := app_active_practice_title_height()
+    icon_size := Scale(24)
+    icon_padding := Scale(10)
     control_y := (title_h - (icon_size + icon_padding * 2)) / 2
 
     if app == nil {
@@ -65,7 +66,7 @@ practice_draw_audio_controls :: (app: InnerBreeze*) {
 
     if IconSliderPopup((IconSliderPopupProps){
         .id = PRACTICE_AUDIO_MUSIC_POPUP_ID,
-        .x = Scale(48),
+        .x = Scale(60),
         .y = control_y,
         .icon_size = icon_size,
         .icon_padding = icon_padding,

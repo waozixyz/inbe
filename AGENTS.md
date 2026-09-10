@@ -27,6 +27,17 @@
 - Keep `make clean-text-api-check` passing. A UI migration is incomplete until
   the maintained source and freshly generated output build with upstream Kryon.
 
+## Session Animation and Controls
+
+- Desktop focus loss must never pause a practice, freeze its circle, suppress
+  normal session updates, or switch it into the mobile background-timer path.
+  Explicit user pause is separate from window focus. Preserve Android/web
+  lifecycle handling without applying it to an unfocused desktop window.
+- Keep Kryon's default hover, press, and focus transitions enabled. Do not
+  disable transition cues globally in the app frame loop.
+- Session audio controls use 44-unit targets (24-unit icons plus 10-unit
+  padding on each side), scaled through Kryon, with space between controls.
+
 ## Readability Rule
 
 - Write conventional, fully readable code. Never compress multiple statements,
