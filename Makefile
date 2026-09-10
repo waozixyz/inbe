@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 
-APP_NAME := breathing
+APP_NAME := inbe
 APP_TITLE := Inner Breeze
 ANDROID_APP_ID := xyz.waozi.inbe
 ANDROID_DEBUG_APP_ID := $(ANDROID_APP_ID).debug
@@ -103,8 +103,8 @@ APP_COMMENT := Syncable breathing, meditation, and habit practice app
 APP_DESC := Inner Breeze is a free, open-source practice app for breathing, meditation, and habit tracking.
 APP_CATEGORIES := Utility;Education;
 APP_MAINTAINER := Waozi <waozi@waozi.xyz>
-APP_WWW := https://breathing.waozi.xyz/
-APP_ORIGIN := games/breathing
+APP_WWW := https://inbe.waozi.xyz/
+APP_ORIGIN := games/inbe
 APP_LICENSE := BSD3CLAUSE
 APP_DESKTOP := $(LINUX_APPIMAGE_DESKTOP)
 APP_ICON := $(LINUX_APPIMAGE_ICON)
@@ -113,8 +113,8 @@ APP_ICON_NAME := $(APP_ID)
 APP_ICON_SIZE := 512x512
 APP_METAINFO := $(LINUX_APPIMAGE_APPDATA)
 FREEBSD_PKG_DEPS := curl:ftp/curl gtk3:x11-toolkits/gtk30 hicolor-icon-theme:misc/hicolor-icon-theme libdrm:graphics/libdrm mesa-libs:graphics/mesa-libs sdl2:devel/sdl20 sqlite3:databases/sqlite3
-CLICK_PACKAGE ?= breathing
-CLICK_ID ?= breathing
+CLICK_PACKAGE ?= inbe
+CLICK_ID ?= inbe
 CLICK_TITLE ?= $(APP_TITLE)
 CLICK_MAINTAINER ?= Waozi <waozi@waozi.xyz>
 CLICK_ARCH ?= arm64
@@ -122,7 +122,7 @@ CLICK_FRAMEWORK ?= ubuntu-sdk-20.04
 CLICK_POLICY_VERSION ?= 20.04
 CLICK_INCLUDE_METAINFO ?= 1
 CLICK_DIR := packaging/click
-CLICK_RUNNER := $(CLICK_DIR)/run-breathing.sh
+CLICK_RUNNER := $(CLICK_DIR)/run-inbe.sh
 CLICK_BUILD_DIR := $(BUILD_OBJ_DIR)/click/$(CLICK_ARCH)
 CLICK_ROOT := $(CLICK_BUILD_DIR)/$(CLICK_PACKAGE)
 CLICK_CONTROL_DIR := $(CLICK_BUILD_DIR)/control
@@ -197,8 +197,8 @@ WIN32_CURL_A := $(WIN32_CURL_BUILD_DIR)/lib/libcurl.a
 WIN32_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/liboqs
 WIN32_LIBOQS_A := $(WIN32_LIBOQS_BUILD_DIR)/lib/liboqs.a
 WIN32_LIBOQS_INCLUDE := -I$(WIN32_LIBOQS_BUILD_DIR)/include
-WIN64_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN64_ARCH)/breathing.res
-WIN32_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN32_ARCH)/breathing.res
+WIN64_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN64_ARCH)/$(APP_NAME).res
+WIN32_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN32_ARCH)/$(APP_NAME).res
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
 KRYON_ICON_DIR := icons
@@ -516,7 +516,7 @@ WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
 WEB_SMOKE_BROWSER ?= auto
 WEB_SMOKE_TEST := scripts/web-smoke-test.mjs
 WEB_SIDE_BY_SIDE_TEST := scripts/web-side-by-side-test.sh
-WEB_APP_URL ?= https://breathing.waozi.xyz/
+WEB_APP_URL ?= https://inbe.waozi.xyz/
 CHROME_WEB_STORE_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-chrome-web-store.zip
 CHROME_WEB_STORE_MANIFEST := packaging/chrome-web-store/manifest.json
 CHROME_WEB_STORE_WORKER := packaging/chrome-web-store/service_worker.js
@@ -687,7 +687,7 @@ run-termi-direct: $(TARGET)
 	@./$(TARGET)
 
 run-fresh: $(TARGET)
-	@root=$$(mktemp -d /tmp/breathing-fresh.XXXXXX); \
+	@root=$$(mktemp -d /tmp/$(APP_NAME)-fresh.XXXXXX); \
 	echo "APP_DATA_ROOT=$$root"; \
 	APP_FORCE_DARK_MODE=1 APP_DATA_ROOT="$$root" ./$(TARGET)
 
@@ -777,7 +777,7 @@ test: clean-text-api-check no-vendor-edits secret-check $(TESTS) font-bundle-che
 	status=0; \
 	for test_bin in $(TESTS); do \
 		name=$$(basename "$$test_bin"); \
-		log=$$(mktemp /tmp/breathing-test.XXXXXX); \
+		log=$$(mktemp /tmp/$(APP_NAME)-test.XXXXXX); \
 		printf "%-28s" "$$name"; \
 		if "$$test_bin" >"$$log" 2>&1; then \
 			echo "PASS"; \
@@ -963,7 +963,7 @@ $(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C) $(KRYON_ICON_TYPES_H): $(KRYON_ICON
 
 sync-web-icons: $(KRYON_SYNC_ICONS)
 	sh $(KRYON_SYNC_ICONS) web-assets/icons $(WEB_SHARED_ICON_SHEETS)
-	cp assets/app/icon.png web-assets/icons/breathing.png
+	cp assets/app/icon.png web-assets/icons/$(APP_NAME).png
 
 $(WEB_LIBOQS_A): web-tools-check
 
@@ -1159,7 +1159,7 @@ $(CLICK_BIN): Makefile $(SRC) $(KRYON_CLICK_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAM
 		patchelf --set-interpreter "$(CLICK_PATCHELF_INTERPRETER)" --set-rpath '$$ORIGIN/../lib' $@; \
 	fi
 
-$(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/breathing.apparmor $(CLICK_DIR)/breathing.desktop $(CLICK_DIR)/breathing.metainfo.xml $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) $(VERSION_FILE) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
+$(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/$(APP_NAME).apparmor $(CLICK_DIR)/$(APP_NAME).desktop $(CLICK_DIR)/$(APP_NAME).metainfo.xml $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) $(VERSION_FILE) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
 	@command -v click >/dev/null || { \
 		echo "click is missing. Install click or put it on PATH."; \
 		exit 1; \
@@ -1170,8 +1170,8 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/breathing.apparmor $(C
 	rm -f $(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click
 	mkdir -p $(CLICK_ROOT)/usr/bin $(CLICK_ROOT)/usr/lib $(CLICK_ROOT)/usr/share/applications $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps $(CLICK_ROOT)/usr/share/metainfo
 	cp $(CLICK_BIN_INPUT) $(CLICK_ROOT)/usr/bin/$(APP_NAME)
-	cp $(CLICK_RUNNER) $(CLICK_ROOT)/run-breathing.sh
-	chmod +x $(CLICK_ROOT)/run-breathing.sh $(CLICK_ROOT)/usr/bin/$(APP_NAME)
+	cp $(CLICK_RUNNER) $(CLICK_ROOT)/run-$(APP_NAME).sh
+	chmod +x $(CLICK_ROOT)/run-$(APP_NAME).sh $(CLICK_ROOT)/usr/bin/$(APP_NAME)
 	@for lib in $(CLICK_RUNTIME_LIBS); do \
 		if [ -f "$$lib" ]; then \
 			cp -L "$$lib" $(CLICK_ROOT)/usr/lib/; \
@@ -1199,14 +1199,14 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/breathing.apparmor $(C
 		'  }' \
 		'}' \
 		> $(CLICK_ROOT)/manifest.json
-	cp $(CLICK_DIR)/breathing.apparmor $(CLICK_ROOT)/breathing.apparmor
-	cp $(CLICK_DIR)/breathing.desktop $(CLICK_ROOT)/breathing.desktop
+	cp $(CLICK_DIR)/$(APP_NAME).apparmor $(CLICK_ROOT)/$(APP_NAME).apparmor
+	cp $(CLICK_DIR)/$(APP_NAME).desktop $(CLICK_ROOT)/$(APP_NAME).desktop
 	@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
 		mkdir -p $(CLICK_ROOT)/usr/share/metainfo; \
-		sed -e 's/<release version="[^"]*"/<release version="$(APP_VERSION)"/' $(CLICK_DIR)/breathing.metainfo.xml > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_ID).metainfo.xml; \
+		sed -e 's/<release version="[^"]*"/<release version="$(APP_VERSION)"/' $(CLICK_DIR)/$(APP_NAME).metainfo.xml > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_ID).metainfo.xml; \
 	fi
-	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/breathing.png
-	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/breathing.png
+	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/$(APP_NAME).png
+	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
 	click build $(CLICK_ROOT) $(CLICK_DIST_DIR)
 	@if [ -f "$(CLICK_DIST_DIR)/$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" ]; then \
 		mv "$(CLICK_DIST_DIR)/$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" "$(CLICK_TARGET)"; \
@@ -1215,11 +1215,11 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/breathing.apparmor $(C
 	fi
 	test -f $@
 
-$(WIN64_RESOURCE): windows/breathing.rc windows/breathing.ico
+$(WIN64_RESOURCE): windows/$(APP_NAME).rc windows/$(APP_NAME).ico
 	mkdir -p $(dir $@)
 	$(WIN64_WINDRES) -Iwindows -O coff $< $@
 
-$(WIN32_RESOURCE): windows/breathing.rc windows/breathing.ico
+$(WIN32_RESOURCE): windows/$(APP_NAME).rc windows/$(APP_NAME).ico
 	mkdir -p $(dir $@)
 	$(WIN32_WINDRES) -Iwindows -O coff $< $@
 
@@ -1332,7 +1332,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		LIBRARY_FLAGS=""; \
 		echo "Building on FHS system - linuxdeploy will auto-detect libraries"; \
 	fi; \
-	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) LDAI_UPDATE_INFORMATION='gh-releases-zsync|waozixyz|breathing|latest|$(APPIMAGE_NAME)' $(LINUXDEPLOY) \
+	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) LDAI_UPDATE_INFORMATION='gh-releases-zsync|waozixyz|inbe|latest|$(APPIMAGE_NAME)' $(LINUXDEPLOY) \
 		--appdir $(APP_NAME).AppDir \
 		--executable $(abspath $(LINUX_APPDIR)/usr/bin/$(APP_NAME)) \
 		--desktop-file $(abspath $(LINUX_APPDIR)/usr/share/applications/$(APP_DESKTOP_ID).desktop) \
@@ -1344,12 +1344,12 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 deb-check:
 	@command -v dpkg-deb >/dev/null 2>&1 || { \
 		echo "dpkg-deb is missing. On FreeBSD install it with: pkg install dpkg"; \
-		echo "To build a Debian package on FreeBSD, pass DEB_BIN_SOURCE=/path/to/linux/breathing."; \
+		echo "To build a Debian package on FreeBSD, pass DEB_BIN_SOURCE=/path/to/linux/inbe."; \
 		exit 1; \
 	}
 	@if [ -z "$(strip $(DEB_BIN_INPUT))" ]; then \
 		echo "No Linux binary is available for the Debian package."; \
-		echo "Run this target on Linux, or on FreeBSD pass DEB_BIN_SOURCE=/path/to/linux/breathing."; \
+		echo "Run this target on Linux, or on FreeBSD pass DEB_BIN_SOURCE=/path/to/linux/inbe."; \
 		exit 1; \
 	fi
 
@@ -1385,12 +1385,12 @@ $(DEB_TARGET): $(DEB_TARGET_PREREQS) deb-check | $(DEB_BUILD_DIR) $(DEB_DIST_DIR
 rpm-check:
 	@command -v rpmbuild >/dev/null 2>&1 || { \
 		echo "rpmbuild is missing. On FreeBSD install it with: pkg install rpm4"; \
-		echo "To build an RPM package on FreeBSD, pass RPM_BIN_SOURCE=/path/to/linux/breathing."; \
+		echo "To build an RPM package on FreeBSD, pass RPM_BIN_SOURCE=/path/to/linux/inbe."; \
 		exit 1; \
 	}
 	@if [ -z "$(strip $(RPM_BIN_INPUT))" ]; then \
 		echo "No Linux binary is available for the RPM package."; \
-		echo "Run this target on Linux, or on FreeBSD pass RPM_BIN_SOURCE=/path/to/linux/breathing."; \
+		echo "Run this target on Linux, or on FreeBSD pass RPM_BIN_SOURCE=/path/to/linux/inbe."; \
 		exit 1; \
 	fi
 
@@ -1453,7 +1453,7 @@ $(SNAP_TARGET): Makefile packaging/snap/snap/snapcraft.yaml | $(SNAP_BUILD_DIR) 
 		-w /work \
 		--entrypoint "$(SNAP_ENTRYPOINT)" \
 		$(SNAP_IMAGE) \
-		-lc 'set -eu; printf "%s\n" "APT::Cache-Start \"100000000\";" > /etc/apt/apt.conf.d/99cache-start; apt-get update; rm -rf /tmp/breathing-snap; cp -a /work /tmp/breathing-snap; cd /tmp/breathing-snap; rm -rf build snap; mkdir snap; cp packaging/snap/snap/snapcraft.yaml snap/snapcraft.yaml; sed -i "s/^version:.*/version: '\''$(APP_VERSION)'\''/" snap/snapcraft.yaml; snapcraft pack --destructive-mode; cp *.snap /work/$(SNAP_DIST_DIR)/'
+		-lc 'set -eu; printf "%s\n" "APT::Cache-Start \"100000000\";" > /etc/apt/apt.conf.d/99cache-start; apt-get update; rm -rf /tmp/inbe-snap; cp -a /work /tmp/inbe-snap; cd /tmp/inbe-snap; rm -rf build snap; mkdir snap; cp packaging/snap/snap/snapcraft.yaml snap/snapcraft.yaml; sed -i "s/^version:.*/version: '\''$(APP_VERSION)'\''/" snap/snapcraft.yaml; snapcraft pack --destructive-mode; cp *.snap /work/$(SNAP_DIST_DIR)/'
 	created=$$(find $(SNAP_DIST_DIR) -maxdepth 1 -type f -name '*.snap' | head -n 1); \
 	if [ -z "$$created" ]; then echo "snapcraft did not produce a snap"; exit 1; fi; \
 	mv "$$created" $(SNAP_TARGET)
@@ -1465,7 +1465,7 @@ $(FLATPAK_TARGET): Makefile $(FLATPAK_MANIFEST) | $(FLATPAK_BUILD_DIR) $(FLATPAK
 		-v "$(abspath .):/work" \
 		-w /work \
 		$(FLATPAK_IMAGE) \
-		sh -lc 'set -eu; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''breathing-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/breathing; install -D -m644 packaging/linux/appimage/breathing.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/breathing.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/breathing.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
+		sh -lc 'set -eu; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''inbe-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/inbe; install -D -m644 packaging/linux/appimage/inbe.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/inbe.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/inbe.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
 	test -f $@
 
 $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRY_GEN_STAMP) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
@@ -1693,7 +1693,7 @@ android-install-release: android-release
 
 android-avd:
 	@if [ "$(UNAME_S)" = "FreeBSD" ]; then \
-		HOME="$${ANDROID_TOOL_HOME:-/tmp/breathing-android-home}" ANDROID_SDK_ROOT="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" ANDROID_HOME="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" bash scripts/emulator.sh; \
+		HOME="$${ANDROID_TOOL_HOME:-/tmp/$(APP_NAME)-android-home}" ANDROID_SDK_ROOT="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" ANDROID_HOME="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" bash scripts/emulator.sh; \
 	else \
 		bash scripts/emulator.sh; \
 	fi
@@ -1761,7 +1761,7 @@ windows:
 		$(WIN32_ARCH)/$(WIN32_BINARY_NAME)
 
 WINDOWS_SETUP := $(WINDOWS_DIST_DIR)/$(APP_NAME)-windows-setup-$(APP_VERSION).exe
-WINDOWS_SETUP_SCRIPT := packaging/windows/breathing-setup.nsi
+WINDOWS_SETUP_SCRIPT := packaging/windows/$(APP_NAME)-setup.nsi
 
 windows-setup-check:
 	@command -v makensis >/dev/null || { \
