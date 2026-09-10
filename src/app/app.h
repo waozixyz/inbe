@@ -600,13 +600,13 @@ struct InnerBreeze {
     int break_stats_flush_s;
     int break_hud_x;             /* persisted HUD position; -1 = default */
     int break_hud_y;
-    struct UIWindow *break_window; /* centered always-on-top break overlay */
+    struct NativeWindow *break_window; /* centered always-on-top break overlay */
     int break_window_w;
     int break_window_h;
     double break_last_update_time;
     float break_tick_pending;
     int break_window_taken;
-    UIWindow *break_hud;
+    NativeWindow *break_hud;
     int break_hud_w;
     int break_hud_h;
     double break_hud_last_present; /* HUD redraw throttle: present at ~2 Hz */

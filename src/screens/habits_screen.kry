@@ -1276,19 +1276,33 @@ habits_focus_collapsed_height :: () -> int #private {
     return Scale(140)
 }
 
+habits_focus_grid_max_width :: () -> int #private {
+    return Scale(1120)
+}
+
+habits_focus_grid_props :: (x: int, y: int, w: int) -> GridProps #private {
+    return (GridProps){
+        .bounds = {(float)x, (float)y, (float)w, 0},
+        .min_item_width = Scale(300),
+        .gap = Scale(12),
+        .padding = 0
+    }
+}
+
 habits_focus_content_height :: (content_w: int, user_data: void*) -> int #private {
     ctx := (HabitsFocusPageContext*)user_data
     count := ctx != nil && ctx->app != nil ? ctx->app->habits.count : 0
     selected := ctx != nil && ctx->app != nil ? ctx->app->habits.selected : -1
-    expanded := selected >= 0 && selected < count ? 1 : 0
-    collapsed := count - expanded
+    grid := BeginGridCursor(habits_focus_grid_props(0, 0, content_w))
 
-    unused content_w
+    for int i = 0; i < count; i++ {
+        item_h := i == selected
+            ? habits_focus_card_height() : habits_focus_collapsed_height()
+        span := i == selected ? grid.metrics.columns : 1
+        grid = GridStep(grid, item_h, span)
+    }
 
-    return Scale(82) +
-        expanded * habits_focus_card_height() +
-        collapsed * (habits_focus_collapsed_height() + Scale(12)) +
-        Scale(24)
+    return Scale(82) + GridCursorHeight(grid) + Scale(24)
 }
 
 habit_focus_day_complete :: (habit: const Habit*, day_index: int,
@@ -1523,6 +1537,62 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
                              week_value, LightenUIColor(habit->color, 18))
 }
 
+habit_focus_chevron_control :: (center_x: int, center_y: int, size: int,
+                              expanded: int, color: Color,
+                              disabled: int) -> int #private {
+    bounds := (Rectangle){
+        (float)(center_x - size / 2),
+        (float)(center_y - size / 2),
+        (float)size,
+        (float)size
+    }
+    hover := 0
+    clicked := UIHandleCircleClick((Vector2){(float)center_x, (float)center_y},
+                                   (float)size / 2.0f, disabled, &hover)
+    state: ButtonState = ButtonStateNormal
+    style: Style
+    span := Scale(14)
+    drop := Scale(6)
+
+    if disabled {
+        state = ButtonStateDisabled
+    } else if hover && IsMouseButtonDown(MOUSE_BUTTON_LEFT) {
+        state = ButtonStatePressed
+    } else if hover {
+        state = ButtonStateHover
+    }
+    style = ResolveButtonStyle((ButtonProps){
+        .bounds = bounds, .icon_only = 1, .circle = 1,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .disabled = disabled
+    }, state)
+    Surface(bounds, style)
+    if expanded {
+        DrawLineEx((Vector2){(float)(center_x - span / 2),
+                             (float)(center_y + drop / 2)},
+                   (Vector2){(float)center_x,
+                             (float)(center_y - drop / 2)},
+                   (float)Scale(2), color)
+        DrawLineEx((Vector2){(float)(center_x + span / 2),
+                             (float)(center_y + drop / 2)},
+                   (Vector2){(float)center_x,
+                             (float)(center_y - drop / 2)},
+                   (float)Scale(2), color)
+    } else {
+        DrawLineEx((Vector2){(float)(center_x - span / 2),
+                             (float)(center_y - drop / 2)},
+                   (Vector2){(float)center_x,
+                             (float)(center_y + drop / 2)},
+                   (float)Scale(2), color)
+        DrawLineEx((Vector2){(float)(center_x + span / 2),
+                             (float)(center_y - drop / 2)},
+                   (Vector2){(float)center_x,
+                             (float)(center_y + drop / 2)},
+                   (float)Scale(2), color)
+    }
+    return clicked
+}
+
 habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
                            x: int, y: int, w: int) #private {
     habit := &app->habits.items[selected]
@@ -1543,33 +1613,13 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
     chevron_cx := x + w - Scale(34)
     chevron_cy := y + Scale(31)
     chevron_size := Scale(40)
-    chevron_span := Scale(14)
-    chevron_drop := Scale(6)
     chevron_color := Fade(foreground, 0.72f)
-    chevron_button := (Rectangle){
-        (float)(chevron_cx - chevron_size / 2),
-        (float)(chevron_cy - chevron_size / 2),
-        (float)chevron_size,
-        (float)chevron_size
-    }
 
     Card(card_bounds)
-    collapse_clicked := Button((ButtonProps){
-        .bounds = chevron_button, .id = 24090,
-        .icon_only = 1, .circle = 1,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .disabled = app->modal.active
-    })
-    DrawLineEx((Vector2){(float)(chevron_cx - chevron_span / 2),
-                         (float)(chevron_cy + chevron_drop / 2)},
-               (Vector2){(float)chevron_cx,
-                         (float)(chevron_cy - chevron_drop / 2)},
-               (float)Scale(2), chevron_color)
-    DrawLineEx((Vector2){(float)(chevron_cx + chevron_span / 2),
-                         (float)(chevron_cy + chevron_drop / 2)},
-               (Vector2){(float)chevron_cx,
-                         (float)(chevron_cy - chevron_drop / 2)},
-               (float)Scale(2), chevron_color)
+    collapse_clicked := habit_focus_chevron_control(chevron_cx, chevron_cy, chevron_size,
+                                                    1,
+                                                    chevron_color,
+                                                    app->modal.active)
     if collapse_clicked {
         app_block_current_click(app)
         UIConsumePointerRelease()
@@ -1673,16 +1723,8 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
                               (float)(w - Scale(24)), (float)Scale(62)}
     chevron_cx := x + w - Scale(34)
     chevron_cy := y + Scale(31)
-    chevron_span := Scale(14)
-    chevron_drop := Scale(6)
     chevron_color := Fade(foreground, 0.68f)
     chevron_size := Scale(40)
-    chevron_button := (Rectangle){
-        (float)(chevron_cx - chevron_size / 2),
-        (float)(chevron_cy - chevron_size / 2),
-        (float)chevron_size,
-        (float)chevron_size
-    }
     mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
     input_captured := UIInputCapturesClick(mouse)
     expand_clicked := 0
@@ -1807,22 +1849,10 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
         UIConsumePointerRelease()
         return
     }
-    expand_clicked = Button((ButtonProps){
-        .bounds = chevron_button, .id = 24500 + index,
-        .icon_only = 1, .circle = 1,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .disabled = app->modal.active
-    })
-    DrawLineEx((Vector2){(float)(chevron_cx - chevron_span / 2),
-                         (float)(chevron_cy - chevron_drop / 2)},
-               (Vector2){(float)chevron_cx,
-                         (float)(chevron_cy + chevron_drop / 2)},
-               (float)Scale(2), chevron_color)
-    DrawLineEx((Vector2){(float)(chevron_cx + chevron_span / 2),
-                         (float)(chevron_cy - chevron_drop / 2)},
-               (Vector2){(float)chevron_cx,
-                         (float)(chevron_cy + chevron_drop / 2)},
-               (float)Scale(2), chevron_color)
+    expand_clicked = habit_focus_chevron_control(chevron_cx, chevron_cy, chevron_size,
+                                                 0,
+                                                 chevron_color,
+                                                 app->modal.active)
     if expand_clicked {
         app_block_current_click(app)
         UIConsumePointerRelease()
@@ -1843,9 +1873,10 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     mouse: Vector2
     measure_x: int
     measure_w: int
-    item_y: int
+    grid: GridCursor
+    max_content_w := habits_focus_grid_max_width()
 
-    GetUICenteredColumn(Scale(CONTENT_MAX_W), GetUIPageSidePadding(),
+    GetUICenteredColumn(max_content_w, GetUIPageSidePadding(),
                         &measure_x, &measure_w)
     area = (UIScrollArea){
         .bounds = {0, (float)(content_top + Scale(4)), (float)view_width,
@@ -1861,17 +1892,19 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     measure_w = measured.content_w
     area.content_height = habits_focus_content_height(measure_w, &context)
     measured = MeasureUIScrollContainer(area)
-    item_y = measured.content_y + Scale(82)
+    grid = BeginGridCursor(habits_focus_grid_props(measure_x,
+                                                    measured.content_y + Scale(82),
+                                                    measured.content_w))
     for int i = 0; i < count; i++ {
         item_h := i == app->habits.selected
             ? habits_focus_card_height() : habits_focus_collapsed_height()
+        span := i == app->habits.selected ? grid.metrics.columns : 1
+        grid = GridStep(grid, item_h, span)
         items[i] = (ReorderItem){
             .id = i + 1,
-            .bounds = {(float)measure_x, (float)item_y,
-                       (float)measured.content_w, (float)item_h},
-            .disabled = app->modal.active
+            .bounds = grid.item,
+            .disabled = app->modal.active || grid.metrics.columns > 1
         }
-        item_y += item_h + Scale(12)
     }
     reorder_handle_w := Scale(64)
     if reorder_handle_w > measured.content_w {
@@ -1908,7 +1941,7 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     page := BeginUIScrollPage((UIScrollPageSpec){
         .y = content_top + Scale(4),
         .height = view_height - content_top - app_content_bottom_reserved(app) - Scale(4),
-        .max_content_width = Scale(CONTENT_MAX_W),
+        .max_content_width = max_content_w,
         .scroll_offset = &app->habits.scroll,
         .content_height = habits_focus_content_height,
         .user_data = &context
@@ -1949,17 +1982,23 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
         EndUIScrollPage(page)
         return
     }
-    y = page.content_y + Scale(82)
+    grid = BeginGridCursor(habits_focus_grid_props(x, page.content_y + Scale(82), w))
     for int i = 0; i < app->habits.count; i++ {
         if reorder.dragging && i == reorder.active_index {
+            item_h := i == app->habits.selected
+                ? habits_focus_card_height() : habits_focus_collapsed_height()
+            span := i == app->habits.selected ? grid.metrics.columns : 1
+            grid = GridStep(grid, item_h, span)
             continue
         }
         if i == app->habits.selected {
-            habits_focus_draw_card(app, i, x, y, w)
-            y += habits_focus_card_height() + Scale(12)
+            grid = GridStep(grid, habits_focus_card_height(), grid.metrics.columns)
+            cell := grid.item
+            habits_focus_draw_card(app, i, (int)cell.x, (int)cell.y, (int)cell.width)
         } else {
-            habits_focus_draw_collapsed(app, i, x, y, w)
-            y += habits_focus_collapsed_height() + Scale(12)
+            grid = GridStep(grid, habits_focus_collapsed_height(), 1)
+            cell := grid.item
+            habits_focus_draw_collapsed(app, i, (int)cell.x, (int)cell.y, (int)cell.width)
         }
     }
     if reorder.dragging && reorder.target_index >= 0 &&
@@ -1970,10 +2009,15 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
        reorder.active_index < count {
         overlay_y := (int)mouse.y - app->habit_card_grab_y
         if reorder.active_index == app->habits.selected {
-            habits_focus_draw_card(app, reorder.active_index, x, overlay_y, w)
+            habits_focus_draw_card(app, reorder.active_index,
+                                    (int)items[reorder.active_index].bounds.x,
+                                    overlay_y,
+                                    (int)items[reorder.active_index].bounds.width)
         } else {
             habits_focus_draw_collapsed(app, reorder.active_index,
-                                        x, overlay_y, w)
+                                        (int)items[reorder.active_index].bounds.x,
+                                        overlay_y,
+                                        (int)items[reorder.active_index].bounds.width)
         }
     }
     EndUIScrollPage(page)

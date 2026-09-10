@@ -2014,9 +2014,9 @@ app_destroy(void *vapp)
 
     if (app == NULL) return;
 
-    CloseUIWindow(app->break_window);
+    CloseNativeWindow(app->break_window);
     app->break_window = NULL;
-    CloseUIWindow(app->break_hud);
+    CloseNativeWindow(app->break_hud);
     app->break_hud = NULL;
 
     save_settings(app);

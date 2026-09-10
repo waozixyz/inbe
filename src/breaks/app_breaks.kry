@@ -115,7 +115,7 @@ break_engine_open_window :: (app: InnerBreeze*, t: int) #private {
     # block for strict block modes is applied on top.
     #if DESKTOP {
         # Wayland intentionally does not permit a global keyboard grab, but
-        # Kryon's SDL UIWindow backend can create a real secondary Wayland
+        # Kryon's SDL NativeWindow backend can create a real secondary Wayland
         # surface for the break just like the X11 backend did.
         if ActivityIsWayland() {
             ClearWindowState(FLAG_WINDOW_HIDDEN)
@@ -134,7 +134,7 @@ break_engine_close_window :: (app: InnerBreeze*) #private {
     }
     app->break_window_taken = 0
     if app->break_window != nil {
-        CloseUIWindow(app->break_window)
+        CloseNativeWindow(app->break_window)
         app->break_window = nil
     }
     #if DESKTOP {
@@ -162,7 +162,7 @@ app_breaks_window_update :: (app: InnerBreeze*) {
     t := break_engine_active_break(&app->breaks)
     if t < 0 {
         if app->break_window != nil {
-            CloseUIWindow(app->break_window)
+            CloseNativeWindow(app->break_window)
             app->break_window = nil
         }
         return
@@ -196,17 +196,17 @@ app_breaks_window_update :: (app: InnerBreeze*) {
 
     if app->break_window != nil && (app->break_window_w != win_w ||
                                     app->break_window_h != win_h) {
-        CloseUIWindow(app->break_window)
+        CloseNativeWindow(app->break_window)
         app->break_window = nil
     }
     if app->break_window == nil {
         if app->breathing.frame - last_window_fail_frame < 300 {
             return
         }
-        flags := UI_WINDOW_BORDERLESS + UI_WINDOW_ALWAYS_ON_TOP +
-                 UI_WINDOW_SKIP_TASKBAR + UI_WINDOW_CENTER +
-                 UI_WINDOW_STICKY
-        app->break_window = OpenUIWindow("Inner Breeze", 0, 0,
+        flags := NATIVE_WINDOW_BORDERLESS + NATIVE_WINDOW_ALWAYS_ON_TOP +
+                 NATIVE_WINDOW_SKIP_TASKBAR + NATIVE_WINDOW_CENTER +
+                 NATIVE_WINDOW_STICKY
+        app->break_window = OpenNativeWindow("Inner Breeze", 0, 0,
                                          win_w, win_h, flags,
                                          DarkenUIColor(GetThemeBackground(), 8),
                                          scale)
@@ -218,16 +218,16 @@ app_breaks_window_update :: (app: InnerBreeze*) {
         app->break_window_h = win_h
     }
 
-    BeginUIWindow(app->break_window)
+    BeginNativeWindow(app->break_window)
     ovl.break_overlay_draw_sized(app, win_w, win_h)
-    EndUIWindow()
+    EndNativeWindow()
 
     click_x := 0
     click_y := 0
-    if IsUIWindowDragged(app->break_window) {
+    if IsNativeWindowDragged(app->break_window) {
         return
     }
-    if IsUIWindowRightClicked(app->break_window) {
+    if IsNativeWindowRightClicked(app->break_window) {
         #if TRAY {
             win_quit := 0
             desktop_tray_apply_action(app,
@@ -239,8 +239,8 @@ app_breaks_window_update :: (app: InnerBreeze*) {
         }
         return
     }
-    if IsUIWindowClicked(app->break_window) {
-        GetUIWindowClickPosition(app->break_window, &click_x, &click_y)
+    if IsNativeWindowClicked(app->break_window) {
+        GetNativeWindowClickPosition(app->break_window, &click_x, &click_y)
         app_breaks_window_click(app, t, click_x, click_y, win_w, win_h)
     }
 }
@@ -571,7 +571,7 @@ app_breaks_hud_update :: (app: InnerBreeze*) {
     }
     if !app->breaks_enabled {
         if app->break_hud != nil {
-            CloseUIWindow(app->break_hud)
+            CloseNativeWindow(app->break_hud)
             app->break_hud = nil
         }
         return
@@ -594,7 +594,7 @@ app_breaks_hud_update :: (app: InnerBreeze*) {
     }
     if visible == 0 {
         if app->break_hud != nil {
-            CloseUIWindow(app->break_hud)
+            CloseNativeWindow(app->break_hud)
             app->break_hud = nil
         }
         return
@@ -602,13 +602,13 @@ app_breaks_hud_update :: (app: InnerBreeze*) {
     hud_h := pad * 2 + row_h * visible
 
     if app->break_hud != nil && (app->break_hud_w != hud_w || app->break_hud_h != hud_h) {
-        CloseUIWindow(app->break_hud)
+        CloseNativeWindow(app->break_hud)
         app->break_hud = nil
     }
     if app->break_hud == nil {
         track := DarkenUIColor(GetThemeBackground(), 18)
-        flags := UI_WINDOW_BORDERLESS + UI_WINDOW_ALWAYS_ON_TOP +
-                 UI_WINDOW_SKIP_TASKBAR + UI_WINDOW_STICKY
+        flags := NATIVE_WINDOW_BORDERLESS + NATIVE_WINDOW_ALWAYS_ON_TOP +
+                 NATIVE_WINDOW_SKIP_TASKBAR + NATIVE_WINDOW_STICKY
         hud_x := Scale(8)
         hud_y := Scale(8)
         if app->break_hud_x >= 0 && app->break_hud_y >= 0 {
@@ -616,9 +616,9 @@ app_breaks_hud_update :: (app: InnerBreeze*) {
             hud_x = app->break_hud_x
             hud_y = app->break_hud_y
         } else {
-            flags += UI_WINDOW_TOP_RIGHT
+            flags += NATIVE_WINDOW_TOP_RIGHT
         }
-        app->break_hud = OpenUIWindow("Inner Breeze", hud_x, hud_y,
+        app->break_hud = OpenNativeWindow("Inner Breeze", hud_x, hud_y,
                                       hud_w, hud_h, flags, track, scale)
         if app->break_hud == nil {
             return
@@ -627,24 +627,24 @@ app_breaks_hud_update :: (app: InnerBreeze*) {
         app->break_hud_h = hud_h
     }
 
-    # Each EndUIWindow swaps GL contexts and stalls the main context with a
+    # Each EndNativeWindow swaps GL contexts and stalls the main context with a
     # glFinish; doing that every frame keeps a core busy and widens the
     # multi-window race window for nothing - the HUD content only changes
     # when a timer tick, drag or click moves it. Present at ~2 Hz instead.
     now := GetTime()
     if app->break_hud_last_present <= 0 || now - app->break_hud_last_present >= 0.45 {
         app->break_hud_last_present = now
-        BeginUIWindow(app->break_hud)
+        BeginNativeWindow(app->break_hud)
         app_breaks_hud_draw(app, hud_w, hud_h, row_h, pad)
-        EndUIWindow()
+        EndNativeWindow()
     }
 
-    if IsUIWindowDragged(app->break_hud) {
-        GetUIWindowPosition(app->break_hud, &app->break_hud_x,
+    if IsNativeWindowDragged(app->break_hud) {
+        GetNativeWindowPosition(app->break_hud, &app->break_hud_x,
                             &app->break_hud_y)
         app->settings_dirty = 1
         save_settings(app)
-    } else if IsUIWindowRightClicked(app->break_hud) {
+    } else if IsNativeWindowRightClicked(app->break_hud) {
         #if TRAY {
             hud_quit := 0
             desktop_tray_apply_action(app,
@@ -654,7 +654,7 @@ app_breaks_hud_update :: (app: InnerBreeze*) {
             app->settings_tab = SETTINGS_TAB_BREAKS
             app_switch_screen(app, ScreenSettings)
         }
-    } else if IsUIWindowClicked(app->break_hud) {
+    } else if IsNativeWindowClicked(app->break_hud) {
         app->settings_tab = SETTINGS_TAB_BREAKS
         app_switch_screen(app, ScreenSettings)
     }

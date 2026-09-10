@@ -643,17 +643,6 @@ Dropdown(int id, int x, int y, int w, int h, const char **options,
     return 0;
 }
 
-void
-SetUIDropdownClipTop(int y)
-{
-    (void)y;
-}
-
-void
-SetUIDropdownClipBottom(int y)
-{
-    (void)y;
-}
 
 void
 Icon(int id, int x, int y, int size, UIIconType icon, Color tint)
