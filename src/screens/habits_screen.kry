@@ -1119,8 +1119,7 @@ habits_focus_content_height :: (content_w: int, user_data: void*) -> int #privat
     for int i = 0; i < count; i++ {
         item_h := i == selected
             ? habits_focus_card_height() : habits_focus_collapsed_height()
-        span := i == selected ? grid.metrics.columns : 1
-        grid = GridStep(grid, item_h, span)
+        grid = GridStep(grid, item_h, 1)
     }
 
     return Scale(82) + GridCursorHeight(grid) + Scale(24)
@@ -1756,7 +1755,7 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     grid = BeginGridCursor(habits_focus_grid_props(x, page.content_y + Scale(82), w))
     for int i = 0; i < app->habits.count; i++ {
         if i == app->habits.selected {
-            grid = GridStep(grid, habits_focus_card_height(), grid.metrics.columns)
+            grid = GridStep(grid, habits_focus_card_height(), 1)
             cell := grid.item
             habits_focus_draw_card(app, i, (int)cell.x, (int)cell.y, (int)cell.width)
         } else {

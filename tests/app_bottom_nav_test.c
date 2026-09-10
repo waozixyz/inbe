@@ -1283,6 +1283,54 @@ test_habit_editor_preserves_desktop_rail(void)
 }
 
 static void
+test_top_level_nav_leaves_habit_child_screens(void)
+{
+    InnerBreeze app = test_app();
+
+    reset_state();
+    app.breathing.screen = ScreenHabitEdit;
+    app.main_tab = APP_MAIN_TAB_HABITS;
+    app.habit_edit.active = 1;
+    app.habit_edit.index = 1;
+    app.habits.screen_mode = HABITS_SCREEN_STATISTICS;
+    app.habits.selected = 1;
+    app.habits.tab = HABIT_TAB_EDIT;
+    app.habits.view_mode = HABIT_VIEW_CALENDAR;
+    app.habit_detail_index = 1;
+    snprintf(app.habit_detail_session_path, sizeof(app.habit_detail_session_path), "session");
+
+    app_apply_nav_route(&app, APP_NAV_ROUTE_ELIST);
+
+    expect(app.breathing.screen == ScreenEList && app.main_tab == APP_MAIN_TAB_ELIST,
+           "top-level EList route should leave habit edit");
+    expect(!app.habit_edit.active && app.habit_edit.index == -1,
+           "top-level route should clear habit edit state");
+    expect(app.habits.screen_mode == HABITS_SCREEN_OVERVIEW &&
+           app.habits.selected == -1 &&
+           app.habits.tab == HABIT_TAB_WEEKLY &&
+           app.habits.view_mode == HABIT_VIEW_WEEKLY,
+           "top-level route should reset habit subroute state");
+    expect(app.habit_detail_index == -1 && app.habit_detail_session_path[0] == '\0',
+           "top-level route should clear habit detail session state");
+
+    app = test_app();
+    app.breathing.screen = ScreenHabitSessionEdit;
+    app.main_tab = APP_MAIN_TAB_HABITS;
+    app.habit_session_edit.active = 1;
+    app.habit_session_edit.round = 2;
+    app.habits.selected = 0;
+
+    app_apply_nav_route(&app, APP_NAV_ROUTE_PRACTICE);
+
+    expect(app.breathing.screen == ScreenStart && app.main_tab == APP_MAIN_TAB_PRACTICE,
+           "top-level Practice route should leave habit session edit");
+    expect(!app.habit_session_edit.active && app.habit_session_edit.round == -1,
+           "top-level route should clear habit session edit state");
+    expect(app.habits.selected == -1 && app.habits.screen_mode == HABITS_SCREEN_OVERVIEW,
+           "top-level route should close expanded habit state");
+}
+
+static void
 test_elist_navigation_sanitizer_and_desktop_route(void)
 {
     InnerBreeze app = test_app();
@@ -1422,6 +1470,7 @@ main(void)
     test_sidebar_child_back_returns_to_compact_sidebar();
     test_sidebar_screen_closes_when_width_expands();
     test_habit_editor_preserves_desktop_rail();
+    test_top_level_nav_leaves_habit_child_screens();
     test_elist_navigation_sanitizer_and_desktop_route();
 
     if(failures > 0) {

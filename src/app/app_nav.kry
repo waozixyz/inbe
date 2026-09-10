@@ -381,6 +381,35 @@ app_reconcile_bottom_nav_selection :: (app: InnerBreeze*) #private {
     }
 }
 
+app_leave_habit_child_route :: (app: InnerBreeze*) #private {
+    if app == NULL {
+        return
+    }
+    if app->habit_edit.active || app->breathing.screen == ScreenHabitEdit {
+        app->habit_edit = (HabitEditState){
+            .index = -1,
+            .color = {99, 196, 165, 255},
+            .sync_mode = HABIT_SYNC_NONE
+        }
+    }
+    if app->habit_session_edit.active ||
+       app->breathing.screen == ScreenHabitSessionEdit {
+        app->habit_session_edit = (HabitSessionEditState){.round = -1}
+    }
+    app->habit_detail_index = -1
+    app->habit_detail_day = 0
+    app->habit_detail_session_path[0] = '\0'
+    app->habit_counter_press_day = 0
+    app->habit_counter_press_index = -1
+    app->habit_counter_press_frames = 0
+    app->habit_counter_press_long_done = 0
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
+    app->habits.selected = -1
+    app->habits.tab = HABIT_TAB_WEEKLY
+    app->habits.view_mode = HABIT_VIEW_WEEKLY
+    app->habits.scroll = 0
+}
+
 app_open_main_tab :: (app: InnerBreeze*, main_tab: int, persist: int) #private {
     if app == NULL {
         return
@@ -389,6 +418,7 @@ app_open_main_tab :: (app: InnerBreeze*, main_tab: int, persist: int) #private {
     if app->practice_tab == PRACTICE_TAB_CONFIG {
         app_leave_practice_config(app)
     }
+    app_leave_habit_child_route(app)
     if main_tab == APP_MAIN_TAB_NONE {
         app->main_tab = APP_MAIN_TAB_NONE
         app_switch_screen(app, ScreenStart)
@@ -421,6 +451,7 @@ app_open_profile_tab :: (app: InnerBreeze*, tab: int) #private {
     if app->practice_tab == PRACTICE_TAB_CONFIG {
         app_leave_practice_config(app)
     }
+    app_leave_habit_child_route(app)
     app->profile_view = PROFILE_VIEW_MAIN
     app->profile_scroll = 0
     app->sync_server_url_focused = 0
@@ -468,6 +499,7 @@ app_apply_nav_route :: (app: InnerBreeze*, route: int) {
         #if DESKTOP {
             app_open_settings_tab(app, SETTINGS_TAB_DEVICE)
         } #else {
+            app_leave_habit_child_route(app)
             next := app_current_route(app)
             app->nav_sidebar_open = 0
             next.screen = ScreenSettings
@@ -611,6 +643,7 @@ app_open_settings_tab :: (app: InnerBreeze*, tab: int) #private {
     if app->practice_tab == PRACTICE_TAB_CONFIG {
         app_leave_practice_config(app)
     }
+    app_leave_habit_child_route(app)
     app->settings_scroll = 0
     settings_screen_clear_status()
     app_block_current_click(app)
