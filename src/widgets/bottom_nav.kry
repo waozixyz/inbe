@@ -104,48 +104,40 @@ bottom_nav_draw_icon :: (icon: Texture2D, bounds: Rectangle, tint: Color) #priva
                    bounds, (Vector2){0}, 0.0f, tint)
 }
 
-desktop_rail_route_active :: (app: InnerBreeze*, route: int) -> int #private {
-    return bottom_nav_route_active(app, route)
-}
-
-desktop_rail_route_label :: (route: int) -> const char* #private {
-    return app_nav_route_label(route)
-}
-
 desktop_rail_button :: (app: InnerBreeze*, route: int, rail_x: int, y: int, item_h: int) -> int #private {
     rail_w := app_nav_desktop_rail_width()
-    margin := Scale(6)
+    margin := Scale(16)
     item_w := rail_w - margin * 2
-    icon_size := Scale(42)
-    if item_h < Scale(106) {
-        icon_size = Scale(32)
-    }
+    icon_size := Scale(24)
     icon := bottom_nav_route_icon(app, route)
-    label := desktop_rail_route_label(route)
+    label := app_nav_route_label(route)
     bounds := (Rectangle){(float)(rail_x + margin), (float)y, (float)item_w, (float)item_h}
-    active := desktop_rail_route_active(app, route)
+    active := bottom_nav_route_active(app, route)
     tint := Fade(GetThemeText(), 0.82f)
-    label_font := Text18
-    label_w := TextWidth(label, label_font)
-    icon_x := rail_x + margin + (item_w - icon_size) / 2
-    icon_y := y + Scale(23)
-    if item_h < Scale(106) {
-        icon_y = y + Scale(8)
-    }
+    label_font := Text16
+    icon_x := rail_x + margin + Scale(16)
+    icon_y := y + (item_h - icon_size) / 2
+    label_x := icon_x + icon_size + Scale(14)
 
     clicked := Button((ButtonProps){
         .bounds = bounds, .id = 6600 + route,
         .tone = active ? ButtonToneAccent : ButtonToneNeutral,
-        .emphasis = active ? ButtonEmphasisSoft : ButtonEmphasisGhost,
-        .selected = active, .disabled = app->modal.active
+        .emphasis = ButtonEmphasisSoft,
+        .selected = active, .disabled = app->modal.active,
+        .style = {.normal = {
+            .fields = StyleRadius,
+            .radius = 14
+        }}
     })
     bottom_nav_draw_icon(icon,
                          (Rectangle){(float)icon_x, (float)icon_y,
                                      (float)icon_size, (float)icon_size},
                          tint)
     Text((TextProps){
-        .bounds = {(float)(rail_x + margin + (item_w - label_w) / 2),
-                   (float)(icon_y + icon_size + Scale(5)), 0, 0},
+        .bounds = {(float)label_x,
+                   (float)GetUIControlTextY(label, y, item_h, label_font),
+                   (float)(rail_x + rail_w - margin - Scale(12) - label_x),
+                   (float)Scale(24)},
         .text = label,
         .font = label_font,
         .color = tint,
@@ -161,11 +153,11 @@ desktop_rail_button :: (app: InnerBreeze*, route: int, rail_x: int, y: int, item
 
 desktop_rail_profile_button :: (app: InnerBreeze*, rail_x: int, y: int,
                                 rail_w: int) -> int #private {
-    margin := Scale(6)
+    margin := Scale(16)
     item_w := rail_w - margin * 2
-    item_h := Scale(128)
-    avatar_size := Scale(52)
-    avatar_x := rail_x + (rail_w - avatar_size) / 2
+    item_h := Scale(76)
+    avatar_size := Scale(40)
+    avatar_x := rail_x + margin + Scale(12)
     avatar_y: int
     label: [96] char
     subtitle: [96] char
@@ -180,7 +172,6 @@ desktop_rail_profile_button :: (app: InnerBreeze*, rail_x: int, y: int,
     sub_w: int
     label_h := Scale(18)
     sub_h := Scale(16)
-    label_gap := Scale(11)
     sub_gap := Scale(3)
     content_h: int
     content_y: int
@@ -189,22 +180,24 @@ desktop_rail_profile_button :: (app: InnerBreeze*, rail_x: int, y: int,
 
     app_nav_profile_identity(app, label, sizeof(label), subtitle, sizeof(subtitle))
     label_w = TextWidth(label, label_font)
-    while label_font > Text12 && label_w > item_w - Scale(14) {
+    text_x := avatar_x + avatar_size + Scale(12)
+    text_w := rail_x + rail_w - margin - Scale(12) - text_x
+    while label_font > Text12 && label_w > text_w {
         label_font--
         label_w = TextWidth(label, label_font)
     }
     sub_w = TextWidth(subtitle, sub_font)
-    while sub_font > Text12 && sub_w > item_w - Scale(14) {
+    while sub_font > Text12 && sub_w > text_w {
         sub_font--
         sub_w = TextWidth(subtitle, sub_font)
     }
-    content_h = avatar_size + label_gap + label_h
+    content_h = label_h
     if subtitle[0] != '\0' {
         content_h += sub_gap + sub_h
     }
     content_y = y + (item_h - content_h) / 2
-    avatar_y = content_y
-    label_y = avatar_y + avatar_size + label_gap
+    avatar_y = y + (item_h - avatar_size) / 2
+    label_y = content_y
     sub_y = label_y + label_h + sub_gap
 
     clicked := Button((ButtonProps){
@@ -213,16 +206,16 @@ desktop_rail_profile_button :: (app: InnerBreeze*, rail_x: int, y: int,
         .emphasis = active ? ButtonEmphasisSoft : ButtonEmphasisGhost,
         .selected = active, .disabled = app->modal.active
     })
-    DrawCircle(rail_x + rail_w / 2, avatar_y + avatar_size / 2,
+    DrawCircle(avatar_x + avatar_size / 2, avatar_y + avatar_size / 2,
                avatar_size / 2, LightenUIColor(GetThemeButton(), 30))
     bottom_nav_draw_icon(app->icons[app->profile_picture_icon],
                          (Rectangle){(float)avatar_x, (float)avatar_y,
                                      (float)avatar_size, (float)avatar_size},
                          WHITE)
     Text((TextProps){
-        .bounds = {(float)(rail_x + margin + (item_w - label_w) / 2),
+        .bounds = {(float)text_x,
                    (float)GetUIControlTextY(label, label_y, label_h, label_font),
-                   0, 0},
+                   (float)text_w, (float)label_h},
         .text = label,
         .font = label_font,
         .color = tint,
@@ -230,9 +223,9 @@ desktop_rail_profile_button :: (app: InnerBreeze*, rail_x: int, y: int,
     })
     if subtitle[0] != '\0' {
         Text((TextProps){
-            .bounds = {(float)(rail_x + margin + (item_w - sub_w) / 2),
+            .bounds = {(float)text_x,
                        (float)GetUIControlTextY(subtitle, sub_y, sub_h, sub_font),
-                       0, 0},
+                       (float)text_w, (float)sub_h},
             .text = subtitle,
             .font = sub_font,
             .color = Fade(tint, 0.70f),
@@ -250,12 +243,13 @@ desktop_rail_profile_button :: (app: InnerBreeze*, rail_x: int, y: int,
 app_draw_desktop_nav_rail :: (app: InnerBreeze*) #private {
     rail_w := app_nav_desktop_rail_width()
     rail_x := -rail_w
-    route_y := Scale(210)
-    gap := Scale(18)
-    footer_y := view_height - Scale(116)
-    item_h := (footer_y - route_y - gap * 2) / 3
-    if item_h > Scale(106) {
-        item_h = Scale(106)
+    route_y := Scale(128)
+    gap := Scale(12)
+    item_h := Scale(52)
+    footer_y := view_height - Scale(24) - item_h
+    minimum_footer_y := route_y + 3 * (item_h + gap) + Scale(16)
+    if footer_y < minimum_footer_y {
+        footer_y = minimum_footer_y
     }
     routes: [3] int = {
         APP_NAV_ROUTE_ELIST,
@@ -272,7 +266,7 @@ app_draw_desktop_nav_rail :: (app: InnerBreeze*) #private {
     DrawLine(rail_x + rail_w - 1, 0, rail_x + rail_w - 1, view_height,
              Fade(GetThemeText(), 0.12f))
 
-    if desktop_rail_profile_button(app, rail_x, Scale(26), rail_w) {
+    if desktop_rail_profile_button(app, rail_x, Scale(24), rail_w) {
         return
     }
 
@@ -283,7 +277,7 @@ app_draw_desktop_nav_rail :: (app: InnerBreeze*) #private {
         route_y += item_h + gap
     }
 
-    desktop_rail_button(app, APP_NAV_ROUTE_SETTINGS, rail_x, footer_y, Scale(106))
+    desktop_rail_button(app, APP_NAV_ROUTE_SETTINGS, rail_x, footer_y, item_h)
 }
 
 app_draw_bottom_nav :: (app: InnerBreeze*) {

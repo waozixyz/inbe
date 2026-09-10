@@ -140,7 +140,7 @@ app_nav_sidebar_screen_active :: (app: const InnerBreeze*) -> int {
 }
 
 app_nav_desktop_rail_width :: () -> int {
-    return Scale(132)
+    return Scale(224)
 }
 
 app_nav_desktop_content_offset :: () -> int {
@@ -152,7 +152,7 @@ app_nav_desktop_rail_enabled :: (app: const InnerBreeze*) -> int {
         app_nav_mark_int_used(app == NULL ? 0 : 1)
         return 0
     } #else {
-    if app == NULL || !IsUIDesktopMode() {
+    if app == NULL || !IsUIDesktopMode() || view_height < Scale(424) {
         return 0
     }
     if app->file_dialog_active {

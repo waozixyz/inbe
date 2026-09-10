@@ -26,6 +26,8 @@ static const char *generic_button_clicked_label = NULL;
 static int invisible_button_clicked_id = -1;
 static int icon_button_click_index = -1;
 static int icon_button_draw_count = 0;
+static Rectangle rail_bounds[5];
+static int rail_bounds_count = 0;
 static int scroll_page_content_w_override = 0;
 static int pointer_release_consumed = 0;
 static Vector2 mouse_position = {0};
@@ -58,6 +60,7 @@ reset_state(void)
     invisible_button_clicked_id = -1;
     icon_button_click_index = -1;
     icon_button_draw_count = 0;
+    rail_bounds_count = 0;
     scroll_page_content_w_override = 0;
     pointer_release_consumed = 0;
     mouse_position = (Vector2){0};
@@ -466,6 +469,10 @@ EndUIScrollContainer(UIScrollArea area, UIScrollView view)
 int
 Button(ButtonProps props)
 {
+    if((props.id == 6690 || (props.id >= 6600 && props.id < 6690)) &&
+       rail_bounds_count < 5) {
+        rail_bounds[rail_bounds_count++] = props.bounds;
+    }
     if(props.disabled)
         return 0;
     if(props.icon_only && icon_button_draw_count++ == icon_button_click_index) {
@@ -1319,7 +1326,7 @@ test_elist_navigation_migration_and_desktop_route(void)
     desktop_mode = 1;
     app_draw_bottom_nav(&app);
     expect(elist_label_count == 1, "desktop rail should display EList");
-    mouse_position = (Vector2){-60, 220};
+    mouse_position = (Vector2){-100, 154};
     mouse_released = 1;
     app_draw_bottom_nav(&app);
     expect(app.main_tab == APP_MAIN_TAB_ELIST && app.breathing.screen == ScreenEList,
@@ -1327,9 +1334,43 @@ test_elist_navigation_migration_and_desktop_route(void)
     reset_state();
 }
 
+static void
+test_desktop_rail_spacing(void)
+{
+    const int heights[] = {424, 560, 720};
+    for(int i = 0; i < 3; i++) {
+        reset_state();
+        InnerBreeze app = test_app();
+        desktop_mode = 1;
+        view_height = heights[i];
+        app_draw_bottom_nav(&app);
+        expect(rail_bounds_count == 5, "desktop rail should show profile and four routes");
+        for(int j = 0; j < rail_bounds_count; j++) {
+            Rectangle bounds = rail_bounds[j];
+            expect(bounds.x == -208 && bounds.width == 192,
+                   "desktop rail should preserve sixteen-unit side padding");
+            expect(bounds.height >= 52 && bounds.y + bounds.height <= view_height - 24,
+                   "desktop rail controls must fit with bottom clearance");
+            if(j > 0) {
+                Rectangle prior = rail_bounds[j - 1];
+                expect(bounds.y - prior.y - prior.height >= 12,
+                       "desktop rail controls must not touch or overlap");
+            }
+        }
+    }
+    reset_state();
+    InnerBreeze app = test_app();
+    desktop_mode = 1;
+    view_height = 360;
+    expect(!app_nav_desktop_rail_enabled(&app),
+           "short windows must use compact navigation instead of clipping the sidebar");
+    reset_state();
+}
+
 int
 main(void)
 {
+    test_desktop_rail_spacing();
     test_default_bottom_nav_routes_include_elist();
     test_same_frame_modal_close_consumes_bottom_nav_click();
     test_unblocked_bottom_nav_click_still_routes();
