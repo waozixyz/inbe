@@ -56,8 +56,8 @@ static practices: [PRACTICE_COUNT] const PracticeDefinition = {
     {
         .id = PRACTICE_WHM,
         .label_key = "exercise_wim_hof",
-        .init = whm_practice_init,
-        .destroy = whm_practice_destroy,
+        .init = nil,
+        .destroy = nil,
         .start = whm_practice_start,
         .draw_manual = whm_manual_draw,
         .close_manual = whm_manual_close,

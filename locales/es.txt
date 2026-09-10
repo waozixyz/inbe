@@ -1799,3 +1799,21 @@ Aun no hay listas
 [elist_empty_detail]
 Crea una lista y agrega tareas y notas en un solo lugar.
 ---
+[navigation_placement]
+Posición de la navegación
+---
+[navigation_automatic]
+Automática
+---
+[navigation_left]
+Izquierda
+---
+[navigation_bottom]
+Abajo
+---
+[navigation_right]
+Derecha
+---
+[navigation_top]
+Arriba
+---

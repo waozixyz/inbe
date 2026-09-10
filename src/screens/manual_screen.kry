@@ -35,7 +35,7 @@ manual_screen_tutorial_side_padding :: () -> int {
 }
 
 manual_screen_tutorial_top_gap :: () -> int {
-    return 0
+    return Scale(24)
 }
 
 manual_screen_guide_header_height :: () -> int {
@@ -48,14 +48,13 @@ manual_screen_guide_header_height :: () -> int {
 }
 
 manual_screen_tutorial_max_width :: () -> int {
-    return Scale(480)
+    return Scale(640)
 }
 
 manual_screen_hero_bounds :: (content_x: int, content_w: int,
                               y: int, h: int) -> Rectangle {
-    bleed := manual_screen_tutorial_side_padding()
-    x := content_x - bleed
-    w := content_w + bleed * 2
+    x := content_x
+    w := content_w
 
     if x < 0 {
         w += x
@@ -108,7 +107,6 @@ manual_screen_draw_guide_header :: (title: const char*, page: int,
 
 manual_screen_draw_hero_progress :: (bounds: Rectangle, page: int,
                                      page_count: int) {
-    fade_h := Scale(58)
     dot_gap := Scale(18)
     dots_w := (page_count - 1) * dot_gap
     center_x := (int)(bounds.x + bounds.width / 2)
@@ -118,14 +116,6 @@ manual_screen_draw_hero_progress :: (bounds: Rectangle, page: int,
         return
     }
     page = clampi(page, 0, page_count - 1)
-    if fade_h > (int)bounds.height {
-        fade_h = (int)bounds.height
-    }
-    DrawRectangleGradientV((int)bounds.x,
-                           (int)(bounds.y + bounds.height) - fade_h,
-                           (int)bounds.width, fade_h,
-                           Fade(GetThemeBackground(), 0.0f),
-                           GetThemeBackground())
     for int i = 0; i < page_count; i++ {
         dot_x := center_x - dots_w / 2 + i * dot_gap
 
@@ -171,7 +161,12 @@ manual_screen_guide_controls :: (app: InnerBreeze*, nav: ManualGuideNav) {
     finish := IsKeyPressed(KEY_ENTER)
     close := IsKeyPressed(KEY_BACK) || IsKeyPressed(KEY_ESCAPE)
     pad := Scale(12)
-    width := (view_width - pad * 3) / 2
+    content_w := view_width - manual_screen_tutorial_side_padding() * 2
+    if content_w > manual_screen_tutorial_max_width() {
+        content_w = manual_screen_tutorial_max_width()
+    }
+    content_x := (view_width - content_w) / 2
+    width := (content_w - pad) / 2
     height := nav.h - pad * 2
     if height > Scale(48) {
         height = Scale(48)
@@ -180,7 +175,7 @@ manual_screen_guide_controls :: (app: InnerBreeze*, nav: ManualGuideNav) {
         DrawRectangle(0, nav.y, view_width, nav.h, GetThemeBackground())
         y := nav.y + (nav.h - height) / 2
         if Button((ButtonProps){
-            .bounds = {(float)pad, (float)y, (float)width, (float)height},
+            .bounds = {(float)content_x, (float)y, (float)width, (float)height},
             .id = nav.focus_id,
             .label = GetLocaleText("back_button"),
             .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
@@ -192,7 +187,7 @@ manual_screen_guide_controls :: (app: InnerBreeze*, nav: ManualGuideNav) {
             }
         }
         if Button((ButtonProps){
-            .bounds = {(float)(pad * 2 + width), (float)y, (float)width, (float)height},
+            .bounds = {(float)(content_x + pad + width), (float)y, (float)width, (float)height},
             .id = nav.focus_id + 1,
             .label = GetLocaleText(page == nav.page_count - 1 ? "practice_start_button" : "next_button"),
             .tone = ButtonToneAccent, .emphasis = ButtonEmphasisFilled

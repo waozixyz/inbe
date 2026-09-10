@@ -48,7 +48,7 @@ app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, he
     button_size := Scale(24)
     padding := Scale(10)
     button_total := button_size + padding * 2
-    content_x := app_nav_desktop_rail_enabled(app) ? app_nav_desktop_content_offset() : 0
+    content_x := app_nav_desktop_rail_enabled(app) ? app_nav_desktop_rail_width(app) : 0
     content_w := view_width - content_x
     close_x := view_width - button_total - Scale(12)
     close_y := (height - button_total) / 2
@@ -139,20 +139,26 @@ app_nav_sidebar_screen_active :: (app: const InnerBreeze*) -> int {
     return app != NULL && app->breathing.screen == ScreenNavSidebar
 }
 
-app_nav_desktop_rail_width :: () -> int {
-    return Scale(224)
+app_nav_desktop_rail_width :: (app: const InnerBreeze*) -> int {
+    return Scale(app != NULL && app->nav_rail_collapsed ? 88 : 224)
 }
 
-app_nav_desktop_content_offset :: () -> int {
-    return app_nav_desktop_rail_width()
+app_navigation_placement :: (app: const InnerBreeze*) -> int {
+    if app != NULL && app->navigation_placement >= NAVIGATION_LEFT &&
+       app->navigation_placement <= NAVIGATION_TOP {
+        return app->navigation_placement
+    }
+    #if DESKTOP {
+        return IsUIDesktopMode() ? NAVIGATION_LEFT : NAVIGATION_BOTTOM
+    } #else {
+        return NAVIGATION_BOTTOM
+    }
 }
 
 app_nav_desktop_rail_enabled :: (app: const InnerBreeze*) -> int {
-    #if !DESKTOP {
-        app_nav_mark_int_used(app == NULL ? 0 : 1)
-        return 0
-    } #else {
-    if app == NULL || !IsUIDesktopMode() || view_height < Scale(424) {
+    placement := app_navigation_placement(app)
+    if app == NULL || (placement != NAVIGATION_LEFT && placement != NAVIGATION_RIGHT) ||
+       view_height < Scale(476) {
         return 0
     }
     if app->file_dialog_active {
@@ -175,7 +181,6 @@ app_nav_desktop_rail_enabled :: (app: const InnerBreeze*) -> int {
            app->breathing.screen == ScreenEList ||
            app->breathing.screen == ScreenProfile ||
            app->breathing.screen == ScreenSettings
-    }
 }
 
 app_bottom_nav_configurable_route :: (route: int) -> int #private {
@@ -337,6 +342,9 @@ app_sanitize_bottom_nav_routes :: (app: InnerBreeze*) {
                 app->bottom_nav_routes[3] == APP_NAV_ROUTE_ELIST) ||
                (app->bottom_nav_routes[1] == APP_NAV_ROUTE_ELIST &&
                 app->bottom_nav_routes[2] == APP_NAV_ROUTE_PRACTICE &&
+                app->bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS) ||
+               (app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
+                app->bottom_nav_routes[2] == APP_NAV_ROUTE_PROFILE &&
                 app->bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS)) {
         app_reset_bottom_nav_routes(app)
     }
@@ -514,7 +522,7 @@ app_is_blank_home :: (app: const InnerBreeze*) -> int #private {
            app->main_tab == APP_MAIN_TAB_NONE
 }
 
-app_content_bottom_reserved :: (app: const InnerBreeze*) -> int {
+app_navigation_height :: (app: const InnerBreeze*) -> int {
     if app == NULL {
         return 0
     }
@@ -536,6 +544,10 @@ app_content_bottom_reserved :: (app: const InnerBreeze*) -> int {
         return 0
     }
     return GetNodeHeight(NodeBottomNav((BottomNavProps){0}))
+}
+
+app_content_bottom_reserved :: (app: const InnerBreeze*) -> int {
+    return app_navigation_placement(app) == NAVIGATION_TOP ? 0 : app_navigation_height(app)
 }
 
 app_content_left_reserved :: (app: const InnerBreeze*) -> int {

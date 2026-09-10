@@ -1872,6 +1872,8 @@ app_update_draw(void *vapp, Rectangle viewport) {
     int full_width;
     int full_height;
     int content_x = 0;
+    int rail_width = 0;
+    int top_height = 0;
     int content_w;
     int layout_width;
     int layout_height;
@@ -1898,7 +1900,9 @@ app_update_draw(void *vapp, Rectangle viewport) {
         InitUIDPI();
         UpdateUIDPI(view_width, view_height);
     }
-    content_x = app_nav_desktop_rail_enabled(app) ? app_nav_desktop_content_offset() : 0;
+    rail_width = app_nav_desktop_rail_enabled(app) ? app_nav_desktop_rail_width(app) : 0;
+    content_x = app_navigation_placement(app) == NAVIGATION_LEFT ? rail_width : 0;
+    top_height = app_navigation_placement(app) == NAVIGATION_TOP ? app_navigation_height(app) : 0;
     if(content_x >= full_width)
         content_x = 0;
     layout_width = GetLayoutWidth();
@@ -1907,7 +1911,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
     if(!(render_scale > 0.0f))
         render_scale = 1.0f;
     layout_content_x = (int)((float)content_x / render_scale + 0.5f);
-    layout_content_w = layout_width - layout_content_x;
+    layout_content_w = layout_width - (int)((float)rail_width / render_scale + 0.5f);
     if(layout_content_w < 1)
         layout_content_w = 1;
     app_full_view_width = layout_width;
@@ -1932,7 +1936,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
 
     DrawRectangleRec(viewport, GetThemeBackground());
 
-    content_w = full_width - content_x;
+    content_w = full_width - rail_width;
     if(content_w < 1)
         content_w = 1;
     {
@@ -1960,12 +1964,12 @@ app_update_draw(void *vapp, Rectangle viewport) {
         }
     }
     view_width = layout_content_w;
-    view_height = layout_height;
+    view_height = layout_height - (int)((float)top_height / render_scale + 0.5f);
     SetUIViewSize(view_width, view_height);
     memset(&app->camera, 0, sizeof(app->camera));
     app->camera.zoom = render_scale;
     app->camera.offset.x = IsUIInspectActive() ? 0.0f : viewport.x + content_x;
-    app->camera.offset.y = IsUIInspectActive() ? 0.0f : viewport.y;
+    app->camera.offset.y = IsUIInspectActive() ? 0.0f : viewport.y + top_height;
     SetUIFrame(app->camera);
 
     if(IsUIInspectActive()) {

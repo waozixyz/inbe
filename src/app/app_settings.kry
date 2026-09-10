@@ -140,11 +140,11 @@ load_bottom_nav_routes :: (app: InnerBreeze*, cache: const SettingsLoadCache*) #
     app->bottom_nav_route_count =
         settings_cache_get_int(cache, "bottom_nav_route_count", 4)
     app->bottom_nav_routes[0] =
-        settings_cache_get_int(cache, "bottom_nav_route_0", APP_NAV_ROUTE_HABITS)
+        settings_cache_get_int(cache, "bottom_nav_route_0", APP_NAV_ROUTE_ELIST)
     app->bottom_nav_routes[1] =
-        settings_cache_get_int(cache, "bottom_nav_route_1", APP_NAV_ROUTE_PRACTICE)
+        settings_cache_get_int(cache, "bottom_nav_route_1", APP_NAV_ROUTE_HABITS)
     app->bottom_nav_routes[2] =
-        settings_cache_get_int(cache, "bottom_nav_route_2", APP_NAV_ROUTE_PROFILE)
+        settings_cache_get_int(cache, "bottom_nav_route_2", APP_NAV_ROUTE_PRACTICE)
     app->bottom_nav_routes[3] =
         settings_cache_get_int(cache, "bottom_nav_route_3", APP_NAV_ROUTE_SETTINGS)
     app_sanitize_bottom_nav_routes(app)
@@ -223,6 +223,8 @@ save_settings :: (app: InnerBreeze*) {
     save_setting_int("orientation_mode", app->orientation_mode)
     save_setting_int("ui_scale", app->ui_scale_tenths)
     save_setting_int("navigation_mode", app->navigation_mode)
+    save_setting_int("navigation_placement", app->navigation_placement)
+    save_setting_int("navigation_collapsed", app->nav_rail_collapsed)
     save_setting_int("profile_picture_icon", app->profile_picture_icon)
     save_setting_int("bottom_nav_route_count", app->bottom_nav_route_count)
     save_setting_int("bottom_nav_route_0", app->bottom_nav_routes[0])
@@ -725,6 +727,11 @@ app_load_settings :: (app: InnerBreeze*) -> int {
     load_clamped_setting(&settings_cache, &app->patterns.duration_minutes,
                             "patterns_duration_minutes", 5, 0, 120)
     app->navigation_mode = load_navigation_mode(&settings_cache)
+    load_clamped_setting(&settings_cache, &app->navigation_placement,
+                         "navigation_placement", NAVIGATION_AUTOMATIC,
+                         NAVIGATION_AUTOMATIC, NAVIGATION_TOP)
+    load_bool_setting(&settings_cache, &app->nav_rail_collapsed,
+                      "navigation_collapsed", 0)
     app->profile_picture_icon = load_profile_picture_icon(&settings_cache)
     profile_name := settings_cache_get(&settings_cache, "profile_display_name")
     profile_intention := settings_cache_get(&settings_cache, "profile_intention")

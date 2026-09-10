@@ -1831,3 +1831,21 @@ No lists yet
 [elist_empty_detail]
 Create a list, then add tasks and notes in one place.
 ---
+[navigation_placement]
+Navigation position
+---
+[navigation_automatic]
+Automatic
+---
+[navigation_left]
+Left
+---
+[navigation_bottom]
+Bottom
+---
+[navigation_right]
+Right
+---
+[navigation_top]
+Top
+---

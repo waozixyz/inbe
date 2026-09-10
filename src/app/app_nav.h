@@ -11,8 +11,9 @@ int app_current_nav_route(const InnerBreeze*app);
 int app_nav_sidebar_screen_active(const InnerBreeze*app);
 int app_screen_for_main_tab(int main_tab);
 const char *app_nav_route_label(int route);
-int app_nav_desktop_rail_width(void);
-int app_nav_desktop_content_offset(void);
+int app_nav_desktop_rail_width(const InnerBreeze *app);
+int app_navigation_placement(const InnerBreeze *app);
+int app_navigation_height(const InnerBreeze *app);
 int app_nav_desktop_rail_enabled(const InnerBreeze*app);
 void app_nav_profile_identity(InnerBreeze*app, char *out, size_t out_size,
                               char *subtitle, size_t subtitle_size);

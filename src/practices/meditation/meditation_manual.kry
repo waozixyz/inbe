@@ -46,11 +46,7 @@ meditation_manual_content_height :: (content_w: int, user_data: void*) -> int #p
         ctx->page == 0 ? "meditation_manual_intro_text" :
                          "meditation_manual_customize_text", content_w)
 
-    if ctx->page == 0 {
-        return Scale(230 + 12 + 54) +
-               GetNodeHeight(NodeParagraph(paragraph, 0, 0))
-    }
-    return Scale(230 + 12 + 54) +
+    return content_w * 222 / 394 + Scale(24) + manual_screen_guide_header_height() +
            GetNodeHeight(NodeParagraph(paragraph, 0, 0))
 }
 
@@ -61,14 +57,18 @@ meditation_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage,
                                  "meditation_manual_customize_text"
 
     hero_y := *y
-    hero_h := Scale(230)
+    hero_h := page.content_w * 222 / 394
     hero := manual_screen_hero_bounds(page.content_x, page.content_w,
                                       hero_y, hero_h)
 
     if step == 0 {
-        TutorialImage(app->meditation.image_1,
-                      "practices/meditation/1.png",
-                      (int)hero.x, hero_y, (int)hero.width, hero_h)
+        Picture((PictureProps){
+            .asset_path = "assets/practices/meditation/1.png",
+            .bounds = hero, .tint = WHITE, .fit = PICTURE_FIT_CONTAIN,
+            .style = {.enabled = 1, .radius_px = Scale(16),
+                      .background = GetThemeSurface(),
+                      .outline = Fade(GetThemeText(), 0.12f), .outline_px = 1}
+        })
     } else {
         center_x := page.content_x + page.content_w / 2
         center_y := hero_y + hero_h / 2
@@ -89,7 +89,7 @@ meditation_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage,
         })
     }
     manual_screen_draw_hero_progress(hero, step, MEDITATION_MANUAL_PAGES)
-    *y += hero_h + Scale(12)
+    *y += hero_h + Scale(24)
     manual_screen_draw_guide_header(GetLocaleText(title_key), step,
                                     MEDITATION_MANUAL_PAGES,
                                     page.content_x, y, page.content_w)

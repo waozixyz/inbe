@@ -1799,3 +1799,21 @@ Nessuna lista
 [elist_empty_detail]
 Crea una lista, poi aggiungi attivita e note in un unico posto.
 ---
+[navigation_placement]
+Posizione della navigazione
+---
+[navigation_automatic]
+Automatica
+---
+[navigation_left]
+Sinistra
+---
+[navigation_bottom]
+In basso
+---
+[navigation_right]
+Destra
+---
+[navigation_top]
+In alto
+---

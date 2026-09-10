@@ -341,8 +341,13 @@ whm_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage, step: int, y: in
         hero := manual_screen_hero_bounds(page.content_x, page.content_w,
                                           *y, img_h)
 
-        TutorialImage(app->whm.image_1, "practices/whm/1.png",
-                               (int)hero.x, *y, (int)hero.width, img_h)
+        Picture((PictureProps){
+            .asset_path = "assets/practices/whm/1.png", .bounds = hero,
+            .tint = WHITE, .fit = PICTURE_FIT_CONTAIN,
+            .style = {.enabled = 1, .radius_px = Scale(16),
+                      .background = GetThemeSurface(),
+                      .outline = Fade(GetThemeText(), 0.12f), .outline_px = 1}
+        })
         manual_screen_draw_hero_progress(hero, step, tutorial_steps_count())
         *y += img_h + Scale(16)
         draw_tutorial_header(step, page.content_x, y, page.content_w)
@@ -386,8 +391,13 @@ whm_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage, step: int, y: in
         hero := manual_screen_hero_bounds(page.content_x, page.content_w,
                                           *y, img_h)
 
-        TutorialImage(app->whm.image_2, "practices/whm/2.png",
-                               (int)hero.x, *y, (int)hero.width, img_h)
+        Picture((PictureProps){
+            .asset_path = "assets/practices/whm/2.png", .bounds = hero,
+            .tint = WHITE, .fit = PICTURE_FIT_CONTAIN,
+            .style = {.enabled = 1, .radius_px = Scale(16),
+                      .background = GetThemeSurface(),
+                      .outline = Fade(GetThemeText(), 0.12f), .outline_px = 1}
+        })
         manual_screen_draw_hero_progress(hero, step, tutorial_steps_count())
         *y += img_h + Scale(16)
         draw_tutorial_header(step, page.content_x, y, page.content_w)

@@ -6,17 +6,10 @@ meditation_practice_init :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
-    if app->meditation.image_1.id == 0 {
-        app->meditation.image_1 = app_load_asset_texture("practices/meditation/1.png")
-    }
     meditation_music_init(app)
 }
 
 meditation_practice_destroy :: (app: InnerBreeze*) {
-    if app != NULL {
-        app_unload_texture(app->meditation.image_1)
-        app->meditation.image_1 = (Texture2D){0}
-    }
     meditation_music_unload(app)
 }
 

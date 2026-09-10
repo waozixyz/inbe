@@ -738,12 +738,25 @@ setup_screenshot_scene(InnerBreeze*app, const ScreenshotRequest *request)
         app->practice_tab = PRACTICE_TAB_CONFIG;
         app->breathing.screen = ScreenStart;
         app_open_modal(app, UIModalPracticeConfig);
-    } else if(strcmp(request->scene, "practice_manual_whm") == 0) {
+    } else if(strcmp(request->scene, "practice_manual_whm") == 0 ||
+              strcmp(request->scene, "practice_manual_meditation") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->exercise_type = EXERCISE_WIM_HOF;
+        app->exercise_type = strcmp(request->scene, "practice_manual_meditation") == 0
+                                 ? EXERCISE_MEDITATION : EXERCISE_WIM_HOF;
         app->practice_tab = PRACTICE_TAB_MANUAL;
         app->breathing.screen = ScreenStart;
         app_open_modal(app, UIModalPracticeManual);
+    } else if(strncmp(request->scene, "navigation_", 11) == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->breathing.screen = ScreenStart;
+        app->navigation_placement = NAVIGATION_LEFT;
+        if(strcmp(request->scene, "navigation_right") == 0)
+            app->navigation_placement = NAVIGATION_RIGHT;
+        else if(strcmp(request->scene, "navigation_top") == 0)
+            app->navigation_placement = NAVIGATION_TOP;
+        else if(strcmp(request->scene, "navigation_bottom") == 0)
+            app->navigation_placement = NAVIGATION_BOTTOM;
+        app->nav_rail_collapsed = strcmp(request->scene, "navigation_collapsed") == 0;
     } else if(strcmp(request->scene, "wim_hof_session") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_WIM_HOF;

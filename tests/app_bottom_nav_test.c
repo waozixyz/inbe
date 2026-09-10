@@ -1299,11 +1299,12 @@ test_elist_navigation_migration_and_desktop_route(void)
     const int old_routes[][4] = {
         {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS, 0},
         {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS, APP_NAV_ROUTE_ELIST},
-        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_ELIST, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS}
+        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_ELIST, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS},
+        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_PROFILE, APP_NAV_ROUTE_SETTINGS}
     };
     InnerBreeze app = test_app();
 
-    for(int layout = 0; layout < 3; layout++) {
+    for(int layout = 0; layout < 4; layout++) {
         memcpy(app.bottom_nav_routes, old_routes[layout], sizeof(old_routes[layout]));
         app.bottom_nav_route_count = layout == 0 ? 3 : 4;
         app_sanitize_bottom_nav_routes(&app);
@@ -1326,7 +1327,7 @@ test_elist_navigation_migration_and_desktop_route(void)
     desktop_mode = 1;
     app_draw_bottom_nav(&app);
     expect(elist_label_count == 1, "desktop rail should display EList");
-    mouse_position = (Vector2){-100, 154};
+    mouse_position = (Vector2){-100, 206};
     mouse_released = 1;
     app_draw_bottom_nav(&app);
     expect(app.main_tab == APP_MAIN_TAB_ELIST && app.breathing.screen == ScreenEList,
@@ -1337,7 +1338,7 @@ test_elist_navigation_migration_and_desktop_route(void)
 static void
 test_desktop_rail_spacing(void)
 {
-    const int heights[] = {424, 560, 720};
+    const int heights[] = {476, 560, 720};
     for(int i = 0; i < 3; i++) {
         reset_state();
         InnerBreeze app = test_app();
@@ -1367,10 +1368,45 @@ test_desktop_rail_spacing(void)
     reset_state();
 }
 
+static void
+test_navigation_placement_and_collapse(void)
+{
+    reset_state();
+    InnerBreeze app = test_app();
+    expect(app_navigation_placement(&app) == NAVIGATION_BOTTOM,
+           "automatic compact navigation belongs at the bottom");
+    desktop_mode = 1;
+    expect(app_navigation_placement(&app) == NAVIGATION_LEFT,
+           "automatic desktop navigation belongs on the left");
+    app.navigation_placement = NAVIGATION_RIGHT;
+    expect(app_nav_desktop_rail_enabled(&app), "right placement should enable the side rail");
+    app_draw_bottom_nav(&app);
+    expect(rail_bounds[0].x == view_width + 16,
+           "right rail must be outside the content on its right edge");
+    invisible_button_clicked_id = 6691;
+    app_draw_bottom_nav(&app);
+    expect(app.nav_rail_collapsed && app_nav_desktop_rail_width(&app) == 88,
+           "collapse control must narrow the rail");
+    expect(save_settings_count == 1, "collapsed state must be saved");
+    invisible_button_clicked_id = 6691;
+    app_draw_bottom_nav(&app);
+    expect(!app.nav_rail_collapsed && app_nav_desktop_rail_width(&app) == 224,
+           "expand control must restore the full rail");
+    app.navigation_placement = NAVIGATION_TOP;
+    expect(!app_nav_desktop_rail_enabled(&app), "top placement must not reserve a side rail");
+    expect(app_content_bottom_reserved(&app) == 0,
+           "top placement must not leave an empty bottom navigation strip");
+    app_draw_bottom_nav(&app);
+    expect(bottom_nav_last.view_height == 1 && bottom_nav_last.bottom_margin == 1,
+           "top bar must be drawn above the translated content viewport");
+    reset_state();
+}
+
 int
 main(void)
 {
     test_desktop_rail_spacing();
+    test_navigation_placement_and_collapse();
     test_default_bottom_nav_routes_include_elist();
     test_same_frame_modal_close_consumes_bottom_nav_click();
     test_unblocked_bottom_nav_click_still_routes();

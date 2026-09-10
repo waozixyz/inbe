@@ -1799,3 +1799,21 @@ Aucune liste
 [elist_empty_detail]
 Creez une liste, puis ajoutez vos taches et notes au meme endroit.
 ---
+[navigation_placement]
+Position de la navigation
+---
+[navigation_automatic]
+Automatique
+---
+[navigation_left]
+À gauche
+---
+[navigation_bottom]
+En bas
+---
+[navigation_right]
+À droite
+---
+[navigation_top]
+En haut
+---

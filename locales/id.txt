@@ -1799,3 +1799,21 @@ Belum ada daftar
 [elist_empty_detail]
 Buat daftar, lalu tambahkan tugas dan catatan di satu tempat.
 ---
+[navigation_placement]
+Posisi navigasi
+---
+[navigation_automatic]
+Otomatis
+---
+[navigation_left]
+Kiri
+---
+[navigation_bottom]
+Bawah
+---
+[navigation_right]
+Kanan
+---
+[navigation_top]
+Atas
+---

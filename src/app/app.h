@@ -227,6 +227,14 @@ typedef enum NavigationMode {
     NAV_MODE_DROPDOWN = 1,
 } NavigationMode;
 
+typedef enum NavigationPlacement {
+    NAVIGATION_AUTOMATIC = 0,
+    NAVIGATION_LEFT,
+    NAVIGATION_BOTTOM,
+    NAVIGATION_RIGHT,
+    NAVIGATION_TOP
+} NavigationPlacement;
+
 typedef enum AppDeviceOrientation {
     APP_DEVICE_ORIENTATION_UNKNOWN = 0,
     APP_DEVICE_ORIENTATION_PORTRAIT = 1,
@@ -289,13 +297,7 @@ int app_scaffold_close_title(const char *title, int height, void *user_data);
 int app_draw_close_dropdown_title_bar(InnerBreeze*app, UITitleBarDropdown dropdown,
                                       int height);
 
-typedef struct WhmPracticeState {
-    Texture2D image_1;
-    Texture2D image_2;
-} WhmPracticeState;
-
 typedef struct MeditationPracticeState {
-    Texture2D image_1;
     int duration_seconds;
     int remaining_seconds;
     int frame_ticks;
@@ -408,7 +410,6 @@ struct InnerBreeze {
     int graphics_reload_requested;
     HostApi host;
 
-    WhmPracticeState whm;
     MeditationPracticeState meditation;
     SunSalutationPracticeState sun_salutation;
     PetPreviewState pet;
@@ -528,11 +529,13 @@ struct InnerBreeze {
     int orientation_mode;
     int ui_scale_tenths;
     int navigation_mode;
+    int navigation_placement;
     int bottom_nav_routes[APP_BOTTOM_NAV_CONTENT_MAX];
     int bottom_nav_route_count;
     int bottom_nav_config_routes[APP_BOTTOM_NAV_CONTENT_MAX];
     int bottom_nav_config_route_count;
     int nav_sidebar_open;
+    int nav_rail_collapsed;
     int nav_sidebar_open_frame;
     int nav_sidebar_scroll;
     int nav_sidebar_return_on_back;

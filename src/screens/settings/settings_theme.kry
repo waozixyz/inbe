@@ -16,9 +16,9 @@ content_height :: (content_w: int) -> int {
     unused content_w
 
     #if WEB {
-        return Scale(314) + Scale(124)
+        return Scale(314) + Scale(208)
     } #else {
-        return Scale(298) + Scale(124)
+        return Scale(298) + Scale(208)
     }
 }
 
@@ -30,6 +30,25 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
     }
 
     draw_scale_row(app, x, w, y)
+
+    placements: [5] const char* = {
+        GetLocaleText("navigation_automatic"),
+        GetLocaleText("navigation_left"),
+        GetLocaleText("navigation_bottom"),
+        GetLocaleText("navigation_right"),
+        GetLocaleText("navigation_top")
+    }
+    Text((TextProps){
+        .bounds = {(float)x, (float)*y, (float)w, (float)Scale(24)},
+        .text = GetLocaleText("navigation_placement"), .font = Text16
+    })
+    *y += Scale(28)
+    if Dropdown(149, x, *y, w, Scale(40), placements, 5, &app->navigation_placement) {
+        app->settings_scroll = 0
+        app_block_current_click(app)
+        save_settings(app)
+    }
+    *y += Scale(56)
 
     settings := (ThemeSettingsProps){
         .id_base = 101,
