@@ -330,24 +330,6 @@ app_sanitize_bottom_nav_routes :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
-    if app->bottom_nav_route_count == 3 &&
-       app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
-       app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
-       app->bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS {
-        app_reset_bottom_nav_routes(app)
-    } else if app->bottom_nav_route_count == 4 &&
-              app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
-              ((app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
-                app->bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS &&
-                app->bottom_nav_routes[3] == APP_NAV_ROUTE_ELIST) ||
-               (app->bottom_nav_routes[1] == APP_NAV_ROUTE_ELIST &&
-                app->bottom_nav_routes[2] == APP_NAV_ROUTE_PRACTICE &&
-                app->bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS) ||
-               (app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
-                app->bottom_nav_routes[2] == APP_NAV_ROUTE_PROFILE &&
-                app->bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS)) {
-        app_reset_bottom_nav_routes(app)
-    }
     allowed[allowed_count] = APP_NAV_ROUTE_HABITS
     allowed_count += 1
     allowed[allowed_count] = APP_NAV_ROUTE_ELIST
@@ -407,12 +389,6 @@ app_open_main_tab :: (app: InnerBreeze*, main_tab: int, persist: int) #private {
     if app->practice_tab == PRACTICE_TAB_CONFIG {
         app_leave_practice_config(app)
     }
-    if app->breathing.screen == ScreenHabits &&
-       app->habits.screen_mode == HABITS_SCREEN_REORDER {
-        app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
-        app->habits.scroll = 0
-    }
-
     if main_tab == APP_MAIN_TAB_NONE {
         app->main_tab = APP_MAIN_TAB_NONE
         app_switch_screen(app, ScreenStart)
@@ -465,12 +441,6 @@ app_apply_nav_route :: (app: InnerBreeze*, route: int) {
         return
     }
     return_to_sidebar = app_nav_sidebar_screen_active(app)
-
-    if app->breathing.screen == ScreenHabits &&
-       app->habits.screen_mode == HABITS_SCREEN_REORDER {
-        app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
-        app->habits.scroll = 0
-    }
 
     if route == APP_NAV_ROUTE_PROFILE {
         app_open_profile_tab(app, PROFILE_TAB_OVERVIEW)
@@ -530,10 +500,6 @@ app_navigation_height :: (app: const InnerBreeze*) -> int {
         return 0
     }
     if app->breathing.screen == ScreenHabitEdit {
-        return 0
-    }
-    if app->breathing.screen == ScreenHabits &&
-       app->habits.screen_mode == HABITS_SCREEN_REORDER {
         return 0
     }
     if app_is_practice_fullscreen_subview(app) {

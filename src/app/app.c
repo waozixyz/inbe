@@ -430,11 +430,9 @@ int_from_count(const char src[CountSize])
 static void
 app_restore_habits_view_settings(InnerBreeze*app)
 {
-    const char *selected_id;
     int screen_mode;
     int habit_tab;
     int view_mode;
-    int i;
 
     if(app == NULL)
         return;
@@ -444,31 +442,18 @@ app_restore_habits_view_settings(InnerBreeze*app)
     view_mode = storage_get_setting_int("habits_view_mode", HABIT_VIEW_WEEKLY);
     app->habits.screen_mode = clampi(screen_mode, HABITS_SCREEN_OVERVIEW,
                                      HABITS_SCREEN_STATISTICS);
-    if(app->habits.screen_mode == HABITS_SCREEN_REORDER)
-        app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
     app->habits.tab = clampi(habit_tab, HABIT_TAB_WEEKLY, HABIT_TAB_COUNT - 1);
     app->habits.view_mode = clampi(view_mode, HABIT_VIEW_CALENDAR, HABIT_VIEW_WEEKLY);
 
-    selected_id = storage_get_setting_text("habits_selected_id");
-    if(selected_id != NULL && selected_id[0] != '\0') {
-        for(i = 0; i < app->habits.count; i++) {
-            if(strcmp(app->habits.items[i].id, selected_id) == 0) {
-                app->habits.selected = i;
-                break;
-            }
-        }
-    }
-    /* The cards screen is the root. Restoring a previously viewed habit must
-     * not reopen it automatically on launch. */
+    /* The cards screen is the root. Restoring settings must not reopen a
+     * habit card automatically; only the chevron expands a card. */
     app->habits.selected = -1;
 }
 
 void
 app_reload_after_import(InnerBreeze*app, int reload_settings)
 {
-    char selected_habit_id[HABIT_ID_SIZE] = "";
     char detail_habit_id[HABIT_ID_SIZE] = "";
-    int selected = -1;
     int detail_index = -1;
     int view_mode = HABIT_VIEW_CALENDAR;
     int habit_tab = HABIT_TAB_WEEKLY;
@@ -481,13 +466,9 @@ app_reload_after_import(InnerBreeze*app, int reload_settings)
         return;
 
     if(!reload_settings) {
-        if(app->habits.selected >= 0 && app->habits.selected < app->habits.count)
-            snprintf(selected_habit_id, sizeof(selected_habit_id), "%s",
-                     app->habits.items[app->habits.selected].id);
         if(app->habit_detail_index >= 0 && app->habit_detail_index < app->habits.count)
             snprintf(detail_habit_id, sizeof(detail_habit_id), "%s",
                      app->habits.items[app->habit_detail_index].id);
-        selected = app->habits.selected;
         detail_index = app->habit_detail_index;
         view_mode = app->habits.view_mode;
         habit_tab = app->habits.tab;
@@ -509,15 +490,6 @@ app_reload_after_import(InnerBreeze*app, int reload_settings)
         app_restore_habits_view_settings(app);
     if(!reload_settings) {
         app->habits.selected = -1;
-        for(i = 0; i < app->habits.count; i++) {
-            if(selected_habit_id[0] != '\0' &&
-               strcmp(app->habits.items[i].id, selected_habit_id) == 0) {
-                app->habits.selected = i;
-                break;
-            }
-        }
-        if(app->habits.selected < 0 && selected >= 0 && selected < app->habits.count)
-            app->habits.selected = selected;
         app->habit_detail_index = -1;
         for(i = 0; i < app->habits.count; i++) {
             if(detail_habit_id[0] != '\0' &&
@@ -871,15 +843,8 @@ handle_back_button(InnerBreeze*app)
     case ScreenHabits:
         if(app->habits.screen_mode == HABITS_SCREEN_HISTORY ||
            app->habits.screen_mode == HABITS_SCREEN_STATISTICS) {
-            app->habits.screen_mode = HABITS_SCREEN_DETAIL;
-            app->habits.tab = HABIT_TAB_WEEKLY;
-            app->habits.view_mode = HABIT_VIEW_WEEKLY;
-            app->habits.scroll = 0;
-            save_settings(app);
-            break;
-        }
-        if(app->habits.screen_mode == HABITS_SCREEN_DETAIL) {
             app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+            app->habits.selected = -1;
             app->habits.tab = HABIT_TAB_WEEKLY;
             app->habits.view_mode = HABIT_VIEW_WEEKLY;
             app->habits.scroll = 0;

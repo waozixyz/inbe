@@ -162,11 +162,6 @@ storage_reconcile_remote_habit_ids(const char *response_json)
                  "WHERE entity_type IN ('habit','habit_day') "
                  "AND EXISTS (SELECT 1 FROM remote_habit_id_map m "
                  "    WHERE m.old_id=sync_ops.entity_id);"
-                 "UPDATE settings SET value=(SELECT m.new_id FROM remote_habit_id_map m "
-                 "    WHERE m.old_id=settings.value),updated_at=strftime('%s','now') "
-                 "WHERE key='habits_selected_id' "
-                 "AND EXISTS (SELECT 1 FROM remote_habit_id_map m "
-                 "    WHERE m.old_id=settings.value);"
                  "DELETE FROM habit_days WHERE EXISTS (SELECT 1 FROM remote_habit_id_map m "
                  "    WHERE m.old_id=habit_days.habit_id);"
                  "DELETE FROM habits WHERE EXISTS (SELECT 1 FROM remote_habit_id_map m "
@@ -341,9 +336,7 @@ storage_migrate_habit_ids_to_uuid(void)
             "UPDATE OR IGNORE sync_outbox SET entity_id=?2 "
             "WHERE entity_id=?1 AND entity_type IN ('habit','habit_day')",
             "DELETE FROM sync_outbox WHERE entity_id=?1 "
-            "AND entity_type IN ('habit','habit_day')",
-            "UPDATE settings SET value=?2,updated_at=?3 "
-            "WHERE key='habits_selected_id' AND value=?1"};
+            "AND entity_type IN ('habit','habit_day')"};
         long long changed_at = storage_next_change_time();
 
         for(size_t j = 0; j < sizeof(sqls) / sizeof(sqls[0]); j++) {

@@ -92,9 +92,6 @@ bottom_nav_should_draw :: (app: InnerBreeze*) -> int #private {
     if app->modal.active && app->modal.type == UIModalEditProgressiveStartSpeed {
         return 0
     }
-    if app->breathing.screen == ScreenHabits && app->habits.screen_mode == HABITS_SCREEN_REORDER {
-        return 0
-    }
     return app_current_nav_route(app) != APP_NAV_ROUTE_NONE || bottom_nav_blank_home(app)
 }
 

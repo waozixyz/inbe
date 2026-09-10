@@ -26,9 +26,6 @@ WEB :: #defined(PLATFORM_WEB)
     HABITS_TOP_H = 36
 }
 
-static habits_top_options: [HABIT_MAX + 2] const char* = {0}
-static habits_top_dropdown_selected: int = 0
-
 HabitsScrollPageContext :: struct {
     view_mode: int
     weekly_days: int
@@ -147,102 +144,16 @@ habits_screen_top_reserved :: (app: InnerBreeze*) -> int {
     return 0
 }
 
-habits_select_detail_tab :: (app: InnerBreeze*, tab: int) #private {
-    route: AppRoute
-
-    if app == nil {
+habits_expand_card :: (app: InnerBreeze*, index: int) #private {
+    if app == nil || index < 0 || index >= app->habits.count {
         return
     }
-
-    tab = clampi(tab, HABIT_TAB_WEEKLY, HABIT_TAB_COUNT - 1)
-    if app->habit_edit.active && tab != HABIT_TAB_EDIT {
-        habit_edit_cancel(app)
-    }
-
-    route = app_current_route(app)
-    route.screen = ScreenHabits
-    route.habits_screen_mode = HABITS_SCREEN_DETAIL
-    route.habits_tab = tab
-    app->habits.scroll = 0
-
-    if tab == HABIT_TAB_WEEKLY {
-        app->habits.view_mode = HABIT_VIEW_WEEKLY
-        if app->habits.weekly_days < HABIT_WEEKLY_INITIAL_DAYS {
-            app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS
-        }
-    } else if tab == HABIT_TAB_MONTHLY {
-        app->habits.view_mode = HABIT_VIEW_CALENDAR
-    } else if tab == HABIT_TAB_EDIT {
-        route.screen = ScreenHabitEdit
-        if app->habits.count > 0 {
-            habit_edit_begin(app, app->habits.selected)
-        } else {
-            habit_edit_begin_new(app)
-        }
-    }
-
-    app_switch_route(app, route)
-    save_settings(app)
-}
-
-habits_select_habit :: (app: InnerBreeze*, selected_habit: int) #private {
-    if app == nil ||
-       selected_habit < 0 ||
-       selected_habit >= app->habits.count {
-        return
-    }
-
-    app->habits.selected = selected_habit
-    app->habits.scroll = 0
-    app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS
-    save_settings(app)
-}
-
-habits_enter_detail :: (app: InnerBreeze*, selected_habit: int) {
-    route: AppRoute
-
-    if app == nil {
-        return
-    }
-    if selected_habit >= 0 && selected_habit < app->habits.count {
-        habits_select_habit(app, selected_habit)
-    }
-
-    route = app_current_route(app)
-    route.habits_screen_mode = HABITS_SCREEN_DETAIL
-    route.habits_tab = HABIT_TAB_WEEKLY
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
+    app->habits.selected = index
+    app->habits.tab = HABIT_TAB_WEEKLY
     app->habits.view_mode = HABIT_VIEW_WEEKLY
     app->habits.scroll = 0
-    app_switch_route(app, route)
-    save_settings(app)
-}
-
-habits_open_history :: (app: InnerBreeze*) #private {
-    route: AppRoute
-
-    if app == nil || app->habits.count <= 0 {
-        return
-    }
-    route = app_current_route(app)
-    route.habits_screen_mode = HABITS_SCREEN_HISTORY
-    route.habits_tab = app->habits.view_mode == HABIT_VIEW_CALENDAR
-        ? HABIT_TAB_MONTHLY : HABIT_TAB_WEEKLY
-    app->habits.scroll = 0
-    app_switch_route(app, route)
-    save_settings(app)
-}
-
-habits_open_statistics :: (app: InnerBreeze*) #private {
-    route: AppRoute
-
-    if app == nil || app->habits.count <= 0 {
-        return
-    }
-    route = app_current_route(app)
-    route.habits_screen_mode = HABITS_SCREEN_STATISTICS
-    route.habits_tab = HABIT_TAB_STATISTICS
-    app->habits.scroll = 0
-    app_switch_route(app, route)
+    app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS
     save_settings(app)
 }
 
@@ -253,9 +164,51 @@ habits_return_to_focus :: (app: InnerBreeze*) #private {
         return
     }
     route = app_current_route(app)
-    route.habits_screen_mode = HABITS_SCREEN_DETAIL
+    route.screen = ScreenHabits
+    route.habits_screen_mode = HABITS_SCREEN_OVERVIEW
     route.habits_tab = HABIT_TAB_WEEKLY
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
+    app->habits.selected = -1
+    app->habits.tab = HABIT_TAB_WEEKLY
     app->habits.view_mode = HABIT_VIEW_WEEKLY
+    app->habits.scroll = 0
+    app_switch_route(app, route)
+    save_settings(app)
+}
+
+habits_open_history :: (app: InnerBreeze*) #private {
+    route: AppRoute
+
+    if app == nil || app->habits.count <= 0 ||
+       app->habits.selected < 0 ||
+       app->habits.selected >= app->habits.count {
+        return
+    }
+    route = app_current_route(app)
+    route.screen = ScreenHabits
+    route.habits_screen_mode = HABITS_SCREEN_HISTORY
+    route.habits_tab = app->habits.view_mode == HABIT_VIEW_CALENDAR
+        ? HABIT_TAB_MONTHLY : HABIT_TAB_WEEKLY
+    app->habits.screen_mode = HABITS_SCREEN_HISTORY
+    app->habits.scroll = 0
+    app_switch_route(app, route)
+    save_settings(app)
+}
+
+habits_open_statistics :: (app: InnerBreeze*) #private {
+    route: AppRoute
+
+    if app == nil || app->habits.count <= 0 ||
+       app->habits.selected < 0 ||
+       app->habits.selected >= app->habits.count {
+        return
+    }
+    route = app_current_route(app)
+    route.screen = ScreenHabits
+    route.habits_screen_mode = HABITS_SCREEN_STATISTICS
+    route.habits_tab = HABIT_TAB_STATISTICS
+    app->habits.screen_mode = HABITS_SCREEN_STATISTICS
+    app->habits.tab = HABIT_TAB_STATISTICS
     app->habits.scroll = 0
     app_switch_route(app, route)
     save_settings(app)
@@ -268,8 +221,10 @@ habits_return_to_overview :: (app: InnerBreeze*) #private {
     if app->habit_edit.active {
         habit_edit_cancel(app)
     }
-
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
     app->habits.selected = -1
+    app->habits.tab = HABIT_TAB_WEEKLY
+    app->habits.view_mode = HABIT_VIEW_WEEKLY
     save_settings(app)
 }
 
@@ -277,124 +232,7 @@ habits_begin_new_detail :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
-
     habit_edit_begin_new(app)
-}
-
-draw_habits_top_bar :: (app: InnerBreeze*, draw_menu: int) {
-    tabs: [HABIT_TAB_COUNT] Tab
-    actions: [1] TopNavAction
-    nav_result: TopNavResult
-    option_count: int
-    habit_offset: int = 0
-    draft_new: int
-    selected: int
-    top_h: int = Scale(HABITS_TOP_H)
-    clicked_tab: int
-
-    if app == nil {
-        return
-    }
-
-    draft_new = app->habit_edit.active && app->habit_edit.is_new
-    option_count = 0
-    if draft_new {
-        habits_top_options[option_count++] = ""
-        habit_offset = 1
-    }
-    for int i = 0; i < app->habits.count && i < HABIT_MAX; i++ {
-        habits_top_options[option_count++] = app->habits.items[i].name
-    }
-
-    selected = draft_new ? 0 : app->habits.selected + habit_offset
-    if !draft_new &&
-       (app->habits.selected < 0 ||
-        app->habits.selected >= app->habits.count) {
-        selected = 0
-    }
-
-    if app->habits.screen_mode != HABITS_SCREEN_DETAIL {
-        return
-    }
-
-    if !draw_menu {
-        dropdown_h: int = Scale(32)
-
-        habits_top_dropdown_selected = selected
-        actions[0] = (TopNavAction){
-            .icon = app->icons[UI_ICON_TYPE_X],
-            .disabled = app->modal.active
-        }
-        nav_result = TopNav((TopNavProps){
-            .id = 301,
-            .width = view_width,
-            .height = top_h,
-            .options = habits_top_options,
-            .option_count = option_count,
-            .selected_index = &habits_top_dropdown_selected,
-            .disabled = app->modal.active,
-            .dropdown_min_width = Scale(120),
-            .dropdown_height = dropdown_h,
-            .actions = actions,
-            .action_count = 1
-        })
-        if nav_result.clicked_action == 0 {
-            habits_return_to_overview(app)
-        }
-        selected_habit: int = habits_top_dropdown_selected - habit_offset
-        if !(draft_new && habits_top_dropdown_selected == 0) &&
-           selected_habit >= 0 &&
-           selected_habit < app->habits.count &&
-           app->habits.selected != selected_habit {
-            habits_select_habit(app, selected_habit)
-        }
-
-        tabs[HABIT_TAB_WEEKLY] = (Tab){
-            .icon = app->icons[UI_ICON_TYPE_WEEKLY],
-            .icon_size = Scale(20),
-            .disabled = app->modal.active || app->habits.count <= 0
-        }
-        tabs[HABIT_TAB_MONTHLY] = (Tab){
-            .icon = app->icons[UI_ICON_TYPE_CALENDAR],
-            .icon_size = Scale(20),
-            .disabled = app->modal.active || app->habits.count <= 0
-        }
-        tabs[HABIT_TAB_STATISTICS] = (Tab){
-            .icon = app->icons[UI_ICON_TYPE_STAT],
-            .icon_size = Scale(20),
-            .disabled = app->modal.active || app->habits.count <= 0
-        }
-        tabs[HABIT_TAB_EDIT] = (Tab){
-            .icon = app->icons[UI_ICON_TYPE_EDIT],
-            .icon_size = Scale(20),
-            .disabled = app->modal.active
-        }
-        clicked_tab = TabBar((TabBarProps){
-            .bounds = (Rectangle){
-                0,
-                (float)habits_screen_selector_height(app),
-                (float)view_width,
-                (float)GetNodeHeight(NodeTabBar((TabBarProps){
-                    .bounds = (Rectangle){0, 0, 0, 0}
-                }))
-            },
-            .tabs = tabs,
-            .count = HABIT_TAB_COUNT,
-            .selected_index = app->habits.tab,
-            .min_tab_width = Scale(64),
-            .max_tab_width = Scale(96),
-            .scroll_offset = &app->habits.tab_scroll,
-            .focus_selected = app->habits.focus_selected_tab
-        })
-        if clicked_tab >= 0 &&
-           clicked_tab < HABIT_TAB_COUNT &&
-           clicked_tab != app->habits.tab {
-            habits_select_detail_tab(app, clicked_tab)
-        }
-        return
-    }
-
-    return
 }
 
 habits_card_description :: (description: const char*, width: int, font: int,
@@ -452,7 +290,6 @@ habits_screen_first_run_guide_active :: (app: const InnerBreeze*) -> int {
 
 habits_screen_prepare_first_run_guide :: (app: InnerBreeze*) {
     step: int
-    meditation_index: int = 0
 
     if !habits_screen_first_run_guide_active(app) {
         return
@@ -464,27 +301,11 @@ habits_screen_prepare_first_run_guide :: (app: InnerBreeze*) {
     if app->habit_edit.active {
         habit_edit_cancel(app)
     }
-    for int i = 0; i < app->habits.count; i++ {
-        if strcmp(app->habits.items[i].id, "meditation") == 0 {
-            meditation_index = i
-            break
-        }
-    }
-
-    if step <= 1 {
-        app->habits.screen_mode = HABITS_SCREEN_DETAIL
-        app->habits.selected = -1
-        app->habits.scroll = 0
-    } else {
-        app->habits.screen_mode = HABITS_SCREEN_DETAIL
-        if app->habits.count > 0 {
-            app->habits.selected =
-                clampi(meditation_index, 0, app->habits.count - 1)
-        }
-        app->habits.tab = HABIT_TAB_WEEKLY
-        app->habits.view_mode = HABIT_VIEW_WEEKLY
-        app->habits.scroll = 0
-    }
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
+    app->habits.selected = -1
+    app->habits.tab = HABIT_TAB_WEEKLY
+    app->habits.view_mode = HABIT_VIEW_WEEKLY
+    app->habits.scroll = 0
 }
 
 habits_cards_progress_anchor :: (app: InnerBreeze*) -> Rectangle #private {
@@ -1856,7 +1677,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     if expand_clicked {
         app_block_current_click(app)
         UIConsumePointerRelease()
-        habits_select_habit(app, index)
+        habits_expand_card(app, index)
         app->habits.tab = HABIT_TAB_WEEKLY
         app->habits.scroll = 0
         save_settings(app)
@@ -1865,12 +1686,8 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
 
 draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     context := (HabitsFocusPageContext){app}
-    items: [HABIT_MAX] ReorderItem
-    count := clampi(app->habits.count, 0, HABIT_MAX)
     area := (UIScrollArea){0}
     measured: UIScrollView
-    reorder: ReorderListResult
-    mouse: Vector2
     measure_x: int
     measure_w: int
     grid: GridCursor
@@ -1892,52 +1709,6 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     measure_w = measured.content_w
     area.content_height = habits_focus_content_height(measure_w, &context)
     measured = MeasureUIScrollContainer(area)
-    grid = BeginGridCursor(habits_focus_grid_props(measure_x,
-                                                    measured.content_y + Scale(82),
-                                                    measured.content_w))
-    for int i = 0; i < count; i++ {
-        item_h := i == app->habits.selected
-            ? habits_focus_card_height() : habits_focus_collapsed_height()
-        span := i == app->habits.selected ? grid.metrics.columns : 1
-        grid = GridStep(grid, item_h, span)
-        items[i] = (ReorderItem){
-            .id = i + 1,
-            .bounds = grid.item,
-            .disabled = app->modal.active || grid.metrics.columns > 1
-        }
-    }
-    reorder_handle_w := Scale(64)
-    if reorder_handle_w > measured.content_w {
-        reorder_handle_w = measured.content_w
-    }
-
-    PushUIInputClip(area.bounds)
-    reorder = UpdateReorderList((ReorderList){
-        .id = 812,
-        .bounds = area.bounds,
-        .items = items,
-        .item_count = count,
-        .handle_width = reorder_handle_w,
-        .handle_height = Scale(72),
-        .drag_threshold = Scale(8),
-        .scroll_offset = &app->habits.scroll,
-        .max_scroll = measured.max_scroll,
-        .viewport_top = (int)area.bounds.y,
-        .viewport_bottom = (int)(area.bounds.y + area.bounds.height),
-        .auto_scroll_step = Scale(6)
-    })
-    PopUIInputClip()
-    mouse = GetScreenToWorld2D(GetMousePosition(), app->camera)
-    if reorder.active && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) {
-        app->habit_card_press_x = (int)mouse.x
-        app->habit_card_grab_y = (int)mouse.y -
-            (int)items[reorder.active_index].bounds.y
-    }
-    if reorder.committed &&
-       habits_move(&app->habits, reorder.from_index, reorder.to_index) {
-        save_settings(app)
-        app_auto_sync(app)
-    }
     page := BeginUIScrollPage((UIScrollPageSpec){
         .y = content_top + Scale(4),
         .height = view_height - content_top - app_content_bottom_reserved(app) - Scale(4),
@@ -1984,13 +1755,6 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     }
     grid = BeginGridCursor(habits_focus_grid_props(x, page.content_y + Scale(82), w))
     for int i = 0; i < app->habits.count; i++ {
-        if reorder.dragging && i == reorder.active_index {
-            item_h := i == app->habits.selected
-                ? habits_focus_card_height() : habits_focus_collapsed_height()
-            span := i == app->habits.selected ? grid.metrics.columns : 1
-            grid = GridStep(grid, item_h, span)
-            continue
-        }
         if i == app->habits.selected {
             grid = GridStep(grid, habits_focus_card_height(), grid.metrics.columns)
             cell := grid.item
@@ -1999,25 +1763,6 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
             grid = GridStep(grid, habits_focus_collapsed_height(), 1)
             cell := grid.item
             habits_focus_draw_collapsed(app, i, (int)cell.x, (int)cell.y, (int)cell.width)
-        }
-    }
-    if reorder.dragging && reorder.target_index >= 0 &&
-       reorder.target_index < count {
-        ReorderPlaceholder(items[reorder.target_index].bounds)
-    }
-    if reorder.dragging && reorder.active_index >= 0 &&
-       reorder.active_index < count {
-        overlay_y := (int)mouse.y - app->habit_card_grab_y
-        if reorder.active_index == app->habits.selected {
-            habits_focus_draw_card(app, reorder.active_index,
-                                    (int)items[reorder.active_index].bounds.x,
-                                    overlay_y,
-                                    (int)items[reorder.active_index].bounds.width)
-        } else {
-            habits_focus_draw_collapsed(app, reorder.active_index,
-                                        (int)items[reorder.active_index].bounds.x,
-                                        overlay_y,
-                                        (int)items[reorder.active_index].bounds.width)
         }
     }
     EndUIScrollPage(page)
@@ -2126,11 +1871,7 @@ draw_habits_screen :: (app: InnerBreeze*) {
     GetUICenteredColumn(max_w, side_padding, &content_x, &content_w)
 
     if app->habits.count > 0 &&
-       (app->habits.screen_mode == HABITS_SCREEN_OVERVIEW ||
-        app->habits.screen_mode == HABITS_SCREEN_DETAIL ||
-        app->habits.screen_mode == HABITS_SCREEN_REORDER) {
-        # All legacy root modes migrate to the single expandable-card screen.
-        app->habits.screen_mode = HABITS_SCREEN_DETAIL
+       app->habits.screen_mode == HABITS_SCREEN_OVERVIEW {
         if app->habits.selected >= app->habits.count {
             app->habits.selected = -1
         }
@@ -2174,10 +1915,6 @@ draw_habits_screen :: (app: InnerBreeze*) {
             habits_begin_new_detail(app)
         }
         EndUIClip()
-        draw_habits_top_bar(app, 0)
-        if app->breathing.screen == ScreenHabits {
-            draw_habits_top_bar(app, 1)
-        }
         return
     }
 
@@ -2282,10 +2019,6 @@ draw_habits_screen :: (app: InnerBreeze*) {
         draw_habits_weekly_view(app, active, selected, linked_ctx,
                                    content_x, content_w, y, weekly_days)
         EndUIScrollPage(page)
-        draw_habits_top_bar(app, 0)
-        if app->breathing.screen == ScreenHabits {
-            draw_habits_top_bar(app, 1)
-        }
         return
     }
 
@@ -2415,11 +2148,6 @@ draw_habits_screen :: (app: InnerBreeze*) {
     }
 
     EndUIScrollPage(page)
-
-    draw_habits_top_bar(app, 0)
-    if app->breathing.screen == ScreenHabits {
-        draw_habits_top_bar(app, 1)
-    }
 }
 
 route habits {

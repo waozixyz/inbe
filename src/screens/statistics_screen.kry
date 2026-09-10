@@ -597,6 +597,7 @@ draw_statistics_content :: (app: InnerBreeze*, content_top: int) {
     max_w := Scale(CONTENT_MAX_W)
     active := (Habit*)NULL
     linked_ctx := (HabitLinkedContext*)NULL
+    stats_index := app->habits.selected
     page_ctx := (StatisticsScrollPageContext){0}
     page := (UIScrollPage){0}
     page_mood_stats: StorageMoodStats = {0}
@@ -605,12 +606,12 @@ draw_statistics_content :: (app: InnerBreeze*, content_top: int) {
     if app->habits.count <= 0 {
         return
     }
-    if app->habits.selected < 0 || app->habits.selected >= app->habits.count {
-        app->habits.selected = 0
+    if stats_index < 0 || stats_index >= app->habits.count {
+        stats_index = 0
     }
 
-    active = &app->habits.items[app->habits.selected]
-    linked_ctx = habit_cached_linked_entries(app, app->habits.selected, 0)
+    active = &app->habits.items[stats_index]
+    linked_ctx = habit_cached_linked_entries(app, stats_index, 0)
 
     if scroll_h < 0 {
         scroll_h = 0

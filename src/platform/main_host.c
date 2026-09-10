@@ -579,7 +579,7 @@ screenshot_seed_habits(InnerBreeze*app)
         habits_add_custom(&app->habits, "Jumping Rope", (Color){195,90,130,255}, HABIT_SYNC_NONE, 0);
     }
 
-    app->habits.selected = 0;
+    app->habits.selected = -1;
     app->habits.items[0].sync_mode = HABIT_SYNC_ACTIVITIES;
     app->habits.items[0].sync_activity = habit_activity_mask_for(EXERCISE_WIM_HOF) |
                                          habit_activity_mask_for(EXERCISE_MEDITATION);
@@ -786,20 +786,21 @@ setup_screenshot_scene(InnerBreeze*app, const ScreenshotRequest *request)
     } else if(strcmp(request->scene, "calendar_meditation") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->habits.screen_mode = HABITS_SCREEN_HISTORY;
-        app->habits.selected = 0;
+        app->habits.selected = -1;
         app->habits.tab = HABIT_TAB_MONTHLY;
         app->breathing.screen = ScreenHabits;
         app->habits.view_mode = HABIT_VIEW_CALENDAR;
     } else if(strcmp(request->scene, "habits_overview") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+        app->habits.selected = -1;
         app->habits.tab = HABIT_TAB_WEEKLY;
         app->habits.view_mode = HABIT_VIEW_WEEKLY;
         app->breathing.screen = ScreenHabits;
     } else if(strcmp(request->scene, "habits_stats") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->habits.screen_mode = HABITS_SCREEN_STATISTICS;
-        app->habits.selected = 0;
+        app->habits.selected = -1;
         app->habits.tab = HABIT_TAB_STATISTICS;
         app->breathing.screen = ScreenHabits;
     } else if(strcmp(request->scene, "theme_selection") == 0) {

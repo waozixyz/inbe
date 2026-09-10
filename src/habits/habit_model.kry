@@ -300,7 +300,7 @@ habits_add_default_set :: (habits: Habits*) {
                        GetLocaleText("habit_default_yoga_description"),
                        (Color){239, 178, 102, 255},
                        habit_activity_mask_for(EXERCISE_SUN_SALUTATION))
-    habits->selected = 0
+    habits->selected = -1
     habits->loaded = 1
     habits_save(habits)
 }
@@ -330,10 +330,6 @@ habits_delete :: (habits: Habits*, index: int) {
     } else if habits->selected >= habits->count {
         habits->selected = habits->count - 1
     }
-    if habits->selected < 0 && habits->count > 0 {
-        habits->selected = 0
-    }
-
     habits_save(habits)
 }
 
@@ -436,10 +432,10 @@ habits_add_custom :: (habits: Habits*, name: const char*, color: Color,
     habit->sync_activity = sync_activity
     habit->counter_enabled = 0
     habit->counter_target = 1
-    habits->selected = habits->count
+    index := habits->count
     habits->count++
     habits_save(habits)
-    return habits->selected
+    return index
 }
 
 habits_init_with_defaults :: (habits: Habits*, seed_defaults: int) {
@@ -470,8 +466,8 @@ habits_init_with_defaults :: (habits: Habits*, seed_defaults: int) {
             }
             return
         }
-        if habits->selected < 0 || habits->selected >= habits->count {
-            habits->selected = 0
+        if habits->selected >= habits->count {
+            habits->selected = -1
         }
         habits->loaded = 1
         return
@@ -513,7 +509,6 @@ habit_set_day :: (habits: Habits*, index: int, day_index: int, completed: int) {
         habit->days[habit->day_count].count = count
         habit->day_count++
     }
-    habits->selected = index
     habits_queue_day_save(habits, habit, day_index, completed != 0, count)
 }
 
@@ -539,7 +534,6 @@ habit_set_day_count :: (habits: Habits*, index: int, day_index: int, count: int)
         habit->days[habit->day_count].completed = 1
         habit->day_count++
     }
-    habits->selected = index
     habits_queue_day_save(habits, habit, day_index, count > 0, count)
 }
 
@@ -564,7 +558,6 @@ habit_toggle_day :: (habits: Habits*, index: int, day_index: int) {
         habit->days[habit->day_count].count = 1
         habit->day_count++
     }
-    habits->selected = index
     habits_queue_day_save(habits, habit, day_index,
                              habit_completed_day(habit, day_index),
                              habit_day_count(habit, day_index))

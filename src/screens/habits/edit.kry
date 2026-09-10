@@ -65,13 +65,9 @@ begin :: (app: InnerBreeze*, index: int) {
 }
 
 cancel :: (app: InnerBreeze*) {
-    was_new: int
-
     if app == nil {
         return
     }
-
-    was_new = app->habit_edit.is_new
 
     app->habit_edit = (HabitEditState){
         .index = -1,
@@ -80,8 +76,8 @@ cancel :: (app: InnerBreeze*) {
     }
     SetUIFocusTextInputActive(0)
     if app->breathing.screen == ScreenHabitEdit {
-        app->habits.screen_mode = was_new
-            ? HABITS_SCREEN_OVERVIEW : HABITS_SCREEN_DETAIL
+        app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
+        app->habits.selected = -1
         app->habits.tab = HABIT_TAB_WEEKLY
         app->habits.view_mode = HABIT_VIEW_WEEKLY
         app->habits.scroll = 0
@@ -154,14 +150,11 @@ practice_picker :: (app: InnerBreeze*) -> int #private {
 commit :: (app: InnerBreeze*) {
     name_text: const char* = nil
     index := 0
-    was_new := 0
-
     if app == nil || !app->habit_edit.active {
         return
     }
 
     index = app->habit_edit.index
-    was_new = app->habit_edit.is_new
     if !app->habit_edit.is_new && (index < 0 || index >= app->habits.count) {
         cancel(app)
         return
@@ -221,15 +214,14 @@ commit :: (app: InnerBreeze*) {
                 app->habit_edit.weekdays & 0xff
             app->habits.items[index].reminder_hour =
                 app->habit_edit.reminder_hour
-            app->habits.selected = index
             habits_save(&app->habits)
         }
         app_auto_sync(app)
     }
 
     cancel(app)
-    app->habits.screen_mode = was_new
-        ? HABITS_SCREEN_OVERVIEW : HABITS_SCREEN_DETAIL
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
+    app->habits.selected = -1
     app->habits.tab = HABIT_TAB_WEEKLY
     app->habits.view_mode = HABIT_VIEW_WEEKLY
     app->habits.scroll = 0

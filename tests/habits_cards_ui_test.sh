@@ -36,29 +36,28 @@ baseline="$(order)"
 expect "$baseline" 'Meditation|Yoga|Sit ups|Push ups|Cold Shower|Jumping Rope' 'initial order'
 import -window "$window" "$test_dir/overview.png"
 before="$(day_count)"
-# The current focus layout starts with Meditation expanded and Yoga collapsed.
-tap 160 520
-expect "$(sql "SELECT name FROM habits WHERE id=(SELECT value FROM settings WHERE key='habits_selected_id')")" 'Yoga' 'collapsed card opens correct habit'
-import -window "$window" "$test_dir/yoga-expanded.png"
-# Yoga is now the second card: the first collapsed card occupies 152 units.
-tap 50 508
-expect "$(day_count)" "$((before+1))" 'today check-in'
+# The Yoga day row is live while the card is collapsed. Tapping it must not expand the card.
+tap 48 358
+expect "$(day_count)" "$((before+1))" 'collapsed today check-in'
 expect "$(sql "SELECT local_date FROM habit_days WHERE habit_id=(SELECT id FROM habits WHERE name='Yoga') AND completed=1")" "$(date +%Y%m%d)" 'leftmost circle marks today'
-tap 50 508
-expect "$(day_count)" "$before" 'today undo'
-tap 99 508
-expect "$(day_count)" "$((before+1))" 'past-day check-in'
-tap 99 508
-expect "$(day_count)" "$before" 'past-day undo'
-drag 50 508 294 508
+tap 48 358
+expect "$(day_count)" "$before" 'collapsed today undo'
+# Open Yoga only through its chevron.
+tap 350 269
+import -window "$window" "$test_dir/yoga-expanded.png"
+tap 50 417
+expect "$(day_count)" "$((before+1))" 'expanded today check-in'
+tap 50 417
+expect "$(day_count)" "$before" 'expanded today undo'
+tap 99 417
+expect "$(day_count)" "$((before+1))" 'expanded past-day check-in'
+tap 99 417
+expect "$(day_count)" "$before" 'expanded past-day undo'
+drag 50 417 294 417
 expect "$(day_count)" "$before" 'drag does not check a day'
-tap 160 260
-expect "$(sql "SELECT value FROM settings WHERE key='habits_selected_id'")" '' 'selected card header collapses'
+tap 350 269
 import -window "$window" "$test_dir/collapsed.png"
-# Card title dragging is still owned by the reorder controller.
-drag 160 110 160 390
-expect "$(order)" 'Yoga|Meditation|Sit ups|Push ups|Cold Shower|Jumping Rope' 'card reorder'
-expect "$(day_count)" "$before" 'reorder preserves check-ins'
-import -window "$window" "$test_dir/reordered.png"
-echo "PASS shared habit buttons: selection, day taps, undo, drag cancellation, collapse and reorder"
+expect "$(order)" 'Meditation|Yoga|Sit ups|Push ups|Cold Shower|Jumping Rope' 'card order remains stable'
+import -window "$window" "$test_dir/collapsed-final.png"
+echo "PASS shared habit buttons: chevron expansion, day taps, undo, drag cancellation, and collapse"
 echo "Screenshots and isolated database: $test_dir ; $db"

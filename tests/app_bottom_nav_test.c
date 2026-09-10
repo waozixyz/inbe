@@ -1283,35 +1283,42 @@ test_habit_editor_preserves_desktop_rail(void)
 }
 
 static void
-test_elist_navigation_migration_and_desktop_route(void)
+test_elist_navigation_sanitizer_and_desktop_route(void)
 {
-    const int old_routes[][4] = {
-        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS, 0},
-        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS, APP_NAV_ROUTE_ELIST},
-        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_ELIST, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_SETTINGS},
-        {APP_NAV_ROUTE_HABITS, APP_NAV_ROUTE_PRACTICE, APP_NAV_ROUTE_PROFILE, APP_NAV_ROUTE_SETTINGS}
-    };
     InnerBreeze app = test_app();
 
-    for(int layout = 0; layout < 4; layout++) {
-        memcpy(app.bottom_nav_routes, old_routes[layout], sizeof(old_routes[layout]));
-        app.bottom_nav_route_count = layout == 0 ? 3 : 4;
-        app_sanitize_bottom_nav_routes(&app);
-        expect(app.bottom_nav_route_count == 4 &&
-               app.bottom_nav_routes[0] == APP_NAV_ROUTE_ELIST &&
-               app.bottom_nav_routes[1] == APP_NAV_ROUTE_HABITS &&
-               app.bottom_nav_routes[2] == APP_NAV_ROUTE_PRACTICE &&
-               app.bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS,
-               "old default navigation should migrate to EList first");
-    }
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE;
+    app.bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS;
+    app.bottom_nav_route_count = 3;
+    app_sanitize_bottom_nav_routes(&app);
+    expect(app.bottom_nav_route_count == 3 &&
+           app.bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
+           app.bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
+           app.bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS,
+           "old navigation order should stay as configured");
+
     app.bottom_nav_routes[0] = APP_NAV_ROUTE_SETTINGS;
     app.bottom_nav_routes[1] = APP_NAV_ROUTE_ELIST;
     app.bottom_nav_routes[2] = APP_NAV_ROUTE_HABITS;
     app.bottom_nav_route_count = 3;
     app_sanitize_bottom_nav_routes(&app);
-    expect(app.bottom_nav_routes[0] == APP_NAV_ROUTE_SETTINGS,
-           "migration should preserve unrelated custom navigation orders");
+    expect(app.bottom_nav_routes[0] == APP_NAV_ROUTE_SETTINGS &&
+           app.bottom_nav_routes[1] == APP_NAV_ROUTE_ELIST &&
+           app.bottom_nav_routes[2] == APP_NAV_ROUTE_HABITS,
+           "sanitizer should preserve custom navigation orders");
 
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_routes[1] = APP_NAV_ROUTE_PROFILE;
+    app.bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS;
+    app.bottom_nav_route_count = 3;
+    app_sanitize_bottom_nav_routes(&app);
+    expect(app.bottom_nav_route_count == 2 &&
+           app.bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
+           app.bottom_nav_routes[1] == APP_NAV_ROUTE_SETTINGS,
+           "mobile sanitizer should remove unsupported profile route");
+
+    app = test_app();
     reset_state();
     desktop_mode = 1;
     app_draw_bottom_nav(&app);
@@ -1415,7 +1422,7 @@ main(void)
     test_sidebar_child_back_returns_to_compact_sidebar();
     test_sidebar_screen_closes_when_width_expands();
     test_habit_editor_preserves_desktop_rail();
-    test_elist_navigation_migration_and_desktop_route();
+    test_elist_navigation_sanitizer_and_desktop_route();
 
     if(failures > 0) {
         fprintf(stderr, "%d app bottom nav test failure(s)\n", failures);

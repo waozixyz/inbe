@@ -30,10 +30,8 @@ enum {
 
 enum {
     HABITS_SCREEN_OVERVIEW = 0,
-    HABITS_SCREEN_DETAIL = 1,
-    HABITS_SCREEN_REORDER = 2,
-    HABITS_SCREEN_HISTORY = 3,
-    HABITS_SCREEN_STATISTICS = 4
+    HABITS_SCREEN_HISTORY = 1,
+    HABITS_SCREEN_STATISTICS = 2
 };
 
 enum {
@@ -188,8 +186,6 @@ int habits_screen_first_run_guide_active(const InnerBreeze*app);
 void habits_screen_prepare_first_run_guide(InnerBreeze*app);
 void habits_screen_dismiss_first_run_guide(InnerBreeze*app);
 void habits_screen_draw_first_run_guide(InnerBreeze*app);
-void draw_habits_top_bar(InnerBreeze*app, int draw_menu);
-void habits_enter_detail(InnerBreeze*app, int selected_habit);
 void habits_begin_new_detail(InnerBreeze*app);
 int habit_counter_day_action(InnerBreeze*app, int habit_index, int day_index,
                              int x, int y, int w, int h, int disabled,

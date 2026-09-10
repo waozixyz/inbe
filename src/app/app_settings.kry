@@ -234,10 +234,7 @@ save_settings :: (app: InnerBreeze*) {
     save_setting_int("main_tab", app->main_tab)
     storage_set_setting_text("profile_display_name", app->profile_display_name)
     storage_set_setting_text("profile_intention", app->profile_intention)
-    save_setting_int("habits_screen_mode",
-                        app->habits.screen_mode == HABITS_SCREEN_REORDER
-                            ? HABITS_SCREEN_OVERVIEW
-                            : app->habits.screen_mode)
+    save_setting_int("habits_screen_mode", app->habits.screen_mode)
     save_setting_int("habits_tab", app->habits.tab)
     save_setting_int("habits_view_mode", app->habits.view_mode)
     save_setting_int("fullscreen", app->fullscreen_enabled ? 1 : 0)
@@ -362,10 +359,6 @@ save_settings :: (app: InnerBreeze*) {
         (app->language_selected && !app->language_system &&
          app->language[0] != '\0') ? app->language : "")
     save_setting_int("language_setup_done", app->language_selected ? 1 : 0)
-    storage_set_setting_text("habits_selected_id",
-        (app->habits.selected >= 0 && app->habits.selected < app->habits.count)
-            ? app->habits.items[app->habits.selected].id
-            : "")
     storage_settings_end_write()
     #if WEB {
         sync_web_storage()

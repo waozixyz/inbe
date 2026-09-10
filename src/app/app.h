@@ -561,8 +561,6 @@ struct InnerBreeze {
     int habit_counter_press_long_done;
     int habit_counter_press_start_x;
     int habit_counter_press_start_y;
-    int habit_card_press_x;
-    int habit_card_grab_y;
     int advanced_session_controls;
     int double_tap_to_breathe;
     double breath_tap_last_time;
