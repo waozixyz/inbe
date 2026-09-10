@@ -43,6 +43,10 @@ typedef struct AppTraySnapshot {
 
 static AppTraySnapshot app_tray_snapshot;
 static int TrayReady;
+static double TrayNextStatusUpdateTime;
+static int TrayStatusUpdateInitialized;
+static int TrayLastWindowVisible = -1;
+static char TrayLastStatusText[128];
 
 static const char *const TrayIconPaths[] = {
     "inbe.png",
@@ -701,14 +705,30 @@ void
 desktop_tray_update_status(InnerBreeze*app)
 {
     char text[128];
+    double now;
+    int window_visible;
 
-    if(app == NULL)
+    if(app == NULL || !TrayReady)
+        return;
+
+    now = GetTime();
+    window_visible = !IsWindowHidden();
+    if(TrayStatusUpdateInitialized &&
+       window_visible == TrayLastWindowVisible &&
+       now < TrayNextStatusUpdateTime)
         return;
 
     UpdateTrayMenuSnapshot(app);
 
     BuildTrayStatusText(app, text, sizeof(text));
-    SetDesktopTrayStatus(text);
+    if(!TrayStatusUpdateInitialized ||
+       strcmp(TrayLastStatusText, text) != 0)
+        SetDesktopTrayStatus(text);
+
+    snprintf(TrayLastStatusText, sizeof(TrayLastStatusText), "%s", text);
+    TrayStatusUpdateInitialized = 1;
+    TrayLastWindowVisible = window_visible;
+    TrayNextStatusUpdateTime = now + 1.0;
 }
 
 #else

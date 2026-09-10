@@ -46,6 +46,7 @@ run_screenshot_if_requested :: () -> int {
         while !quit {
             tray_action: tray.DesktopTrayAction = tray.TrayPollAction()
             close_result: AppClosePromptResult = AppClosePromptNone
+            close_requested := StealUICoreWindowClose()
 
             if host.ShutdownRequested() {
                 TraceLog(LOG_INFO, "APP: quit requested by shutdown signal")
@@ -54,7 +55,7 @@ run_screenshot_if_requested :: () -> int {
             if tray_action != tray.DESKTOP_TRAY_ACTION_NONE {
                 tray.TrayApplyAction(&app, tray_action, &quit)
             }
-            if StealUICoreWindowClose() {
+            if close_requested != 0 && !app.close_prompt_open {
                 tray.TrayApplyAction(&app,
                                       tray.DESKTOP_TRAY_ACTION_CLOSE_REQUEST,
                                       &quit)
@@ -81,8 +82,11 @@ run_screenshot_if_requested :: () -> int {
             if tray_action != tray.DESKTOP_TRAY_ACTION_NONE {
                 tray.TrayApplyAction(&app, tray_action, &quit)
             }
-            if StealUICoreWindowClose() && !app.close_prompt_open {
-                app_request_desktop_close(&app)
+            close_requested = StealUICoreWindowClose()
+            if close_requested != 0 && !app.close_prompt_open {
+                tray.TrayApplyAction(&app,
+                                      tray.DESKTOP_TRAY_ACTION_CLOSE_REQUEST,
+                                      &quit)
             }
         }
     }

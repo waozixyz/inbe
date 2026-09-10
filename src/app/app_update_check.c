@@ -30,6 +30,7 @@ static KryUpdateFlow *flow;
 static int update_available_flag;
 static int shown_available_toast;
 static int logged_ready;
+static int logged_failed;
 static int check_resolved;
 static int apply_armed;
 
@@ -96,9 +97,12 @@ update_flow_note_state(void)
         }
         break;
     case KRY_UPDATE_FLOW_FAILED:
-        TraceLog(LOG_WARNING, "APP: update flow: %s",
-                 kry_update_flow_error(flow) != NULL
-                   ? kry_update_flow_error(flow) : "?");
+        if(!logged_failed) {
+            logged_failed = 1;
+            TraceLog(LOG_WARNING, "APP: update flow: %s",
+                     kry_update_flow_error(flow) != NULL
+                       ? kry_update_flow_error(flow) : "?");
+        }
         break;
     default:
         break;
@@ -223,8 +227,10 @@ update_row_action(void)
 {
     if(kry_update_flow_state(flow) == KRY_UPDATE_FLOW_READY)
         update_apply();
-    else
+    else {
+        logged_failed = 0;
         kry_update_flow_download(flow);
+    }
 }
 
 const char *
