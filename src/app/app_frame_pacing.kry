@@ -3,21 +3,33 @@
 #import "app.h"
 #import "practices/practice_registry.h" #private
 
-ANDROID :: ANDROID_BUILD
+static last_mouse_ready: int = 0
+static last_mouse_x: int = 0
+static last_mouse_y: int = 0
 
 app_update_frame_pacing :: (app: InnerBreeze*) #export {
-    #if ANDROID {
-        active := 0
-        if app != nil &&
-           (practice_active(app) != nil || app->modal.active ||
-            app->file_dialog_active ||
-            IsMouseButtonDown(MOUSE_BUTTON_LEFT) ||
-            IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-            active = 1
-        }
-        SetFramePacingActive(active)
-        UpdateFramePacing()
-    } #else {
-        unused app
+    active := 0
+    mouse := GetMousePosition()
+    mouse_x := (int)mouse.x
+    mouse_y := (int)mouse.y
+    mouse_moved := !last_mouse_ready ||
+                   mouse_x != last_mouse_x || mouse_y != last_mouse_y
+
+    last_mouse_ready = 1
+    last_mouse_x = mouse_x
+    last_mouse_y = mouse_y
+
+    if app != nil &&
+       (practice_active(app) != nil || app->modal.active ||
+        app->file_dialog_active || mouse_moved ||
+        IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
+        IsMouseButtonDown(MOUSE_BUTTON_LEFT) ||
+        IsMouseButtonReleased(MOUSE_BUTTON_LEFT) ||
+        IsKeyPressed(KEY_TAB) || IsKeyPressed(KEY_ENTER) ||
+        IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ESCAPE)) {
+        active = 1
     }
+
+    SetFramePacingActive(active)
+    UpdateFramePacing()
 }

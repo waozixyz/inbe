@@ -496,11 +496,11 @@ Button(ButtonProps props)
     return 0;
 }
 
-UIReorderListResult
-UpdateUIReorderList(UIReorderList list)
+ReorderListResult
+UpdateReorderList(ReorderList list)
 {
     (void)list;
-    return (UIReorderListResult){
+    return (ReorderListResult){
         .from_index = -1,
         .to_index = -1,
         .active_index = -1,
@@ -590,7 +590,7 @@ EndUIScreenScaffold(UIScreenScaffold scaffold)
 }
 
 int
-UIReturnTitleBar(Texture2D return_icon, const char *title, int height)
+ReturnTitleBar(Texture2D return_icon, const char *title, int height)
 {
     (void)return_icon;
     (void)title;

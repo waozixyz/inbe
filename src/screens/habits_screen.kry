@@ -1685,61 +1685,9 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     }
     mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
     input_captured := UIInputCapturesClick(mouse)
-    row_released := !app->modal.active && !input_captured &&
-                    CheckCollisionPointRec(mouse, row_bounds) &&
-                    IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
-
-    if row_released {
-        for int col = 0; col < columns; col++ {
-            day := habits_day_index(col)
-            cell_x := x + Scale(12) +
-                (w - Scale(24)) * col / columns
-            cell_right := x + Scale(12) +
-                (w - Scale(24)) * (col + 1) / columns
-            cell_w := cell_right - cell_x
-            cell := (Rectangle){(float)cell_x, (float)row_y,
-                                (float)cell_w, (float)Scale(62)}
-
-            if CheckCollisionPointRec(mouse, cell) {
-                linked := habit_linked_session_count_for_day(linked_ctx, day)
-                complete := habit_focus_day_complete(habit, day, linked_ctx)
-                off := !habit_scheduled_day(habit, day)
-
-                if !off || complete {
-                    action := 0
-                    if counting {
-                        action = habit_counter_day_action(app, index, day,
-                            cell_x, row_y, cell_w, Scale(62), 0, linked == 0)
-                    }
-                    if action == 1 || action == -1 {
-                        habit_apply_count_action(app, index, day, action, linked)
-                        app_auto_sync(app)
-                    } else if action != -2 {
-                        if linked > 0 {
-                            habit_open_linked_edit_page(app, index, day)
-                        } else if !counting {
-                            habit_toggle_day(&app->habits, index, day)
-                            app_auto_sync(app)
-                        }
-                    }
-                }
-                app_block_current_click(app)
-                UIConsumePointerRelease()
-                return
-            }
-        }
-        app_block_current_click(app)
-        UIConsumePointerRelease()
-        return
-    }
+    expand_clicked := 0
 
     Card(bounds)
-    expand_clicked := Button((ButtonProps){
-        .bounds = chevron_button, .id = 24500 + index,
-        .icon_only = 1, .circle = 1,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .disabled = app->modal.active
-    })
     DrawRectangle(x + Scale(16), y + Scale(20),
                   Scale(9), Scale(9), habit->color)
     habits_draw_fitted_text(habit->name, x + Scale(36), y + Scale(10),
@@ -1755,16 +1703,6 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
         .color=(Fade(foreground, 0.66f)),
         .wrap=TextWrapNone
     })
-    DrawLineEx((Vector2){(float)(chevron_cx - chevron_span / 2),
-                         (float)(chevron_cy - chevron_drop / 2)},
-               (Vector2){(float)chevron_cx,
-                         (float)(chevron_cy + chevron_drop / 2)},
-               (float)Scale(2), chevron_color)
-    DrawLineEx((Vector2){(float)(chevron_cx + chevron_span / 2),
-                         (float)(chevron_cy - chevron_drop / 2)},
-               (Vector2){(float)chevron_cx,
-                         (float)(chevron_cy + chevron_drop / 2)},
-               (float)Scale(2), chevron_color)
     for int col = 0; col < columns; col++ {
         day := habits_day_index(col)
         cell_x := x + Scale(12) +
@@ -1785,6 +1723,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
         complete := habit_focus_day_complete(habit, day, linked_ctx)
         off := !habit_scheduled_day(habit, day)
         action := 0
+        cell_clicked := 0
 
         interactive := !app->modal.active && !input_captured && (!off || complete)
         cell_hovered := interactive && CheckCollisionPointRec(mouse, cell)
@@ -1795,8 +1734,10 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
         if counting && interactive {
             action = habit_counter_day_action(app, index, day,
                 cell_x, row_y, cell_w, Scale(62), 0, linked == 0)
+        } else if cell_hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+                  !UIPointerReleaseConsumed() {
+            cell_clicked = 1
         }
-        cell_clicked := cell_hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
 
         Text((TextProps){
             .bounds={(cx - TextWidth(label, label_font) / 2), (row_y), 0, 0},
@@ -1866,6 +1807,22 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
         UIConsumePointerRelease()
         return
     }
+    expand_clicked = Button((ButtonProps){
+        .bounds = chevron_button, .id = 24500 + index,
+        .icon_only = 1, .circle = 1,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+        .disabled = app->modal.active
+    })
+    DrawLineEx((Vector2){(float)(chevron_cx - chevron_span / 2),
+                         (float)(chevron_cy - chevron_drop / 2)},
+               (Vector2){(float)chevron_cx,
+                         (float)(chevron_cy + chevron_drop / 2)},
+               (float)Scale(2), chevron_color)
+    DrawLineEx((Vector2){(float)(chevron_cx + chevron_span / 2),
+                         (float)(chevron_cy - chevron_drop / 2)},
+               (Vector2){(float)chevron_cx,
+                         (float)(chevron_cy + chevron_drop / 2)},
+               (float)Scale(2), chevron_color)
     if expand_clicked {
         app_block_current_click(app)
         UIConsumePointerRelease()
@@ -1878,11 +1835,11 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
 
 draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     context := (HabitsFocusPageContext){app}
-    items: [HABIT_MAX] UIReorderItem
+    items: [HABIT_MAX] ReorderItem
     count := clampi(app->habits.count, 0, HABIT_MAX)
     area := (UIScrollArea){0}
     measured: UIScrollView
-    reorder: UIReorderListResult
+    reorder: ReorderListResult
     mouse: Vector2
     measure_x: int
     measure_w: int
@@ -1908,7 +1865,7 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     for int i = 0; i < count; i++ {
         item_h := i == app->habits.selected
             ? habits_focus_card_height() : habits_focus_collapsed_height()
-        items[i] = (UIReorderItem){
+        items[i] = (ReorderItem){
             .id = i + 1,
             .bounds = {(float)measure_x, (float)item_y,
                        (float)measured.content_w, (float)item_h},
@@ -1922,7 +1879,7 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     }
 
     PushUIInputClip(area.bounds)
-    reorder = UpdateUIReorderList((UIReorderList){
+    reorder = UpdateReorderList((ReorderList){
         .id = 812,
         .bounds = area.bounds,
         .items = items,

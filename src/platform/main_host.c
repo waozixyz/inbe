@@ -1111,11 +1111,11 @@ native_after_app_init(InnerBreeze*app, int argc, char **argv)
     #endif
 #if ANDROID_BUILD
     ConfigureFramePacing(15, 30);
+#else
+    ConfigureFramePacing(5, 60);
+#endif
     SetFramePacingActive(1);
     UpdateFramePacing();
-#else
-    SetTargetFPS(60);
-#endif
 }
 
 #if defined(PLATFORM_WEB)

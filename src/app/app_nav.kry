@@ -1093,8 +1093,8 @@ app_customize_nav_scaffold_title :: (title: const char*, height: int,
 app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     options: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const char*
     scaffold: UIScreenScaffold
-    reorder_items: [APP_BOTTOM_NAV_CONTENT_MAX] UIReorderItem
-    reorder: UIReorderListResult
+    reorder_items: [APP_BOTTOM_NAV_CONTENT_MAX] ReorderItem
+    reorder: ReorderListResult
     selected: [APP_BOTTOM_NAV_CONTENT_MAX] int
     row_y: [APP_BOTTOM_NAV_CONTENT_MAX] int
     y: int
@@ -1153,7 +1153,7 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
 
     for int i = 0; i < draw_count; i++ {
         row_y[i] = y + i * row_h
-        reorder_items[i] = (UIReorderItem){
+        reorder_items[i] = (ReorderItem){
             .id = app->bottom_nav_config_routes[i] * 100 + i + 1,
             .bounds = {(float)scaffold.page.content_x, (float)row_y[i],
                        (float)scaffold.page.content_w, (float)row_h},
@@ -1161,7 +1161,7 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
         }
     }
 
-    reorder = UpdateUIReorderList((UIReorderList){
+    reorder = UpdateReorderList((ReorderList){
         .id = 701,
         .bounds = {(float)scaffold.page.content_x, (float)scaffold.page.content_y,
                    (float)scaffold.page.content_w,
