@@ -325,20 +325,6 @@ settings_audio_toggle_music_preview :: (app: InnerBreeze*, index: int) #private 
     PlayMusicStream(audio_preview_music)
 }
 
-draw_audio_preview_button :: (x: int, y: int, w: int, playing: int,
-                              disabled: int) -> int #private {
-
-    return Button((ButtonProps){
-        .bounds = {(float)(x), (float)(y), (float)(w), (float)(Scale(32))},
-        .label = playing ? GetLocaleText("pause_button")
-                                       : GetLocaleText("play_button"),
-        .font = GetFontSize(),
-        .tone = ButtonToneNeutral,
-        .emphasis = ButtonEmphasisSoft,
-        .disabled = disabled
-    })
-}
-
 audio_action_to_cue :: (action: int) -> int #private {
     if action == SETTINGS_AUDIO_ACTION_SOUND_IN {
         return AUDIO_CUE_BREATH_IN
@@ -722,10 +708,15 @@ draw_cue_selector :: (app: InnerBreeze*, x: int, w: int, y: int*, cue: int,
         save_settings(app)
     }
     if preview_w < w {
-        if draw_audio_preview_button(x + dropdown_w + control_gap,
-                                     *y + Scale(28), preview_w,
-                                     settings_audio_preview_cue_playing(app, cue),
-                                     app == nil || !app->audio_ready) {
+        if Button((ButtonProps){
+            .bounds = {(float)((x + dropdown_w + control_gap)), (float)((*y + Scale(28))), (float)(preview_w), (float)(Scale(32))},
+            .label = (settings_audio_preview_cue_playing(app, cue)) ? GetLocaleText("pause_button")
+                                           : GetLocaleText("play_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = (app == nil || !app->audio_ready)
+        }) {
             settings_audio_toggle_cue_preview(app, cue)
         }
     }
@@ -764,10 +755,15 @@ draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private 
             .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
-        if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
-                                     preview_w,
-                                     settings_audio_preview_custom_sound_playing(i),
-                                     app == nil || !app->audio_ready) {
+        if Button((ButtonProps){
+            .bounds = {(float)((x + w - button_w - preview_w - gap)), (float)((*y)), (float)(preview_w), (float)(Scale(32))},
+            .label = (settings_audio_preview_custom_sound_playing(i)) ? GetLocaleText("pause_button")
+                                           : GetLocaleText("play_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = (app == nil || !app->audio_ready)
+        }) {
             settings_audio_toggle_custom_sound_preview(app, i)
         }
         if Button((ButtonProps){
@@ -859,10 +855,15 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
             .color=(DarkenUIColor(GetThemeText(), 28)),
             .wrap=TextWrapNone
         })
-        if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
-                                     preview_w,
-                                     settings_audio_preview_music_playing(current),
-                                     app == nil || !app->audio_ready) {
+        if Button((ButtonProps){
+            .bounds = {(float)((x + w - button_w - preview_w - gap)), (float)((*y)), (float)(preview_w), (float)(Scale(32))},
+            .label = (settings_audio_preview_music_playing(current)) ? GetLocaleText("pause_button")
+                                           : GetLocaleText("play_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = (app == nil || !app->audio_ready)
+        }) {
             settings_audio_toggle_music_preview(app, current)
         }
         if Button((ButtonProps){
@@ -925,10 +926,15 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
             .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
-        if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
-                                     preview_w,
-                                     settings_audio_preview_music_playing(track_index),
-                                     app == nil || !app->audio_ready) {
+        if Button((ButtonProps){
+            .bounds = {(float)((x + w - button_w - preview_w - gap)), (float)((*y)), (float)(preview_w), (float)(Scale(32))},
+            .label = (settings_audio_preview_music_playing(track_index)) ? GetLocaleText("pause_button")
+                                           : GetLocaleText("play_button"),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = (app == nil || !app->audio_ready)
+        }) {
             settings_audio_toggle_music_preview(app, track_index)
         }
         if Button((ButtonProps){

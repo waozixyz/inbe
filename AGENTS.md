@@ -45,6 +45,9 @@
   painted hover/click surfaces. Keep custom card content and domain gestures,
   but let the shared button own its surface and activation. Checkboxes and
   toggles use their own standard widgets. Run `make button-api-check`.
+- Do not add thin forwarding helpers around `Button`, even with screen-specific
+  names. Put `ButtonProps` directly at the call site. Keep composed widgets only
+  when they own meaningful layout, content, or behavior beyond forwarding props.
 - The Lists screen starts with list tabs; do not restore a separate Lists
   title bar or replace the tabs with a dropdown.
 

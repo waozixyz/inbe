@@ -316,7 +316,6 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
             row_font := GetSmallFontSize()
             summary_x := 0
 
-
             if ctx->entries[i].activity != activity {
                 continue
             }
@@ -397,8 +396,6 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                                  app->habit_session_edit.round == r &&
                                  strcmp(app->habit_session_edit.path,
                                         ctx->entries[i].path) == 0
-
-
 
                 FormatLocaleText(round_line, sizeof(round_line),
                                     "round_result_label", r + 1,
@@ -586,7 +583,14 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
         key_x := x + col * (key_w + gap)
         key_y := y + pad + row * (key_h + gap)
 
-        if habit_session_keyboard_key(key_x, key_y, key_w, key_h, labels[i]) {
+        if Button((ButtonProps){
+            .bounds = {(float)(key_x), (float)(key_y), (float)(key_w), (float)(key_h)},
+            .label = (labels[i]),
+            .font = GetFontSize(),
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
             if i == 9 {
                 habit_session_delete_before_cursor(app)
             } else if i == 11 {
@@ -600,20 +604,6 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
     }
 
     return 0
-}
-
-keyboard_key :: (x: int, y: int, w: int, h: int,
-                    label: const char*) -> int {
-
-
-    return Button((ButtonProps){
-        .bounds = {(float)(x), (float)(y), (float)(w), (float)(h)},
-        .label = label,
-        .font = GetFontSize(),
-        .tone = ButtonToneNeutral,
-        .emphasis = ButtonEmphasisSoft,
-        .disabled = 0
-    })
 }
 
 clamp_cursor :: (app: InnerBreeze*) {

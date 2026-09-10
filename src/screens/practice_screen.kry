@@ -207,7 +207,6 @@ practice_select_home_card :: (app: InnerBreeze*, exercise: int) #private {
     app_switch_route(app, route)
 }
 
-
 practice_home_below_card_height :: (app: const InnerBreeze*, content_w: int) -> int #private {
     practice := practice_get(app != NULL ? app->exercise_type : 0)
     tokens := GetThemeMetrics()
@@ -252,28 +251,6 @@ practice_home_card_height :: (app: const InnerBreeze*, y: int, bottom_reserved: 
 
 practice_home_action_gap :: (content_w: int) -> int #private {
     return content_w < Scale(340) ? Scale(8) : Scale(12)
-}
-
-practice_home_action_button :: (app: InnerBreeze*, bounds: Rectangle,
-                                label: const char*, primary: int) -> int #private {
-    return Button((ButtonProps){
-        .bounds = bounds,
-        .label = label,
-        .font = GetFontSize(),
-        .disabled = app != NULL && app->modal.active,
-        .tone = primary ? ButtonToneAccent : ButtonToneNeutral,
-        .emphasis = primary ? ButtonEmphasisFilled : ButtonEmphasisSoft
-    })
-}
-
-practice_home_quiet_action_button :: (bounds: Rectangle, label: const char*) -> int #private {
-    return Button((ButtonProps){
-        .bounds = bounds,
-        .label = label,
-        .font = GetFontSize(),
-        .id = 7100 + (int)bounds.x,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-    })
 }
 
 practice_home_subtitle :: (exercise: int) -> const char* #private {
@@ -560,8 +537,14 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
 
     app->practice_home_bounds_start = (Rectangle){(float)action_x, (float)button_y,
                                                  (float)primary_w, (float)button_h}
-    if practice_home_action_button(app, app->practice_home_bounds_start,
-                                   GetLocaleText("practice_start_button"), 1) {
+    if Button((ButtonProps){
+        .bounds = app->practice_home_bounds_start,
+        .label = GetLocaleText("practice_start_button"),
+        .font = GetFontSize(),
+        .disabled = app != NULL && app->modal.active,
+        .tone = ButtonToneAccent,
+        .emphasis = ButtonEmphasisFilled
+    }) {
         if practice != NULL && practice->start != NULL {
             practice->start(app)
         }
@@ -571,8 +554,14 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
     if practice != NULL && practice->draw_manual != NULL {
         app->practice_home_bounds_manual = (Rectangle){(float)action_x, (float)button_y,
                                                        (float)secondary_w, (float)button_h}
-        if practice_home_action_button(app, app->practice_home_bounds_manual,
-                                       GetLocaleText("practice_manual_button"), 0) {
+        if Button((ButtonProps){
+            .bounds = app->practice_home_bounds_manual,
+            .label = GetLocaleText("practice_manual_button"),
+            .font = GetFontSize(),
+            .disabled = app != NULL && app->modal.active,
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft
+        }) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
         action_x += secondary_w + action_gap
@@ -581,8 +570,14 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
     if practice != NULL && practice->draw_config != NULL {
         app->practice_home_bounds_config = (Rectangle){(float)action_x, (float)button_y,
                                                        (float)secondary_w, (float)button_h}
-        if practice_home_action_button(app, app->practice_home_bounds_config,
-                                       GetLocaleText("practice_configure_button"), 0) {
+        if Button((ButtonProps){
+            .bounds = app->practice_home_bounds_config,
+            .label = GetLocaleText("practice_configure_button"),
+            .font = GetFontSize(),
+            .disabled = app != NULL && app->modal.active,
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft
+        }) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
     }
@@ -1082,15 +1077,25 @@ start :: (app: InnerBreeze*) #ui {
         practice_home_action_row_widths(content_w, &manual_w, &config_w)
         app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
                                                        (float)manual_w, (float)btn_h}
-        if practice_home_quiet_action_button(app->practice_home_bounds_manual,
-                                              GetLocaleText("practice_manual_button")) {
+        if Button((ButtonProps){
+            .bounds = app->practice_home_bounds_manual,
+            .label = GetLocaleText("practice_manual_button"),
+            .font = GetFontSize(),
+            .id = 7100 + (int)app->practice_home_bounds_manual.x,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+        }) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
 
         app->practice_home_bounds_config = (Rectangle){(float)(x + manual_w + row_gap), (float)y,
                                                        (float)config_w, (float)btn_h}
-        if practice_home_quiet_action_button(app->practice_home_bounds_config,
-                                              GetLocaleText("practice_configure_button")) {
+        if Button((ButtonProps){
+            .bounds = app->practice_home_bounds_config,
+            .label = GetLocaleText("practice_configure_button"),
+            .font = GetFontSize(),
+            .id = 7100 + (int)app->practice_home_bounds_config.x,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+        }) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
         y += btn_h + gap
@@ -1098,8 +1103,13 @@ start :: (app: InnerBreeze*) #ui {
         if practice->draw_manual != NULL {
             app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
                                                            (float)content_w, (float)btn_h}
-            if practice_home_quiet_action_button(app->practice_home_bounds_manual,
-                                                  GetLocaleText("practice_manual_button")) {
+            if Button((ButtonProps){
+                .bounds = app->practice_home_bounds_manual,
+                .label = GetLocaleText("practice_manual_button"),
+                .font = GetFontSize(),
+                .id = 7100 + (int)app->practice_home_bounds_manual.x,
+                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+            }) {
                 practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
             }
             y += btn_h + gap
@@ -1107,8 +1117,13 @@ start :: (app: InnerBreeze*) #ui {
         if practice->draw_config != NULL {
             app->practice_home_bounds_config = (Rectangle){(float)x, (float)y,
                                                            (float)content_w, (float)btn_h}
-            if practice_home_quiet_action_button(app->practice_home_bounds_config,
-                                                  GetLocaleText("practice_configure_button")) {
+            if Button((ButtonProps){
+                .bounds = app->practice_home_bounds_config,
+                .label = GetLocaleText("practice_configure_button"),
+                .font = GetFontSize(),
+                .id = 7100 + (int)app->practice_home_bounds_config.x,
+                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+            }) {
                 practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
             }
             y += btn_h + gap

@@ -10,10 +10,6 @@ toggle_switch_width :: () -> int {
     return Scale(50)
 }
 
-toggle_switch :: (id: int, x: int, y: int, value: int*) -> int {
-    return Toggle(id, x, y, toggle_switch_width(), Scale(28), value, "", "")
-}
-
 toggle_row_height :: (label: const char*, w: int) -> int {
     if w <= 0 {
         w = Scale(160)
@@ -78,7 +74,7 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
     }
     Paragraph(label_paragraph(label, label_w), x, &label_y)
 
-    if toggle_switch(62000 + *y, toggle_x, toggle_y, value) {
+    if Toggle(62000 + *y, toggle_x, toggle_y, toggle_w, toggle_h, value, "", "") {
         *y += row_h
         return 1
     }

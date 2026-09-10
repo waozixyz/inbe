@@ -288,19 +288,6 @@ format_time :: (dst: char*, dst_size: size_t, seconds: int) #private {
     }
 }
 
-draw_duration_button :: (x: int, y: int, w: int, h: int,
-                        label: const char*) -> int #private {
-
-    return Button((ButtonProps){
-        .bounds = {(float)(x), (float)(y), (float)(w), (float)(h)},
-        .label = label,
-        .font = GetFontSize(),
-        .tone = ButtonToneAccent,
-        .emphasis = ButtonEmphasisFilled,
-        .disabled = 0
-    })
-}
-
 extend_session :: (app: InnerBreeze*, seconds: int) #private {
     was_complete: int
 
@@ -340,7 +327,6 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
     cancel_w := Scale(120)
     cancel_x: int
     cancel_y: int
-
 
     if modal_w > view_width - Scale(24) {
         modal_w = view_width - Scale(24)
@@ -386,7 +372,14 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
     for int i = 0; i < 3; i++ {
         x := modal_x + side + i * (btn_w + gap)
 
-        if draw_duration_button(x, row_y, btn_w, btn_h, labels[i]) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(row_y), (float)(btn_w), (float)(btn_h)},
+            .label = (labels[i]),
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             meditation_start_seconds(app, duration_presets[i])
         }
     }
@@ -396,7 +389,14 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
         two_w := (modal_w - side * 2 - gap) / 2
         x := modal_x + side + (i - 3) * (two_w + gap)
 
-        if draw_duration_button(x, row_y, two_w, btn_h, labels[i]) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x), (float)(row_y), (float)(two_w), (float)(btn_h)},
+            .label = (labels[i]),
+            .font = GetFontSize(),
+            .tone = ButtonToneAccent,
+            .emphasis = ButtonEmphasisFilled,
+            .disabled = 0
+        }) {
             meditation_start_seconds(app, duration_presets[i])
         }
     }
@@ -424,7 +424,6 @@ draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
     finish_w := Scale(96)
     total_w := btn_w * 3 + gap * 2
     x := center_x - total_w / 2
-
 
     if app == nil || !app->meditation.show_extend_controls {
         return

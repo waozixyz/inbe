@@ -643,23 +643,17 @@ app_open_settings_tab :: (app: InnerBreeze*, tab: int) #private {
     app_switch_route(app, route)
 }
 
-app_sidebar_clean_button :: (x: int, y: int, w: int, h: int,
-                             label: const char*, id: int, disabled: int) -> int #private {
-    return Button((ButtonProps){
-        .bounds = {(float)x, (float)y, (float)w, (float)h},
-        .id = id, .label = label, .font = Text16,
-        .disabled = disabled,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-    })
-}
-
 app_sidebar_settings_button :: (app: InnerBreeze*, x: int, y: int*, w: int,
                                tab: int) -> int #private {
     h := Scale(38)
     disabled := app != NULL && app->modal.active
 
-    if app_sidebar_clean_button(x, *y, w, h, settings_screen_tab_label(tab),
-                                9100 + tab, disabled) {
+    if Button((ButtonProps){
+        .bounds = {(float)x, (float)(*y), (float)w, (float)h},
+        .id = (9100 + tab), .label = (settings_screen_tab_label(tab)), .font = Text16,
+        .disabled = disabled,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+    }) {
         app_open_settings_tab(app, tab)
         return 1
     }
@@ -962,9 +956,12 @@ app_draw_nav_sidebar :: (app: InnerBreeze*) {
 
     DrawRectangle(sidebar_x, footer_y, sidebar_w, view_height - footer_y,
                   DarkenUIColor(GetThemeBackground(), 10))
-    if app_sidebar_clean_button(sidebar_x + pad, close_y, sidebar_w - pad * 2,
-                                close_h, GetLocaleText("close_button"),
-                                9199, app->modal.active) {
+    if Button((ButtonProps){
+        .bounds = {(float)(sidebar_x + pad), (float)close_y, (float)(sidebar_w - pad * 2), (float)close_h},
+        .id = 9199, .label = GetLocaleText("close_button"), .font = Text16,
+        .disabled = (app->modal.active),
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+    }) {
         app_close_nav_sidebar(app)
     }
 }

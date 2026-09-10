@@ -217,7 +217,6 @@ void habit_session_cancel_edit(InnerBreeze*app);
 /* Habit session keyboard functions */
 int habit_session_keyboard_height(InnerBreeze*app);
 int habit_session_draw_keyboard(InnerBreeze*app, const HabitLinkedEntry *entry);
-int habit_session_keyboard_key(int x, int y, int w, int h, const char *label);
 void habit_session_delete_before_cursor(InnerBreeze*app);
 void habit_session_insert_char(InnerBreeze*app, char c);
 int habit_session_commit_edit(InnerBreeze*app, const HabitLinkedEntry *entry);
