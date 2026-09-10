@@ -10,7 +10,7 @@ hb :: #import "screens/habits_screen"
 #import <time.h>
 
 init :: (app: InnerBreeze*) {
-    SetNotificationAppName("xyz.waozi.breathing")
+    SetNotificationAppName("xyz.waozi.inbe")
     #if !WEB {
         RequestNotificationPermission()
     }
@@ -35,7 +35,7 @@ send_test_notification :: (app: InnerBreeze*) -> int {
     }
     return SendNotificationEx(GetLocaleText("notification_test_title"),
                               GetLocaleText("notification_test_body"),
-                              "breathing.test", 2, NOTIFICATION_PRIORITY_DEFAULT)
+                              "inbe.test", 2, NOTIFICATION_PRIORITY_DEFAULT)
 }
 
 send_session_complete :: (app: InnerBreeze*) {
@@ -49,7 +49,7 @@ send_session_complete :: (app: InnerBreeze*) {
     }
     SendNotificationEx(GetLocaleText("notification_session_done_title"),
                        GetLocaleText("notification_session_done_body"),
-                       "breathing.session", 3, NOTIFICATION_PRIORITY_DEFAULT)
+                       "inbe.session", 3, NOTIFICATION_PRIORITY_DEFAULT)
 }
 
 practice_label :: (practice: int) -> const char* {
@@ -91,7 +91,7 @@ tick :: (app: InnerBreeze*) {
             .enabled = r->enabled,
             .hour = r->hour,
             .last_day = r->last_day,
-            .tag = "breathing.reminder",
+            .tag = "inbe.reminder",
             .id = 100 + i,
             .priority = NOTIFICATION_PRIORITY_DEFAULT
         }
@@ -127,7 +127,7 @@ tick :: (app: InnerBreeze*) {
             }
             if SendNotificationEx(GetLocaleText("habit_reminder_title"),
                                   habit->name,
-                                  "breathing.habit_reminder", 200 + i,
+                                  "inbe.habit_reminder", 200 + i,
                                   NOTIFICATION_PRIORITY_DEFAULT) {
                 app->habit_reminded_mask = app->habit_reminded_mask | (1 << i)
             }
@@ -153,13 +153,13 @@ on_friends_synced :: (app: InnerBreeze*) {
                     SendNotificationEx(
                         GetLocaleText("notifications_friend_request_title"),
                         GetLocaleText("notifications_friend_request_body"),
-                        "breathing.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
+                        "inbe.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
                 }
             } #else {
                 SendNotificationEx(
                     GetLocaleText("notifications_friend_request_title"),
                     GetLocaleText("notifications_friend_request_body"),
-                    "breathing.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
+                    "inbe.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
             }
         }
     }

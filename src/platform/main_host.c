@@ -75,8 +75,8 @@ extern struct android_app *GetAndroidApp(void);
 #endif
 
 #if !defined(PLATFORM_WEB) && !ANDROID_BUILD
-static const char *DESKTOP_APP_ID = "xyz.waozi.breathing";
-static const char *DESKTOP_APP_NAME = "breathing";
+static const char *DESKTOP_APP_ID = "xyz.waozi.inbe";
+static const char *DESKTOP_APP_NAME = "inbe";
 static const char *DESKTOP_DISPLAY_NAME = "Inner Breeze";
 static const char *DESKTOP_SUMMARY =
     "Syncable breathing, meditation, and habit practice app.";
@@ -328,7 +328,7 @@ windows_show_startup_error(void)
 
     snprintf(dialog,
              sizeof(dialog),
-             "Inner Breeze could not create a window.\n\n%s%s\nA full log was written to breathing.log next to the executable.",
+             "Inner Breeze could not create a window.\n\n%s%s\nA full log was written to inbe.log next to the executable.",
              detail,
              hint);
 
@@ -338,7 +338,7 @@ windows_show_startup_error(void)
 static void
 windows_install_logger(void)
 {
-    win_log_file = fopen("breathing.log", "ab");
+    win_log_file = fopen("inbe.log", "ab");
     if(win_log_file != NULL)
         SetTraceLogCallback(windows_trace_log);
 }
@@ -977,7 +977,7 @@ native_prepare(int argc, char **argv)
         _putenv_s("APP_DATA_ROOT", screenshot_data_root);
 #elif !defined(PLATFORM_WEB) && !ANDROID_BUILD
         snprintf(screenshot_data_root, sizeof(screenshot_data_root),
-                 "/tmp/breathing-screenshot-%ld", (long)getpid());
+                 "/tmp/inbe-screenshot-%ld", (long)getpid());
         setenv("APP_DATA_ROOT", screenshot_data_root, 1);
 #endif
     }

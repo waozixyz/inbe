@@ -45,10 +45,10 @@ static AppTraySnapshot app_tray_snapshot;
 static int TrayReady;
 
 static const char *const TrayIconPaths[] = {
-    "breathing.png",
-    "packaging/linux/appimage/breathing.png",
-    "packaging/snap/snap/gui/breathing.png",
-    "web-assets/icons/breathing.png",
+    "inbe.png",
+    "packaging/linux/appimage/inbe.png",
+    "packaging/snap/snap/gui/inbe.png",
+    "web-assets/icons/inbe.png",
     NULL
 };
 
@@ -492,9 +492,9 @@ desktop_tray_init(void)
                                break_items, 4, break_mode_items, 3);
 
     memset(&spec, 0, sizeof(spec));
-    spec.id = "breathing";
+    spec.id = "inbe";
     spec.title = "Inner Breeze";
-    spec.icon_name = "breathing";
+    spec.icon_name = "inbe";
     spec.icon_paths = TrayIconPaths;
     spec.close_action = DESKTOP_TRAY_ACTION_CLOSE_REQUEST;
     spec.activate_action = GetTrayWindowAction(app_tray_snapshot.window_visible);

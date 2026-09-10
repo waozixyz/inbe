@@ -1438,16 +1438,19 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
         radius := Scale(col == 0 ? 11 : 9)
         action := 0
 
-        if counting && !app->modal.active && (!off || complete) {
+        mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
+        input_captured := UIInputCapturesClick(mouse)
+        interactive := !app->modal.active && !input_captured && (!off || complete)
+        cell_hovered := interactive && CheckCollisionPointRec(mouse, cell)
+
+        if cell_hovered {
+            MarkClickable()
+        }
+        if counting && interactive {
             action = habit_counter_day_action(app, selected, day,
                 cell_x, row_y, cell_w, row_h, 0, linked == 0)
         }
-        clicked := Button((ButtonProps){
-            .bounds = cell, .id = 24300 + col,
-            .disabled = app->modal.active || (off && !complete),
-            .tone = complete ? ButtonToneAccent : ButtonToneNeutral,
-            .emphasis = ButtonEmphasisGhost, .selected = complete
-        })
+        clicked := cell_hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
         Text((TextProps){
             .bounds={(cx - TextWidth(label, label_font) / 2), (row_y), 0, 0},
             .text=(label),
@@ -1486,16 +1489,25 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
             }
         }
         if !app->modal.active && (!off || complete) {
+            handled := 0
             if action == 1 || action == -1 {
                 habit_apply_count_action(app, selected, day, action, linked)
                 app_auto_sync(app)
+                handled = 1
             } else if clicked && action != -2 {
                 if linked > 0 {
                     habit_open_linked_edit_page(app, selected, day)
+                    handled = 1
                 } else if !counting {
                     habit_toggle_day(&app->habits, selected, day)
                     app_auto_sync(app)
+                    handled = 1
                 }
+            }
+            if handled {
+                app_block_current_click(app)
+                UIConsumePointerRelease()
+                return
             }
         }
     }
@@ -1527,13 +1539,43 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
     action_gap := Scale(8)
     action_w := (w - Scale(28) - action_gap * 2) / 3
 
-    DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)card_h},
-                         0.08f, 10, surface)
-    header_clicked := Button((ButtonProps){
-        .bounds = {(float)x, (float)y, (float)w, (float)Scale(72)},
-        .id = 24090, .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+    card_bounds := (Rectangle){(float)x, (float)y, (float)w, (float)card_h}
+    chevron_cx := x + w - Scale(34)
+    chevron_cy := y + Scale(31)
+    chevron_size := Scale(40)
+    chevron_span := Scale(14)
+    chevron_drop := Scale(6)
+    chevron_color := Fade(foreground, 0.72f)
+    chevron_button := (Rectangle){
+        (float)(chevron_cx - chevron_size / 2),
+        (float)(chevron_cy - chevron_size / 2),
+        (float)chevron_size,
+        (float)chevron_size
+    }
+
+    Card(card_bounds)
+    collapse_clicked := Button((ButtonProps){
+        .bounds = chevron_button, .id = 24090,
+        .icon_only = 1, .circle = 1,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
         .disabled = app->modal.active
     })
+    DrawLineEx((Vector2){(float)(chevron_cx - chevron_span / 2),
+                         (float)(chevron_cy + chevron_drop / 2)},
+               (Vector2){(float)chevron_cx,
+                         (float)(chevron_cy - chevron_drop / 2)},
+               (float)Scale(2), chevron_color)
+    DrawLineEx((Vector2){(float)(chevron_cx + chevron_span / 2),
+                         (float)(chevron_cy + chevron_drop / 2)},
+               (Vector2){(float)chevron_cx,
+                         (float)(chevron_cy - chevron_drop / 2)},
+               (float)Scale(2), chevron_color)
+    if collapse_clicked {
+        app_block_current_click(app)
+        UIConsumePointerRelease()
+        habits_return_to_overview(app)
+        return
+    }
     DrawRectangle(x + Scale(16), y + Scale(20),
                   Scale(10), Scale(10), habit->color)
     habits_draw_fitted_text(habit->name, x + Scale(38), y + Scale(12),
@@ -1598,12 +1640,6 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
         habit_edit_begin(app, selected)
         return
     }
-    # The selected card behaves like the collapsed cards: tapping its
-    # non-interactive header collapses it. Header actions keep their own taps.
-    if header_clicked {
-        habits_return_to_overview(app)
-        return
-    }
     Text((TextProps){
         .bounds={(x + Scale(14)), (section_y), 0, 0},
         .text=(GetLocaleText("habit_focus_week")),
@@ -1619,6 +1655,7 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
 habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
                                 x: int, y: int, w: int) #private {
     habit := &app->habits.items[index]
+    linked_ctx := habit_cached_linked_entries(app, index, 0)
     h := habits_focus_collapsed_height()
     surface := GetThemeSurface()
     foreground := GetThemeReadableText(surface)
@@ -1629,16 +1666,77 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
         "habit_day_mon", "habit_day_tue", "habit_day_wed", "habit_day_thu",
         "habit_day_fri", "habit_day_sat", "habit_day_sun"
     }
+    counting := habit_counting_enabled(habit)
     columns := clampi(w / Scale(48), 5, 7)
     row_y := y + Scale(78)
+    row_bounds := (Rectangle){(float)(x + Scale(12)), (float)row_y,
+                              (float)(w - Scale(24)), (float)Scale(62)}
     chevron_cx := x + w - Scale(34)
     chevron_cy := y + Scale(31)
     chevron_span := Scale(14)
     chevron_drop := Scale(6)
     chevron_color := Fade(foreground, 0.68f)
+    chevron_size := Scale(40)
+    chevron_button := (Rectangle){
+        (float)(chevron_cx - chevron_size / 2),
+        (float)(chevron_cy - chevron_size / 2),
+        (float)chevron_size,
+        (float)chevron_size
+    }
+    mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
+    input_captured := UIInputCapturesClick(mouse)
+    row_released := !app->modal.active && !input_captured &&
+                    CheckCollisionPointRec(mouse, row_bounds) &&
+                    IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
 
-    clicked := Button((ButtonProps){
-        .bounds = bounds, .id = 24500 + index,
+    if row_released {
+        for int col = 0; col < columns; col++ {
+            day := habits_day_index(col)
+            cell_x := x + Scale(12) +
+                (w - Scale(24)) * col / columns
+            cell_right := x + Scale(12) +
+                (w - Scale(24)) * (col + 1) / columns
+            cell_w := cell_right - cell_x
+            cell := (Rectangle){(float)cell_x, (float)row_y,
+                                (float)cell_w, (float)Scale(62)}
+
+            if CheckCollisionPointRec(mouse, cell) {
+                linked := habit_linked_session_count_for_day(linked_ctx, day)
+                complete := habit_focus_day_complete(habit, day, linked_ctx)
+                off := !habit_scheduled_day(habit, day)
+
+                if !off || complete {
+                    action := 0
+                    if counting {
+                        action = habit_counter_day_action(app, index, day,
+                            cell_x, row_y, cell_w, Scale(62), 0, linked == 0)
+                    }
+                    if action == 1 || action == -1 {
+                        habit_apply_count_action(app, index, day, action, linked)
+                        app_auto_sync(app)
+                    } else if action != -2 {
+                        if linked > 0 {
+                            habit_open_linked_edit_page(app, index, day)
+                        } else if !counting {
+                            habit_toggle_day(&app->habits, index, day)
+                            app_auto_sync(app)
+                        }
+                    }
+                }
+                app_block_current_click(app)
+                UIConsumePointerRelease()
+                return
+            }
+        }
+        app_block_current_click(app)
+        UIConsumePointerRelease()
+        return
+    }
+
+    Card(bounds)
+    expand_clicked := Button((ButtonProps){
+        .bounds = chevron_button, .id = 24500 + index,
+        .icon_only = 1, .circle = 1,
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
         .disabled = app->modal.active
     })
@@ -1674,15 +1772,31 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
         cell_right := x + Scale(12) +
             (w - Scale(24)) * (col + 1) / columns
         cell_w := cell_right - cell_x
+        cell := (Rectangle){(float)cell_x, (float)row_y,
+                            (float)cell_w, (float)Scale(62)}
         label := col == 0 ? GetLocaleText("habits_today")
                           : GetLocaleText(weekdays[habit_weekday_bit(day)])
         label_font := FitFontSize(label, cell_w - Scale(4),
                                   GetSmallFontSize(), Scale(10))
         cx := cell_x + cell_w / 2
         cy := row_y + Scale(42)
-        complete := habit_completed_day(habit, day) ||
-                    habit_day_count(habit, day) > 0
-        scheduled := habit_scheduled_day(habit, day)
+        linked := habit_linked_session_count_for_day(linked_ctx, day)
+        count := habit_effective_day_count(habit, day, linked_ctx)
+        complete := habit_focus_day_complete(habit, day, linked_ctx)
+        off := !habit_scheduled_day(habit, day)
+        action := 0
+
+        interactive := !app->modal.active && !input_captured && (!off || complete)
+        cell_hovered := interactive && CheckCollisionPointRec(mouse, cell)
+        if cell_hovered {
+            MarkClickable()
+        }
+
+        if counting && interactive {
+            action = habit_counter_day_action(app, index, day,
+                cell_x, row_y, cell_w, Scale(62), 0, linked == 0)
+        }
+        cell_clicked := cell_hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
 
         Text((TextProps){
             .bounds={(cx - TextWidth(label, label_font) / 2), (row_y), 0, 0},
@@ -1691,7 +1805,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
             .color=(col == 0 ? foreground : muted),
             .wrap=TextWrapNone
         })
-        if !scheduled && !complete {
+        if off && !complete {
             DrawLine(cx - Scale(5), cy, cx + Scale(5), cy,
                      Fade(foreground, 0.32f))
         } else {
@@ -1700,10 +1814,61 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
                        complete ? habit->color : Fade(foreground, 0.50f))
             if !complete {
                 DrawCircle(cx, cy, radius - Scale(2), surface)
+            } else if !counting {
+                DrawLineEx((Vector2){(float)(cx - radius / 2), (float)cy},
+                           (Vector2){(float)(cx - radius / 8), (float)(cy + radius / 3)},
+                           (float)Scale(2), habit_text_color_for_background(habit->color))
+                DrawLineEx((Vector2){(float)(cx - radius / 8), (float)(cy + radius / 3)},
+                           (Vector2){(float)(cx + radius / 2), (float)(cy - radius / 3)},
+                           (float)Scale(2), habit_text_color_for_background(habit->color))
+            }
+            if counting && count > 0 {
+                value: [16] char = {0}
+                snprintf(value, sizeof(value), "%d", count)
+                value_font := FitFontSize(value, radius * 2 - Scale(4),
+                                          Text12, Text8)
+                Text((TextProps){
+                    .bounds={(cx - TextWidth(value, value_font) / 2), (GetUIControlTextY(value, cy - radius, radius * 2, value_font)), 0, 0},
+                    .text=(value),
+                    .font=(value_font),
+                    .color=(habit_text_color_for_background(habit->color)),
+                    .wrap=TextWrapNone
+                })
+            }
+        }
+        if !app->modal.active && (!off || complete) {
+            handled := 0
+            if action == 1 || action == -1 {
+                habit_apply_count_action(app, index, day, action, linked)
+                app_auto_sync(app)
+                handled = 1
+            } else if cell_clicked && action != -2 {
+                if linked > 0 {
+                    habit_open_linked_edit_page(app, index, day)
+                    handled = 1
+                } else if !counting {
+                    habit_toggle_day(&app->habits, index, day)
+                    app_auto_sync(app)
+                    handled = 1
+                }
+            }
+            if handled || cell_clicked || action != 0 {
+                app_block_current_click(app)
+                UIConsumePointerRelease()
+                return
             }
         }
     }
-    if clicked {
+    if !app->modal.active &&
+       CheckCollisionPointRec(mouse, row_bounds) &&
+       IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+        app_block_current_click(app)
+        UIConsumePointerRelease()
+        return
+    }
+    if expand_clicked {
+        app_block_current_click(app)
+        UIConsumePointerRelease()
         habits_select_habit(app, index)
         app->habits.tab = HABIT_TAB_WEEKLY
         app->habits.scroll = 0
@@ -1751,13 +1916,18 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
         }
         item_y += item_h + Scale(12)
     }
+    reorder_handle_w := Scale(64)
+    if reorder_handle_w > measured.content_w {
+        reorder_handle_w = measured.content_w
+    }
+
     PushUIInputClip(area.bounds)
     reorder = UpdateUIReorderList((UIReorderList){
         .id = 812,
         .bounds = area.bounds,
         .items = items,
         .item_count = count,
-        .handle_width = measured.content_w,
+        .handle_width = reorder_handle_w,
         .handle_height = Scale(72),
         .drag_threshold = Scale(8),
         .scroll_offset = &app->habits.scroll,
@@ -1778,20 +1948,6 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
         save_settings(app)
         app_auto_sync(app)
     }
-    if reorder.active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-       abs((int)mouse.x - app->habit_card_press_x) < Scale(8) &&
-       abs(reorder.drag_delta_y) < Scale(8) &&
-       reorder.active_index >= 0 && reorder.active_index < count {
-        if app->habits.selected == reorder.active_index {
-            app->habits.selected = -1
-        } else {
-            habits_select_habit(app, reorder.active_index)
-            app->habits.tab = HABIT_TAB_WEEKLY
-        }
-        save_settings(app)
-        return
-    }
-
     page := BeginUIScrollPage((UIScrollPageSpec){
         .y = content_top + Scale(4),
         .height = view_height - content_top - app_content_bottom_reserved(app) - Scale(4),
@@ -2026,11 +2182,11 @@ draw_habits_screen :: (app: InnerBreeze*) {
 
     if app->habits.selected < 0 ||
        app->habits.selected >= app->habits.count {
-        app->habits.selected = 0
+        app->habits.selected = -1
     }
 
     selected = app->habits.selected
-    active = &app->habits.items[selected]
+    active = selected >= 0 ? &app->habits.items[selected] : nil
 
     if app->habits.screen_mode == HABITS_SCREEN_STATISTICS {
         content_top = habits_draw_subpage_header(app, 1)

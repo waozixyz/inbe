@@ -75,7 +75,7 @@
 void
 ReadonlyTextBox(ReadonlyTextBoxProps props)
 {
-    DrawUIReadonlyTextBox(props);
+    RenderReadonlyTextBox(props);
 }
 
 static void app_restore_habits_view_settings(InnerBreeze*app);
