@@ -17,8 +17,8 @@ static int elist_label_count = 0;
 static int mouse_released = 0;
 static int bottom_nav_draw_count = 0;
 static int bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
-static BottomNavProps bottom_nav_last;
-static BottomNavItem bottom_nav_items_last[APP_BOTTOM_NAV_CONTENT_MAX + 1];
+static NavigationBarProps bottom_nav_last;
+static NavigationBarItem bottom_nav_items_last[APP_BOTTOM_NAV_CONTENT_MAX + 1];
 static int save_settings_count = 0;
 static int reset_settings_preview_count = 0;
 static int settings_status_clear_count = 0;
@@ -411,8 +411,8 @@ MarkUIClickable(void)
 {
 }
 
-BottomNavResult
-BottomNav(BottomNavProps nav)
+NavigationBarResult
+NavigationBar(NavigationBarProps nav)
 {
     bottom_nav_last = nav;
     if(nav.count > APP_BOTTOM_NAV_CONTENT_MAX + 1)
@@ -421,7 +421,7 @@ BottomNav(BottomNavProps nav)
         bottom_nav_items_last[i] = nav.items[i];
     bottom_nav_last.items = bottom_nav_items_last;
     bottom_nav_draw_count++;
-    return (BottomNavResult){
+    return (NavigationBarResult){
         .clicked_route = bottom_nav_clicked_route,
         .clicked_index = bottom_nav_clicked_route == APP_NAV_ROUTE_NONE ? -1 : 0,
         .y = 508,
@@ -430,7 +430,7 @@ BottomNav(BottomNavProps nav)
 }
 
 UIWidgetNode
-NodeBottomNav(BottomNavProps nav)
+NodeNavigationBar(NavigationBarProps nav)
 {
     UIWidgetNode node = {0};
     node.bounds.height = 80;

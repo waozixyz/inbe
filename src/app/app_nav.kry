@@ -541,7 +541,7 @@ app_navigation_height :: (app: const InnerBreeze*) -> int {
        !app_is_blank_home(app) {
         return 0
     }
-    return GetNodeHeight(NodeBottomNav((BottomNavProps){0}))
+    return GetNodeHeight(NodeNavigationBar((NavigationBarProps){0}))
 }
 
 app_content_bottom_reserved :: (app: const InnerBreeze*) -> int {
