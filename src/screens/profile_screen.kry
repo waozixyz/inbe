@@ -789,7 +789,8 @@ profile_screen_draw :: (app: InnerBreeze*) -> int {
         title = profile_tab_title(app->profile_tab)
     }
 
-    if app_draw_close_title_bar(app, title, header_h) {
+    if ReturnTitleBar(app->icons[UI_ICON_TYPE_LEFT], title, header_h) {
+        app_block_current_click(app)
         if app->profile_view == PROFILE_VIEW_MAIN &&
            app->profile_tab != PROFILE_TAB_OVERVIEW {
             app->profile_tab = PROFILE_TAB_OVERVIEW

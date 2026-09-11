@@ -48,6 +48,57 @@ settings_about_content_height :: (content_w: int) -> int {
            about_link_icons_height(content_w)
 }
 
+ABOUT_SOCIAL_DISCORD :: 0
+ABOUT_SOCIAL_TELEGRAM :: 1
+ABOUT_SOCIAL_GITHUB :: 2
+
+about_draw_social_mark :: (kind: int, x: int, y: int, size: int) #private {
+    cx := x + size / 2
+    cy := y + size / 2
+    tint := GetThemeIcon()
+    shade := DarkenUIColor(tint, 72)
+
+    if kind == ABOUT_SOCIAL_TELEGRAM {
+        Triangle(x + size * 27 / 32, y + size * 5 / 32,
+                 x + size * 5 / 32, y + size * 15 / 32,
+                 x + size * 13 / 32, y + size * 26 / 32,
+                 tint)
+        Triangle(x + size * 12 / 32, y + size * 20 / 32,
+                 x + size * 16 / 32, y + size * 17 / 32,
+                 x + size * 13 / 32, y + size * 26 / 32,
+                 shade)
+        Line(x + size * 5 / 32, y + size * 15 / 32,
+             x + size * 27 / 32, y + size * 5 / 32,
+             LightenUIColor(tint, 26))
+    } else if kind == ABOUT_SOCIAL_GITHUB {
+        Circle(cx, cy, size * 10 / 32, tint)
+        Triangle(x + size * 7 / 32, y + size * 11 / 32,
+                 x + size * 10 / 32, y + size * 4 / 32,
+                 x + size * 14 / 32, y + size * 10 / 32,
+                 tint)
+        Triangle(x + size * 25 / 32, y + size * 11 / 32,
+                 x + size * 22 / 32, y + size * 4 / 32,
+                 x + size * 18 / 32, y + size * 10 / 32,
+                 tint)
+        Circle(x + size * 12 / 32, y + size * 16 / 32, Scale(1), shade)
+        Circle(x + size * 20 / 32, y + size * 16 / 32, Scale(1), shade)
+        Box((Rectangle){(float)(cx - size * 3 / 32), (float)(cy + size * 8 / 32),
+                        (float)(size * 6 / 32), (float)(size * 7 / 32)},
+            tint, BLANK)
+    } else {
+        Box((Rectangle){(float)(x + size * 5 / 32), (float)(y + size * 10 / 32),
+                        (float)(size * 22 / 32), (float)(size * 13 / 32)},
+            tint, BLANK)
+        Circle(x + size * 10 / 32, y + size * 10 / 32, size * 4 / 32, tint)
+        Circle(x + size * 22 / 32, y + size * 10 / 32, size * 4 / 32, tint)
+        Circle(x + size * 12 / 32, y + size * 16 / 32, Scale(1), shade)
+        Circle(x + size * 20 / 32, y + size * 16 / 32, Scale(1), shade)
+        Line(x + size * 11 / 32, y + size * 20 / 32,
+             x + size * 21 / 32, y + size * 20 / 32,
+             LightenUIColor(tint, 18))
+    }
+}
+
 about_draw_link_icons :: (app: InnerBreeze*, content_x: int, content_w: int, y: int*) #private {
     link_count := 3
     icon_size := Scale(32)
@@ -58,11 +109,6 @@ about_draw_link_icons :: (app: InnerBreeze*, content_x: int, content_w: int, y: 
     grid_w := icon_btn_w * columns + icon_spacing * (columns - 1)
     links_start_x := content_x + (content_w - grid_w) / 2
     row_spacing := Scale(16)
-    icons: [3] Texture2D = {
-        app->icons[UI_ICON_TYPE_PLATFORMS_DISCORD],
-        app->icons[UI_ICON_TYPE_PLATFORMS_TELEGRAM],
-        app->icons[UI_ICON_TYPE_PLATFORMS_GITHUB],
-    }
     urls: [3] const char* = {
         "https://discord.com/invite/JbGZ4yENDt",
         "https://t.me/lotusinbe",
@@ -72,9 +118,20 @@ about_draw_link_icons :: (app: InnerBreeze*, content_x: int, content_w: int, y: 
     for int i = 0; i < link_count; i++ {
         col := i % columns
         row := i / columns
-        icon_x := links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding
-        icon_y := *y + row * (icon_btn_w + row_spacing)
-        IconLink(0, icon_x, icon_y, icon_size, icons[i], urls[i])
+        button_x := links_start_x + col * (icon_btn_w + icon_spacing)
+        button_y := *y + row * (icon_btn_w + row_spacing)
+        if Button((ButtonProps){
+            .bounds = {(float)button_x, (float)button_y,
+                       (float)icon_btn_w, (float)icon_btn_w},
+            .id = 18100 + i,
+            .icon_only = 1,
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft
+        }) {
+            OpenURL(urls[i])
+        }
+        about_draw_social_mark(i, button_x + icon_padding,
+                               button_y + icon_padding, icon_size)
     }
     *y += about_link_icons_height(content_w)
 }
