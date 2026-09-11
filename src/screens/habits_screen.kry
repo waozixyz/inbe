@@ -1435,7 +1435,7 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
     chevron_size := Scale(40)
     chevron_color := Fade(foreground, 0.72f)
 
-    Card(card_bounds)
+    Card((CardProps){.bounds = card_bounds})
     collapse_clicked := habit_focus_chevron_control(chevron_cx, chevron_cy, chevron_size,
                                                     1,
                                                     chevron_color,
@@ -1549,7 +1549,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     input_captured := UIInputCapturesClick(mouse)
     expand_clicked := 0
 
-    Card(bounds)
+    Card((CardProps){.bounds = bounds})
     DrawRectangle(x + Scale(16), y + Scale(20),
                   Scale(9), Scale(9), habit->color)
     habits_draw_fitted_text(habit->name, x + Scale(36), y + Scale(10),
