@@ -27,6 +27,20 @@
 - Keep `make clean-text-api-check` passing. A UI migration is incomplete until
   the maintained source and freshly generated output build with upstream Kryon.
 
+## Canonical Image Rule
+
+- App `.kry` UI uses Kryon's `Image(ImageProps)` for images, or
+  `PageImage(ImageProps, alt_text)` for semantic page images.
+- Do not replace legacy `Texture(...)` calls with `DrawTexture*`,
+  `DrawTexturePro`, `DrawTextureRec`, or other raylib draw calls in maintained
+  UI. Those are low-level backend primitives, not the clean Kryon public widget
+  surface.
+- If a screen currently only has a `Texture2D` handle, prefer moving the UI to
+  asset-backed `ImageProps`. If Kryon cannot express the needed case yet, make
+  the reusable primitive in upstream `~/Projects/kryon`, commit it there, and
+  then update Inbe's `vendor/kryon` pointer. Do not solve it with app-local
+  wrappers or edits under `vendor/`.
+
 ## Session Animation and Controls
 
 - Desktop focus loss must never pause a practice, freeze its circle, suppress
