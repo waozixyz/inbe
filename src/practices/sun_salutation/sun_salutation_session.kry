@@ -311,8 +311,7 @@ draw_pose_timer :: (app: InnerBreeze*, seconds: int, top_y: int, bottom_y: int) 
     w: int
     h := Scale(5)
     fill_w: int
-    font := GetSmallFontSize()
-    muted := DarkenUIColor(GetThemeText(), 32)
+    font := AppSmallFontSize()
 
     if app == nil || seconds <= 0 || bottom_y <= top_y {
         return
@@ -324,14 +323,12 @@ draw_pose_timer :: (app: InnerBreeze*, seconds: int, top_y: int, bottom_y: int) 
     }
     snprintf(timer_text, sizeof(timer_text), "%ds / %ds", elapsed_seconds, seconds)
 
-    text_w = TextWidth(timer_text, font)
+    text_w = AppTextWidth(timer_text, font)
     x = (view_width - text_w) / 2
     y = top_y + Scale(4)
     Text((TextProps){
         .bounds={(x), (y), 0, 0},
         .text=(timer_text),
-        .font=(font),
-        .color=(muted),
         .wrap=TextWrapNone
     })
 
@@ -351,12 +348,12 @@ draw_pose_timer :: (app: InnerBreeze*, seconds: int, top_y: int, bottom_y: int) 
     if fill_w > w {
         fill_w = w
     }
-    DrawRectangle(x, y, w, h, DarkenUIColor(GetThemeBackground(), 12))
+    DrawRectangle(x, y, w, h, DarkenColor(GetThemeBackground(), 12))
     DrawRectangle(x, y, fill_w, h, GetThemeButtonHover())
 }
 
 sun_salutation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
-    controls: [3] IconRowItem
+    controls: [3] IconRowAction
     row: IconRowResult
     step_label: const char*
     step: int
@@ -368,21 +365,26 @@ sun_salutation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) 
     transition_frame: int
     current_step_seconds: int
     ticks_per_step: int
-    pause_icon: Texture2D
+    pause_icon: IconType
     title_h := app_active_practice_title_height()
     content_top := title_h + Scale(8)
     image_bottom: int
-    min_view_dim := view_width < view_height ? view_width : view_height
 
     if app == nil {
         return
     }
 
     if app->modal.active && app->modal.type == UIModalConfirmExitSession {
-        modal_result := Modal(GetLocaleText("exit_session_title"),
-                                    GetLocaleText("all_progress_lost_message"),
-                                    GetLocaleText("cancel_button"),
-                                    GetLocaleText("exit_button"))
+        actions: [2] ModalAction = {
+            {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+            {GetLocaleText("exit_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
+        }
+        modal_result := Modal((ModalProps){
+            .title = GetLocaleText("exit_session_title"),
+            .message = GetLocaleText("all_progress_lost_message"),
+            .actions = actions,
+            .action_count = 2
+        })
         if modal_result == 1 {
             app_close_modal(app)
         } else if modal_result == 2 {
@@ -444,37 +446,28 @@ sun_salutation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) 
     }
     practice_draw_audio_controls(app)
 
-    controls[0] = (IconRowItem){
-        app->icons[UI_ICON_TYPE_BACKWARD],
+    controls[0] = (IconRowAction){
+        ICON_BACKWARD,
         step <= 0 && repetition <= 0
     }
-    pause_icon = app->icons[UI_ICON_TYPE_PAUSE]
+    pause_icon = ICON_PAUSE
     if app->session_paused {
-        pause_icon = app->icons[UI_ICON_TYPE_PLAY]
+        pause_icon = ICON_PLAY
     }
-    controls[1] = (IconRowItem){
+    controls[1] = (IconRowAction){
         pause_icon,
         0
     }
-    controls[2] = (IconRowItem){
-        app->icons[UI_ICON_TYPE_FORWARD],
+    controls[2] = (IconRowAction){
+        ICON_FORWARD,
         0
     }
-    row = BottomIconRow((BottomIconRowProps){
+    row = AppBottomIconRow((IconRowRequest){
         .center_x = center_x,
         .view_width = view_width,
         .view_height = view_height,
         .count = 3,
-        .items = controls,
-        .icon_size = Scale(24),
-        .icon_padding = Scale(10),
-        .gap = Scale(12),
-        .side_margin = Scale(24),
-        .bottom_margin = Scale(6),
-        .max_button_width = min_view_dim / 6,
-        .min_icon_size = Scale(16),
-        .min_icon_padding = Scale(6),
-        .min_gap = Scale(8)
+        .items = controls
     })
 
     image_bottom = row.y - Scale(18)

@@ -5,7 +5,28 @@
 #import <stdio.h> #private
 #import <string.h> #private
 
-static route_version: int = -1
+InbeRouterConstants :: enum {
+    INBE_ROUTER_ROUTE_COUNT = 16
+}
+
+static app_router_routes: [INBE_ROUTER_ROUTE_COUNT] const RouterRoute = {
+    {ScreenStart, -1, "start", "Start", "main"},
+    {ScreenSession, ScreenStart, "session", "Session", "practice"},
+    {ScreenMeditation, ScreenStart, "meditation", "Meditation", "practice"},
+    {ScreenSunSalutation, ScreenStart, "sun_salutation", "Sun Salutation", "practice"},
+    {ScreenPatterns, ScreenStart, "patterns", "Patterns", "practice"},
+    {ScreenResults, ScreenStart, "results", "Results", "practice"},
+    {ScreenSettings, -1, "settings", "Settings", "main"},
+    {ScreenLanguage, ScreenSettings, "language", "Language", "settings"},
+    {ScreenManual, ScreenStart, "manual", "Manual", "practice"},
+    {ScreenProfile, -1, "profile", "Profile", "main"},
+    {ScreenHabits, -1, "habits", "Habits", "main"},
+    {ScreenEList, -1, "elist", "Exercises", "main"},
+    {ScreenCustomizeNav, ScreenSettings, "customize_nav", "Customize Navigation", "settings"},
+    {ScreenNavSidebar, -1, "nav_sidebar", "Navigation", "main"},
+    {ScreenHabitEdit, ScreenHabits, "habit_edit", "Habit Edit", "habits"},
+    {ScreenHabitSessionEdit, ScreenHabits, "habit_session_edit", "Habit Session Edit", "habits"}
+}
 
 route_id_for_screen :: (screen: int) -> const char* #private {
     switch screen {
@@ -66,56 +87,31 @@ screen_for_route_id :: (id: const char*) -> int #export {
     return -1
 }
 
-copy_hash_id :: (destination: char*, capacity: size_t,
-                 hash: const char*) #private {
-    length: size_t = 0
-
-    if destination == nil || capacity == 0 { return }
-    destination[0] = '\0'
-    if hash == nil { return }
-    while hash[0] == ' ' || hash[0] == '\t' || hash[0] == '#' { hash++ }
-    if hash[0] == '/' { hash++ }
-    while hash[length] != '\0' && hash[length] != '/' &&
-          hash[length] != '?' && hash[length] != '&' &&
-          length + 1 < capacity {
-        destination[length] = hash[length]
-        length++
+app_router_props :: (app: InnerBreeze*) -> RouterProps #private {
+    return (RouterProps){
+        .bounds = {0, 0, 0, 0},
+        .key = Key("inbe-router"),
+        .state = app != nil ? &app->route_router : nil,
+        .routes = app_router_routes,
+        .route_count = INBE_ROUTER_ROUTE_COUNT,
+        .initial_route = app != nil ? app->breathing.screen : ScreenStart,
+        .sync_url = 1,
+        .replace_on_init = 1
     }
-    destination[length] = '\0'
-}
-
-write_current_route :: (app: InnerBreeze*, push: int) #private {
-    if app == nil { return }
-    id := route_id_for_screen(app->breathing.screen)
-    if id == nil || id[0] == '\0' { return }
-    path := GetRoutePath()
-    if path == nil || path[0] == '\0' { path = "/" }
-    route: [320]char
-    snprintf(route, sizeof(route), "%s#/%s", path, id)
-    if push {
-        PushRoute(route)
-    } else {
-        ReplaceRoute(route)
-    }
-    route_version = GetRouteVersion()
 }
 
 app_sync_route_from_url :: (app: InnerBreeze*) #export {
     if app == nil { return }
-    version := GetRouteVersion()
-    if version == route_version { return }
-    route_version = version
-
-    id: [96]char
-    copy_hash_id(id, sizeof(id), GetRouteHash())
-    screen := screen_for_route_id(id)
-    if screen < 0 || (screen == ScreenLanguage && app->language_selected) {
-        write_current_route(app, 0)
-        return
+    result := Router(app_router_props(app))
+    if result.changed {
+        if result.route == ScreenLanguage && app->language_selected {
+            RouterSetRoute(app_router_props(app), app->breathing.screen, 0)
+            return
+        }
+        route := app_current_route(app)
+        route.screen = result.route
+        app_switch_route(app, route)
     }
-    route := app_current_route(app)
-    route.screen = screen
-    app_switch_route(app, route)
 }
 
 app_observe_direct_route_change :: (app: InnerBreeze*, before: AppRoute) #export {
@@ -123,5 +119,5 @@ app_observe_direct_route_change :: (app: InnerBreeze*, before: AppRoute) #export
     if app->breathing.screen == ScreenHabits && before.screen != ScreenHabits {
         app->habits.focus_selected_tab = 1
     }
-    write_current_route(app, 1)
+    RouterSetRoute(app_router_props(app), app->breathing.screen, 1)
 }

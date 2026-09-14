@@ -45,7 +45,6 @@
 #include "practices/meditation/meditation_practice.h"
 #include "practices/whm/whm_session.h"
 #include "sync_account.h"
-#include "../../vendor/kryon/src/ui/ui_internal.h"
 
 #include <limits.h>
 #include <stdio.h>
@@ -71,12 +70,6 @@
 #define APP_DEFAULT_WIDTH 900
 #define APP_DEFAULT_HEIGHT 720
 #endif
-
-void
-ReadonlyTextBox(ReadonlyTextBoxProps props)
-{
-    RenderReadonlyTextBox(props);
-}
 
 static void app_restore_habits_view_settings(InnerBreeze*app);
 
@@ -168,20 +161,28 @@ app_draw_session_exit_modal(int can_save, const char *save_message,
     int modal_result;
 
     if(can_save) {
-        modal_result = Modal3Button(GetLocaleText("exit_session_title"),
-                                          save_message,
-                                          GetLocaleText("cancel_button"),
-                                          GetLocaleText("save_button"),
-                                          GetLocaleText("discard_button"));
+        ModalAction actions[] = {
+            {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+            {GetLocaleText("save_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
+            {GetLocaleText("discard_button"), ButtonToneDanger, ButtonEmphasisSoft, 0},
+        };
+        modal_result = Modal((ModalProps){.title = GetLocaleText("exit_session_title"),
+                                          .message = save_message,
+                                          .actions = actions,
+                                          .action_count = 3});
         if(modal_result == 2)
             return SessionExitModalSave;
         if(modal_result == 3)
             return SessionExitModalDiscard;
     } else {
-        modal_result = Modal(GetLocaleText("exit_session_title"),
-                                     discard_message,
-                                     GetLocaleText("cancel_button"),
-                                     GetLocaleText("exit_button"));
+        ModalAction actions[] = {
+            {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+            {GetLocaleText("exit_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
+        };
+        modal_result = Modal((ModalProps){.title = GetLocaleText("exit_session_title"),
+                                          .message = discard_message,
+                                          .actions = actions,
+                                          .action_count = 2});
         if(modal_result == 2)
             return SessionExitModalDiscard;
     }
@@ -200,7 +201,7 @@ app_draw_close_prompt(InnerBreeze*app)
     if(app->blocked_input_frame == app->breathing.frame)
         return;
 
-    ClearUIInputCaptures();
+    ClearInputCaptures();
     memset(actions, 0, sizeof(actions));
     actions[0].label = GetLocaleText("desktop_close_keep_running_button");
     actions[0].tone = ButtonToneAccent;
@@ -213,9 +214,8 @@ app_draw_close_prompt(InnerBreeze*app)
     props.message = GetLocaleText("desktop_close_prompt_message");
     props.actions = actions;
     props.action_count = 2;
-    props.close_icon = app->icons[UI_ICON_TYPE_X];
     props.max_width = 420;
-    modal_result = ActionModal(props);
+    modal_result = Modal(props);
     if(modal_result == -1) {
         app->close_prompt_open = 0;
     } else if(modal_result == 1) {
@@ -272,10 +272,8 @@ app_reload_graphics_resources(InnerBreeze*app)
     TraceLog(LOG_INFO, "ANDROID: Reloading graphics resources");
 
     memset(&empty, 0, sizeof(empty));
-    for(i = 0; i < UI_ICON_TYPE_COUNT; i++)
+    for(i = 0; i < ICON_COUNT; i++)
         app->icons[i] = empty;
-    LoadAllUIIconTextures(app->icons);
-    SetUIIcons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
     app->easteregg_art = empty;
     app->easteregg_waozi = empty;
@@ -645,11 +643,7 @@ app_draw_blank_home_easteregg(InnerBreeze*app)
     dst.height = (float)logo.height * logo_scale;
     if(Button((ButtonProps){
         .bounds = dst, .icon = logo, .icon_only = 1,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisGhost,
-        .style = {.normal = {
-            .fields = StyleIconSize,
-            .icon_size = logo_size * 1000.0f / Scale(1000)
-        }}
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisGhost
     }))
         (void)OpenURI("https://waozi.xyz");
 }
@@ -683,7 +677,7 @@ app_init(void *vapp) {
 #endif
 
     InitLocale();
-    InitUIDPI();
+    InitDPI();
     TraceLog(LOG_INFO, "APP: app init width=%d height=%d embedded=%d",
              config.width, config.height, config.loaded);
     load_config();
@@ -691,14 +685,14 @@ app_init(void *vapp) {
 
     view_width = config.width > 0 ? config.width : APP_DEFAULT_WIDTH;
     view_height = config.height > 0 ? config.height : APP_DEFAULT_HEIGHT;
-    UpdateUIDPI(view_width, view_height);
+    UpdateDPI(view_width, view_height);
     view_width = GetLayoutWidth();
     view_height = GetLayoutHeight();
     {
         float user_scale = app->ui_scale_tenths > 0
                                ? (float)app->ui_scale_tenths / 10.0f
                                : 1.0f;
-        InitUI(view_width, view_height, user_scale);
+        InitInterface(view_width, view_height, user_scale);
     }
     TraceLog(LOG_INFO, "APP: render scale=%.2f layout=%dx%d",
              GetRenderScale(), view_width, view_height);
@@ -765,11 +759,7 @@ app_init(void *vapp) {
     reset_settings_preview(app);
     breath_session_init(&app->start_speed_preview);
 
-    // Load all icons
-    LoadAllUIIconTextures(app->icons);
-
-    SetUIIcons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
-
+    /* Icons resolve from Kryon's embedded sheets; no app-side textures. */
     memset(&app->modal, 0, sizeof(app->modal));
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
@@ -922,56 +912,31 @@ handle_back_button(InnerBreeze*app)
 static void
 draw_profile_picture_picker_modal(InnerBreeze*app)
 {
-    ProfilePicturePickerResult result;
-    ProfilePicturePickerProps props;
+    ProfileImagePickerResult result;
+    ProfileImagePickerProps props;
 
     if(app == NULL)
         return;
 
     memset(&props, 0, sizeof(props));
     props.title = "Profile picture";
-    props.icons = app->icons;
     props.selected_icon_type = &app->profile_picture_icon;
-    props.close_icon = app->icons[UI_ICON_TYPE_X];
+    props.close_icon_type = ICON_X;
     props.max_width = 520;
     props.scroll_offset = &app->profile_picture_picker_scroll;
-    result = ProfilePicturePicker(props);
+    result = AppProfileImagePickerModal(props);
     if(result.changed)
         save_settings(app);
     if(result.closed)
         app_close_modal(app);
 }
 
-static TextInputStyle
-app_donation_address_style(void)
-{
-    TextInputStyle style;
-
-    memset(&style, 0, sizeof(style));
-    style.background = DarkenUIColor(GetThemeBackground(), 4);
-    style.border = GetThemeButton();
-    style.focus_border = GetThemeButtonHover();
-    style.text = GetThemeText();
-    style.cursor = GetThemeText();
-    style.radius = 0.08f;
-    style.padding_x = Scale(10);
-    style.padding_y = Scale(8);
-    return style;
-}
-
 static int
-app_donation_address_box_height(const char *address, int w, int font,
-                                TextInputStyle style)
+app_donation_address_box_height(const char *address, int w, int font)
 {
-    ReadonlyTextBoxProps props;
+    int pad = Scale(10);
 
-    memset(&props, 0, sizeof(props));
-    props.bounds.width = (float)w;
-    props.text = address;
-    props.font = font;
-    props.style = style;
-    props.line_gap = Scale(2);
-    return GetNodeHeight(NodeReadonlyTextBox(props));
+    return AppParagraphHeight(address, w - pad * 2, font, Scale(2)) + pad * 2;
 }
 
 static int app_donation_button_stack(int w);
@@ -979,8 +944,8 @@ static int app_donation_button_stack(int w);
 static int
 app_donation_coin_section_height(const char *address, int w)
 {
-    int label_font = GetFontSize();
-    int address_font = GetSmallFontSize();
+    int label_font = AppFontSize();
+    int address_font = AppSmallFontSize();
     int pad = Scale(12);
     int button_h = Scale(36);
     int gap = Scale(8);
@@ -993,10 +958,9 @@ app_donation_coin_section_height(const char *address, int w)
         action_h = button_h * 3 + gap * 2;
 
     return pad +
-           TextLineHeight(label_font) +
+           AppTextLineHeight(label_font) +
            Scale(6) +
-           app_donation_address_box_height(address, content_w, address_font,
-                                           app_donation_address_style()) +
+           app_donation_address_box_height(address, content_w, address_font) +
            Scale(10) + action_h + pad;
 }
 
@@ -1028,8 +992,8 @@ app_draw_donation_coin_section(const char *label, const char *address,
                                int focus_id,
                                int x, int w, int *y)
 {
-    int label_font = GetFontSize();
-    int address_font = GetSmallFontSize();
+    int label_font = AppFontSize();
+    int address_font = AppSmallFontSize();
     int pad = Scale(12);
     int button_h = Scale(36);
     int gap = Scale(8);
@@ -1040,7 +1004,6 @@ app_draw_donation_coin_section(const char *label, const char *address,
     int card_y = y != NULL ? *y : 0;
     int card_h;
     int box_h;
-    TextInputStyle style = app_donation_address_style();
     TextAreaProps text_area;
 
     if(y == NULL)
@@ -1055,24 +1018,21 @@ app_draw_donation_coin_section(const char *label, const char *address,
     card_h = app_donation_coin_section_height(address, w);
     DrawRectangleRounded((Rectangle){(float)x, (float)card_y, (float)w,
                          (float)card_h}, 0.08f, 8,
-                         DarkenUIColor(GetThemeBackground(), 5));
+                         DarkenColor(GetThemeBackground(), 5));
     DrawRectangleRoundedLinesEx((Rectangle){(float)x, (float)card_y,
                                 (float)w, (float)card_h}, 0.08f, 8,
                                 (float)Scale(1),
-                                DarkenUIColor(GetThemeBackground(), 26));
+                                DarkenColor(GetThemeBackground(), 26));
 
     *y = card_y + pad;
     Text((TextProps){
         .bounds = {(float)content_x, (float)*y, 0, 0},
         .text = label,
-        .font = label_font,
-        .color = GetThemeText(),
         .wrap = TextWrapNone,
     });
-    *y += TextLineHeight(label_font) + Scale(6);
+    *y += AppTextLineHeight(label_font) + Scale(6);
 
-    box_h = app_donation_address_box_height(address, content_w, address_font,
-                                           style);
+    box_h = app_donation_address_box_height(address, content_w, address_font);
     memset(&text_area, 0, sizeof(text_area));
     text_area.bounds.x = (float)content_x;
     text_area.bounds.y = (float)*y;
@@ -1083,10 +1043,7 @@ app_draw_donation_coin_section(const char *label, const char *address,
     text_area.cursor_position = cursor;
     text_area.focused = focused;
     text_area.scroll_y = scroll;
-    text_area.font = address_font;
-    text_area.line_gap = Scale(2);
     text_area.focus_id = focus_id;
-    text_area.style = style;
     text_area.read_only = 1;
     text_area.wrap = 1;
     TextArea(text_area);
@@ -1098,7 +1055,6 @@ app_draw_donation_coin_section(const char *label, const char *address,
     if(Button((ButtonProps){
         .bounds = {(float)(content_x), (float)(*y), (float)(button_w), (float)(button_h)},
         .label = GetLocaleText("copy_address_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = 0
@@ -1108,12 +1064,12 @@ app_draw_donation_coin_section(const char *label, const char *address,
             android_device_copy_text_and_toast(address,
                                                GetLocaleText("address_copied"));
         if(!android_copy_ok) {
-            SetUIClipboardTextValue(address);
-            ShowToast(GetLocaleText("address_copied"));
+            SetClipboardTextValue(address);
+            Toast((ToastProps){.message = GetLocaleText("address_copied")});
         }
 #else
-        SetUIClipboardTextValue(address);
-        ShowToast(GetLocaleText("address_copied"));
+        SetClipboardTextValue(address);
+        Toast((ToastProps){.message = GetLocaleText("address_copied")});
 #endif
     }
 
@@ -1122,13 +1078,12 @@ app_draw_donation_coin_section(const char *label, const char *address,
     if(Button((ButtonProps){
         .bounds = {(float)(stack_buttons ? content_x : content_x + button_w + gap), (float)(*y), (float)(button_w), (float)(button_h)},
         .label = GetLocaleText("open_wallet_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = 0
     })) {
         if(!OpenURI(wallet_url))
-            ShowToast(GetLocaleText("wallet_not_installed_toast"));
+            Toast((ToastProps){.message = GetLocaleText("wallet_not_installed_toast")});
     }
 
     if(stack_buttons)
@@ -1137,7 +1092,6 @@ app_draw_donation_coin_section(const char *label, const char *address,
         .bounds = {(float)(stack_buttons ? content_x :
                      content_x + (button_w + gap) * 2), (float)(*y), (float)(button_w), (float)(button_h)},
         .label = GetLocaleText("trocador_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = 0
@@ -1153,8 +1107,7 @@ draw_about_donation_modal(InnerBreeze*app)
 {
     UIPanelFrame frame;
     ParagraphSpec message;
-    UIScrollArea scroll_area;
-    UIScrollView scroll_view;
+    Rectangle clip;
     int modal_w;
     int modal_h;
     int content_w;
@@ -1168,7 +1121,9 @@ draw_about_donation_modal(InnerBreeze*app)
     int coins_h;
     int columns;
     int scroll_h;
-    int scroll_content_w;
+    int max_scroll;
+    int track_h;
+    int thumb_h;
     int y;
     int coin_y;
     int button_w;
@@ -1193,10 +1148,10 @@ draw_about_donation_modal(InnerBreeze*app)
     memset(&message, 0, sizeof(message));
     message.text = GetLocaleText("about_donation_message");
     message.width = content_w;
-    message.font = GetSmallFontSize();
+    message.font = AppSmallFontSize();
     message.line_gap = Scale(4);
-    message.color = DarkenUIColor(GetThemeText(), 28);
-    message_h = GetNodeHeight(NodeParagraph(message, 0, 0));
+    message_h = AppParagraphHeight(message.text, message.width, message.font,
+                                   message.line_gap);
     bitcoin_h = app_donation_coin_section_height(app_bitcoin_donation_address(),
                                                  coin_w);
     monero_h = app_donation_coin_section_height(app_monero_donation_address(),
@@ -1213,9 +1168,9 @@ draw_about_donation_modal(InnerBreeze*app)
         modal_h = Scale(260);
 
     memset(&empty_icon, 0, sizeof(empty_icon));
-    frame = ModalFrame(modal_w, modal_h,
-                       GetLocaleText("donation_reminder_title"),
-                       empty_icon, app->icons[UI_ICON_TYPE_X]);
+    frame = AppModalFrame(modal_w, modal_h,
+                             GetLocaleText("donation_reminder_title"),
+                             0, 0);
     if(frame.right_clicked) {
         app_close_modal(app);
         return;
@@ -1228,27 +1183,30 @@ draw_about_donation_modal(InnerBreeze*app)
     scroll_h = frame.content_h - button_h - Scale(14);
     if(scroll_h < Scale(120))
         scroll_h = Scale(120);
-    memset(&scroll_area, 0, sizeof(scroll_area));
-    scroll_area.bounds = (Rectangle){
+
+    /* App-owned scrolled region: wheel input, a clamped offset, and a thin
+     * painted track. Kryon owns scrolling inside declarative Scroll blocks;
+     * this modal predates them and keeps its own clamping. */
+    max_scroll = content_h - scroll_h;
+    if(max_scroll < 0)
+        max_scroll = 0;
+    app_donation_modal_scroll -= (int)(GetMouseWheelMove() * Scale(34));
+    if(app_donation_modal_scroll < 0)
+        app_donation_modal_scroll = 0;
+    if(app_donation_modal_scroll > max_scroll)
+        app_donation_modal_scroll = max_scroll;
+
+    clip = (Rectangle){
         (float)frame.content_x,
         (float)frame.content_y,
         (float)frame.content_w,
         (float)scroll_h
     };
-    scroll_area.content_height = content_h;
-    scroll_area.content_x = frame.content_x;
-    scroll_area.content_width = frame.content_w;
-    scroll_area.scroll_offset = &app_donation_modal_scroll;
-    scroll_area.wheel_step = Scale(34);
-    scroll_area.scrollbar_x = frame.content_x + frame.content_w - Scale(8);
-
-    scroll_view = BeginUIScrollContainer(scroll_area);
-    scroll_content_w = scroll_view.content_w;
-    columns = scroll_content_w >= Scale(640);
-    coin_w = columns ? (scroll_content_w - coin_gap) / 2 : scroll_content_w;
-    message.width = scroll_content_w;
-    y = scroll_view.content_y;
-    Paragraph(message, scroll_view.content_x, &y);
+    BeginScissorMode((int)clip.x, (int)clip.y, (int)clip.width,
+                     (int)clip.height);
+    y = frame.content_y - app_donation_modal_scroll;
+    message.width = frame.content_w;
+    Paragraph(message, frame.content_x, &y);
     y += Scale(16);
     coin_y = y;
 
@@ -1262,7 +1220,7 @@ draw_about_donation_modal(InnerBreeze*app)
                                    &app_donation_bitcoin_focused,
                                    &app_donation_bitcoin_scroll,
                                    6101,
-                                   scroll_view.content_x, coin_w, &coin_y);
+                                   frame.content_x, coin_w, &coin_y);
     if(columns) {
         coin_y = y;
         app_draw_donation_coin_section("Monero",
@@ -1275,7 +1233,7 @@ draw_about_donation_modal(InnerBreeze*app)
                                        &app_donation_monero_focused,
                                        &app_donation_monero_scroll,
                                        6102,
-                                       scroll_view.content_x + coin_w +
+                                       frame.content_x + coin_w +
                                            coin_gap,
                                        coin_w, &coin_y);
     } else {
@@ -1290,14 +1248,26 @@ draw_about_donation_modal(InnerBreeze*app)
                                        &app_donation_monero_focused,
                                        &app_donation_monero_scroll,
                                        6102,
-                                       scroll_view.content_x, coin_w, &coin_y);
+                                       frame.content_x, coin_w, &coin_y);
     }
-    EndUIScrollContainer(scroll_area, scroll_view);
+    EndScissorMode();
+
+    if(max_scroll > 0) {
+        track_h = scroll_h - Scale(8);
+        thumb_h = track_h * scroll_h / content_h;
+        if(thumb_h < Scale(24))
+            thumb_h = Scale(24);
+        DrawRectangle(frame.content_x + frame.content_w - Scale(6),
+                      clip.y + Scale(4) +
+                          (track_h - thumb_h) * app_donation_modal_scroll /
+                              max_scroll,
+                      Scale(3), thumb_h,
+                      Fade(GetThemeText(), 0.28f));
+    }
 
     if(Button((ButtonProps){
         .bounds = {(float)(frame.x + (frame.w - button_w) / 2), (float)(frame.y + frame.h - button_h - Scale(16)), (float)(button_w), (float)(button_h)},
         .label = GetLocaleText("close_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = 0
@@ -1331,9 +1301,8 @@ draw_donation_reminder_modal(InnerBreeze*app)
     props.message = GetLocaleText("donation_reminder_message");
     props.actions = actions;
     props.action_count = 3;
-    props.close_icon = app->icons[UI_ICON_TYPE_X];
     props.max_width = 420;
-    modal_result = ActionModal(props);
+    modal_result = Modal(props);
     if(modal_result == -1) {
         app_record_donation_reminder_seen(app);
         app_close_modal(app);
@@ -1379,10 +1348,10 @@ draw_secure_migration_modal(InnerBreeze*app)
     memset(&message, 0, sizeof(message));
     message.text = message_text;
     message.width = Scale(380) - Scale(36);
-    message.font = GetFontSize();
+    message.font = AppFontSize();
     message.line_gap = Scale(4);
-    message.color = GetThemeText();
-    message_h = GetNodeHeight(NodeParagraph(message, 0, 0));
+    message_h = AppParagraphHeight(message.text, message.width, message.font,
+                                   message.line_gap);
     button_h = Scale(36);
     gap = Scale(10);
     modal_h = Scale(74) + message_h + Scale(24) + button_h +
@@ -1392,9 +1361,9 @@ draw_secure_migration_modal(InnerBreeze*app)
     if(modal_h < Scale(210))
         modal_h = Scale(210);
 
-    frame = ModalFrame(Scale(380), modal_h,
-                       GetLocaleText("sync_secure_migration_title"),
-                       no_texture, no_texture);
+    frame = AppModalFrame(Scale(380), modal_h,
+                             GetLocaleText("sync_secure_migration_title"),
+                             0, 0);
     y = frame.content_y;
     message.width = frame.content_w;
     Paragraph(message, frame.content_x, &y);
@@ -1404,7 +1373,7 @@ draw_secure_migration_modal(InnerBreeze*app)
         long long total = status.secure_migration_total;
         long long done = status.secure_migration_done;
         char progress_label[64];
-        ProgressBarProps progress_props;
+        ProgressProps progress_props;
         int progress_max;
         int progress_value;
 
@@ -1441,7 +1410,6 @@ draw_secure_migration_modal(InnerBreeze*app)
         if(Button((ButtonProps){
             .bounds = {(float)(frame.x + (frame.w - button_w) / 2), (float)(button_y), (float)(button_w), (float)(button_h)},
             .label = GetLocaleText("ok_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneAccent,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -1452,7 +1420,6 @@ draw_secure_migration_modal(InnerBreeze*app)
         if(Button((ButtonProps){
             .bounds = {(float)(frame.content_x), (float)(button_y), (float)(button_w), (float)(button_h)},
             .label = GetLocaleText("sync_secure_migration_later_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = 0
@@ -1464,7 +1431,6 @@ draw_secure_migration_modal(InnerBreeze*app)
         if(Button((ButtonProps){
             .bounds = {(float)(frame.content_x + button_w + gap), (float)(button_y), (float)(button_w), (float)(button_h)},
             .label = GetLocaleText("sync_secure_migration_start_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneAccent,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -1487,7 +1453,7 @@ draw_global_modal(InnerBreeze*app)
     if(app->blocked_input_frame == app->breathing.frame)
         return;
 
-    ClearUIInputCaptures();
+    ClearInputCaptures();
 
     if(settings_data_draw_modals(app))
         return;
@@ -1505,10 +1471,14 @@ draw_global_modal(InnerBreeze*app)
         return;
     }
     if(app->modal.type == UIModalMeditationNetworkError) {
-        modal_result = Modal(GetLocaleText("meditation_music_network_error_title"),
-                                     GetLocaleText("meditation_music_network_error_message"),
-                                     GetLocaleText("cancel_button"),
-                                     GetLocaleText("retry_button"));
+        ModalAction actions[] = {
+            {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+            {GetLocaleText("retry_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
+        };
+        modal_result = Modal((ModalProps){.title = GetLocaleText("meditation_music_network_error_title"),
+                                          .message = GetLocaleText("meditation_music_network_error_message"),
+                                          .actions = actions,
+                                          .action_count = 2});
         if(modal_result == 1) {
             TraceLog(LOG_INFO, "AUDIO: Network error download cancelled");
             app_close_modal(app);
@@ -1663,11 +1633,11 @@ updateapp(InnerBreeze*app)
     input_rect.width = (float)view_width;
     input_rect.height = (float)view_height;
     if(app->nav_sidebar_open)
-        PushUIInputCapture(input_rect, 0);
+        PushInputCapture(input_rect, 0);
     if(app->modal.active)
-        BeginUIModalLayer();
+        BeginModalLayer();
     if(app->close_prompt_open || first_run_guide_active || habits_guide_active) {
-        PushUIInputCapture(input_rect, 0);
+        PushInputCapture(input_rect, 0);
     }
 
     view_height = app_page_height(app, view_height);
@@ -1678,9 +1648,11 @@ updateapp(InnerBreeze*app)
         input_clip_rect.y = 0;
         input_clip_rect.width = (float)view_width;
         input_clip_rect.height = (float)(view_height - bottom_input_reserved);
-        PushUIInputClip(input_clip_rect);
+        PushInputClip(input_clip_rect);
         content_input_clip_active = 1;
     }
+    if(app_nav_desktop_rail_enabled(app))
+        app_draw_bottom_nav(app);
     if(IsKeyPressed(KEY_BACK)
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
        || (IsKeyPressed(KEY_BACKSPACE) &&
@@ -1740,7 +1712,7 @@ updateapp(InnerBreeze*app)
         practice_update_circle_bounds(app, app_content_top_reserved(app),
                                       app_content_bottom_reserved(app));
     } else if(app->breathing.screen == ScreenSession) {
-        practice_update_circle_bounds(app, GetNodeHeight(NodeTitleBar(0)), 84);
+        practice_update_circle_bounds(app, AppTitleBarHeight(), 84);
     }
 
     if(app->breathing.screen == ScreenSession)
@@ -1809,7 +1781,7 @@ updateapp(InnerBreeze*app)
 
 finish_frame:
     if(content_input_clip_active)
-        PopUIInputClip();
+        PopInputClip();
     if(practice_fullscreen_modal) {
         draw_global_modal(app);
         global_modal_drawn = 1;
@@ -1821,7 +1793,6 @@ finish_frame:
     if(!global_modal_drawn)
         draw_global_modal(app);
     app_draw_close_prompt(app);
-    DrawToast();
     app_flush_deferred_settings(app);
     app_observe_direct_route_change(app, frame_route);
     app->breathing.frame++;
@@ -1858,12 +1829,12 @@ app_update_draw(void *vapp, Rectangle viewport) {
     view_height = full_height;
 
     /* Update DPI cache */
-    UpdateUIDPI(view_width, view_height);
-    if(!(GetUIDPIScale() > 0.0f) || GetUIDPIScale() > 8.0f) {
+    UpdateDPI(view_width, view_height);
+    if(!(GetDPIScale() > 0.0f) || GetDPIScale() > 8.0f) {
         TraceLog(LOG_WARNING, "APP_EMBED: repairing invalid dpi %.2f for %dx%d",
-                 GetUIDPIScale(), view_width, view_height);
-        InitUIDPI();
-        UpdateUIDPI(view_width, view_height);
+                 GetDPIScale(), view_width, view_height);
+        InitDPI();
+        UpdateDPI(view_width, view_height);
     }
     rail_width = app_nav_desktop_rail_enabled(app) ? app_nav_desktop_rail_width(app) : 0;
     content_x = app_navigation_placement(app) == NAVIGATION_LEFT ? rail_width : 0;
@@ -1882,16 +1853,16 @@ app_update_draw(void *vapp, Rectangle viewport) {
     app_full_view_width = layout_width;
     view_width = layout_width;
     view_height = layout_height;
-    SetUIViewSize(view_width, view_height);
+    SetViewSize(view_width, view_height);
 
     {
         float user_scale = app->ui_scale_tenths > 0
                                ? (float)app->ui_scale_tenths / 10.0f
                                : 1.0f;
-        InitUI(view_width, view_height, user_scale);
+        InitInterface(view_width, view_height, user_scale);
     }
     if(app->modal.active)
-        BeginUIModalLayer();
+        BeginModalLayer();
     practice_update_circle_bounds(app, app_content_top_reserved(app),
                                   app_content_bottom_reserved(app));
 
@@ -1930,30 +1901,32 @@ app_update_draw(void *vapp, Rectangle viewport) {
     }
     view_width = layout_content_w;
     view_height = layout_height - (int)((float)top_height / render_scale + 0.5f);
-    SetUIViewSize(view_width, view_height);
+    SetViewSize(view_width, view_height);
     memset(&app->camera, 0, sizeof(app->camera));
     app->camera.zoom = render_scale;
-    app->camera.offset.x = IsUIInspectActive() ? 0.0f : viewport.x + content_x;
-    app->camera.offset.y = IsUIInspectActive() ? 0.0f : viewport.y + top_height;
-    SetUIFrame(app->camera);
+    app->camera.offset.x = IsInspectActive() ? 0.0f : viewport.x + content_x;
+    app->camera.offset.y = IsInspectActive() ? 0.0f : viewport.y + top_height;
+    SetFrameCamera(app->camera);
 
-    if(IsUIInspectActive()) {
+    if(IsInspectActive()) {
         DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
         profile_update_start = app_profile_now();
         updateapp(app);
         app_profile_record_update(profile_update_start);
-        EndUIFrame();
+        EndInterfaceFrame();
+        EndFrame();
     } else {
-    BeginUIClip((int)viewport.x, (int)viewport.y, full_width, full_height);
+    BeginClip((int)viewport.x, (int)viewport.y, full_width, full_height);
         BeginMode2D(app->camera);
             DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
             profile_update_start = app_profile_now();
             updateapp(app);
             Overlays();
             app_profile_record_update(profile_update_start);
-            EndUIFrame();
+            EndInterfaceFrame();
+            EndFrame();
         EndMode2D();
-    EndUIClip();
+    EndClip();
     }
     profile_habits_start = app_profile_now();
     app_schedule_habits_post_frame_flush(app);
@@ -1988,13 +1961,11 @@ app_destroy(void *vapp)
     app->habits_flush_post_frame_scheduled = 0;
     habits_flush_save(app);
 
-    if(!IsUIInspectActive())
-        UnloadAllUIIconTextures(app->icons);
     app_unload_texture(app->pet.egg);
     app_unload_texture(app->easteregg_art);
     app_unload_texture(app->easteregg_waozi);
     app_unload_texture(app->font_shapes_texture);
-    if(!IsUIInspectActive())
+    if(!IsInspectActive())
         unload_locale_font(app);
 
     unload_cue_sounds(app);

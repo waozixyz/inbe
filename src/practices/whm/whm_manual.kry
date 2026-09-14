@@ -19,19 +19,8 @@ static tutorial_title_keys: [4] const char* = {
     "tutorial_title_recovery_breath"
 }
 
-WhmManualScrollPageContext :: struct {
-    app: InnerBreeze*
-    step: int
-}
-
 tutorial_steps_count :: () -> int #private {
     return 4
-}
-
-manual_text_color_for_background :: (background: Color) -> Color #private {
-    luma := background.r * 299 + background.g * 587 + background.b * 114
-
-    return luma >= 128000 ? BLACK : WHITE
 }
 
 draw_tutorial_hold_preview :: (app: InnerBreeze*, center_x: int, center_y: int, radius: int) #private {
@@ -39,7 +28,6 @@ draw_tutorial_hold_preview :: (app: InnerBreeze*, center_x: int, center_y: int, 
     previous_count: [CountSize] char = {0}
     previous_sectick := app->breathing.sectick
     previous_r := app->breathing.r
-    text_color := manual_text_color_for_background(GetThemeCircle())
     text: [CountSize] char = {0}
     display_text: [8] char = {0}
 
@@ -56,7 +44,6 @@ draw_tutorial_hold_preview :: (app: InnerBreeze*, center_x: int, center_y: int, 
         .bounds = {(float)(center_x - radius), (float)(center_y - radius),
                    (float)(radius * 2), (float)(radius * 2)},
         .text = display_text,
-        .color = text_color,
         .wrap = TextWrapNone,
         .align = TextAlignCenter,
         .vertical_align = TextAlignCenter
@@ -86,14 +73,16 @@ draw_tutorial_header :: (step: int, content_x: int, y: int*, content_w: int) #pr
 }
 
 tutorial_paragraph_height :: (app: InnerBreeze*, step: int, content_w: int) -> int #private {
-    return GetNodeHeight(NodeParagraph(tutorial_paragraph(app, step, content_w), 0, 0))
+    paragraph := tutorial_paragraph(app, step, content_w)
+
+    return AppParagraphHeight(paragraph.text, paragraph.width,
+                              paragraph.font, paragraph.line_gap)
 }
 
 tutorial_safety_warning :: (content_w: int) -> ParagraphSpec #private {
     warning := manual_screen_tutorial_paragraph(
         GetLocaleText("tutorial_safety_warning"), content_w - Scale(84))
 
-    warning.color = GetThemeText()
     return warning
 }
 
@@ -102,8 +91,10 @@ tutorial_safety_warning_top_gap :: () -> int #private {
 }
 
 tutorial_safety_warning_height :: (content_w: int) -> int #private {
-    return GetNodeHeight(NodeParagraph(
-               tutorial_safety_warning(content_w), 0, 0)) + Scale(36)
+    warning := tutorial_safety_warning(content_w)
+
+    return AppParagraphHeight(warning.text, warning.width,
+                              warning.font, warning.line_gap) + Scale(36)
 }
 
 whm_manual_breath_visual_height :: () -> int #private {
@@ -126,7 +117,7 @@ whm_manual_hint :: (text: const char*, content_w: int) -> ParagraphSpec #private
     }
     hint := manual_screen_tutorial_paragraph(text, hint_w)
 
-    hint.icon_type = UI_ICON_TYPE_ACTIVITY
+    hint.icon_type = ICON_ACTIVITY
     hint.icon_size = Scale(28)
     hint.align = TextAlignCenter
     return hint
@@ -134,10 +125,12 @@ whm_manual_hint :: (text: const char*, content_w: int) -> ParagraphSpec #private
 
 whm_manual_hint_height :: (text_key: const char*, content_w: int) -> int #private {
     hint_text: [512] char = {0}
+    hint: ParagraphSpec
 
     snprintf(hint_text, sizeof(hint_text), "%%i %s", GetLocaleText(text_key))
-    text_h := GetNodeHeight(NodeParagraph(
-        whm_manual_hint(hint_text, content_w), 0, 0))
+    hint = whm_manual_hint(hint_text, content_w)
+    text_h := AppParagraphHeight(hint.text, hint.width,
+                                 hint.font, hint.line_gap)
     min_h := Scale(112)
     h := text_h + Scale(42)
 
@@ -183,12 +176,6 @@ manual_tutorial_content_height :: (app: InnerBreeze*, step: int, content_w: int)
     return actual_content_h
 }
 
-whm_manual_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
-    ctx := (WhmManualScrollPageContext*)user_data
-
-    return manual_tutorial_content_height(ctx->app, ctx->step, content_w)
-}
-
 whm_manual_close :: (app: InnerBreeze*, mark_seen: int) {
     if mark_seen {
         mark_exercise_manual_seen(app, EXERCISE_WIM_HOF)
@@ -211,12 +198,13 @@ manual_screen_start_exercise :: (app: InnerBreeze*) #private {
     session_start(app)
 }
 
-whm_manual_draw_breath_visual :: (app: InnerBreeze*, page: UIScrollPage, y: int*) #private {
+whm_manual_draw_breath_visual :: (app: InnerBreeze*, content_x: int,
+                                  content_w: int, y: int*) #private {
     speed := app->breathing.speed_level
     visual_h := whm_manual_breath_visual_height()
-    hero := manual_screen_hero_bounds(page.content_x, page.content_w,
+    hero := manual_screen_hero_bounds(content_x, content_w,
                                       *y, visual_h)
-    center_x := page.content_x + page.content_w / 2
+    center_x := content_x + content_w / 2
     center_y := *y + visual_h / 2 - Scale(8)
     outer := Scale(104)
     ring_thick := Scale(4)
@@ -232,7 +220,7 @@ whm_manual_draw_breath_visual :: (app: InnerBreeze*, page: UIScrollPage, y: int*
     apply_settings(&app->settings_preview, speed, app->breathing.max_rounds,
                       int_from_count(app->breathing.maxbreaths),
                       app->breathing.pause_seconds)
-    update_preview_bounds(&app->settings_preview, page.content_w, visual_h)
+    update_preview_bounds(&app->settings_preview, content_w, visual_h)
     app->settings_preview.progressive_speed = 0
     breath_session_step(&app->settings_preview)
     if app->settings_preview.phase != BreathPhaseBreathe {
@@ -240,7 +228,7 @@ whm_manual_draw_breath_visual :: (app: InnerBreeze*, page: UIScrollPage, y: int*
         apply_settings(&app->settings_preview, speed, app->breathing.max_rounds,
                           int_from_count(app->breathing.maxbreaths),
                           app->breathing.pause_seconds)
-        update_preview_bounds(&app->settings_preview, page.content_w, visual_h)
+        update_preview_bounds(&app->settings_preview, content_w, visual_h)
         app->settings_preview.progressive_speed = 0
     }
     draw_breath_preview(&app->settings_preview, center_x, center_y)
@@ -251,19 +239,22 @@ whm_manual_draw_breath_visual :: (app: InnerBreeze*, page: UIScrollPage, y: int*
     *y += visual_h
 }
 
-whm_manual_draw_breath_info :: (app: InnerBreeze*, page: UIScrollPage, y: int*) #private {
+whm_manual_draw_breath_info :: (app: InnerBreeze*, content_x: int,
+                                content_w: int, y: int*) #private {
     speed := app->breathing.speed_level
     row_h := whm_manual_breath_info_height()
     pad := Scale(18)
 
-    DrawRectangleRounded((Rectangle){(float)page.content_x, (float)*y,
-                                     (float)page.content_w, (float)row_h},
+    DrawRectangleRounded((Rectangle){(float)content_x, (float)*y,
+                                     (float)content_w, (float)row_h},
                          0.14f, 10, Fade(GetThemeSurface(), 0.54f))
-    if Slider(490, page.content_x + pad, *y + Scale(12),
-                    page.content_w - pad * 2,
-                    GetLocaleText("speed_label"),
-                    SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX,
-                    &speed, "", nil) {
+    if Slider((SliderProps){.id = 490,
+                    .bounds = {content_x + pad, *y + Scale(12),
+                               content_w - pad * 2, Scale(56)},
+                    .label = GetLocaleText("speed_label"),
+                    .kind = NumericInt, .int_values = &speed,
+                    .value_count = 1, .min = SETTINGS_SPEED_MIN,
+                    .max = SETTINGS_SPEED_MAX, .format = "%d"}) {
         apply_settings(&app->breathing, speed, app->breathing.max_rounds,
                           int_from_count(app->breathing.maxbreaths),
                           app->breathing.pause_seconds)
@@ -276,12 +267,13 @@ whm_manual_draw_breath_info :: (app: InnerBreeze*, page: UIScrollPage, y: int*) 
     *y += row_h
 }
 
-whm_manual_draw_hold_preview :: (app: InnerBreeze*, page: UIScrollPage, y: int*) #private {
+whm_manual_draw_hold_preview :: (app: InnerBreeze*, content_x: int,
+                                 content_w: int, y: int*) #private {
     visual_h := whm_manual_hold_visual_height()
-    hero := manual_screen_hero_bounds(page.content_x, page.content_w,
+    hero := manual_screen_hero_bounds(content_x, content_w,
                                       *y, visual_h)
     hold_preview_radius := Scale(68)
-    center_x := page.content_x + page.content_w / 2
+    center_x := content_x + content_w / 2
     center_y := *y + visual_h / 2 - Scale(8)
 
     DrawRectangleGradientV((int)hero.x, (int)hero.y,
@@ -297,113 +289,113 @@ whm_manual_draw_hold_preview :: (app: InnerBreeze*, page: UIScrollPage, y: int*)
     *y += visual_h
 }
 
-whm_manual_draw_hint_card :: (page: UIScrollPage, y: int*, text_key: const char*) #private {
-    card_h := whm_manual_hint_height(text_key, page.content_w)
+whm_manual_draw_hint_card :: (content_x: int, content_w: int,
+                              y: int*, text_key: const char*) #private {
+    card_h := whm_manual_hint_height(text_key, content_w)
     hint_text: [512] char = {0}
     pad := Scale(36)
-    text_x := page.content_x + pad
-    text_w := page.content_w - pad * 2
+    text_x := content_x + pad
+    text_w := content_w - pad * 2
     hint: ParagraphSpec
     hint_h: int
     hint_y: int
 
     snprintf(hint_text, sizeof(hint_text), "%%i %s", GetLocaleText(text_key))
-    hint = whm_manual_hint(hint_text, page.content_w)
-    hint_h = GetNodeHeight(NodeParagraph(hint, 0, 0))
+    hint = whm_manual_hint(hint_text, content_w)
+    hint_h = AppParagraphHeight(hint.text, hint.width,
+                                hint.font, hint.line_gap)
     hint_y = *y + (card_h - hint_h) / 2
 
     if text_w < Scale(160) {
         pad = Scale(16)
-        text_x = page.content_x + pad
-        text_w = page.content_w - pad * 2
+        text_x = content_x + pad
+        text_w = content_w - pad * 2
         hint.width = text_w
-        hint_h = GetNodeHeight(NodeParagraph(hint, 0, 0))
+        hint_h = AppParagraphHeight(hint.text, hint.width,
+                                    hint.font, hint.line_gap)
         hint_y = *y + (card_h - hint_h) / 2
     }
 
-    DrawRectangleRounded((Rectangle){(float)page.content_x, (float)*y,
-                                     (float)page.content_w, (float)card_h},
+    DrawRectangleRounded((Rectangle){(float)content_x, (float)*y,
+                                     (float)content_w, (float)card_h},
                          0.16f, 10, Fade(GetThemeSurface(), 0.58f))
     DrawRectangleRoundedLinesEx(
-        (Rectangle){(float)page.content_x, (float)*y,
-                    (float)page.content_w, (float)card_h},
+        (Rectangle){(float)content_x, (float)*y,
+                    (float)content_w, (float)card_h},
         0.16f, 10, (float)Scale(1), Fade(GetThemeLink(), 0.46f))
 
     Paragraph(hint, text_x, &hint_y)
     *y += card_h
 }
 
-whm_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage, step: int, y: int*) #private {
+whm_manual_draw_page :: (app: InnerBreeze*, content_x: int, content_w: int,
+                         step: int, y: int*) #private {
     if step == 0 {
         img_h := Scale(242)
-        warning_h := tutorial_safety_warning_height(page.content_w)
+        warning_h := tutorial_safety_warning_height(content_w)
         warning_y := 0
-        hero := manual_screen_hero_bounds(page.content_x, page.content_w,
+        hero := manual_screen_hero_bounds(content_x, content_w,
                                           *y, img_h)
 
-        Picture((PictureProps){
+        Image((ImageProps){
             .asset_path = "assets/practices/whm/1.png", .bounds = hero,
-            .tint = WHITE, .fit = PICTURE_FIT_CONTAIN,
-            .style = {.enabled = 1, .radius_px = Scale(16),
-                      .background = GetThemeSurface(),
-                      .outline = Fade(GetThemeText(), 0.12f), .outline_px = 1}
+            .fit = ImageFitContain
         })
         manual_screen_draw_hero_progress(hero, step, tutorial_steps_count())
         *y += img_h + Scale(16)
-        draw_tutorial_header(step, page.content_x, y, page.content_w)
-        draw_tutorial_paragraph(app, 0, page.content_x, y, page.content_w)
+        draw_tutorial_header(step, content_x, y, content_w)
+        draw_tutorial_paragraph(app, 0, content_x, y, content_w)
         *y += tutorial_safety_warning_top_gap()
-        warning_bounds := (Rectangle){(float)page.content_x, (float)*y,
-                                      (float)page.content_w, (float)warning_h}
+        warning_bounds := (Rectangle){(float)content_x, (float)*y,
+                                      (float)content_w, (float)warning_h}
         warning_color := GetThemeLink()
-        icon_center_x := page.content_x + Scale(34)
+        icon_center_x := content_x + Scale(34)
         icon_center_y := *y + warning_h / 2
         icon_size := Scale(30)
 
-        DrawRectangleRounded((Rectangle){(float)page.content_x, (float)*y,
-                                         (float)page.content_w, (float)warning_h},
+        DrawRectangleRounded((Rectangle){(float)content_x, (float)*y,
+                                         (float)content_w, (float)warning_h},
                              0.16f, 10, Fade(warning_color, 0.14f))
         DrawRectangleRoundedLinesEx(
             warning_bounds, 0.16f, 10, (float)Scale(1),
             Fade(warning_color, 0.64f))
         Icon(0, icon_center_x - icon_size / 2, icon_center_y - icon_size / 2,
-             icon_size, UI_ICON_TYPE_WARNING, warning_color)
+             icon_size, ICON_WARNING, warning_color)
         warning_y = *y + Scale(18)
-        Paragraph(tutorial_safety_warning(page.content_w),
-                  page.content_x + Scale(64), &warning_y)
+        Paragraph(tutorial_safety_warning(content_w),
+                  content_x + Scale(64), &warning_y)
         *y += warning_h + Scale(6)
     } else if step == 1 {
-        whm_manual_draw_breath_visual(app, page, y)
+        whm_manual_draw_breath_visual(app, content_x, content_w, y)
         *y += Scale(18)
-        draw_tutorial_header(step, page.content_x, y, page.content_w)
-        draw_tutorial_paragraph(app, 1, page.content_x, y, page.content_w)
+        draw_tutorial_header(step, content_x, y, content_w)
+        draw_tutorial_paragraph(app, 1, content_x, y, content_w)
         *y += Scale(24)
-        whm_manual_draw_breath_info(app, page, y)
+        whm_manual_draw_breath_info(app, content_x, content_w, y)
     } else if step == 2 {
-        whm_manual_draw_hold_preview(app, page, y)
+        whm_manual_draw_hold_preview(app, content_x, content_w, y)
         *y += Scale(18)
-        draw_tutorial_header(step, page.content_x, y, page.content_w)
-        draw_tutorial_paragraph(app, 2, page.content_x, y, page.content_w)
+        draw_tutorial_header(step, content_x, y, content_w)
+        draw_tutorial_paragraph(app, 2, content_x, y, content_w)
         *y += Scale(24)
-        whm_manual_draw_hint_card(page, y, "tutorial_step_exhale_hold_hint")
+        whm_manual_draw_hint_card(content_x, content_w, y,
+                                  "tutorial_step_exhale_hold_hint")
     } else {
         img_h := Scale(242)
-        hero := manual_screen_hero_bounds(page.content_x, page.content_w,
+        hero := manual_screen_hero_bounds(content_x, content_w,
                                           *y, img_h)
 
-        Picture((PictureProps){
+        Image((ImageProps){
             .asset_path = "assets/practices/whm/2.png", .bounds = hero,
-            .tint = WHITE, .fit = PICTURE_FIT_CONTAIN,
-            .style = {.enabled = 1, .radius_px = Scale(16),
-                      .background = GetThemeSurface(),
-                      .outline = Fade(GetThemeText(), 0.12f), .outline_px = 1}
+            .fit = ImageFitContain
         })
         manual_screen_draw_hero_progress(hero, step, tutorial_steps_count())
         *y += img_h + Scale(16)
-        draw_tutorial_header(step, page.content_x, y, page.content_w)
-        draw_tutorial_paragraph(app, 3, page.content_x, y, page.content_w)
+        draw_tutorial_header(step, content_x, y, content_w)
+        draw_tutorial_paragraph(app, 3, content_x, y, content_w)
         *y += Scale(24)
-        whm_manual_draw_hint_card(page, y, "tutorial_step_inhale_hold_hint")
+        whm_manual_draw_hint_card(content_x, content_w, y,
+                                  "tutorial_step_inhale_hold_hint")
     }
 }
 
@@ -411,6 +403,10 @@ whm_manual_draw :: (app: InnerBreeze*) {
     layout := (PracticeManualLayout){0}
     footer_content_pad := 0
     step := clampi(app->tutorial_step, 0, tutorial_steps_count() - 1)
+    side_padding := manual_screen_tutorial_side_padding()
+    content_x := 0
+    content_w := 0
+    y: int
 
     app->tutorial_step = step
 
@@ -422,9 +418,6 @@ whm_manual_draw :: (app: InnerBreeze*) {
                                  layout.title_h, whm_manual_close)
     responsive_max_w := (int)(view_width * 0.96f)
     max_content_w := manual_screen_tutorial_max_width()
-    page_ctx := (WhmManualScrollPageContext){app, step}
-    page := (UIScrollPage){0}
-    y := 0
 
     if responsive_max_w > max_content_w {
         responsive_max_w = max_content_w
@@ -433,19 +426,18 @@ whm_manual_draw :: (app: InnerBreeze*) {
         responsive_max_w = Scale(280)
     }
 
-    page = BeginUIScrollPage((UIScrollPageSpec){
-        .y = layout.content_y,
-        .height = layout.content_h,
-        .max_content_width = responsive_max_w,
-        .min_content_width = Scale(200),
-        .side_padding = manual_screen_tutorial_side_padding(),
-        .scroll_offset = &app->manual_scroll,
-        .content_height = whm_manual_scroll_page_content_height,
-        .user_data = &page_ctx
-    })
-    y = page.content_y
-    whm_manual_draw_page(app, page, step, &y)
-    EndUIScrollPage(page)
+    GetCenteredColumn(responsive_max_w, side_padding, &content_x, &content_w)
+    content_h := manual_tutorial_content_height(app, step, content_w)
+
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)layout.content_y,
+                             (float)view_width, (float)layout.content_h}
+        content_height = content_h
+        scroll_offset = &app->manual_scroll
+
+        y := (int)page.y
+        whm_manual_draw_page(app, content_x, content_w, step, &y)
+    }
 
     manual_screen_guide_controls(app, (ManualGuideNav){
         .page = step,

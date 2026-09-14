@@ -2,6 +2,7 @@
 #define APP_APP_H
 
 #include "kryon.h"
+#include "ui_swipe.h"
 #include "platform.h"
 #include "core/breath_engine.h"
 #include "breaks/break_engine.h"
@@ -12,13 +13,226 @@
 #include "screens/settings/settings_types.h"
 #include "storage/sync_account.h"
 
+#include <string.h>
+
 /* Shared UI viewport extents, updated by the app frame loop. */
 extern int view_width;
 extern int view_height;
 
+/* App-owned layout metrics. Kryon moved typography and colors into style
+ * packs, so the app type scale and text measurement live here: one place
+ * that owns the sizes used by every screen and helper. */
+static inline int
+AppFontSize(void)
+{
+    return Scale(Text16);
+}
+
+static inline int
+AppSmallFontSize(void)
+{
+    return Scale(Text14);
+}
+
+static inline int
+AppTextWidth(const char *text, int font)
+{
+    return MeasureTextWidth(text, font, NULL);
+}
+
+static inline int
+AppTextLineHeight(int font)
+{
+    return font > 0 ? font : AppFontSize();
+}
+
+static inline int
+AppTitleBarHeight(void)
+{
+    return Scale(48);
+}
+
+static inline int
+AppTitleFontSize(const char *title, int max_width)
+{
+    const char *value = title != NULL ? title : "";
+    int large = Scale(Text24);
+    int medium = Scale(Text16);
+    int small = Scale(Text14);
+
+    if(max_width <= 0 || AppTextWidth(value, large) <= max_width)
+        return large;
+    if(AppTextWidth(value, medium) <= max_width)
+        return medium;
+    return small;
+}
+
+static inline int
+AppFitFontSize(const char *text, int max_width, int preferred, int minimum)
+{
+    const char *value = text != NULL ? text : "";
+    int font = preferred;
+
+    if(max_width <= 0)
+        return preferred;
+    while(font > minimum && AppTextWidth(value, font) > max_width)
+        font--;
+    return font;
+}
+
+static inline int
+AppControlTextY(const char *text, int box_y, int box_h, int font)
+{
+    int line_height = AppTextLineHeight(font);
+
+    (void)text;
+    return box_y + (box_h - line_height) / 2 + line_height * 3 / 4;
+}
+
+/* Greedy word-wrap height for flowing paragraphs. Mirrors the wrap policy
+ * the shared Paragraph widget paints, so measured heights match drawn
+ * content for the app's default fonts. */
+static inline int
+AppParagraphHeight(const char *text, int width, int font, int line_gap)
+{
+    const char *value = text != NULL ? text : "";
+    char word[128];
+    int line_height = AppTextLineHeight(font);
+    int lines = 1;
+    int line_w = 0;
+    int i = 0;
+
+    if(width <= 0)
+        return line_height;
+
+    while(value[i] != '\0') {
+        int word_start = i;
+        int word_len;
+        int word_w;
+        int space_w;
+        int j = i;
+
+        while(value[j] != '\0' && value[j] != ' ' && value[j] != '\n')
+            j++;
+        word_len = j - word_start;
+        if(word_len > (int)sizeof(word) - 1)
+            word_len = (int)sizeof(word) - 1;
+        memcpy(word, value + word_start, (size_t)word_len);
+        word[word_len] = '\0';
+        word_w = word_len > 0 ? AppTextWidth(word, font) : 0;
+        space_w = AppTextWidth(" ", font);
+
+        if(word_len == 0) {
+            j++;
+            word_w = space_w;
+        }
+        if(value[j - 1] == '\n' || (line_w > 0 && line_w + word_w > width)) {
+            lines++;
+            line_w = word_w;
+        } else {
+            line_w += word_w;
+        }
+        i = j;
+    }
+    return lines * line_height + (lines - 1) * line_gap;
+}
+
 int app_locale_dropdown(int id, int x, int y, int w, int h,
                         int *selected_index);
-void ReadonlyTextBox(ReadonlyTextBoxProps props);
+
+typedef struct {
+    int x;
+    int y;
+    int w;
+    int h;
+    int content_x;
+    int content_y;
+    int content_w;
+    int content_h;
+    int left_clicked;
+    int right_clicked;
+} UIPanelFrame;
+
+typedef struct {
+    Rectangle anchor;
+    const char *text;
+} UIGuideStep;
+
+typedef struct {
+    const UIGuideStep *steps;
+    int count;
+    int *step;
+    int view_width;
+    int view_height;
+    int reserved_top;
+    int reserved_bottom;
+    int max_width;
+    int line_gap;
+    int paragraph_font;
+    int close_icon_type;
+    int back_icon_type;
+    int next_icon_type;
+    int done_icon_type;
+} GuideOverlayProps;
+
+typedef struct {
+    int closed;
+    int finished;
+    int changed;
+    int step;
+} UIGuideResult;
+
+typedef struct {
+    int id;
+    int x;
+    int y;
+    int icon_size;
+    int icon_padding;
+    int icon_type;
+    int *open;
+    int *value;
+    int min;
+    int max;
+    int popup_width;
+    int popup_height;
+} IconSliderPopupProps;
+
+typedef struct {
+    int icon_type;
+    int disabled;
+} IconRowAction;
+
+typedef struct {
+    int center_x;
+    int view_width;
+    int view_height;
+    int count;
+    const IconRowAction *items;
+} IconRowRequest;
+
+typedef struct {
+    const char *title;
+    IconType *selected_icon_type;
+    int close_icon_type;
+    int max_width;
+    int *scroll_offset;
+} ProfileImagePickerProps;
+
+typedef struct {
+    int closed;
+    int changed;
+    int selected_index;
+    IconType selected_icon_type;
+} ProfileImagePickerResult;
+
+UIPanelFrame AppModalFrame(int width, int height, const char *title,
+                              int left_icon_type, int right_icon_type);
+UIGuideResult AppGuideOverlay(GuideOverlayProps guide);
+ProfileImagePickerResult AppProfileImagePickerModal(ProfileImagePickerProps modal);
+int AppIconSliderPopup(IconSliderPopupProps popup);
+IconRowResult AppBottomIconRow(IconRowRequest row);
+void AppReorderHandle(int x, int y, int w, int h, int active);
+void AppReorderPlaceholder(Rectangle bounds);
 
 enum {
     SETTINGS_SPEED_MIN = 1,
@@ -39,15 +253,15 @@ enum {
 };
 
 enum {
-    ICON_SIZE_SMALL = 22,
-    ICON_SIZE_MEDIUM = 26,
-    ICON_SIZE_LARGE = 30,
-    ICON_SIZE_SMALL_MIN = 20,
-    ICON_SIZE_SMALL_MAX = 36,
-    ICON_SIZE_MEDIUM_MIN = 24,
-    ICON_SIZE_MEDIUM_MAX = 40,
-    ICON_SIZE_LARGE_MIN = 28,
-    ICON_SIZE_LARGE_MAX = 44
+    APP_ICON_SIZE_SMALL = 22,
+    APP_ICON_SIZE_MEDIUM = 26,
+    APP_ICON_SIZE_LARGE = 30,
+    APP_ICON_SIZE_SMALL_MIN = 20,
+    APP_ICON_SIZE_SMALL_MAX = 36,
+    APP_ICON_SIZE_MEDIUM_MIN = 24,
+    APP_ICON_SIZE_MEDIUM_MAX = 40,
+    APP_ICON_SIZE_LARGE_MIN = 28,
+    APP_ICON_SIZE_LARGE_MAX = 44
 };
 
 enum {
@@ -294,7 +508,7 @@ typedef struct AppReminder {
 
 int app_draw_close_title_bar(InnerBreeze*app, const char *title, int height);
 int app_scaffold_close_title(const char *title, int height, void *user_data);
-int app_draw_close_dropdown_title_bar(InnerBreeze*app, UITitleBarDropdown dropdown,
+int app_draw_close_dropdown_title_bar(InnerBreeze*app, TitleBarDropdown dropdown,
                                       int height);
 
 typedef struct MeditationPracticeState {
@@ -406,7 +620,7 @@ struct InnerBreeze {
     BreathSession start_speed_preview;
     int start_speed_preview_speed;
     Camera2D camera;
-    Texture2D icons[UI_ICON_TYPE_COUNT];
+    Texture2D icons[ICON_COUNT];
     int graphics_reload_requested;
     HostApi host;
 
@@ -507,14 +721,15 @@ struct InnerBreeze {
     int manual_drag_scrollbar;
     int manual_drag_content;
     int manual_drag_content_y;
-    UISwipeGesture manual_swipe;
+    SwipeGesture manual_swipe;
     int tutorial_step;
     int tutorial_seen;
     int habits_guide_step;
     int habits_guide_seen;
     int exercise_manual_seen_mask;
     int practice_home_scroll;
-    UISwipeGesture practice_home_swipe;
+    SwipeGesture practice_home_swipe;
+    SwipeGesture elist_item_swipes[ELIST_ITEM_MAX];
     Rectangle practice_home_bounds_card;
     Rectangle practice_home_bounds_start;
     Rectangle practice_home_bounds_manual;
@@ -525,7 +740,7 @@ struct InnerBreeze {
     int theme_source;
     int dark_mode;
     int theme_mode;
-    int theme_style;
+    int glow_effects_enabled;
     int orientation_mode;
     int ui_scale_tenths;
     int navigation_mode;
@@ -540,7 +755,7 @@ struct InnerBreeze {
     int nav_sidebar_scroll;
     int nav_sidebar_return_on_back;
     int nav_sidebar_prior_screen;
-    UIIconType profile_picture_icon;
+    IconType profile_picture_icon;
     int profile_picture_picker_scroll;
     int android_orientation;
     int main_tab;
@@ -579,6 +794,7 @@ struct InnerBreeze {
     int close_prompt_open;
     AppClosePromptResult close_prompt_result;
     int request_quit;   /* app layer requests exit (update restart, quit shortcut) */
+    RouterState route_router;
     int desktop_startup_mode;   /* STARTUP_* (desktop only) */
     int desktop_close_action;   /* CLOSE_* (desktop only) */
     char results_path[FS_PATH_MAX];
@@ -618,6 +834,7 @@ InnerBreeze*get_global_app(void);
 void set_global_app(InnerBreeze*app);
 void app_switch_screen(InnerBreeze*app, int screen);
 AppRoute app_current_route(const InnerBreeze*app);
+void app_request_route(InnerBreeze*app, AppRoute route);
 void app_switch_route(InnerBreeze*app, AppRoute route);
 void app_leave_practice_config(InnerBreeze*app);
 int app_content_top_reserved(const InnerBreeze*app);

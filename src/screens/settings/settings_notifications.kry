@@ -67,8 +67,10 @@ draw_entry :: (app: InnerBreeze*, index: int, x: int, w: int, y: int*) -> int #p
     for int p = 0; p < APP_REMINDER_PRACTICE_COUNT; p++ {
         options[p] = app_notifications_practice_label(p)
     }
-    if Dropdown(400 + index * 4, x, *y, w - del - gap, row_h,
-                options, APP_REMINDER_PRACTICE_COUNT, &r->practice) {
+    if Dropdown((DropdownProps){.id = 400 + index * 4,
+                .bounds = {x, *y, w - del - gap, row_h},
+                .options = options, .option_count = APP_REMINDER_PRACTICE_COUNT,
+                .selected_index = &r->practice}) {
         app->settings_dirty = 1
         save_settings(app)
     }
@@ -76,13 +78,9 @@ draw_entry :: (app: InnerBreeze*, index: int, x: int, w: int, y: int*) -> int #p
         .bounds = {(float)(x + w - del),
                    (float)(*y + (row_h - del) / 2),
                    (float)del, (float)del},
-        .icon = app->icons[UI_ICON_TYPE_X],
+        .icon_type = ICON_X,
         .icon_only = 1, .circle = 0,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .style = {.normal = {
-            .fields = StyleIconSize,
-            .icon_size = (float)(Scale(14)) * 1000.0f / Scale(1000)
-        }}
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
         remove_reminder(app, index)
         return 1
@@ -99,11 +97,14 @@ draw_entry :: (app: InnerBreeze*, index: int, x: int, w: int, y: int*) -> int #p
     }
     snprintf(time_buf, 8, "%02d:00", hour)
 
-    stepper_w := btn * 2 + TextWidth(time_buf, GetFontSize()) + Scale(24)
+    stepper_w := btn * 2 + AppTextWidth(time_buf, AppFontSize()) + Scale(24)
     enabled := r->enabled
 
-    if Toggle(4010 + index, x, *y + (btn - Scale(28)) / 2,
-              settings_ui_toggle_switch_width(), Scale(28), &enabled, "", "") {
+    toggle_h := Scale(34)
+    if Toggle((ToggleProps){.id = 4010 + index,
+              .bounds = {x, *y + (btn - toggle_h) / 2,
+                         settings_ui_toggle_switch_width(), toggle_h},
+              .value = &enabled, .off_label = "", .on_label = ""}) {
         r->enabled = enabled
         app->settings_dirty = 1
         save_settings(app)
@@ -144,39 +145,36 @@ close_picker :: (app: InnerBreeze*) #private {
 
 handle_overlays :: (app: InnerBreeze*) {
     #if ANDROID {
-        labels: [APP_PUSH_DISTRIBUTOR_MAX] const char* = {0}
+        actions: [APP_PUSH_DISTRIBUTOR_MAX + 1] ModalAction = {0}
         picked := 0
 
         if app == nil || !app->push_picker_open {
             return
         }
 
-        if !app->push_distributor_textures_loaded {
-            for int i = 0; i < app->push_distributor_count; i++ {
-                app->push_distributor_textures[i] = (Texture2D){0}
-                if app->push_distributor_icons[i][0] != 0 {
-                    app->push_distributor_textures[i] = LoadTexture(
-                        &app->push_distributor_icons[i][0])
-                }
-            }
-            app->push_distributor_textures_loaded = 1
-        }
-
         for int i = 0; i < app->push_distributor_count; i++ {
-            labels[i] = &app->push_distributor_labels[i][0]
+            actions[i] = (ModalAction){
+                &app->push_distributor_labels[i][0],
+                ButtonToneNeutral,
+                ButtonEmphasisSoft,
+                0
+            }
         }
-
-        picked = PickerDialog((PickerDialogProps){
+        actions[app->push_distributor_count] = (ModalAction){
+            GetLocaleText("close_button"),
+            ButtonToneNeutral,
+            ButtonEmphasisSoft,
+            0
+        }
+        picked = Modal((ModalProps){
             .title = GetLocaleText("notifications_push_picker_title"),
-            .labels = labels,
-            .icons = &app->push_distributor_textures[0],
-            .option_count = app->push_distributor_count,
-            .cancel_label = GetLocaleText("close_button")
+            .actions = actions,
+            .action_count = app->push_distributor_count + 1
         })
-        if picked > 0 {
+        if picked > 0 && picked <= app->push_distributor_count {
             platform_android_push_configure_with(app, picked - 1)
             close_picker(app)
-        } else if picked < 0 {
+        } else if picked != 0 {
             close_picker(app)
         }
     } #else {
@@ -200,8 +198,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("notifications_push_section")),
-            .font=(GetFontSize()),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         *y += Scale(30)
@@ -209,16 +205,12 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
             Text((TextProps){
                 .bounds={(x), (*y), 0, 0},
                 .text=(GetLocaleText("notifications_push_status_on")),
-                .font=(GetFontSize()),
-                .color=(LightenUIColor(GetThemeText(), 40)),
                 .wrap=TextWrapNone
             })
         } else {
             Text((TextProps){
                 .bounds={(x), (*y), 0, 0},
                 .text=(GetLocaleText("notifications_push_status_off")),
-                .font=(GetFontSize()),
-                .color=(LightenUIColor(GetThemeText(), 40)),
                 .wrap=TextWrapNone
             })
         }
@@ -226,7 +218,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         if Button((ButtonProps){
             .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(34))},
             .label = GetLocaleText("notifications_push_setup"),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = 0
@@ -244,8 +235,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("notifications_section")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(34)
@@ -267,7 +256,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     if Button((ButtonProps){
         .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(34))},
         .label = GetLocaleText("notifications_test"),
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = 0
@@ -279,8 +267,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("notifications_reminders_section")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(34)
@@ -295,7 +281,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         if Button((ButtonProps){
             .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(34))},
             .label = GetLocaleText("reminder_add"),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = 0

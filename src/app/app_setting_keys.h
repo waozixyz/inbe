@@ -22,7 +22,7 @@
     X("theme_source") \
     X("dark_mode") \
     X("theme_mode") \
-    X("theme_style") \
+    X("glow_effects") \
     X("orientation_mode") \
     X("ui_scale") \
     X("main_tab") \

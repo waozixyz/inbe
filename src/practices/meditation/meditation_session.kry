@@ -342,7 +342,7 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
         btn_w = Scale(64)
     }
 
-    SetUIModalCapture((Rectangle){
+    SetModalCapture((Rectangle){
         (float)modal_x,
         (float)modal_y,
         (float)modal_w,
@@ -354,17 +354,15 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
                    modal_y,
                    modal_w,
                    modal_h,
-                   LightenUIColor(GetThemeSurface(), 40),
-                   DarkenUIColor(GetThemeSurface(), 40))
+                   LightenColor(GetThemeSurface(), 40),
+                   DarkenColor(GetThemeSurface(), 40))
 
-    title_font = GetTitleFontSize(GetLocaleText("meditation_title"),
+    title_font = AppTitleFontSize(GetLocaleText("meditation_title"),
                                     modal_w - side * 2)
-    title_w = TextWidth(GetLocaleText("meditation_title"), title_font)
+    title_w = AppTextWidth(GetLocaleText("meditation_title"), title_font)
     Text((TextProps){
         .bounds={(modal_x + (modal_w - title_w) / 2), (modal_y + Scale(16)), 0, 0},
         .text=(GetLocaleText("meditation_title")),
-        .font=(title_font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
 
@@ -375,7 +373,6 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
         if Button((ButtonProps){
             .bounds = {(float)(x), (float)(row_y), (float)(btn_w), (float)(btn_h)},
             .label = (labels[i]),
-            .font = GetFontSize(),
             .tone = ButtonToneAccent,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -392,7 +389,6 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
         if Button((ButtonProps){
             .bounds = {(float)(x), (float)(row_y), (float)(two_w), (float)(btn_h)},
             .label = (labels[i]),
-            .font = GetFontSize(),
             .tone = ButtonToneAccent,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -406,7 +402,6 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
     if Button((ButtonProps){
         .bounds = {(float)(cancel_x), (float)(cancel_y), (float)(cancel_w), (float)(btn_h)},
         .label = GetLocaleText("cancel_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = 0
@@ -440,7 +435,6 @@ draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
         if Button((ButtonProps){
             .bounds = {(float)(x + i * (btn_w + gap)), (float)(y), (float)(btn_w), (float)(btn_h)},
             .label = labels[i],
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = 0
@@ -463,7 +457,6 @@ draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
         if Button((ButtonProps){
             .bounds = {(float)(finish_x), (float)(finish_y), (float)(finish_w), (float)(btn_h)},
             .label = GetLocaleText("finish_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneAccent,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -493,15 +486,13 @@ meditation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
 
     format_time(time_text, sizeof(time_text), app->meditation.remaining_seconds)
     max_w = view_width - Scale(48)
-    if TextWidth(time_text, font) > max_w {
+    if AppTextWidth(time_text, font) > max_w {
         font = Text16
     }
-    text_w = TextWidth(time_text, font)
+    text_w = AppTextWidth(time_text, font)
     Text((TextProps){
-        .bounds={(center_x - text_w / 2), (GetUIControlTextY(time_text, center_y - font, font * 2, font)), 0, 0},
+        .bounds={(center_x - text_w / 2), (AppControlTextY(time_text, center_y - font, font * 2, font)), 0, 0},
         .text=(time_text),
-        .font=(font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
 

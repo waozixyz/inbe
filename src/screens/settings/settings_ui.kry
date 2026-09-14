@@ -7,7 +7,7 @@ label_paragraph :: (label: const char*, w: int) -> ParagraphSpec #private {
 }
 
 toggle_switch_width :: () -> int {
-    return Scale(50)
+    return Scale(54)
 }
 
 toggle_row_height :: (label: const char*, w: int) -> int {
@@ -16,7 +16,7 @@ toggle_row_height :: (label: const char*, w: int) -> int {
     }
 
     toggle_w := toggle_switch_width()
-    toggle_h := Scale(28)
+    toggle_h := Scale(34)
     gap := Scale(18)
     label_w := w - toggle_w - gap
 
@@ -24,7 +24,7 @@ toggle_row_height :: (label: const char*, w: int) -> int {
         label_w = w
     }
 
-    label_h := GetNodeHeight(NodeParagraph(label_paragraph(label, label_w), 0, 0))
+    label_h := AppParagraphHeight(label, label_w, 0, 0)
     if label_w < w {
         row_h := label_h
         if row_h < toggle_h {
@@ -51,7 +51,7 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
 
     row_h := toggle_row_height(label, w)
     toggle_w := toggle_switch_width()
-    toggle_h := Scale(28)
+    toggle_h := Scale(34)
     gap := Scale(18)
     label_w := w - toggle_w - gap
     label_h: int
@@ -61,7 +61,7 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
         label_w = w
     }
 
-    label_h = GetNodeHeight(NodeParagraph(label_paragraph(label, label_w), 0, 0))
+    label_h = AppParagraphHeight(label, label_w, 0, 0)
     toggle_x := x
     toggle_y := *y + (row_h - toggle_h) / 2
 
@@ -74,7 +74,9 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
     }
     Paragraph(label_paragraph(label, label_w), x, &label_y)
 
-    if Toggle(62000 + *y, toggle_x, toggle_y, toggle_w, toggle_h, value, "", "") {
+    if Toggle((ToggleProps){.id = 62000 + *y,
+        .bounds = {toggle_x, toggle_y, toggle_w, toggle_h},
+        .value = value, .off_label = "", .on_label = ""}) {
         *y += row_h
         return 1
     }
@@ -101,7 +103,18 @@ commit_slider_row :: (app: InnerBreeze*, id: int, x: int, w: int, y: int*, row_h
         return 0
     }
 
-    changed := Slider(id, x, *y, w, label, min, max, value, suffix, nil)
+    format := "%d"
+    if suffix != nil && suffix[0] != '\0' {
+        if suffix[0] == 's' && suffix[1] == '\0' {
+            format = "%ds"
+        } else if suffix[0] == 'x' && suffix[1] == '\0' {
+            format = "%dx"
+        }
+    }
+    changed := Slider((SliderProps){.id = id,
+        .bounds = {x, *y, w, Scale(56)}, .label = label,
+        .kind = NumericInt, .int_values = value, .value_count = 1,
+        .min = min, .max = max, .format = format})
     if changed && app != NULL {
         app->settings_dirty = 1
         if save_now {
@@ -117,7 +130,6 @@ audio_meter_height :: () -> int {
 }
 
 draw_audio_meter :: (app: InnerBreeze*, x: int, y: int, w: int, label: const char*) -> int {
-    label_font := Text12
     bar_h := Scale(10)
     label_h := Scale(18)
     level := app_audio_output_level(app)
@@ -137,13 +149,11 @@ draw_audio_meter :: (app: InnerBreeze*, x: int, y: int, w: int, label: const cha
     Text((TextProps){
         .bounds={(x), (y), 0, 0},
         .text=(label),
-        .font=(label_font),
-        .color=(DarkenUIColor(GetThemeText(), 28)),
         .wrap=TextWrapNone
     })
-    DrawRectangle(x, y + label_h, w, bar_h, DarkenUIColor(bg, 28))
+    DrawRectangle(x, y + label_h, w, bar_h, DarkenColor(bg, 28))
     Bevel(x, y + label_h, w, bar_h,
-                DarkenUIColor(bg, 55), LightenUIColor(bg, 35))
+                DarkenColor(bg, 55), LightenColor(bg, 35))
     if fill_w > 0 {
         inner_w := fill_w - Scale(4)
         if inner_w < Scale(2) {

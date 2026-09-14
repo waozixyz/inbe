@@ -18,7 +18,7 @@ text_fit_ellipsis(const char *text, char *out, size_t out_size, int max_w,
     snprintf(out, out_size, "%s", text);
     if(max_w <= 0)
         return;
-    while(out[0] != '\0' && TextWidth(out, font) > max_w) {
+    while(out[0] != '\0' && MeasureTextWidth(out, font, NULL) > max_w) {
         size_t len = strlen(out);
         size_t cut = len;
 
@@ -42,7 +42,7 @@ text_fit_ellipsis_into(const char *text, char *out, size_t out_size, int max_w,
 {
     if(text == NULL)
         text = "";
-    if(max_w > 0 && TextWidth(text, font) <= max_w)
+    if(max_w > 0 && MeasureTextWidth(text, font, NULL) <= max_w)
         return text;
     text_fit_ellipsis(text, out, out_size, max_w, font);
     return out;

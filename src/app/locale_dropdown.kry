@@ -27,5 +27,6 @@ app_locale_dropdown :: (id: int, x: int, y: int, w: int, h: int,
         }
     }
 
-    return Dropdown(id, x, y, w, h, labels, count, selected_index)
+    return Dropdown((DropdownProps){.id = id, .bounds = {x, y, w, h},
+        .options = labels, .option_count = count, .selected_index = selected_index})
 }

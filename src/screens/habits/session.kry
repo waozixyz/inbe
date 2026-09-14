@@ -71,19 +71,21 @@ draw_round_line :: (line_text: const char*, seconds_text: const char*,
     draw_x := 0
 
     if !editing {
-        DrawLeftUIControlTextInRect(line_text,
-                                       (Rectangle){(float)x, (float)y,
-                                                   (float)w, (float)h},
-                                       font, GetThemeText())
+        Text((TextProps){
+            .bounds={(float)x, (float)y, (float)w, (float)h},
+            .text=(line_text),
+            .wrap=TextWrapNone
+        })
         return
     }
 
     value_at = last_substring(line_text, seconds_text)
     if value_at == nil {
-        DrawLeftUIControlTextInRect(line_text,
-                                       (Rectangle){(float)x, (float)y,
-                                                   (float)w, (float)h},
-                                       font, GetThemeText())
+        Text((TextProps){
+            .bounds={(float)x, (float)y, (float)w, (float)h},
+            .text=(line_text),
+            .wrap=TextWrapNone
+        })
         return
     }
 
@@ -94,30 +96,24 @@ draw_round_line :: (line_text: const char*, seconds_text: const char*,
     memcpy(prefix, line_text, prefix_len)
     prefix[prefix_len] = '\0'
     suffix = value_at + strlen(seconds_text)
-    text_y = GetUIControlTextY(line_text, y, h, font)
+    text_y = AppControlTextY(line_text, y, h, font)
     draw_x = x
 
     Text((TextProps){
         .bounds={(draw_x), (text_y), 0, 0},
         .text=(prefix),
-        .font=(font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
-    draw_x += TextWidth(prefix, font)
+    draw_x += AppTextWidth(prefix, font)
     Text((TextProps){
         .bounds={(draw_x), (text_y), 0, 0},
         .text=(seconds_text),
-        .font=(font),
-        .color=(GetThemeButtonHover()),
         .wrap=TextWrapNone
     })
-    draw_x += TextWidth(seconds_text, font)
+    draw_x += AppTextWidth(seconds_text, font)
     Text((TextProps){
         .bounds={(draw_x), (text_y), 0, 0},
         .text=(suffix),
-        .font=(font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
 }
@@ -224,18 +220,18 @@ draw_edit_screen :: (app: InnerBreeze*) {
     }
 
     page_ctx: ScrollPageContext = {app, &ctx, y}
-    page := BeginUIScrollPage((UIScrollPageSpec){
-        .y = y,
-        .height = viewport_h,
-        .max_content_width = max_w,
-        .scroll_offset = &app->habit_session_edit.scroll,
-        .content_height = habit_session_scroll_page_content_height,
-        .user_data = &page_ctx
-    })
+    content_x := 0
+    content_w := 0
+    GetCenteredColumn(max_w, GetPageSidePadding(), &content_x, &content_w)
+    content_h := scroll_page_content_height(content_w, &page_ctx)
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)y, (float)view_width, (float)viewport_h}
+        content_height = content_h
+        scroll_offset = &app->habit_session_edit.scroll
 
-    habit_session_draw_edit_content(app, &ctx, page.content_x,
-                                       page.content_w, page.content_y, 1)
-    EndUIScrollPage(page)
+        habit_session_draw_edit_content(app, &ctx, content_x,
+                                           content_w, page.y, 1)
+    }
 
     if app->habit_session_edit.active {
         active_entry: HabitLinkedEntry* = nil
@@ -263,7 +259,6 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
     row_h := Scale(34)
     section_gap := Scale(10)
     section_h := Scale(28)
-    section_font := GetFontSize()
 
     if app == nil || ctx == nil {
         return y
@@ -274,8 +269,6 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
             Text((TextProps){
                 .bounds={(content_x), (y), 0, 0},
                 .text=(GetLocaleText("no_sessions")),
-                .font=(GetFontSize()),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
         }
@@ -299,8 +292,6 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
             Text((TextProps){
                 .bounds={(content_x), (y), 0, 0},
                 .text=(practice_activity_label(activity)),
-                .font=(section_font),
-                .color=(DarkenUIColor(GetThemeText(), 12)),
                 .wrap=TextWrapNone
             })
         }
@@ -313,7 +304,7 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
             icon_padding := Scale(6)
             icon_w := icon_size + icon_padding * 2
             trash_x := content_x + content_w - icon_w
-            row_font := GetSmallFontSize()
+            row_font := AppSmallFontSize()
             summary_x := 0
 
             if ctx->entries[i].activity != activity {
@@ -337,24 +328,20 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                                     ctx->entries[i].round_count)
             }
             summary_x = content_x + Scale(76)
-            summary_too_wide := summary_x + TextWidth(summary_text, row_font) > trash_x - Scale(8)
+            summary_too_wide := summary_x + AppTextWidth(summary_text, row_font) > trash_x - Scale(8)
             if summary_too_wide {
                 summary_x = content_x + Scale(62)
             }
 
             if draw {
                 Text((TextProps){
-                    .bounds={(content_x), (GetUIControlTextY(time_text, y, row_h, row_font)), 0, 0},
+                    .bounds={(content_x), (AppControlTextY(time_text, y, row_h, row_font)), 0, 0},
                     .text=(time_text),
-                    .font=(row_font),
-                    .color=(GetThemeText()),
                     .wrap=TextWrapNone
                 })
                 Text((TextProps){
-                    .bounds={(summary_x), (GetUIControlTextY(summary_text, y, row_h, row_font)), 0, 0},
+                    .bounds={(summary_x), (AppControlTextY(summary_text, y, row_h, row_font)), 0, 0},
                     .text=(summary_text),
-                    .font=(row_font),
-                    .color=(DarkenUIColor(GetThemeText(), 12)),
                     .wrap=TextWrapNone
                 })
                 if Button((ButtonProps){
@@ -362,12 +349,8 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                     .bounds = {(float)(trash_x), (float)(y - Scale(4)),
                                (float)((icon_size) + (icon_padding) * 2),
                                (float)((icon_size) + (icon_padding) * 2)},
-                    .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
-                    .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-                    .style = {.normal = {
-                        .fields = StyleIconSize,
-                        .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
-                    }}
+                    .icon_type = ICON_TRASH, .icon_only = 1,
+                    .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
                 }) {
                     if data_delete_session(ctx->entries[i].path) {
                         habit_session_changed(app, ctx->count)
@@ -421,14 +404,9 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                         .bounds = {(float)(round_edit_x), (float)(y - Scale(6)),
                                    (float)((icon_size) + (icon_padding) * 2),
                                    (float)((icon_size) + (icon_padding) * 2)},
-                        .icon = app->icons[editing_round
-                                                      ? UI_ICON_TYPE_SAVE
-                                                      : UI_ICON_TYPE_EDIT], .icon_only = 1,
-                        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-                        .style = {.normal = {
-                            .fields = StyleIconSize,
-                            .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
-                        }}
+                        .icon_type = editing_round ? ICON_SAVE : ICON_EDIT,
+                        .icon_only = 1,
+                        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
                     }) {
                         if editing_round {
                             if habit_session_commit_edit(app, &ctx->entries[i]) {
@@ -444,12 +422,8 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                         .bounds = {(float)(round_trash_x), (float)(y - Scale(6)),
                                    (float)((icon_size) + (icon_padding) * 2),
                                    (float)((icon_size) + (icon_padding) * 2)},
-                        .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
-                        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-                        .style = {.normal = {
-                            .fields = StyleIconSize,
-                            .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
-                        }}
+                        .icon_type = ICON_TRASH, .icon_only = 1,
+                        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
                     }) {
                         if delete_round(&ctx->entries[i], r) {
                             habit_session_changed(app, ctx->count)
@@ -490,7 +464,6 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                 if Button((ButtonProps){
                     .bounds = {(float)(minus_x), (float)(y), (float)(step_w), (float)(button_h)},
                     .label = "-",
-                    .font = GetFontSize(),
                     .tone = ButtonToneNeutral,
                     .emphasis = ButtonEmphasisSoft,
                     .disabled = total_count <= minimum_count
@@ -502,18 +475,15 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                     return y
                 }
                 DrawRectangle(label_x, y, label_w, button_h,
-                                 DarkenUIColor(GetThemeBackground(), 5))
+                                 DarkenColor(GetThemeBackground(), 5))
                 Text((TextProps){
-                    .bounds={(label_x + Scale(8)), (GetUIControlTextY(total_text, y, button_h, GetSmallFontSize())), 0, 0},
+                    .bounds={(label_x + Scale(8)), (AppControlTextY(total_text, y, button_h, AppSmallFontSize())), 0, 0},
                     .text=(total_text),
-                    .font=(GetSmallFontSize()),
-                    .color=(GetThemeText()),
                     .wrap=TextWrapNone
                 })
                 if Button((ButtonProps){
                     .bounds = {(float)(plus_x), (float)(y), (float)(step_w), (float)(button_h)},
                     .label = "+",
-                    .font = GetFontSize(),
                     .tone = ButtonToneNeutral,
                     .emphasis = ButtonEmphasisSoft,
                     .disabled = 0
@@ -559,7 +529,7 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
     gap := Scale(6)
     pad := Scale(10)
     keyboard_h := habit_session_keyboard_height(app)
-    x := GetUIPageSidePadding()
+    x := GetPageSidePadding()
     y := view_height - keyboard_h
     w := view_width - x * 2
     key_w := (w - gap * 2) / 3
@@ -574,8 +544,8 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
     }
 
     DrawRectangle(0, y, view_width, keyboard_h,
-                     DarkenUIColor(GetThemeBackground(), 10))
-    DrawLine(0, y, view_width, y, DarkenUIColor(GetThemeBackground(), 42))
+                     DarkenColor(GetThemeBackground(), 10))
+    DrawLine(0, y, view_width, y, DarkenColor(GetThemeBackground(), 42))
 
     for int i = 0; i < 12; i++ {
         col := i % 3
@@ -586,7 +556,6 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
         if Button((ButtonProps){
             .bounds = {(float)(key_x), (float)(key_y), (float)(key_w), (float)(key_h)},
             .label = (labels[i]),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = 0

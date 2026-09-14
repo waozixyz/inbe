@@ -25,10 +25,6 @@ static step_label_keys: [SUN_SALUTATION_STEP_COUNT] const char* = {
     "sun_salutation_step_12"
 }
 
-ConfigScrollPageContext :: struct {
-    app: InnerBreeze*
-}
-
 sun_salutation_clampi :: (value: int, min_value: int, max_value: int) -> int #private {
     if value < min_value {
         return min_value
@@ -179,8 +175,8 @@ preview_height :: (content_w: int) -> int #private {
 }
 
 draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
-    label_font := GetFontSize()
-    small_font := GetSmallFontSize()
+    label_font := AppFontSize()
+    small_font := AppSmallFontSize()
     label_w: int
     thumb_w := (w - Scale(22)) / 6
     thumb_h: int
@@ -188,7 +184,7 @@ draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
     active_step: int
     preview_step_ticks: int
     row_y: int
-    muted := DarkenUIColor(GetThemeText(), 40)
+    muted := DarkenColor(GetThemeText(), 40)
 
     if thumb_w < Scale(34) {
         thumb_w = Scale(34)
@@ -198,13 +194,11 @@ draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
     }
     thumb_h = thumb_w
 
-    label_w = TextWidth(GetLocaleText("sun_salutation_tempo_preview_label"),
+    label_w = AppTextWidth(GetLocaleText("sun_salutation_tempo_preview_label"),
                             label_font)
     Text((TextProps){
         .bounds={(x + (w - label_w) / 2), (y), 0, 0},
         .text=(GetLocaleText("sun_salutation_tempo_preview_label")),
-        .font=(label_font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     y += Scale(28)
@@ -230,7 +224,7 @@ draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
         }
 
         DrawRectangle(px, py, thumb_w, thumb_h,
-                         DarkenUIColor(GetThemeBackground(), 6))
+                         DarkenColor(GetThemeBackground(), 6))
         if i == active_step {
             DrawRectangleLines(px, py, thumb_w, thumb_h, GetThemeButtonHover())
         }
@@ -255,21 +249,19 @@ draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
     }
 
     row_y = y + thumb_h * 2 + Scale(26)
-    if TextWidth(GetLocaleText("sun_salutation_tempo_preview_hint"),
+    if AppTextWidth(GetLocaleText("sun_salutation_tempo_preview_hint"),
                      small_font) <= w {
         Text((TextProps){
             .bounds={(x), (row_y), 0, 0},
             .text=(GetLocaleText("sun_salutation_tempo_preview_hint")),
-            .font=(small_font),
-            .color=(muted),
             .wrap=TextWrapNone
         })
     }
 }
 
 draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #private {
-    label_font := GetFontSize()
-    small_font := GetSmallFontSize()
+    label_font := AppFontSize()
+    small_font := AppSmallFontSize()
     label_w: int
     row_y: int
     option_gap := Scale(10)
@@ -282,13 +274,11 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
         return 0
     }
 
-    label_w = TextWidth(GetLocaleText("sun_salutation_figure_label"),
+    label_w = AppTextWidth(GetLocaleText("sun_salutation_figure_label"),
                             label_font)
     Text((TextProps){
         .bounds={(x + (w - label_w) / 2), (y), 0, 0},
         .text=(GetLocaleText("sun_salutation_figure_label")),
-        .font=(label_font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     row_y = y + Scale(30)
@@ -317,7 +307,7 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
         } else {
             label = GetLocaleText("sun_salutation_figure_woman")
         }
-        text_w = TextWidth(label, small_font)
+        text_w = AppTextWidth(label, small_font)
 
         clicked := Button((ButtonProps){
             .bounds = bounds, .id = 24900 + i,
@@ -335,8 +325,6 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
         Text((TextProps){
             .bounds={((int)(bounds.x + (bounds.width - text_w) * 0.5f)), ((int)(bounds.y + bounds.height - Scale(28))), 0, 0},
             .text=(label),
-            .font=(small_font),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
 
@@ -349,20 +337,19 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
     return changed
 }
 
-config_content_height :: (content_w: int, user_data: void*) -> int #private {
-    ctx := (ConfigScrollPageContext*)user_data
+config_content_height :: (app: InnerBreeze*, content_w: int) -> int #private {
     bottom_padding: int
 
-    if ctx == nil || ctx->app == nil {
+    if app == nil {
         return 0
     }
 
-    bottom_padding = app_content_bottom_reserved(ctx->app) + Scale(24)
-    ctx->app->practice_config_tab = 0
+    bottom_padding = app_content_bottom_reserved(app) + Scale(24)
+    app->practice_config_tab = 0
     return (SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 ? Scale(148) + Scale(16) : 0) +
            preview_height(content_w) + Scale(16) +
            Scale(74) * 3 +
-           meditation_music_measure_practice_settings(ctx->app,
+           meditation_music_measure_practice_settings(app,
                                                       EXERCISE_SUN_SALUTATION,
                                                       content_w, 0, 1) +
            bottom_padding
@@ -373,6 +360,11 @@ sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
     repetitions: int
     start_seconds: int
     end_seconds: int
+    side_padding := GetPageSidePadding()
+    max_content_w := Scale(CONTENT_MAX_W)
+    content_x := 0
+    content_w := 0
+    y: int
 
     if app == nil {
         return
@@ -389,78 +381,72 @@ sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
         return
     }
 
-    page_ctx := (ConfigScrollPageContext){app}
-    page := BeginUIScrollPage((UIScrollPageSpec){
-        .y = layout.scroll_y,
-        .height = layout.scroll_h,
-        .max_content_width = Scale(CONTENT_MAX_W),
-        .min_content_width = Scale(320),
-        .scroll_offset = &app->settings_scroll,
-        .content_height = config_content_height,
-        .user_data = &page_ctx
-    })
-    y := page.content_y
+    if max_content_w > view_width - side_padding * 2 {
+        max_content_w = view_width - side_padding * 2
+    }
+    if max_content_w < Scale(320) {
+        max_content_w = Scale(320)
+    }
+    GetCenteredColumn(max_content_w, side_padding, &content_x, &content_w)
+    content_h := config_content_height(app, content_w)
 
-    if SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 {
-        if draw_figure_selector(app, page.content_x, y, page.content_w) {
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)layout.scroll_y,
+                             (float)view_width, (float)layout.scroll_h}
+        content_height = content_h
+        scroll_offset = &app->settings_scroll
+
+        y := (int)page.y
+
+        if SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 {
+            if draw_figure_selector(app, content_x, y, content_w) {
+                save_settings(app)
+            }
+            y += Scale(148) + Scale(16)
+        }
+
+        draw_preview(app, content_x, y, content_w)
+        y += preview_height(content_w) + Scale(16)
+
+        repetitions = app->sun_salutation.repetitions
+        if Slider((SliderProps){.id = 610,
+                        .bounds = {content_x, y, content_w, Scale(56)},
+                        .label = GetLocaleText("sun_salutation_repetitions_label"),
+                        .kind = NumericInt, .int_values = &repetitions,
+                        .value_count = 1, .min = 2, .max = 12, .format = "%dx"}) {
+            app->sun_salutation.repetitions = repetitions
             save_settings(app)
         }
-        y += Scale(148) + Scale(16)
+        y += Scale(74)
+
+        start_seconds = app->sun_salutation.start_seconds
+        if Slider((SliderProps){.id = 611,
+                        .bounds = {content_x, y, content_w, Scale(56)},
+                        .label = GetLocaleText("sun_salutation_start_speed_label"),
+                        .kind = NumericInt, .int_values = &start_seconds,
+                        .value_count = 1, .min = SUN_SALUTATION_SECONDS_MIN,
+                        .max = SUN_SALUTATION_SECONDS_MAX, .format = "%ds"}) {
+            app->sun_salutation.start_seconds = start_seconds
+            normalize_settings(app)
+            save_settings(app)
+        }
+        y += Scale(74)
+
+        end_seconds = app->sun_salutation.end_seconds
+        if Slider((SliderProps){.id = 612,
+                        .bounds = {content_x, y, content_w, Scale(56)},
+                        .label = GetLocaleText("sun_salutation_end_speed_label"),
+                        .kind = NumericInt, .int_values = &end_seconds,
+                        .value_count = 1, .min = SUN_SALUTATION_SECONDS_MIN,
+                        .max = app->sun_salutation.start_seconds, .format = "%ds"}) {
+            app->sun_salutation.end_seconds = end_seconds
+            normalize_settings(app)
+            save_settings(app)
+        }
+        y += Scale(74)
+
+        meditation_music_draw_practice_settings(app, EXERCISE_SUN_SALUTATION,
+                                                content_x, content_w,
+                                                &y, 0, 1)
     }
-
-    draw_preview(app, page.content_x, y, page.content_w)
-    y += preview_height(page.content_w) + Scale(16)
-
-    repetitions = app->sun_salutation.repetitions
-    if Slider(610,
-                    page.content_x,
-                    y,
-                    page.content_w,
-                    GetLocaleText("sun_salutation_repetitions_label"),
-                    2,
-                    12,
-                    &repetitions,
-                    "x", nil) {
-        app->sun_salutation.repetitions = repetitions
-        save_settings(app)
-    }
-    y += Scale(74)
-
-    start_seconds = app->sun_salutation.start_seconds
-    if Slider(611,
-                    page.content_x,
-                    y,
-                    page.content_w,
-                    GetLocaleText("sun_salutation_start_speed_label"),
-                    SUN_SALUTATION_SECONDS_MIN,
-                    SUN_SALUTATION_SECONDS_MAX,
-                    &start_seconds,
-                    "s", nil) {
-        app->sun_salutation.start_seconds = start_seconds
-        normalize_settings(app)
-        save_settings(app)
-    }
-    y += Scale(74)
-
-    end_seconds = app->sun_salutation.end_seconds
-    if Slider(612,
-                    page.content_x,
-                    y,
-                    page.content_w,
-                    GetLocaleText("sun_salutation_end_speed_label"),
-                    SUN_SALUTATION_SECONDS_MIN,
-                    app->sun_salutation.start_seconds,
-                    &end_seconds,
-                    "s", nil) {
-        app->sun_salutation.end_seconds = end_seconds
-        normalize_settings(app)
-        save_settings(app)
-    }
-    y += Scale(74)
-
-    meditation_music_draw_practice_settings(app, EXERCISE_SUN_SALUTATION,
-                                            page.content_x, page.content_w,
-                                            &y, 0, 1)
-
-    EndUIScrollPage(page)
 }

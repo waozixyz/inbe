@@ -128,37 +128,32 @@ statistics_day_offset_from_today :: (day_index: int, today_tm: const struct tm*)
 }
 
 statistics_draw_metric :: (x: int, y: int, w: int, h: int, label: const char*, value: const char*, accent: Color) #private {
-    label_font := Text16
     value_font := Text24
     value_w := 0
 
-    DrawRectangle(x, y, w, h, DarkenUIColor(GetThemeBackground(), 8))
+    DrawRectangle(x, y, w, h, DarkenColor(GetThemeBackground(), 8))
     DrawRectangle(x, y, Scale(4), h, accent)
-    DrawLine(x, y + h - 1, x + w, y + h - 1, DarkenUIColor(GetThemeBackground(), 30))
+    DrawLine(x, y + h - 1, x + w, y + h - 1, DarkenColor(GetThemeBackground(), 30))
     Text((TextProps){
         .bounds={(x + Scale(12)), (y + Scale(8)), 0, 0},
         .text=(label),
-        .font=(label_font),
-        .color=(DarkenUIColor(GetThemeText(), 20)),
         .wrap=TextWrapNone
     })
-    value_w = TextWidth(value, value_font)
+    value_w = AppTextWidth(value, value_font)
     if value_w > w - Scale(24) {
         value_font = 20
     }
     Text((TextProps){
         .bounds={(x + Scale(12)), (y + Scale(30)), 0, 0},
         .text=(value),
-        .font=(value_font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
 }
 
 statistics_draw_section_title :: (title: const char*, x: int, y: int, w: int) -> int #private {
-    paragraph := (ParagraphSpec){.text = title, .width = w, .font = Text16, .line_gap = Scale(3), .color = GetThemeText()}
+    paragraph := (ParagraphSpec){.text = title, .width = w, .font = Text16, .line_gap = Scale(3)}
     title_y := y
-    height := GetNodeHeight(NodeParagraph(paragraph, 0, 0))
+    height := AppParagraphHeight(paragraph.text, paragraph.width, paragraph.font, paragraph.line_gap)
 
     Paragraph(paragraph, x, &title_y)
     return height
@@ -220,10 +215,10 @@ statistics_draw_mood_panel :: (content_x: int, y: int, content_w: int,
     statistics_draw_metric(content_x + metric_w + metrics_gap, y,
                            content_w - metric_w - metrics_gap, metric_h,
                            GetLocaleText("habit_stats_mood_checkins"), value,
-                           LightenUIColor(accent, 20))
+                           LightenColor(accent, 20))
 
     DrawRectangle(content_x, bars_y, content_w, bars_h,
-                  DarkenUIColor(GetThemeBackground(), 7))
+                  DarkenColor(GetThemeBackground(), 7))
     for int i = 0; i < 5; i++ {
         count := stats->counts[i]
         bar_h := count > 0 ? (count * (bars_h - Scale(24))) / stats->total
@@ -238,13 +233,11 @@ statistics_draw_mood_panel :: (content_x: int, y: int, content_w: int,
         }
         DrawRectangle(x, bar_y, w, bar_h,
                       count > 0 ? statistics_mood_color(i + 1)
-                                : DarkenUIColor(GetThemeBackground(), 24))
+                                : DarkenColor(GetThemeBackground(), 24))
         snprintf(label, sizeof(label), "%d", i + 1)
         Text((TextProps){
-            .bounds={(x + (w - TextWidth(label, Text12)) / 2), (bars_y + bars_h - Scale(16)), 0, 0},
+            .bounds={(x + (w - AppTextWidth(label, Text12)) / 2), (bars_y + bars_h - Scale(16)), 0, 0},
             .text=(label),
-            .font=(Text12),
-            .color=(DarkenUIColor(GetThemeText(), 18)),
             .wrap=TextWrapNone
         })
     }
@@ -265,7 +258,7 @@ statistics_draw_hold_range_selector :: (app: InnerBreeze*, x: int, y: int, w: in
         current_w := i == 1 ? x + w - segment_x : segment_w
         if Button((ButtonProps){
             .bounds = {(float)segment_x, (float)y, (float)current_w, (float)h},
-            .id = 24700 + i, .label = labels[i], .font = GetFontSize(),
+            .id = 24700 + i, .label = labels[i],
             .tone = i == selected ? ButtonToneAccent : ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft, .selected = i == selected,
             .disabled = app->modal.active
@@ -280,13 +273,6 @@ statistics_draw_hold_range_selector :: (app: InnerBreeze*, x: int, y: int, w: in
 statistics_content_height :: (linked_count: int, mood_count: int) -> int #private {
     return Scale(linked_count > 0 ? 710 : 420) +
            (mood_count > 0 ? Scale(188) : 0)
-}
-
-statistics_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
-    ctx := (StatisticsScrollPageContext*)user_data
-
-    unused content_w
-    return statistics_content_height(ctx->linked_count, ctx->mood_count)
 }
 
 statistics_draw_hold_graph :: (app: InnerBreeze*, linked_ctx: const HabitLinkedContext*, content_x: int, y: int, content_w: int, today_tm: const struct tm*, filter: int, accent: Color) #private {
@@ -304,7 +290,7 @@ statistics_draw_hold_graph :: (app: InnerBreeze*, linked_ctx: const HabitLinkedC
     plot_h := graph_h - Scale(36)
     axis_label: [32] char = {0}
 
-    DrawRectangle(content_x, y, content_w, graph_h, DarkenUIColor(GetThemeBackground(), 7))
+    DrawRectangle(content_x, y, content_w, graph_h, DarkenColor(GetThemeBackground(), 7))
     for int i = 0; linked_ctx != NULL && i < linked_ctx->count; i++ {
         entry: const HabitLinkedEntry* = &linked_ctx->entries[i]
         day_index := 0
@@ -342,23 +328,21 @@ statistics_draw_hold_graph :: (app: InnerBreeze*, linked_ctx: const HabitLinkedC
     for int i = 1; i < graph_days; i++ {
         if graph_days == 7 || i % 5 == 0 {
             x := plot_x + (plot_w * i) / graph_days
-            DrawLine(x, plot_y, x, plot_y + plot_h, DarkenUIColor(GetThemeBackground(), 22))
+            DrawLine(x, plot_y, x, plot_y + plot_h, DarkenColor(GetThemeBackground(), 22))
         }
     }
     for int i = 0; i <= 2; i++ {
         line_y := plot_y + (plot_h * i) / 2
         seconds := max_hold - (max_hold * i) / 2
         snprintf(axis_label, sizeof(axis_label), "%ds", seconds)
-        DrawLine(plot_x, line_y, plot_x + plot_w, line_y, DarkenUIColor(GetThemeBackground(), 20))
+        DrawLine(plot_x, line_y, plot_x + plot_w, line_y, DarkenColor(GetThemeBackground(), 20))
         Text((TextProps){
             .bounds={(content_x + Scale(4)), (line_y - Scale(8)), 0, 0},
             .text=(axis_label),
-            .font=(Text12),
-            .color=(DarkenUIColor(GetThemeText(), 24)),
             .wrap=TextWrapNone
         })
     }
-    DrawLine(plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h, DarkenUIColor(GetThemeText(), 42))
+    DrawLine(plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h, DarkenColor(GetThemeText(), 42))
     {
         day_seen := (int[STATISTICS_MAX_GRAPH_DAYS]){0}
         day_first_x := (int[STATISTICS_MAX_GRAPH_DAYS]){0}
@@ -414,12 +398,10 @@ statistics_draw_hold_graph :: (app: InnerBreeze*, linked_ctx: const HabitLinkedC
     }
     if point_count <= 0 {
         empty := GetLocaleText(graph_days == 31 ? "habit_stats_no_rounds_month" : "habit_stats_no_rounds_week")
-        text_w := TextWidth(empty, Text12)
+        text_w := AppTextWidth(empty, Text12)
         Text((TextProps){
             .bounds={(content_x + (content_w - text_w) / 2), (y + graph_h / 2 - Scale(8)), 0, 0},
             .text=(empty),
-            .font=(Text12),
-            .color=(DarkenUIColor(GetThemeText(), 24)),
             .wrap=TextWrapNone
         })
     }
@@ -441,8 +423,6 @@ statistics_draw_hold_graph :: (app: InnerBreeze*, linked_ctx: const HabitLinkedC
         Text((TextProps){
             .bounds={(day_x + Scale(2)), (y + graph_h - Scale(20)), 0, 0},
             .text=(label),
-            .font=(Text12),
-            .color=(DarkenUIColor(GetThemeText(), 24)),
             .wrap=TextWrapNone
         })
     }
@@ -529,7 +509,7 @@ statistics_draw_view :: (app: InnerBreeze*, active: Habit*, linked_ctx: HabitLin
     statistics_format_day_count(value, sizeof(value), current_streak)
     statistics_draw_metric(content_x, y, metric_w, metric_h, GetLocaleText("habit_stats_current_streak"), value, active->color)
     snprintf(value, sizeof(value), "%d/%d", last_30_done, last_30_total)
-    statistics_draw_metric(content_x + metric_w + metrics_gap, y, content_w - metric_w - metrics_gap, metric_h, GetLocaleText("habit_stats_last_30_days"), value, LightenUIColor(active->color, 24))
+    statistics_draw_metric(content_x + metric_w + metrics_gap, y, content_w - metric_w - metrics_gap, metric_h, GetLocaleText("habit_stats_last_30_days"), value, LightenColor(active->color, 24))
     y += metric_h + Scale(22)
 
     if mood_count > 0 {
@@ -546,7 +526,7 @@ statistics_draw_view :: (app: InnerBreeze*, active: Habit*, linked_ctx: HabitLin
     }
 
     y += statistics_draw_section_title(GetLocaleText("habit_stats_weekday_pattern"), content_x, y, content_w) + Scale(10)
-    DrawRectangle(content_x, y, content_w, chart_h, DarkenUIColor(GetThemeBackground(), 7))
+    DrawRectangle(content_x, y, content_w, chart_h, DarkenColor(GetThemeBackground(), 7))
     {
         labels: [7] const char* = {"S", "M", "T", "W", "T", "F", "S"}
         slot_w := content_w / 7
@@ -559,12 +539,10 @@ statistics_draw_view :: (app: InnerBreeze*, active: Habit*, linked_ctx: HabitLin
             if w < Scale(4) {
                 w = Scale(4)
             }
-            DrawRectangle(x, bar_y, w, h, weekday_counts[i] > 0 ? LightenUIColor(active->color, 12) : DarkenUIColor(GetThemeBackground(), 24))
+            DrawRectangle(x, bar_y, w, h, weekday_counts[i] > 0 ? LightenColor(active->color, 12) : DarkenColor(GetThemeBackground(), 24))
             Text((TextProps){
-                .bounds={(x + (w - TextWidth(labels[i], Text12)) / 2), (y + chart_h - Scale(18)), 0, 0},
+                .bounds={(x + (w - AppTextWidth(labels[i], Text12)) / 2), (y + chart_h - Scale(18)), 0, 0},
                 .text=(labels[i]),
-                .font=(Text12),
-                .color=(DarkenUIColor(GetThemeText(), 18)),
                 .wrap=TextWrapNone
             })
         }
@@ -578,7 +556,7 @@ statistics_draw_view :: (app: InnerBreeze*, active: Habit*, linked_ctx: HabitLin
         habit_format_duration(linked_ctx->best_seconds, best, sizeof(best))
         habit_format_duration(linked_ctx->total_seconds, total, sizeof(total))
         statistics_draw_metric(content_x, y, metric_w, metric_h, GetLocaleText("habit_stats_best_hold"), best, active->color)
-        statistics_draw_metric(content_x + metric_w + metrics_gap, y, content_w - metric_w - metrics_gap, metric_h, GetLocaleText("habit_stats_total_hold"), total, LightenUIColor(active->color, 20))
+        statistics_draw_metric(content_x + metric_w + metrics_gap, y, content_w - metric_w - metrics_gap, metric_h, GetLocaleText("habit_stats_total_hold"), total, LightenColor(active->color, 20))
     } else {
         statistics_format_day_count(value, sizeof(value), best_streak)
         statistics_draw_metric(content_x, y, content_w, metric_h, GetLocaleText("habit_stats_best_streak"), value, active->color)
@@ -599,9 +577,11 @@ draw_statistics_content :: (app: InnerBreeze*, content_top: int) {
     linked_ctx := (HabitLinkedContext*)NULL
     stats_index := app->habits.selected
     page_ctx := (StatisticsScrollPageContext){0}
-    page := (UIScrollPage){0}
     page_mood_stats: StorageMoodStats = {0}
     page_mood_count := 0
+    content_x := 0
+    content_w := 0
+    content_h := 0
 
     if app->habits.count <= 0 {
         return
@@ -623,7 +603,14 @@ draw_statistics_content :: (app: InnerBreeze*, content_top: int) {
     }
     page_ctx.linked_count = linked_ctx != NULL ? linked_ctx->count : 0
     page_ctx.mood_count = page_mood_count
-    page = BeginUIScrollPage((UIScrollPageSpec){.y = scroll_y, .height = scroll_h, .max_content_width = max_w, .scroll_offset = &app->habits.scroll, .content_height = statistics_scroll_page_content_height, .user_data = &page_ctx})
-    statistics_draw_view(app, active, linked_ctx, page.content_x, page.content_w, page.content_y + Scale(8))
-    EndUIScrollPage(page)
+    GetCenteredColumn(max_w, GetPageSidePadding(), &content_x, &content_w)
+    content_h = statistics_content_height(page_ctx.linked_count,
+                                          page_ctx.mood_count)
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)scroll_y, (float)view_width, (float)scroll_h}
+        content_height = content_h
+        scroll_offset = &app->habits.scroll
+
+        statistics_draw_view(app, active, linked_ctx, content_x, content_w, page.y + Scale(8))
+    }
 }

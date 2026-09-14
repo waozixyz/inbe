@@ -91,17 +91,12 @@ settings_audio_set_status_error :: (action: int, message: const char*) #private 
 }
 
 settings_audio_draw_status :: (x: int, y: int*, action: int) #private {
-    status_color := (Color){0}
-
     if audio_status_action != action || audio_status[0] == '\0' {
         return
     }
-    status_color = audio_status_type == 2 ? RED : GetThemeText()
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(audio_status),
-        .font=(GetSmallFontSize()),
-        .color=(status_color),
         .wrap=TextWrapNone
     })
     *y += Scale(24)
@@ -510,38 +505,47 @@ settings_audio_draw_output :: (app: InnerBreeze*, x: int, w: int, y: int*) #priv
     status_label := app->audio_ready ?
         GetLocaleText("audio_status_ready") :
         GetLocaleText("audio_status_unavailable")
-    buttons: [2] ButtonRowItem = {
-        {GetLocaleText("audio_test_output_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
-        {GetLocaleText("audio_reinitialize_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0}
-    }
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("audio_output_label")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     Text((TextProps){
         .bounds={(x), (*y + Scale(26)), 0, 0},
         .text=(GetLocaleText("audio_system_default_label")),
-        .font=(Text12),
-        .color=(DarkenUIColor(GetThemeText(), 28)),
         .wrap=TextWrapNone
     })
     Text((TextProps){
         .bounds={(x), (*y + Scale(46)), 0, 0},
         .text=(status_label),
-        .font=(Text12),
-        .color=(app->audio_ready ? GetThemeButtonHover() : DarkenUIColor(GetThemeText(), 28)),
         .wrap=TextWrapNone
     })
     *y += Scale(70)
 
-    row := (ButtonRowProps){.x = x, .y = *y, .width = w,
-                            .height = Scale(36),
-                            .items = buttons, .count = 2}
-    clicked := ButtonRow(row)
-    *y += GetUIButtonRowHeight(row)
+    button_gap := Scale(8)
+    button_w := (w - button_gap) / 2
+    clicked := 0
+
+    if Button((ButtonProps){
+        .id = 3401,
+        .bounds = {(float)x, (float)*y, (float)button_w, (float)Scale(36)},
+        .label = GetLocaleText("audio_test_output_button"),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft
+    }) {
+        clicked = 1
+    }
+    if Button((ButtonProps){
+        .id = 3402,
+        .bounds = {(float)(x + button_w + button_gap), (float)*y,
+                   (float)(w - button_w - button_gap), (float)Scale(36)},
+        .label = GetLocaleText("audio_reinitialize_button"),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft
+    }) {
+        clicked = 2
+    }
+    *y += Scale(36)
 
     if clicked == 1 {
         app_play_bell_cue(app, 1.0f)
@@ -564,14 +568,9 @@ settings_audio_import_button_height :: (action: int) -> int #private {
 }
 
 settings_audio_output_height :: (content_w: int) -> int #private {
-    buttons: [2] ButtonRowItem = {
-        {GetLocaleText("audio_test_output_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
-        {GetLocaleText("audio_reinitialize_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0}
-    }
-    row := (ButtonRowProps){.width = content_w, .height = Scale(36),
-                            .items = buttons, .count = 2}
+    unused content_w
 
-    return Scale(70) + GetUIButtonRowHeight(row) +
+    return Scale(70) + Scale(36) +
         settings_ui_audio_meter_height() + Scale(18)
 }
 
@@ -658,7 +657,6 @@ draw_import_button :: (app: InnerBreeze*, x: int, w: int, y: int*, label: const 
     if Button((ButtonProps){
         .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(36))},
         .label = label,
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = 0
@@ -696,12 +694,12 @@ draw_cue_selector :: (app: InnerBreeze*, x: int, w: int, y: int*, cue: int,
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(label),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
-    if Dropdown(820 + cue, x, *y + Scale(26), dropdown_w, Scale(36),
-                      options, count, &app->audio_cue_selected[cue]) {
+    if Dropdown((DropdownProps){.id = 820 + cue,
+                      .bounds = {x, *y + Scale(26), dropdown_w, Scale(36)},
+                      .options = options, .option_count = count,
+                      .selected_index = &app->audio_cue_selected[cue]}) {
         settings_audio_stop_preview(app)
         app_audio_reload_cue_sounds(app)
         app->settings_dirty = 1
@@ -712,7 +710,6 @@ draw_cue_selector :: (app: InnerBreeze*, x: int, w: int, y: int*, cue: int,
             .bounds = {(float)((x + dropdown_w + control_gap)), (float)((*y + Scale(28))), (float)(preview_w), (float)(Scale(32))},
             .label = (settings_audio_preview_cue_playing(app, cue)) ? GetLocaleText("pause_button")
                                            : GetLocaleText("play_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = (app == nil || !app->audio_ready)
@@ -737,8 +734,6 @@ draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private 
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("audio_custom_sounds_title")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(30)
@@ -751,15 +746,12 @@ draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private 
         Text((TextProps){
             .bounds={(x), (*y + Scale(8)), 0, 0},
             .text=(app->audio_custom_sounds[i].title),
-            .font=(Text12),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         if Button((ButtonProps){
             .bounds = {(float)((x + w - button_w - preview_w - gap)), (float)((*y)), (float)(preview_w), (float)(Scale(32))},
             .label = (settings_audio_preview_custom_sound_playing(i)) ? GetLocaleText("pause_button")
                                            : GetLocaleText("play_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = (app == nil || !app->audio_ready)
@@ -769,7 +761,6 @@ draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private 
         if Button((ButtonProps){
             .bounds = {(float)(x + w - button_w), (float)(*y), (float)(button_w), (float)(Scale(32))},
             .label = GetLocaleText("remove_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneDanger,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -799,8 +790,6 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("audio_music_title")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(30)
@@ -812,8 +801,6 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("audio_music_applied_title")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(30)
@@ -844,22 +831,17 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         Text((TextProps){
             .bounds={(x), (*y + Scale(2)), 0, 0},
             .text=(practice_text),
-            .font=(Text12),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         Text((TextProps){
             .bounds={(x), (*y + Scale(20)), 0, 0},
             .text=(track_text),
-            .font=(Text12),
-            .color=(DarkenUIColor(GetThemeText(), 28)),
             .wrap=TextWrapNone
         })
         if Button((ButtonProps){
             .bounds = {(float)((x + w - button_w - preview_w - gap)), (float)((*y)), (float)(preview_w), (float)(Scale(32))},
             .label = (settings_audio_preview_music_playing(current)) ? GetLocaleText("pause_button")
                                            : GetLocaleText("play_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = (app == nil || !app->audio_ready)
@@ -869,7 +851,6 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         if Button((ButtonProps){
             .bounds = {(float)(x + w - button_w), (float)(*y), (float)(button_w), (float)(Scale(32))},
             .label = GetLocaleText("remove_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneDanger,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -888,8 +869,6 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("audio_music_no_practices")),
-            .font=(Text12),
-            .color=(DarkenUIColor(GetThemeText(), 34)),
             .wrap=TextWrapNone
         })
         *y += Scale(24)
@@ -902,8 +881,6 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("audio_custom_music_title")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(30)
@@ -922,15 +899,12 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         Text((TextProps){
             .bounds={(x), (*y + Scale(8)), 0, 0},
             .text=(fitted),
-            .font=(Text12),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         if Button((ButtonProps){
             .bounds = {(float)((x + w - button_w - preview_w - gap)), (float)((*y)), (float)(preview_w), (float)(Scale(32))},
             .label = (settings_audio_preview_music_playing(track_index)) ? GetLocaleText("pause_button")
                                            : GetLocaleText("play_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = (app == nil || !app->audio_ready)
@@ -940,7 +914,6 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         if Button((ButtonProps){
             .bounds = {(float)(x + w - button_w), (float)(*y), (float)(button_w), (float)(Scale(32))},
             .label = GetLocaleText("remove_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneDanger,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -969,14 +942,13 @@ draw_music_download :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     } else {
         download_label = GetLocaleText("meditation_music_download_button")
     }
-    button_w := TextWidth(download_label, GetFontSize()) + Scale(24)
+    button_w := AppTextWidth(download_label, AppFontSize()) + Scale(24)
     if button_w > w {
         button_w = w
     }
     if Button((ButtonProps){
         .bounds = {(float)(x), (float)(*y), (float)(button_w), (float)(button_h)},
         .label = download_label,
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = 0
@@ -995,8 +967,6 @@ draw_music_download :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
             Text((TextProps){
                 .bounds={(x), (*y), 0, 0},
                 .text=(download_status),
-                .font=(GetFontSize()),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
             *y += Scale(28)
@@ -1006,8 +976,6 @@ draw_music_download :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
             Text((TextProps){
                 .bounds={(x), (*y), 0, 0},
                 .text=(app->meditation.music_status),
-                .font=(GetFontSize()),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
             *y += Scale(34)
@@ -1025,8 +993,7 @@ draw_music_attribution :: (x: int, w: int, track: int, y: int*) #private {
     spec := (ParagraphSpec){
         .text = GetLocaleText("meditation_music_attribution"),
         .width = w,
-        .font = Text12,
-        .color = DarkenUIColor(GetThemeText(), 34),
+        .font = Text12
     }
     Paragraph(spec, x, y)
     *y += Scale(10)

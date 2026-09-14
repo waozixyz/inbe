@@ -4,10 +4,6 @@
 #import "screens/practice_screen.h"
 #import "stdio.h"
 
-MeditationConfigScrollPageContext :: struct {
-    app: InnerBreeze*
-}
-
 meditation_config_preset_count :: () -> int #private {
     return 5
 }
@@ -75,8 +71,6 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("meditation_duration_setting")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(30)
@@ -93,7 +87,6 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
         if Button((ButtonProps){
             .bounds = {(float)(bx), (float)(by), (float)(btn_w), (float)(btn_h)},
             .label = labels[i],
-            .font = GetFontSize(),
             .tone = style,
             .emphasis = (style) == ButtonToneAccent ? ButtonEmphasisFilled : ButtonEmphasisSoft,
             .disabled = 0
@@ -114,8 +107,6 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
     Text((TextProps){
         .bounds={(x), (custom_row_y), 0, 0},
         .text=(custom_text),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
 
@@ -128,7 +119,6 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
         if Button((ButtonProps){
             .bounds = {(float)(adjust_x + i * (adjust_w + gap)), (float)(adjust_y), (float)(adjust_w), (float)(btn_h)},
             .label = adjust_labels[i],
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = 0
@@ -144,14 +134,13 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("meditation_extend_controls_label")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     toggle_value = app->meditation.show_extend_controls
-    if Toggle(0, x, *y + Scale(26), Scale(56), Scale(30),
-                          &toggle_value, GetLocaleText("toggle_off"),
-                          GetLocaleText("toggle_on")) {
+    if Toggle((ToggleProps){.id = 0,
+        .bounds = {x, *y + Scale(26), Scale(56), Scale(30)},
+        .value = &toggle_value, .off_label = GetLocaleText("toggle_off"),
+        .on_label = GetLocaleText("toggle_on")}) {
         app->meditation.show_extend_controls = toggle_value
         meditation_config_save(app)
     }
@@ -161,8 +150,6 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("meditation_interval_bell_label")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     bell_labels: [7] const char* = {
@@ -188,7 +175,6 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
         if Button((ButtonProps){
             .bounds = {(float)(bx), (float)(by), (float)(bell_w), (float)(btn_h)},
             .label = bell_labels[i],
-            .font = GetFontSize(),
             .tone = style,
             .emphasis = (style) == ButtonToneAccent ? ButtonEmphasisFilled : ButtonEmphasisSoft,
             .disabled = 0
@@ -202,14 +188,13 @@ meditation_config_draw_duration :: (app: InnerBreeze*, x: int, w: int, y: int*) 
           (bell_rows - 1) * gap + Scale(12)
 }
 
-meditation_config_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
-    ctx := (MeditationConfigScrollPageContext*)user_data
-
-    return meditation_config_content_height(ctx->app, content_w)
-}
-
 meditation_config_screen_draw :: (app: InnerBreeze*) {
     layout := (PracticeSubscreenLayout){0}
+    side_padding := GetPageSidePadding()
+    max_content_w := Scale(CONTENT_MAX_W)
+    content_x := 0
+    content_w := 0
+    y: int
 
     app->practice_config_tab = 0
 
@@ -218,21 +203,25 @@ meditation_config_screen_draw :: (app: InnerBreeze*) {
                                            UIModalPracticeConfig,
                                            meditation_practice_leave_config)
 
-    page_ctx := (MeditationConfigScrollPageContext){app}
-    page := BeginUIScrollPage((UIScrollPageSpec){
-        .y = layout.scroll_y,
-        .height = layout.scroll_h,
-        .max_content_width = Scale(CONTENT_MAX_W),
-        .min_content_width = Scale(320),
-        .scroll_offset = &app->settings_scroll,
-        .content_height = meditation_config_scroll_page_content_height,
-        .user_data = &page_ctx
-    })
-    y := page.content_y
+    if max_content_w > view_width - side_padding * 2 {
+        max_content_w = view_width - side_padding * 2
+    }
+    if max_content_w < Scale(320) {
+        max_content_w = Scale(320)
+    }
+    GetCenteredColumn(max_content_w, side_padding, &content_x, &content_w)
+    content_h := meditation_config_content_height(app, content_w)
 
-    meditation_config_draw_duration(app, page.content_x, page.content_w, &y)
-    meditation_music_draw_practice_settings(app, EXERCISE_MEDITATION,
-                                            page.content_x, page.content_w,
-                                            &y, 0, 1)
-    EndUIScrollPage(page)
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)layout.scroll_y,
+                             (float)view_width, (float)layout.scroll_h}
+        content_height = content_h
+        scroll_offset = &app->settings_scroll
+
+        y := (int)page.y
+        meditation_config_draw_duration(app, content_x, content_w, &y)
+        meditation_music_draw_practice_settings(app, EXERCISE_MEDITATION,
+                                                content_x, content_w,
+                                                &y, 0, 1)
+    }
 }

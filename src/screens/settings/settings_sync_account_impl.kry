@@ -6,7 +6,6 @@
 #import "storage.h"
 #import "sync_account.h"
 #import "sync_client.h"
-#import "ctype.h"
 #import "stdio.h"
 #import "string.h"
 
@@ -45,29 +44,29 @@ draw_public_id_link :: (text: const char*, x: int, w: int, y: int*, font: int) -
         return 0
     }
 
-    link_h = TextHeight(text, font) + Scale(8)
+    link_h = AppTextLineHeight(font) + Scale(8)
     if link_h < Scale(28) {
         link_h = Scale(28)
     }
 
-    clicked = Href((HrefProps){
+    clicked = Link((LinkProps){
         .bounds = {(float)x, (float)*y, (float)w, (float)link_h},
         .text = text,
-        .font = font,
+        .focus_id = 5201
     })
     *y += link_h
 
     return clicked
 }
 
-draw_public_id_field :: (text: const char*, x: int, w: int, y: int*, font: int,
-                        style: TextInputStyle) #private {
+draw_public_id_field :: (text: const char*, x: int, w: int, y: int*, font: int) #private {
     field_text: [SYNC_PUBLIC_ID_HEX_SIZE] char = {0}
     field_h := Scale(38)
 
     if text == nil || y == nil {
         return
     }
+    unused font
 
     snprintf(field_text, sizeof(field_text), "%s", text)
     if public_id_field_cursor > (int)strlen(field_text) {
@@ -80,9 +79,7 @@ draw_public_id_field :: (text: const char*, x: int, w: int, y: int*, font: int,
         .cursor_position = &public_id_field_cursor,
         .focused = &public_id_field_focused,
         .max_codepoints = (int)strlen(field_text),
-        .font = font,
         .focus_id = 9421,
-        .style = style,
         .read_only = 1,
     })
     *y += field_h
@@ -138,19 +135,6 @@ start_sync_key_import :: (app: InnerBreeze*) -> int #private {
         return import_dialog_callback(app)
     }
     return 0
-}
-
-sync_url_filter :: (codepoint: int, user_data: void*) -> int #private {
-    unused user_data
-    return codepoint >= 33 && codepoint <= 126 && !isspace(codepoint)
-}
-
-sync_alias_filter :: (codepoint: int, user_data: void*) -> int #private {
-    unused user_data
-    return (codepoint >= 'a' && codepoint <= 'z') ||
-           (codepoint >= 'A' && codepoint <= 'Z') ||
-           (codepoint >= '0' && codepoint <= '9') ||
-           codepoint == '_'
 }
 
 alias_normalize :: (text: char*) #private {
@@ -285,8 +269,7 @@ save_prepared :: (app: InnerBreeze*, account: SyncAccount*,
 }
 
 draw_account_id :: (app: InnerBreeze*, account: const SyncAccount*,
-                   x: int, w: int, y: int*, small_font: int,
-                   style: TextInputStyle) #private {
+                   x: int, w: int, y: int*, small_font: int) #private {
     alias := storage_get_setting_text(sync_account_alias_key)
     display: [96] char
 
@@ -300,7 +283,6 @@ draw_account_id :: (app: InnerBreeze*, account: const SyncAccount*,
         compact_public_id(account->public_id, display, sizeof(display))
     }
 
-    unused style
     if draw_public_id_link(display, x, w, y, small_font) && app != nil {
         app_open_modal(app, UIModalSyncPublicId)
     }
@@ -343,6 +325,12 @@ result_key :: (result: SyncResult) -> const char* #private {
     }
     if result == SYNC_AUTH_FAILED {
         return "sync_auth_failed"
+    }
+    if result == SYNC_CHALLENGE_FAILED {
+        return "sync_server_unavailable"
+    }
+    if result == SYNC_SIGN_FAILED {
+        return "sync_sign_failed"
     }
     return "sync_failed"
 }
@@ -453,24 +441,29 @@ clear_remote_confirmed :: (app: InnerBreeze*) {
     settings_screen_set_status_success(GetLocaleText("sync_remote_data_cleared"), nil)
 }
 
-text_style :: () -> TextInputStyle #private {
-    return (TextInputStyle){
-        .background = DarkenUIColor(GetThemeBackground(), 4),
-        .border = GetThemeButton(),
-        .focus_border = GetThemeButtonHover(),
-        .text = GetThemeText(),
-        .cursor = GetThemeText(),
-        .radius = 0.08f,
-        .padding_x = Scale(10),
-    }
+SettingsSyncButton :: struct {
+    label: const char*
+    tone: ButtonTone
+    emphasis: ButtonEmphasis
+    disabled: int
+}
+
+SettingsSyncButtonRow :: struct {
+    x: int
+    y: int
+    width: int
+    height: int
+    gap: int
+    items: const SettingsSyncButton*
+    count: int
 }
 
 button_min_width :: (label: const char*) -> int #private {
-    return TextWidth(label != nil ? label : "", GetSmallFontSize()) +
+    return AppTextWidth(label != nil ? label : "", AppSmallFontSize()) +
            Scale(20)
 }
 
-button_group_fits :: (items: const ButtonRowItem*, start: int, count: int,
+button_group_fits :: (items: const SettingsSyncButton*, start: int, count: int,
                      width: int, gap: int) -> int #private {
     button_w: int
 
@@ -492,7 +485,7 @@ button_group_fits :: (items: const ButtonRowItem*, start: int, count: int,
     return 1
 }
 
-button_group_count :: (items: const ButtonRowItem*, start: int, count: int,
+button_group_count :: (items: const SettingsSyncButton*, start: int, count: int,
                       width: int, gap: int) -> int #private {
     for int row_count = count; row_count > 1; row_count-- {
         if button_group_fits(items, start, row_count, width, gap) {
@@ -502,7 +495,7 @@ button_group_count :: (items: const ButtonRowItem*, start: int, count: int,
     return 1
 }
 
-draw_adaptive_button_row :: (row: ButtonRowProps, height_out: int*) -> int #private {
+draw_adaptive_button_row :: (row: SettingsSyncButtonRow, height_out: int*) -> int #private {
     clicked := -1
     gap := row.gap > 0 ? row.gap : Scale(10)
     draw_y := row.y
@@ -529,7 +522,6 @@ draw_adaptive_button_row :: (row: ButtonRowProps, height_out: int*) -> int #priv
                     .bounds = {(float)button_x, (float)draw_y,
                                (float)draw_w, (float)row.height},
                     .label = row.items[item_index].label,
-                    .font = GetFontSize(),
                     .tone = row.items[item_index].tone,
                     .emphasis = row.items[item_index].emphasis,
                     .disabled = row.items[item_index].disabled,
@@ -552,7 +544,7 @@ draw_adaptive_button_row :: (row: ButtonRowProps, height_out: int*) -> int #priv
     return clicked
 }
 
-adaptive_button_row_height :: (items: const ButtonRowItem*, count: int,
+adaptive_button_row_height :: (items: const SettingsSyncButton*, count: int,
                               width: int, button_h: int, gap: int) -> int #private {
     height := 0
     index := 0
@@ -588,7 +580,7 @@ config_content_height :: (content_w: int) -> int {
     }
 
     if !has_account {
-        buttons: [2] ButtonRowItem = {
+        buttons: [2] SettingsSyncButton = {
             {GetLocaleText("sync_create_account_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
             {GetLocaleText("sync_import_key_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
         }
@@ -608,12 +600,12 @@ config_content_height :: (content_w: int) -> int {
     }
 
     h += Scale(18)
-    h += GetNodeHeight(NodeReadonlyTextBox((ReadonlyTextBoxProps){.bounds = {0, 0, (float)content_w, 0}, .text = display, .font = GetSmallFontSize(), .style = text_style()}))
+    h += AppParagraphHeight(display, content_w, AppSmallFontSize(), Scale(4))
     h += Scale(8)
     h += Scale(18) + btn_h + Scale(12)
     h += btn_h + Scale(12)
 
-    buttons_main: [3] ButtonRowItem = {
+    buttons_main: [3] SettingsSyncButton = {
         {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_backup_key_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
@@ -621,7 +613,7 @@ config_content_height :: (content_w: int) -> int {
     h += adaptive_button_row_height(buttons_main, 3, content_w, btn_h, gap)
     h += Scale(12)
 
-    buttons_danger: [2] ButtonRowItem = {
+    buttons_danger: [2] SettingsSyncButton = {
         {GetLocaleText("sync_logout_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_clear_remote_data_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
     }
@@ -635,8 +627,8 @@ config_content_height :: (content_w: int) -> int {
 draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     account: SyncAccount
     has_account := sync_account_load(&account)
-    font := GetFontSize()
-    small_font := GetSmallFontSize()
+    font := AppFontSize()
+    small_font := AppSmallFontSize()
     btn_h := Scale(36)
     gap := Scale(10)
 
@@ -644,8 +636,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("sync_account_title")),
-        .font=(font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(26)
@@ -654,7 +644,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         if Button((ButtonProps){
             .bounds = {(float)(x), (float)(*y), (float)(w), (float)(btn_h)},
             .label = GetLocaleText("sync_create_account_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneAccent,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -668,21 +657,19 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("sync_public_id_label")),
-        .font=(small_font),
-        .color=(DarkenUIColor(GetThemeText(), 30)),
         .wrap=TextWrapNone
     })
     *y += Scale(18)
-    draw_account_id(app, &account, x, w, y, small_font, text_style())
+    draw_account_id(app, &account, x, w, y, small_font)
     *y += Scale(4)
 
-    buttons: [3] ButtonRowItem = {
+    buttons: [3] SettingsSyncButton = {
         {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_backup_key_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
     }
     row_h := 0
-    clicked := draw_adaptive_button_row((ButtonRowProps){
+    clicked := draw_adaptive_button_row((SettingsSyncButtonRow){
         .x = x,
         .y = *y,
         .width = w,
@@ -708,13 +695,12 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
 draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     account: SyncAccount
     has_account := sync_account_load(&account)
-    font := GetFontSize()
-    small_font := GetSmallFontSize()
+    font := AppFontSize()
+    small_font := AppSmallFontSize()
     btn_h := Scale(36)
     gap := Scale(10)
 
     commit := 0
-    input_style := text_style()
 
     if app != nil && app->sync_server_url[0] == '\0' {
         saved: const char* = nil
@@ -728,7 +714,7 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     }
 
     if !has_account {
-        buttons: [2] ButtonRowItem = {
+        buttons: [2] SettingsSyncButton = {
             {GetLocaleText("sync_create_account_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
             {GetLocaleText("sync_import_key_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
         }
@@ -736,7 +722,7 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         clicked: int
 
         *y += Scale(12)
-        clicked = draw_adaptive_button_row((ButtonRowProps){
+        clicked = draw_adaptive_button_row((SettingsSyncButtonRow){
             .x = x,
             .y = *y,
             .width = w,
@@ -766,19 +752,15 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("sync_public_id_label")),
-        .font=(small_font),
-        .color=(DarkenUIColor(GetThemeText(), 30)),
         .wrap=TextWrapNone
     })
     *y += Scale(18)
-    draw_account_id(app, &account, x, w, y, small_font, input_style)
+    draw_account_id(app, &account, x, w, y, small_font)
     *y += Scale(8)
 
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("sync_remote_label")),
-        .font=(small_font),
-        .color=(DarkenUIColor(GetThemeText(), 30)),
         .wrap=TextWrapNone
     })
     *y += Scale(18)
@@ -789,9 +771,6 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         .cursor_position = &app->sync_server_url_cursor,
         .focused = &app->sync_server_url_focused,
         .max_codepoints = 255,
-        .font = small_font,
-        .style = input_style,
-        .filter = sync_url_filter,
         .commit_pressed = &commit,
     })
     if commit {
@@ -804,7 +783,6 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         .label = server_connected(app)
                                ? GetLocaleText("sync_connected_button")
                                : GetLocaleText("sync_connect_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = 0
@@ -813,13 +791,13 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     }
     *y += btn_h + Scale(12)
 
-    buttons_main: [3] ButtonRowItem = {
+    buttons_main: [3] SettingsSyncButton = {
         {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_backup_key_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
     }
     row_h_main := 0
-    clicked_main := draw_adaptive_button_row((ButtonRowProps){
+    clicked_main := draw_adaptive_button_row((SettingsSyncButtonRow){
         .x = x,
         .y = *y,
         .width = w,
@@ -840,12 +818,12 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     *y += row_h_main
     *y += Scale(12)
 
-    buttons_danger: [2] ButtonRowItem = {
+    buttons_danger: [2] SettingsSyncButton = {
         {GetLocaleText("sync_logout_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_clear_remote_data_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
     }
     row_h_danger := 0
-    clicked_danger := draw_adaptive_button_row((ButtonRowProps){
+    clicked_danger := draw_adaptive_button_row((SettingsSyncButtonRow){
         .x = x,
         .y = *y,
         .width = w,
@@ -888,7 +866,8 @@ draw_backup_modal :: (app: InnerBreeze*) -> int {
         .width = Scale(336) - Scale(36),
     }
     modal_h = Scale(58) +
-              GetNodeHeight(NodeParagraph(warning, 0, 0)) +
+              AppParagraphHeight(warning.text, warning.width,
+                                 warning.font, warning.line_gap) +
               text_button_gap +
               btn_h * 2 + gap +
               pad_bottom
@@ -896,9 +875,9 @@ draw_backup_modal :: (app: InnerBreeze*) -> int {
         modal_h = Scale(224)
     }
 
-    frame = ModalFrame(Scale(336), modal_h,
+    frame = AppModalFrame(Scale(336), modal_h,
                              GetLocaleText("sync_backup_title"),
-                             (Texture2D){0}, (Texture2D){0})
+                             0, 0)
     y = frame.content_y
     warning.width = frame.content_w
     Paragraph(warning, frame.content_x, &y)
@@ -910,7 +889,6 @@ draw_backup_modal :: (app: InnerBreeze*) -> int {
     if Button((ButtonProps){
         .bounds = {(float)(frame.content_x), (float)(button_y), (float)(frame.content_w), (float)(btn_h)},
         .label = GetLocaleText("sync_save_key_file_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = 0
@@ -920,7 +898,6 @@ draw_backup_modal :: (app: InnerBreeze*) -> int {
     if Button((ButtonProps){
         .bounds = {(float)(frame.content_x), (float)(button_y + btn_h + gap), (float)(frame.content_w), (float)(btn_h)},
         .label = GetLocaleText("close_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = 0
@@ -933,7 +910,6 @@ draw_backup_modal :: (app: InnerBreeze*) -> int {
 
 draw_alias_modal :: (app: InnerBreeze*) -> int {
     frame: UIPanelFrame
-    input_style := text_style()
     btn_h := Scale(36)
     gap := Scale(10)
     y: int
@@ -956,28 +932,24 @@ draw_alias_modal :: (app: InnerBreeze*) -> int {
     alias_normalize(current_alias)
     has_alias = current_alias[0] != '\0'
 
-    frame = ModalFrame(Scale(336), Scale(238),
+    frame = AppModalFrame(Scale(336), Scale(238),
                              GetLocaleText(has_alias
                                             ? "sync_alias_change_title"
                                             : "sync_alias_title"),
-                             (Texture2D){0}, (Texture2D){0})
+                             0, 0)
     y = frame.content_y
 
     Text((TextProps){
         .bounds={(frame.content_x), (y), 0, 0},
         .text=(GetLocaleText(has_alias ? "sync_alias_change_message" : "sync_alias_message")),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 20)),
         .wrap=TextWrapNone
     })
     y += Scale(40)
 
-    at_w = TextWidth("@", GetFontSize()) + Scale(12)
+    at_w = AppTextWidth("@", AppFontSize()) + Scale(12)
     Text((TextProps){
-        .bounds={(frame.content_x), (GetUIControlTextY("@", y, btn_h, GetFontSize())), 0, 0},
+        .bounds={(frame.content_x), (AppControlTextY("@", y, btn_h, AppFontSize())), 0, 0},
         .text=("@"),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     TextField((TextFieldProps){
@@ -988,9 +960,6 @@ draw_alias_modal :: (app: InnerBreeze*) -> int {
         .cursor_position = &app->sync_alias_cursor,
         .focused = &app->sync_alias_focused,
         .max_codepoints = 32,
-        .font = GetSmallFontSize(),
-        .style = input_style,
-        .filter = sync_alias_filter,
         .commit_pressed = &commit,
     })
     alias_normalize(app->sync_alias_input)
@@ -999,14 +968,12 @@ draw_alias_modal :: (app: InnerBreeze*) -> int {
     Text((TextProps){
         .bounds={(frame.content_x), (y), 0, 0},
         .text=(GetLocaleText("sync_alias_rule")),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 35)),
         .wrap=TextWrapNone
     })
     y += Scale(34)
     unchanged_alias = has_alias && strcmp(app->sync_alias_input, current_alias) == 0
 
-    buttons: [2] ButtonRowItem = {
+    buttons: [2] SettingsSyncButton = {
         {
             GetLocaleText(app->sync_alias_then_backup ? "skip_button" : "close_button"),
             ButtonToneNeutral,
@@ -1020,7 +987,7 @@ draw_alias_modal :: (app: InnerBreeze*) -> int {
             !alias_valid(app->sync_alias_input) || unchanged_alias,
         },
     }
-    clicked := draw_adaptive_button_row((ButtonRowProps){
+    clicked := draw_adaptive_button_row((SettingsSyncButtonRow){
         .x = frame.content_x,
         .y = y,
         .width = frame.content_w,
@@ -1063,7 +1030,6 @@ draw_alias_modal :: (app: InnerBreeze*) -> int {
 draw_public_id_modal :: (app: InnerBreeze*) -> int {
     frame: UIPanelFrame
     account: SyncAccount
-    input_style := text_style()
     btn_h := Scale(36)
     gap := Scale(10)
     y: int
@@ -1075,29 +1041,27 @@ draw_public_id_modal :: (app: InnerBreeze*) -> int {
         return 1
     }
 
-    frame = ModalFrame(Scale(356), Scale(218),
+    frame = AppModalFrame(Scale(356), Scale(218),
                              GetLocaleText("sync_public_id_full_title"),
-                             (Texture2D){0}, (Texture2D){0})
+                             0, 0)
     y = frame.content_y
 
     Text((TextProps){
         .bounds={(frame.content_x), (y), 0, 0},
         .text=(GetLocaleText("sync_public_id_full_message")),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 25)),
         .wrap=TextWrapNone
     })
     y += Scale(34)
 
     draw_public_id_field(account.public_id, frame.content_x, frame.content_w,
-                            &y, GetSmallFontSize(), input_style)
+                            &y, AppSmallFontSize())
     y += Scale(18)
 
-    buttons: [2] ButtonRowItem = {
+    buttons: [2] SettingsSyncButton = {
         {GetLocaleText("sync_copy_id_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
         {GetLocaleText("close_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
     }
-    clicked := draw_adaptive_button_row((ButtonRowProps){
+    clicked := draw_adaptive_button_row((SettingsSyncButtonRow){
         .x = frame.content_x,
         .y = y,
         .width = frame.content_w,

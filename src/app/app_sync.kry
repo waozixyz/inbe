@@ -1018,7 +1018,7 @@ app_auto_sync :: (app: InnerBreeze*) -> int {
     now: double
     url: [256] char
 
-    if app == nil || IsUIInspectActive() || !app_sync_url(url, sizeof(url)) {
+    if app == nil || IsInspectActive() || !app_sync_url(url, sizeof(url)) {
         return 0
     }
     now = GetTime()
@@ -1043,7 +1043,7 @@ app_sync_pump :: (app: InnerBreeze*) {
     if app == nil {
         return
     }
-    if IsUIInspectActive() {
+    if IsInspectActive() {
         return
     }
     now = GetTime()

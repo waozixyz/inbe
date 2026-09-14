@@ -74,7 +74,7 @@ cancel :: (app: InnerBreeze*) {
         .color = {99, 196, 165, 255},
         .sync_mode = HABIT_SYNC_NONE
     }
-    SetUIFocusTextInputActive(0)
+    SetFocusTextInputActive(0)
     if app->breathing.screen == ScreenHabitEdit {
         app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
         app->habits.selected = -1
@@ -110,14 +110,12 @@ practice_picker :: (app: InnerBreeze*) -> int #private {
 
     result := 0
     if modal_w > Scale(400) { modal_w = Scale(400) }
-    frame := ModalFrame(modal_w, modal_h, GetLocaleText("habit_link_practices"),
-                        (Texture2D){0}, (Texture2D){0})
+    frame := AppModalFrame(modal_w, modal_h, GetLocaleText("habit_link_practices"),
+                              0, 0)
     y := frame.content_y
     Text((TextProps){
         .bounds={(frame.content_x), (y), 0, 0},
         .text=(GetLocaleText("habit_link_practices_hint")),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 34)),
         .wrap=TextWrapNone
     })
     y += Scale(28)
@@ -125,18 +123,22 @@ practice_picker :: (app: InnerBreeze*) -> int #private {
         id := practice_ordered_id(i)
         mask := habit_activity_mask_for(id)
         enabled := (app->habit_edit.sync_activity & mask) != 0
-        if CheckboxRow((CheckboxRowProps){.label = practice_activity_label(id), .value = &enabled},
-                       frame.content_x, y) {
+        if Checkbox((CheckboxProps){
+            .id = 9120 + i,
+            .bounds = {(float)frame.content_x, (float)y,
+                       (float)frame.content_w, (float)Scale(38)},
+            .label = practice_activity_label(id),
+            .value = &enabled
+        }) {
             app->habit_edit.sync_activity = enabled
                 ? (app->habit_edit.sync_activity | mask)
                 : (app->habit_edit.sync_activity & ~mask)
         }
-        y += GetNodeHeight(NodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+        y += Scale(42)
     }
     if Button((ButtonProps){
         .bounds = {(float)(frame.content_x), (float)(frame.y + frame.h - Scale(56)), (float)(frame.content_w), (float)(Scale(40))},
         .label = GetLocaleText("done_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = 0
@@ -230,43 +232,19 @@ commit :: (app: InnerBreeze*) {
 }
 
 text_field :: (text: char*, text_size: size_t, cursor: int*,
-                         focused: int*, max_codepoints: int,
-                         font: int) -> TextFieldProps #private {
-    style: TextInputStyle = {
-        .background = DarkenUIColor(GetThemeBackground(), 4),
-        .border = GetThemeButton(),
-        .focus_border = GetThemeButtonHover(),
-        .text = GetThemeText(),
-        .cursor = GetThemeText(),
-        .radius = 0.08f,
-        .padding_x = Scale(10)
-    }
-
+                         focused: int*, max_codepoints: int) -> TextFieldProps #private {
     return (TextFieldProps){
         .bounds = {0},
         .text = text,
         .text_size = text_size,
         .cursor_position = cursor,
         .focused = focused,
-        .max_codepoints = max_codepoints,
-        .font = font,
-        .style = style
+        .max_codepoints = max_codepoints
     }
 }
 
 text_area :: (text: char*, text_size: size_t, cursor: int*,
-                          focused: int*, scroll_y: int*, max_codepoints: int,
-                          font: int) -> TextAreaProps #private {
-    style: TextInputStyle = {
-        .background = DarkenUIColor(GetThemeBackground(), 4),
-        .border = GetThemeButton(),
-        .focus_border = GetThemeButtonHover(),
-        .text = GetThemeText(),
-        .cursor = GetThemeText(),
-        .radius = 0.08f,
-        .padding_x = Scale(10)
-    }
-
+                          focused: int*, scroll_y: int*, max_codepoints: int) -> TextAreaProps #private {
     return (TextAreaProps){
         .bounds = {0},
         .text = text,
@@ -275,17 +253,14 @@ text_area :: (text: char*, text_size: size_t, cursor: int*,
         .focused = focused,
         .scroll_y = scroll_y,
         .max_codepoints = max_codepoints,
-        .font = font,
-        .line_gap = Scale(4),
-        .wrap = 1,
-        .style = style
+        .wrap = 1
     }
 }
 
 section_header_height :: (section: int) -> int #private {
-    body_line := TextLineHeight(GetFontSize())
+    body_line := AppTextLineHeight(AppFontSize())
     if section == 2 {
-        return body_line + TextLineHeight(GetSmallFontSize()) + Scale(22)
+        return body_line + AppTextLineHeight(AppSmallFontSize()) + Scale(22)
     }
     return body_line + Scale(24)
 }
@@ -299,7 +274,7 @@ section_height :: (app: InnerBreeze*, section: int, width: int) -> int #private 
     if columns < 1 { columns = 1 }
     if section == 0 {
         count := app->habit_edit.more_colors ? 12 : 7
-        label_lines := TextLineHeight(GetSmallFontSize()) * 3
+        label_lines := AppTextLineHeight(AppSmallFontSize()) * 3
         return header + label_lines + Scale(132) +
             ((count + columns - 1) / columns) * Scale(44)
     }
@@ -319,13 +294,49 @@ content_height :: (width: int, user_data: void*) -> int #private {
     return height
 }
 
+# Scrolls the edit form so a focused field stays inside the viewport. Mirrors
+# the clamp-adjust-clamp policy kryon's internal scroll-rect helper used.
+ensure_field_visible :: (scroll_offset: int*, viewport_y: int, viewport_h: int,
+                         content_h: int, rect: Rectangle, margin: int) #private {
+    max_scroll := content_h - viewport_h
+    next := 0
+    viewport_top := 0
+    viewport_bottom := 0
+
+    if scroll_offset == nil || max_scroll <= 0 {
+        return
+    }
+
+    next = clampi(*scroll_offset, 0, max_scroll)
+    viewport_top = viewport_y + margin
+    viewport_bottom = viewport_y + viewport_h - margin
+    if viewport_bottom < viewport_top {
+        viewport_bottom = viewport_top
+    }
+    if (int)rect.y + (int)rect.height > viewport_bottom {
+        next += (int)rect.y + (int)rect.height - viewport_bottom
+    }
+    if (int)rect.y < viewport_top {
+        next -= viewport_top - (int)rect.y
+    }
+    *scroll_offset = clampi(next, 0, max_scroll)
+}
+
 draw_form :: (app: InnerBreeze*) #private {
     if app->modal.active {
         if app->modal.type == UIModalHabitPracticePicker {
             if practice_picker(app) { app_close_modal(app) }
         } else if app->modal.type == UIModalConfirmDeleteHabit {
-            result := Modal(GetLocaleText("habit_delete_title"), GetLocaleText("habit_delete_message"),
-                            GetLocaleText("cancel_button"), GetLocaleText("delete_button"))
+            actions: [2] ModalAction = {
+                {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+                {GetLocaleText("delete_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
+            }
+            result := Modal((ModalProps){
+                .title = GetLocaleText("habit_delete_title"),
+                .message = GetLocaleText("habit_delete_message"),
+                .actions = actions,
+                .action_count = 2
+            })
             if result == 1 { app_close_modal(app) }
             if result == 2 {
                 index := app->habit_edit.index
@@ -342,36 +353,44 @@ draw_form :: (app: InnerBreeze*) #private {
     top := Scale(56)
     footer := Scale(app->habit_edit.name_error ? 92 : 64)
 
-    font := GetFontSize()
-    small := GetSmallFontSize()
+    font := AppFontSize()
+    small := AppSmallFontSize()
     if IsKeyPressed(KEY_ESCAPE) {
         cancel(app)
         app_switch_screen(app, ScreenHabits)
         return
     }
     title := GetLocaleText(app->habit_edit.is_new ? "habit_new_title" : "habit_edit_title")
-    if ReturnTitleBar(app->icons[UI_ICON_TYPE_LEFT], title, top) {
+    if TitleBar((TitleBarProps){.title = title, .height = top,
+                                .leading_icon = app->icons[ICON_LEFT],
+                                .has_leading_action = 1}) {
         cancel(app)
         app_switch_screen(app, ScreenHabits)
         return
     }
 
-    page := BeginUIScrollPage((UIScrollPageSpec){
-        .y = top, .height = view_height - top - footer,
-        .max_content_width = Scale(CONTENT_MAX_W),
-        .scroll_offset = &app->habits.scroll,
-        .content_height = habit_edit_content_height, .user_data = app
-    })
+    viewport_h := view_height - top - footer
+    content_x := 0
+    content_w := 0
+    GetCenteredColumn(Scale(CONTENT_MAX_W), GetPageSidePadding(),
+                      &content_x, &content_w)
+    page_content_h := content_height(content_w, app)
     resized := app->habit_edit.form_viewport_height != view_height
     app->habit_edit.form_viewport_height = view_height
-    x := page.content_x
-    w := page.content_w
-    y := page.content_y + Scale(8)
+    x := content_x
+    w := content_w
+    y := 0
     titles: [3] const char* = {
         GetLocaleText("habit_details_title"), GetLocaleText("habit_routine_title"),
         GetLocaleText("habit_tracking_title")
     }
-    for int section = 0; section < 3; section++ {
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)top, (float)view_width, (float)viewport_h}
+        content_height = page_content_h
+        scroll_offset = &app->habits.scroll
+
+        y := page.y + Scale(8)
+        for int section = 0; section < 3; section++ {
         header := section_header_height(section)
         height := section_height(app, section, w - Scale(24))
         open := app->habit_edit.sections[section]
@@ -382,27 +401,23 @@ draw_form :: (app: InnerBreeze*) #private {
             .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
         }) {
             app->habit_edit.sections[section] = !app->habit_edit.sections[section]
-            SetUIFocusTextInputActive(0)
+            SetFocusTextInputActive(0)
             app->habit_edit.focused = 0
             app->habit_edit.description_focused = 0
         }
         px := x + Scale(12)
         inner := w - Scale(24)
         title_y := section == 2 ? y + Scale(10) :
-            GetUIControlTextY(titles[section], y, header, font)
+            AppControlTextY(titles[section], y, header, font)
         Text((TextProps){
             .bounds={(px), (title_y), 0, 0},
             .text=(titles[section]),
-            .font=(font),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         if section == 2 {
             Text((TextProps){
-                .bounds={(px), (title_y + TextLineHeight(font) + Scale(2)), 0, 0},
+                .bounds={(px), (title_y + AppTextLineHeight(font) + Scale(2)), 0, 0},
                 .text=(GetLocaleText("habit_tracking_hint")),
-                .font=(small),
-                .color=(DarkenUIColor(GetThemeText(), 36)),
                 .wrap=TextWrapNone
             })
         }
@@ -416,10 +431,8 @@ draw_form :: (app: InnerBreeze*) #private {
                 status = summary
             }
             Text((TextProps){
-                .bounds={(x + w - Scale(44) - TextWidth(status, small)), (GetUIControlTextY(status, y, header, small)), 0, 0},
+                .bounds={(x + w - Scale(44) - AppTextWidth(status, small)), (AppControlTextY(status, y, header, small)), 0, 0},
                 .text=(status),
-                .font=(small),
-                .color=(DarkenUIColor(GetThemeText(), 36)),
                 .wrap=TextWrapNone
             })
         }
@@ -434,49 +447,45 @@ draw_form :: (app: InnerBreeze*) #private {
         columns := inner / Scale(48)
         if columns < 1 { columns = 1 }
         if open && section == 0 {
-            label_line := TextLineHeight(small)
+            label_line := AppTextLineHeight(small)
             Text((TextProps){
                 .bounds={(px), (row), 0, 0},
                 .text=(GetLocaleText("habit_name_label")),
-                .font=(small),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
             field := text_field(app->habit_edit.text, sizeof(app->habit_edit.text),
-                                &app->habit_edit.cursor, &app->habit_edit.focused, HABIT_NAME_SIZE - 1, font)
+                                &app->habit_edit.cursor, &app->habit_edit.focused, HABIT_NAME_SIZE - 1)
             field_y := row + label_line + Scale(4)
             field.bounds = (Rectangle){(float)px, (float)field_y,
                                        (float)inner, (float)Scale(44)}
             name_focused := app->habit_edit.focused
             TextField(field)
             if app->habit_edit.focused && (!name_focused || resized) {
-                EnsureUIScrollRectVisible(page.area, field.bounds, Scale(12))
+                ensure_field_visible(&app->habits.scroll, top, viewport_h,
+                                     page_content_h, field.bounds, Scale(12))
             }
             row = field_y + Scale(54)
             Text((TextProps){
                 .bounds={(px), (row), 0, 0},
                 .text=(GetLocaleText("habit_description_label")),
-                .font=(small),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
             area := text_area(app->habit_edit.description, sizeof(app->habit_edit.description),
                               &app->habit_edit.description_cursor, &app->habit_edit.description_focused,
-                              &app->habit_edit.description_scroll_y, HABIT_DESCRIPTION_SIZE - 1, font)
+                              &app->habit_edit.description_scroll_y, HABIT_DESCRIPTION_SIZE - 1)
             area_y := row + label_line + Scale(4)
             area.bounds = (Rectangle){(float)px, (float)area_y,
                                       (float)inner, (float)Scale(48)}
             description_focused := app->habit_edit.description_focused
             TextArea(area)
             if app->habit_edit.description_focused && (!description_focused || resized) {
-                EnsureUIScrollRectVisible(page.area, area.bounds, Scale(12))
+                ensure_field_visible(&app->habits.scroll, top, viewport_h,
+                                     page_content_h, area.bounds, Scale(12))
             }
             row = area_y + Scale(58)
             Text((TextProps){
                 .bounds={(px), (row), 0, 0},
                 .text=(GetLocaleText("habit_color_label")),
-                .font=(small),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
             row += label_line + Scale(4)
@@ -500,13 +509,9 @@ draw_form :: (app: InnerBreeze*) #private {
                                (float)Scale(40), (float)Scale(40)},
                     .id = 7530 + c, .label = more ? "..." : "",
                     .circle = 1, .selected = chosen,
-                    .icon_type = chosen ? UI_ICON_TYPE_CHECK : UI_ICON_TYPE_NONE,
-                    .font = small,
+                    .icon_type = chosen ? ICON_CHECK : ICON_NONE,
                     .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisFilled,
-                    .style.normal = {
-                        .fields = StyleBackground | StyleForeground,
-                        .background = color, .foreground = GetThemeReadableText(color)
-                    }
+                    .swatch = 1, .swatch_color = color
                 }) {
                     if more {
                         app->habit_edit.more_colors = 1
@@ -521,12 +526,14 @@ draw_form :: (app: InnerBreeze*) #private {
             Text((TextProps){
                 .bounds={(px), (row + Scale(14)), 0, 0},
                 .text=(GetLocaleText("habit_schedule_enabled")),
-                .font=(font),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
-            if Toggle(7600, px + inner - Scale(56), row + Scale(7), Scale(56), Scale(30),
-                      &schedule_enabled, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
+            if Toggle((ToggleProps){.id = 7600,
+                      .bounds = {px + inner - Scale(56), row + Scale(7),
+                                 Scale(56), Scale(30)},
+                      .value = &schedule_enabled,
+                      .off_label = GetLocaleText("toggle_off"),
+                      .on_label = GetLocaleText("toggle_on")}) {
                 app->habit_edit.weekdays = schedule_enabled ? 0 : HABIT_SCHEDULE_OFF
             }
             row += Scale(52)
@@ -534,7 +541,6 @@ draw_form :: (app: InnerBreeze*) #private {
                 if Button((ButtonProps){
                     .bounds = {(float)(px), (float)(row), (float)(inner), (float)(Scale(40))},
                     .label = GetLocaleText("habit_every_day"),
-                    .font = GetFontSize(),
                     .tone = app->habit_edit.weekdays == 0 ? ButtonToneAccent : ButtonToneNeutral,
                     .emphasis = (app->habit_edit.weekdays == 0 ? ButtonToneAccent : ButtonToneNeutral) == ButtonToneAccent ? ButtonEmphasisFilled : ButtonEmphasisSoft,
                     .disabled = 0
@@ -553,7 +559,7 @@ draw_form :: (app: InnerBreeze*) #private {
                     if Button((ButtonProps){
                         .bounds = {(float)(dx + Scale(4)), (float)(dy + Scale(4)),
                                    (float)Scale(40), (float)Scale(40)},
-                        .id = 7560 + d, .label = days[d], .font = small,
+                        .id = 7560 + d, .label = days[d],
                         .circle = 1, .selected = selected,
                         .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
                         .emphasis = ButtonEmphasisSoft
@@ -569,8 +575,6 @@ draw_form :: (app: InnerBreeze*) #private {
             Text((TextProps){
                 .bounds={(px), (row + Scale(15)), 0, 0},
                 .text=(GetLocaleText("habit_reminder_label")),
-                .font=(font),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
             labels: [25] const char* = {0}
@@ -581,8 +585,10 @@ draw_form :: (app: InnerBreeze*) #private {
             }
             selected := app->habit_edit.reminder_hour + 1
             dropdown_w := Scale(136)
-            if Dropdown(7400, px + inner - dropdown_w, row + Scale(4), dropdown_w,
-                        Scale(44), labels, 25, &selected) {
+            if Dropdown((DropdownProps){.id = 7400,
+                        .bounds = {px + inner - dropdown_w, row + Scale(4), dropdown_w, Scale(44)},
+                        .options = labels, .option_count = 25,
+                        .selected_index = &selected}) {
                 app->habit_edit.reminder_hour = selected - 1
             }
         }
@@ -590,12 +596,14 @@ draw_form :: (app: InnerBreeze*) #private {
             Text((TextProps){
                 .bounds={(px), (row + Scale(14)), 0, 0},
                 .text=(GetLocaleText("habit_counter_mode")),
-                .font=(font),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
-            Toggle(7610, px + inner - Scale(56), row + Scale(7), Scale(56), Scale(30),
-                   &app->habit_edit.counter_enabled, GetLocaleText("toggle_off"), GetLocaleText("toggle_on"))
+            Toggle((ToggleProps){.id = 7610,
+                   .bounds = {px + inner - Scale(56), row + Scale(7),
+                              Scale(56), Scale(30)},
+                   .value = &app->habit_edit.counter_enabled,
+                   .off_label = GetLocaleText("toggle_off"),
+                   .on_label = GetLocaleText("toggle_on")})
             row += Scale(52)
             if app->habit_edit.counter_enabled {
                 target_label := GetLocaleText("habit_counter_target")
@@ -607,14 +615,11 @@ draw_form :: (app: InnerBreeze*) #private {
                 Text((TextProps){
                     .bounds={(px), (row + Scale(14)), 0, 0},
                     .text=(target_label),
-                    .font=(font),
-                    .color=(GetThemeText()),
                     .wrap=TextWrapNone
                 })
                 if Button((ButtonProps){
                     .bounds = {(float)(control_x), (float)(row), (float)(button_w), (float)(Scale(44))},
                     .label = "-",
-                    .font = GetFontSize(),
                     .tone = ButtonToneNeutral,
                     .emphasis = ButtonEmphasisSoft,
                     .disabled = app->habit_edit.counter_target <= 1
@@ -624,16 +629,13 @@ draw_form :: (app: InnerBreeze*) #private {
                 snprintf(target_text, sizeof(target_text), "%d",
                          app->habit_edit.counter_target)
                 Text((TextProps){
-                    .bounds={(control_x + button_w + (control_w - button_w * 2 - TextWidth(target_text, font)) / 2), (GetUIControlTextY(target_text, row, Scale(44), font)), 0, 0},
+                    .bounds={(control_x + button_w + (control_w - button_w * 2 - AppTextWidth(target_text, font)) / 2), (AppControlTextY(target_text, row, Scale(44), font)), 0, 0},
                     .text=(target_text),
-                    .font=(font),
-                    .color=(GetThemeText()),
                     .wrap=TextWrapNone
                 })
                 if Button((ButtonProps){
                     .bounds = {(float)(control_x + control_w - button_w), (float)(row), (float)(button_w), (float)(Scale(44))},
                     .label = "+",
-                    .font = GetFontSize(),
                     .tone = ButtonToneNeutral,
                     .emphasis = ButtonEmphasisSoft,
                     .disabled = app->habit_edit.counter_target >= 99
@@ -652,7 +654,6 @@ draw_form :: (app: InnerBreeze*) #private {
             if Button((ButtonProps){
                 .bounds = {(float)(px), (float)(row), (float)(inner), (float)(Scale(44))},
                 .label = linked_summary,
-                .font = GetFontSize(),
                 .tone = ButtonToneNeutral,
                 .emphasis = ButtonEmphasisSoft,
                 .disabled = 0
@@ -661,16 +662,14 @@ draw_form :: (app: InnerBreeze*) #private {
             }
         }
         y += height + Scale(12)
+        }
     }
-    EndUIScrollPage(page)
     DrawRectangle(0, view_height - footer, view_width, footer, GetThemeBackground())
     if app->habit_edit.name_error {
         message := GetLocaleText(app->habit_edit.name_error == 1 ? "habit_name_required" : "habit_name_duplicate")
         Text((TextProps){
             .bounds={(x), (view_height - footer + Scale(8)), 0, 0},
             .text=(message),
-            .font=(small),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
     }
@@ -681,7 +680,6 @@ draw_form :: (app: InnerBreeze*) #private {
         if Button((ButtonProps){
             .bounds = {(float)(x), (float)(view_height - Scale(54)), (float)(delete_w), (float)(Scale(44))},
             .label = GetLocaleText("habit_delete_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneDanger,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -694,7 +692,6 @@ draw_form :: (app: InnerBreeze*) #private {
     if Button((ButtonProps){
         .bounds = {(float)(action_x), (float)(view_height - Scale(54)), (float)(action_w), (float)(Scale(44))},
         .label = GetLocaleText(app->habit_edit.is_new ? "habit_create_button" : "save_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = 0

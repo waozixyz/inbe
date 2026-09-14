@@ -7,10 +7,6 @@
     MEDITATION_MANUAL_PAGES = 2
 }
 
-MeditationManualPageContext :: struct {
-    page: int
-}
-
 meditation_manual_start :: (app: InnerBreeze*) #private {
     mark_exercise_manual_seen(app, EXERCISE_MEDITATION)
     app->tutorial_step = 0
@@ -40,37 +36,34 @@ meditation_manual_paragraph :: (key: const char*, content_w: int) -> ParagraphSp
     return manual_screen_tutorial_paragraph(GetLocaleText(key), content_w)
 }
 
-meditation_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
-    ctx := (MeditationManualPageContext*)user_data
+meditation_manual_content_height :: (step: int, content_w: int) -> int #private {
     paragraph := meditation_manual_paragraph(
-        ctx->page == 0 ? "meditation_manual_intro_text" :
-                         "meditation_manual_customize_text", content_w)
+        step == 0 ? "meditation_manual_intro_text" :
+                   "meditation_manual_customize_text", content_w)
 
     return content_w * 222 / 394 + Scale(24) + manual_screen_guide_header_height() +
-           GetNodeHeight(NodeParagraph(paragraph, 0, 0))
+           AppParagraphHeight(paragraph.text, paragraph.width,
+                              paragraph.font, paragraph.line_gap)
 }
 
-meditation_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage,
-                                step: int, y: int*) #private {
+meditation_manual_draw_page :: (app: InnerBreeze*, content_x: int,
+                                content_w: int, step: int, y: int*) #private {
     title_key := step == 0 ? "meditation_title" : "practice_configure_button"
     paragraph_key := step == 0 ? "meditation_manual_intro_text" :
                                  "meditation_manual_customize_text"
 
     hero_y := *y
-    hero_h := page.content_w * 222 / 394
-    hero := manual_screen_hero_bounds(page.content_x, page.content_w,
+    hero_h := content_w * 222 / 394
+    hero := manual_screen_hero_bounds(content_x, content_w,
                                       hero_y, hero_h)
 
     if step == 0 {
-        Picture((PictureProps){
+        Image((ImageProps){
             .asset_path = "assets/practices/meditation/1.png",
-            .bounds = hero, .tint = WHITE, .fit = PICTURE_FIT_CONTAIN,
-            .style = {.enabled = 1, .radius_px = Scale(16),
-                      .background = GetThemeSurface(),
-                      .outline = Fade(GetThemeText(), 0.12f), .outline_px = 1}
+            .bounds = hero, .fit = ImageFitContain
         })
     } else {
-        center_x := page.content_x + page.content_w / 2
+        center_x := content_x + content_w / 2
         center_y := hero_y + hero_h / 2
 
         DrawRectangleRounded(hero, 0.08f, 10, GetThemeSurface())
@@ -82,7 +75,6 @@ meditation_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage,
                        (float)(center_y - Scale(48)),
                        (float)Scale(96), (float)Scale(96)},
             .text = GetLocaleText("meditation_title"),
-            .color = GetThemeReadableText(GetThemeCircle()),
             .wrap = TextWrapNone,
             .align = TextAlignCenter,
             .vertical_align = TextAlignCenter
@@ -92,19 +84,26 @@ meditation_manual_draw_page :: (app: InnerBreeze*, page: UIScrollPage,
     *y += hero_h + Scale(24)
     manual_screen_draw_guide_header(GetLocaleText(title_key), step,
                                     MEDITATION_MANUAL_PAGES,
-                                    page.content_x, y, page.content_w)
-    Paragraph(meditation_manual_paragraph(paragraph_key, page.content_w),
-              page.content_x, y)
+                                    content_x, y, content_w)
+    Paragraph(meditation_manual_paragraph(paragraph_key, content_w),
+              content_x, y)
 }
 
 meditation_manual_draw :: (app: InnerBreeze*) {
     layout := (PracticeManualLayout){0}
     responsive_max_w := (int)(view_width * 0.96f)
     step := clampi(app->tutorial_step, 0, MEDITATION_MANUAL_PAGES - 1)
+    side_padding := manual_screen_tutorial_side_padding()
+    content_x := 0
+    content_w := 0
+    y: int
 
     app->tutorial_step = step
     if responsive_max_w > manual_screen_tutorial_max_width() {
         responsive_max_w = manual_screen_tutorial_max_width()
+    }
+    if responsive_max_w < Scale(200) {
+        responsive_max_w = Scale(200)
     }
     practice_screen_manual_layout(app, UIModalPracticeManual,
                                   MEDITATION_MANUAL_PAGES,
@@ -112,21 +111,18 @@ meditation_manual_draw :: (app: InnerBreeze*) {
                                   Scale(120), &layout)
     manual_screen_draw_title_bar(app, GetLocaleText("meditation_manual_title"),
                                  layout.title_h, meditation_manual_close)
-    page_ctx := (MeditationManualPageContext){step}
-    page := BeginUIScrollPage((UIScrollPageSpec){
-        .y = layout.content_y,
-        .height = layout.content_h,
-        .max_content_width = responsive_max_w,
-        .min_content_width = Scale(200),
-        .side_padding = manual_screen_tutorial_side_padding(),
-        .scroll_offset = &app->manual_scroll,
-        .content_height = meditation_manual_content_height,
-        .user_data = &page_ctx
-    })
-    y := page.content_y
+    GetCenteredColumn(responsive_max_w, side_padding, &content_x, &content_w)
+    content_h := meditation_manual_content_height(step, content_w)
 
-    meditation_manual_draw_page(app, page, step, &y)
-    EndUIScrollPage(page)
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)layout.content_y,
+                             (float)view_width, (float)layout.content_h}
+        content_height = content_h
+        scroll_offset = &app->manual_scroll
+
+        y := (int)page.y
+        meditation_manual_draw_page(app, content_x, content_w, step, &y)
+    }
 
     manual_screen_guide_controls(app, (ManualGuideNav){
         .page = step,

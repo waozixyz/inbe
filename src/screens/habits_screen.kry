@@ -1,4 +1,5 @@
 #import "app.h"
+#import "runtime/grid.h" #private
 #import "screens/habits_screen.h"
 #import "screens/habits/habits.h"
 #import "screens/practice_screen.h"
@@ -65,7 +66,7 @@ habit_counter_day_action :: (app: InnerBreeze*, habit_index: int, day_index: int
     inside: int = !disabled && CheckCollisionPointRec(mouse, bounds)
     same := app->habit_counter_press_index == habit_index &&
             app->habit_counter_press_day == day_index
-    captured := UIInputCapturesClick(mouse)
+    captured := InputCapturesClick(mouse)
 
     if disabled || captured {
         return 0
@@ -315,14 +316,14 @@ habits_cards_progress_anchor :: (app: InnerBreeze*) -> Rectangle #private {
     pad := Scale(5)
     progress: [64] char = {0}
 
-    GetUICenteredColumn(Scale(CONTENT_MAX_W), GetUIPageSidePadding(),
+    GetCenteredColumn(Scale(CONTENT_MAX_W), GetPageSidePadding(),
                         &x, &w)
     snprintf(progress, sizeof(progress),
              GetLocaleText("habits_done_count_label"),
              habits_done_today(app), habits_due_today(app))
     return (Rectangle){(float)(x - pad), (float)(y - pad),
-                       (float)(TextWidth(progress, GetSmallFontSize()) + pad * 2),
-                       (float)(TextLineHeight(GetSmallFontSize()) + pad * 2)}
+                       (float)(AppTextWidth(progress, AppSmallFontSize()) + pad * 2),
+                       (float)(AppTextLineHeight(AppSmallFontSize()) + pad * 2)}
 }
 
 habits_cards_first_anchor :: (app: InnerBreeze*) -> Rectangle #private {
@@ -330,7 +331,7 @@ habits_cards_first_anchor :: (app: InnerBreeze*) -> Rectangle #private {
     w: int
     y := habits_screen_top_reserved(app) + Scale(86)
 
-    GetUICenteredColumn(Scale(CONTENT_MAX_W), GetUIPageSidePadding(),
+    GetCenteredColumn(Scale(CONTENT_MAX_W), GetPageSidePadding(),
                         &x, &w)
     return (Rectangle){(float)x, (float)y, (float)w,
                        (float)habits_focus_collapsed_height()}
@@ -344,7 +345,7 @@ habits_expanded_card_action_anchor :: (app: InnerBreeze*, action: int) -> Rectan
     action_x: int
     action_w: int
 
-    GetUICenteredColumn(Scale(CONTENT_MAX_W), GetUIPageSidePadding(),
+    GetCenteredColumn(Scale(CONTENT_MAX_W), GetPageSidePadding(),
                         &x, &w)
     action_w = (w - Scale(28) - gap * 2) / 3
     action_x = x + Scale(14) + action * (action_w + gap)
@@ -361,9 +362,9 @@ habits_expanded_card_week_anchor :: (app: InnerBreeze*) -> Rectangle #private {
     w: int
     y := habits_screen_top_reserved(app) + Scale(86)
     section_y := y + Scale(144)
-    body_y := section_y + TextLineHeight(GetSmallFontSize()) + Scale(12)
+    body_y := section_y + AppTextLineHeight(AppSmallFontSize()) + Scale(12)
 
-    GetUICenteredColumn(Scale(CONTENT_MAX_W), GetUIPageSidePadding(),
+    GetCenteredColumn(Scale(CONTENT_MAX_W), GetPageSidePadding(),
                         &x, &w)
     return (Rectangle){
         (float)(x + Scale(14)),
@@ -382,13 +383,11 @@ habits_draw_fitted_text :: (text: const char*, x: int, y: int,
     if text == nil || max_w <= 0 {
         return
     }
-    font = FitFontSize(text, max_w, preferred, minimum)
+    font = AppFitFontSize(text, max_w, preferred, minimum)
     text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
     Text((TextProps){
         .bounds={(x), (y), 0, 0},
         .text=(fitted),
-        .font=(font),
-        .color=(color),
         .wrap=TextWrapNone
     })
 }
@@ -480,7 +479,7 @@ habits_screen_draw_first_run_guide :: (app: InnerBreeze*) {
         GetLocaleText("habits_guide_meditation_session_data")
     }
 
-    result = GuideOverlay((GuideOverlayProps){
+    result = AppGuideOverlay((GuideOverlayProps){
         .steps = steps,
         .count = HABITS_GUIDE_STEPS,
         .step = &app->habits_guide_step,
@@ -489,11 +488,11 @@ habits_screen_draw_first_run_guide :: (app: InnerBreeze*) {
         .reserved_top = habits_screen_top_reserved(app),
         .reserved_bottom = app_content_bottom_reserved(app),
         .max_width = Scale(300),
-        .paragraph_font = GetSmallFontSize(),
-        .close_icon = app->icons[UI_ICON_TYPE_X],
-        .back_icon = app->icons[UI_ICON_TYPE_BACKWARD],
-        .next_icon = app->icons[UI_ICON_TYPE_FORWARD],
-        .done_icon = app->icons[UI_ICON_TYPE_CHECK]
+        .paragraph_font = AppSmallFontSize(),
+        .close_icon_type = ICON_X,
+        .back_icon_type = ICON_BACKWARD,
+        .next_icon_type = ICON_FORWARD,
+        .done_icon_type = ICON_CHECK
     })
     if result.changed {
         save_settings(app)
@@ -512,6 +511,55 @@ habit_text_color_for_background :: (background: Color) -> Color #private {
     return luma >= 128000 ? BLACK : WHITE
 }
 
+habits_draw_day_marker :: (cx: int, cy: int, radius: int,
+                           complete: int, counting: int, count: int,
+                           hovered: int, surface: Color,
+                           foreground: Color, accent: Color) #private {
+    ring := Fade(foreground, 0.54f)
+    ring_hover := Fade(accent, 0.24f)
+    fill := surface
+    text := habit_text_color_for_background(accent)
+
+    if hovered {
+        Circle(cx, cy, radius + Scale(5), ring_hover)
+    }
+    Circle(cx, cy + Scale(1), radius + Scale(2), Fade(BLACK, 0.16f))
+    if complete {
+        Circle(cx, cy, radius + Scale(1), LightenColor(accent, 16))
+        Circle(cx, cy, radius, accent)
+    } else {
+        Circle(cx, cy, radius + Scale(1), ring)
+        Circle(cx, cy, radius - Scale(2), fill)
+        Circle(cx - Scale(2), cy - Scale(3),
+               (radius / 3 > Scale(2) ? radius / 3 : Scale(2)),
+               Fade(WHITE, 0.16f))
+    }
+    if complete && !counting {
+        DrawLineEx((Vector2){(float)(cx - radius / 2), (float)cy},
+                   (Vector2){(float)(cx - radius / 8),
+                             (float)(cy + radius / 3)},
+                   (float)Scale(2), text)
+        DrawLineEx((Vector2){(float)(cx - radius / 8),
+                             (float)(cy + radius / 3)},
+                   (Vector2){(float)(cx + radius / 2),
+                             (float)(cy - radius / 3)},
+                   (float)Scale(2), text)
+    }
+    if counting && count > 0 {
+        value: [16] char = {0}
+        snprintf(value, sizeof(value), "%d", count)
+        value_font := AppFitFontSize(value, radius * 2 - Scale(4),
+                                  Text12, Text8)
+        Text((TextProps){
+            .bounds={(cx - AppTextWidth(value, value_font) / 2),
+                     (AppControlTextY(value, cy - radius, radius * 2,
+                                        value_font)), 0, 0},
+            .text=(value),
+            .wrap=TextWrapNone
+        })
+    }
+}
+
 draw_habit_completion_underline :: (x: int, y: int, w: int, h: int,
                                        color: Color) {
     DrawRectangle(x + Scale(4),
@@ -527,7 +575,7 @@ draw_habit_link_dot :: (x: int, y: int, w: int, color: Color) {
     DrawCircle(x + w - Scale(8),
                   y + Scale(8),
                   Scale(5),
-                  DarkenUIColor(GetThemeBackground(), 35))
+                  DarkenColor(GetThemeBackground(), 35))
     DrawCircle(x + w - Scale(8),
                   y + Scale(8),
                   Scale(3),
@@ -543,7 +591,7 @@ habit_calendar_day_cell :: (app: InnerBreeze*, x: int, y: int, w: int, h: int,
     progress_ring: Color = accent
     today_ring: Color = GetThemeButtonHover()
     text_color: Color = disabled
-        ? DarkenUIColor(GetThemeText(), 35)
+        ? DarkenColor(GetThemeText(), 35)
         : GetThemeText()
     font: int = Text16
     text_w: int
@@ -586,12 +634,10 @@ habit_calendar_day_cell :: (app: InnerBreeze*, x: int, y: int, w: int, h: int,
                           (float)Scale(2), today_ring)
     }
 
-    text_w = TextWidth(label, font)
+    text_w = AppTextWidth(label, font)
     Text((TextProps){
-        .bounds={((int)center_x - text_w / 2), ((int)center_y - TextLineHeight(font) / 2), 0, 0},
+        .bounds={((int)center_x - text_w / 2), ((int)center_y - AppTextLineHeight(font) / 2), 0, 0},
         .text=(label),
-        .font=(font),
-        .color=(text_color),
         .wrap=TextWrapNone
     })
 
@@ -609,7 +655,7 @@ habit_calendar_day_metadata :: (app: InnerBreeze*, x: int, y: int,
     label_w: int = 0
     total_w: int = 0
     draw_x: int
-    draw_y: int = y + h - TextLineHeight(label_font) - Scale(4)
+    draw_y: int = y + h - AppTextLineHeight(label_font) - Scale(4)
     show_icon: int = linked_count > 0
     show_count: int = (counting && count > 0) || linked_count > 1
 
@@ -618,7 +664,7 @@ habit_calendar_day_metadata :: (app: InnerBreeze*, x: int, y: int,
     }
     if show_count {
         snprintf(label, sizeof(label), "%d×", counting ? count : linked_count)
-        label_w = TextWidth(label, label_font)
+        label_w = AppTextWidth(label, label_font)
     }
     total_w = label_w
     if show_icon {
@@ -629,20 +675,14 @@ habit_calendar_day_metadata :: (app: InnerBreeze*, x: int, y: int,
     }
     draw_x = x + (w - total_w) / 2
     if show_icon {
-        icon: Texture2D = app->icons[UI_ICON_TYPE_LINK]
-        DrawTexturePro(icon,
-                       (Rectangle){0, 0, (float)icon.width, (float)icon.height},
-                       (Rectangle){(float)draw_x, (float)draw_y,
-                                   (float)icon_size, (float)icon_size},
-                       (Vector2){0}, 0.0f, LightenUIColor(accent, 16))
+        Icon(0, draw_x, draw_y, icon_size, ICON_LINK,
+             LightenColor(accent, 16))
         draw_x += icon_size + (show_count ? gap : 0)
     }
     if show_count {
         Text((TextProps){
             .bounds={(draw_x), (draw_y), 0, 0},
             .text=(label),
-            .font=(label_font),
-            .color=(LightenUIColor(accent, 16)),
             .wrap=TextWrapNone
         })
     }
@@ -659,20 +699,18 @@ habit_calendar_draw_weekdays :: (x: int, y: int, w: int,
         cell_w := (w - gap * 6) / 7
         cell_x := x + col * (cell_w + gap)
         label := GetLocaleText(weekdays[col])
-        font := FitFontSize(label, cell_w, Text12, Text8)
+        font := AppFitFontSize(label, cell_w, Text12, Text8)
 
         Text((TextProps){
-            .bounds={(cell_x + (cell_w - TextWidth(label, font)) / 2), (y), 0, 0},
+            .bounds={(cell_x + (cell_w - AppTextWidth(label, font)) / 2), (y), 0, 0},
             .text=(label),
-            .font=(font),
-            .color=(Fade(GetThemeText(), 0.62f)),
             .wrap=TextWrapNone
         })
     }
 }
 
 habit_weekly_row_height :: () -> int #private {
-    return Scale(GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT ? 58 : 52)
+    return Scale(58)
 }
 
 habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
@@ -688,20 +726,18 @@ habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
 
     font_size = text_size
     while font_size > Text8 &&
-          TextWidth(text, font_size) > w {
+          AppTextWidth(text, font_size) > w {
         font_size -= 1
     }
 
-    if TextWidth(text, font_size) > w {
+    if AppTextWidth(text, font_size) > w {
         text_fit_ellipsis(text, fitted, sizeof(fitted), w, font_size)
         draw_text = fitted
     }
 
     Text((TextProps){
-        .bounds={(x + (w - TextWidth(draw_text, font_size)) / 2), (TextBaselineY(draw_text, y, h, font_size)), 0, 0},
+        .bounds={(x + (w - AppTextWidth(draw_text, font_size)) / 2), (AppControlTextY(draw_text, y, h, font_size)), 0, 0},
         .text=(draw_text),
-        .font=(font_size),
-        .color=(color),
         .wrap=TextWrapNone
     })
 }
@@ -766,7 +802,7 @@ habit_weekly_summary_button :: (app: InnerBreeze*, x: int, y: int,
                                secondary: const char*) -> int #private {
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
     text_color: Color = disabled
-        ? DarkenUIColor(GetThemeText(), 35)
+        ? DarkenColor(GetThemeText(), 35)
         : GetThemeText()
     pad: int = Scale(9)
     text_x: int
@@ -802,7 +838,7 @@ habit_weekly_summary_button :: (app: InnerBreeze*, x: int, y: int,
                                            block_y + line1_h,
                                            text_w, line2_h,
                                            Text12,
-                                           DarkenUIColor(text_color, 16))
+                                           DarkenColor(text_color, 16))
         } else {
             habit_weekly_draw_text_line(line1, text_x,
                                            y + Scale(3),
@@ -817,7 +853,7 @@ habit_weekly_summary_button :: (app: InnerBreeze*, x: int, y: int,
 
 habit_weekly_content_height :: (visible_days: int) -> int #private {
     row_h: int = habit_weekly_row_height()
-    row_gap: int = Scale(GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT ? 10 : 6)
+    row_gap: int = Scale(10)
     load_h: int = Scale(38)
 
     if visible_days < HABIT_WEEKLY_INITIAL_DAYS {
@@ -845,7 +881,7 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
     button_x: int
     button_w: int
     row_h: int = habit_weekly_row_height()
-    row_gap: int = Scale(GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT ? 10 : 6)
+    row_gap: int = Scale(10)
     day_font: int = Text16
     date_font: int = Text12
     load_h: int = Scale(38)
@@ -952,29 +988,20 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
                     (row_tm.tm_year + 1900) % 100)
 
         if label_w > 0 {
-            if GetEffectiveThemeStyle() == THEME_STYLE_DEFAULT {
-                DrawRectangleRounded((Rectangle){
-                    (float)content_x,
-                    (float)y,
-                    (float)label_w,
-                    (float)row_h
-                }, 0.18f, 10, GetThemeSurface())
-            } else {
-                DrawRectangle(content_x, y, label_w, row_h,
-                                 DarkenUIColor(GetThemeBackground(), 5))
-            }
+            DrawRectangleRounded((Rectangle){
+                (float)content_x,
+                (float)y,
+                (float)label_w,
+                (float)row_h
+            }, 0.18f, 10, GetThemeSurface())
             Text((TextProps){
                 .bounds={(content_x + Scale(8)), (y + Scale(7)), 0, 0},
                 .text=(day_label),
-                .font=(day_font),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
             Text((TextProps){
                 .bounds={(content_x + Scale(8)), (y + Scale(33)), 0, 0},
                 .text=(date_label),
-                .font=(date_font),
-                .color=(DarkenUIColor(GetThemeText(), 18)),
                 .wrap=TextWrapNone
             })
         }
@@ -1027,12 +1054,10 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
             count_w: int
 
             snprintf(count_label, sizeof(count_label), "%d", count)
-            count_w = TextWidth(count_label, count_font)
+            count_w = AppTextWidth(count_label, count_font)
             Text((TextProps){
                 .bounds={(button_x + button_w - count_w - Scale(6)), (y + Scale(5)), 0, 0},
                 .text=(count_label),
-                .font=(count_font),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
         }
@@ -1048,7 +1073,6 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
     if Button((ButtonProps){
         .bounds = {(float)(content_x), (float)(y), (float)(content_w), (float)(load_h)},
         .label = GetLocaleText("habit_load_more_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = app->habits.weekly_days >= HABIT_WEEKLY_MAX_DAYS
@@ -1181,20 +1205,16 @@ habits_focus_draw_metric :: (x: int, y: int, w: int, h: int,
     surface := GetThemeSurface()
     foreground := GetThemeReadableText(surface)
     DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)h},
-                         0.12f, 8, DarkenUIColor(surface, 3))
+                         0.12f, 8, DarkenColor(surface, 3))
     DrawRectangle(x, y, Scale(4), h, accent)
     Text((TextProps){
         .bounds={(x + Scale(14)), (y + Scale(8)), 0, 0},
         .text=(label),
-        .font=(GetSmallFontSize()),
-        .color=(Fade(foreground, 0.70f)),
         .wrap=TextWrapNone
     })
     Text((TextProps){
         .bounds={(x + Scale(14)), (y + Scale(34)), 0, 0},
         .text=(value),
-        .font=(GetFontSize()),
-        .color=(foreground),
         .wrap=TextWrapNone
     })
 }
@@ -1236,7 +1256,7 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
     }
     if Button((ButtonProps){
         .bounds = {(float)x, (float)action_y, (float)w, (float)action_h},
-        .label = today_label, .font = GetFontSize(), .id = 24200,
+        .label = today_label, .id = 24200,
         .tone = ButtonToneAccent, .emphasis = ButtonEmphasisFilled,
         .disabled = app->modal.active ||
             (!habit_scheduled_day(habit, today) && !today_complete)
@@ -1265,7 +1285,7 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
         count := habit_effective_day_count(habit, day, linked_ctx)
         label := col == 0 ? GetLocaleText("habits_today")
                           : GetLocaleText(weekdays[habit_weekday_bit(day)])
-        label_font := FitFontSize(label, cell_w - Scale(4),
+        label_font := AppFitFontSize(label, cell_w - Scale(4),
                                   Scale(Text12), Scale(10))
         cx := cell_x + cell_w / 2
         cy := row_y + Scale(44)
@@ -1273,7 +1293,7 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
         action := 0
 
         mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
-        input_captured := UIInputCapturesClick(mouse)
+        input_captured := InputCapturesClick(mouse)
         interactive := !app->modal.active && !input_captured && (!off || complete)
         cell_hovered := interactive && CheckCollisionPointRec(mouse, cell)
 
@@ -1286,41 +1306,17 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
         }
         clicked := cell_hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
         Text((TextProps){
-            .bounds={(cx - TextWidth(label, label_font) / 2), (row_y), 0, 0},
+            .bounds={(cx - AppTextWidth(label, label_font) / 2), (row_y), 0, 0},
             .text=(label),
-            .font=(label_font),
-            .color=(col == 0 ? GetThemeText() : Fade(GetThemeText(), 0.68f)),
             .wrap=TextWrapNone
         })
         if off && !complete {
-            DrawLine(cx - Scale(5), cy, cx + Scale(5), cy,
-                     Fade(GetThemeText(), 0.35f))
+            Line(cx - Scale(5), cy, cx + Scale(5), cy,
+                 Fade(GetThemeText(), 0.35f))
         } else {
-            DrawCircle(cx, cy, radius,
-                       complete ? habit->color : Fade(GetThemeText(), 0.55f))
-            if !complete {
-                DrawCircle(cx, cy, radius - Scale(2), GetThemeSurface())
-            } else if !counting {
-                DrawLineEx((Vector2){(float)(cx - radius / 2), (float)cy},
-                           (Vector2){(float)(cx - radius / 8), (float)(cy + radius / 3)},
-                           (float)Scale(2), habit_text_color_for_background(habit->color))
-                DrawLineEx((Vector2){(float)(cx - radius / 8), (float)(cy + radius / 3)},
-                           (Vector2){(float)(cx + radius / 2), (float)(cy - radius / 3)},
-                           (float)Scale(2), habit_text_color_for_background(habit->color))
-            }
-            if counting && count > 0 {
-                value: [16] char = {0}
-                snprintf(value, sizeof(value), "%d", count)
-                value_font := FitFontSize(value, radius * 2 - Scale(4),
-                                          Text12, Text8)
-                Text((TextProps){
-                    .bounds={(cx - TextWidth(value, value_font) / 2), (GetUIControlTextY(value, cy - radius, radius * 2, value_font)), 0, 0},
-                    .text=(value),
-                    .font=(value_font),
-                    .color=(habit_text_color_for_background(habit->color)),
-                    .wrap=TextWrapNone
-                })
-            }
+            habits_draw_day_marker(cx, cy, radius, complete, counting, count,
+                                   cell_hovered, GetThemeSurface(),
+                                   GetThemeText(), habit->color)
         }
         if !app->modal.active && (!off || complete) {
             handled := 0
@@ -1340,7 +1336,7 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
             }
             if handled {
                 app_block_current_click(app)
-                UIConsumePointerRelease()
+                ConsumeRelease()
                 return
             }
         }
@@ -1354,7 +1350,7 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
     habits_focus_draw_metric(x + metric_w + metric_gap, metric_y,
                              w - metric_w - metric_gap, Scale(64),
                              GetLocaleText("profile_progress_title"),
-                             week_value, LightenUIColor(habit->color, 18))
+                             week_value, LightenColor(habit->color, 18))
 }
 
 habit_focus_chevron_control :: (center_x: int, center_y: int, size: int,
@@ -1367,25 +1363,23 @@ habit_focus_chevron_control :: (center_x: int, center_y: int, size: int,
         (float)size
     }
     hover := 0
-    clicked := UIHandleCircleClick((Vector2){(float)center_x, (float)center_y},
+    clicked := HandleCircleClick((Vector2){(float)center_x, (float)center_y},
                                    (float)size / 2.0f, disabled, &hover)
-    state: ButtonState = ButtonStateNormal
-    style: Style
+    style := (Style){
+        .fields = StyleBackground | StyleBorder | StyleRadius |
+                  StyleBorderWidth | StyleOpacity,
+        .background = GetThemeSurfaceAlt(),
+        .border = GetThemeBorder(),
+        .radius = (float)size / 2.0f,
+        .border_width = 1.0f,
+        .opacity = disabled ? 0.45f : 1.0f
+    }
     span := Scale(14)
     drop := Scale(6)
 
-    if disabled {
-        state = ButtonStateDisabled
-    } else if hover && IsMouseButtonDown(MOUSE_BUTTON_LEFT) {
-        state = ButtonStatePressed
-    } else if hover {
-        state = ButtonStateHover
+    if hover && !disabled {
+        style.background = GetThemeButtonHover()
     }
-    style = ResolveButtonStyle((ButtonProps){
-        .bounds = bounds, .icon_only = 1, .circle = 1,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .disabled = disabled
-    }, state)
     Surface(bounds, style)
     if expanded {
         DrawLineEx((Vector2){(float)(center_x - span / 2),
@@ -1423,7 +1417,7 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
     card_h := habits_focus_card_height()
     header_h := Scale(144)
     section_y := y + header_h
-    body_y := section_y + TextLineHeight(GetSmallFontSize()) + Scale(12)
+    body_y := section_y + AppTextLineHeight(AppSmallFontSize()) + Scale(12)
     action_x := x + Scale(14)
     action_y := y + Scale(78)
     action_gap := Scale(8)
@@ -1444,7 +1438,7 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
                                                     app->modal.active)
     if collapse_clicked {
         app_block_current_click(app)
-        UIConsumePointerRelease()
+        ConsumeRelease()
         habits_return_to_overview(app)
         return
     }
@@ -1452,32 +1446,26 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
                   Scale(10), Scale(10), habit->color)
     habits_draw_fitted_text(habit->name, x + Scale(38), y + Scale(12),
                             w - Scale(54),
-                            GetFontSize(),
+                            AppFontSize(),
                             Text14,
                             foreground)
     if habit->description[0] != '\0' {
         description: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
         habits_card_description(habit->description, w - Scale(54),
-                                GetSmallFontSize(), description,
+                                AppSmallFontSize(), description,
                                 sizeof(description))
         Text((TextProps){
             .bounds={(x + Scale(38)), (y + Scale(46)), 0, 0},
             .text=(description),
-            .font=(GetSmallFontSize()),
-            .color=(muted),
             .wrap=TextWrapNone
         })
     }
     if Button((ButtonProps){
         .bounds = {(float)action_x, (float)action_y,
                    (float)action_w, (float)Scale(52)},
-        .icon = app->icons[UI_ICON_TYPE_CALENDAR],
+        .icon_type = ICON_CALENDAR,
         .icon_only = 1, .circle = 0,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .style = {.normal = {
-            .fields = StyleIconSize,
-            .icon_size = (float)(Scale(28)) * 1000.0f / Scale(1000)
-        }}
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
         habits_open_history(app)
         return
@@ -1486,13 +1474,9 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
         .bounds = {(float)(action_x + action_w + action_gap),
                    (float)action_y,
                    (float)action_w, (float)Scale(52)},
-        .icon = app->icons[UI_ICON_TYPE_STAT],
+        .icon_type = ICON_STAT,
         .icon_only = 1, .circle = 0,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .style = {.normal = {
-            .fields = StyleIconSize,
-            .icon_size = (float)(Scale(28)) * 1000.0f / Scale(1000)
-        }}
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
         habits_open_statistics(app)
         return
@@ -1501,13 +1485,9 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
         .bounds = {(float)(action_x + (action_w + action_gap) * 2),
                    (float)action_y,
                    (float)action_w, (float)Scale(52)},
-        .icon = app->icons[UI_ICON_TYPE_EDIT],
+        .icon_type = ICON_EDIT,
         .icon_only = 1, .circle = 0,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .style = {.normal = {
-            .fields = StyleIconSize,
-            .icon_size = (float)(Scale(28)) * 1000.0f / Scale(1000)
-        }}
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
         habit_edit_begin(app, selected)
         return
@@ -1515,8 +1495,6 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
     Text((TextProps){
         .bounds={(x + Scale(14)), (section_y), 0, 0},
         .text=(GetLocaleText("habit_focus_week")),
-        .font=(GetSmallFontSize()),
-        .color=(muted),
         .wrap=TextWrapNone
     })
     habits_focus_draw_week(app, habit, selected, linked_ctx,
@@ -1548,7 +1526,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     chevron_color := Fade(foreground, 0.68f)
     chevron_size := Scale(40)
     mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
-    input_captured := UIInputCapturesClick(mouse)
+    input_captured := InputCapturesClick(mouse)
     expand_clicked := 0
 
     Card collapsed_card: {
@@ -1557,16 +1535,14 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     DrawRectangle(x + Scale(16), y + Scale(20),
                   Scale(9), Scale(9), habit->color)
     habits_draw_fitted_text(habit->name, x + Scale(36), y + Scale(10),
-                            w - Scale(76), GetFontSize(), Text12,
+                            w - Scale(76), AppFontSize(), Text12,
                             foreground)
     habits_card_description(habit->description, w - Scale(76),
-                            GetSmallFontSize(), description,
+                            AppSmallFontSize(), description,
                             sizeof(description))
     Text((TextProps){
         .bounds={(x + Scale(36)), (y + Scale(39)), 0, 0},
         .text=(description),
-        .font=(GetSmallFontSize()),
-        .color=(Fade(foreground, 0.66f)),
         .wrap=TextWrapNone
     })
     for int col = 0; col < columns; col++ {
@@ -1580,8 +1556,8 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
                             (float)cell_w, (float)Scale(62)}
         label := col == 0 ? GetLocaleText("habits_today")
                           : GetLocaleText(weekdays[habit_weekday_bit(day)])
-        label_font := FitFontSize(label, cell_w - Scale(4),
-                                  GetSmallFontSize(), Scale(10))
+        label_font := AppFitFontSize(label, cell_w - Scale(4),
+                                  AppSmallFontSize(), Scale(10))
         cx := cell_x + cell_w / 2
         cy := row_y + Scale(42)
         linked := habit_linked_session_count_for_day(linked_ctx, day)
@@ -1601,47 +1577,23 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
             action = habit_counter_day_action(app, index, day,
                 cell_x, row_y, cell_w, Scale(62), 0, linked == 0)
         } else if cell_hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-                  !UIPointerReleaseConsumed() {
+                  !ReleaseConsumed() {
             cell_clicked = 1
         }
 
         Text((TextProps){
-            .bounds={(cx - TextWidth(label, label_font) / 2), (row_y), 0, 0},
+            .bounds={(cx - AppTextWidth(label, label_font) / 2), (row_y), 0, 0},
             .text=(label),
-            .font=(label_font),
-            .color=(col == 0 ? foreground : muted),
             .wrap=TextWrapNone
         })
         if off && !complete {
-            DrawLine(cx - Scale(5), cy, cx + Scale(5), cy,
-                     Fade(foreground, 0.32f))
+            Line(cx - Scale(5), cy, cx + Scale(5), cy,
+                 Fade(foreground, 0.32f))
         } else {
             radius := Scale(col == 0 ? 10 : 9)
-            DrawCircle(cx, cy, radius,
-                       complete ? habit->color : Fade(foreground, 0.50f))
-            if !complete {
-                DrawCircle(cx, cy, radius - Scale(2), surface)
-            } else if !counting {
-                DrawLineEx((Vector2){(float)(cx - radius / 2), (float)cy},
-                           (Vector2){(float)(cx - radius / 8), (float)(cy + radius / 3)},
-                           (float)Scale(2), habit_text_color_for_background(habit->color))
-                DrawLineEx((Vector2){(float)(cx - radius / 8), (float)(cy + radius / 3)},
-                           (Vector2){(float)(cx + radius / 2), (float)(cy - radius / 3)},
-                           (float)Scale(2), habit_text_color_for_background(habit->color))
-            }
-            if counting && count > 0 {
-                value: [16] char = {0}
-                snprintf(value, sizeof(value), "%d", count)
-                value_font := FitFontSize(value, radius * 2 - Scale(4),
-                                          Text12, Text8)
-                Text((TextProps){
-                    .bounds={(cx - TextWidth(value, value_font) / 2), (GetUIControlTextY(value, cy - radius, radius * 2, value_font)), 0, 0},
-                    .text=(value),
-                    .font=(value_font),
-                    .color=(habit_text_color_for_background(habit->color)),
-                    .wrap=TextWrapNone
-                })
-            }
+            habits_draw_day_marker(cx, cy, radius, complete, counting, count,
+                                   cell_hovered, surface, foreground,
+                                   habit->color)
         }
         if !app->modal.active && (!off || complete) {
             handled := 0
@@ -1661,7 +1613,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
             }
             if handled || cell_clicked || action != 0 {
                 app_block_current_click(app)
-                UIConsumePointerRelease()
+                ConsumeRelease()
                 return
             }
         }
@@ -1670,7 +1622,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
        CheckCollisionPointRec(mouse, row_bounds) &&
        IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
         app_block_current_click(app)
-        UIConsumePointerRelease()
+        ConsumeRelease()
         return
     }
     expand_clicked = habit_focus_chevron_control(chevron_cx, chevron_cy, chevron_size,
@@ -1679,7 +1631,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
                                                  app->modal.active)
     if expand_clicked {
         app_block_current_click(app)
-        UIConsumePointerRelease()
+        ConsumeRelease()
         habits_expand_card(app, index)
         app->habits.tab = HABIT_TAB_WEEKLY
         app->habits.scroll = 0
@@ -1689,93 +1641,71 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
 
 draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     context := (HabitsFocusPageContext){app}
-    area := (UIScrollArea){0}
-    measured: UIScrollView
     measure_x: int
     measure_w: int
+    content_h: int
     grid: GridCursor
     max_content_w := habits_focus_grid_max_width()
 
-    GetUICenteredColumn(max_content_w, GetUIPageSidePadding(),
+    GetCenteredColumn(max_content_w, GetPageSidePadding(),
                         &measure_x, &measure_w)
-    area = (UIScrollArea){
-        .bounds = {0, (float)(content_top + Scale(4)), (float)view_width,
-                   (float)(view_height - content_top -
-                           app_content_bottom_reserved(app) - Scale(4))},
-        .content_height = habits_focus_content_height(measure_w, &context),
-        .content_x = measure_x,
-        .content_width = measure_w,
-        .scroll_offset = &app->habits.scroll,
-        .scrollbar_x = view_width - Scale(8)
-    }
-    measured = MeasureUIScrollContainer(area)
-    measure_w = measured.content_w
-    area.content_height = habits_focus_content_height(measure_w, &context)
-    measured = MeasureUIScrollContainer(area)
-    page := BeginUIScrollPage((UIScrollPageSpec){
-        .y = content_top + Scale(4),
-        .height = view_height - content_top - app_content_bottom_reserved(app) - Scale(4),
-        .max_content_width = max_content_w,
-        .scroll_offset = &app->habits.scroll,
-        .content_height = habits_focus_content_height,
-        .user_data = &context
-    })
-    x := page.content_x
-    w := page.content_w
-    y := page.content_y + Scale(12)
-    title := GetLocaleText("tab_habits")
-    title_font := GetTitleFontSize(title, w / 2)
-    progress: [64] char = {0}
-    button_w := TextWidth(GetLocaleText("habit_new_button"), GetFontSize()) +
-        Scale(32)
+    content_h = habits_focus_content_height(measure_w, &context)
+    Scroll page: {
+        bounds = {0, (float)(content_top + Scale(4)), (float)view_width,
+                  (float)(view_height - content_top -
+                          app_content_bottom_reserved(app) - Scale(4))}
+        content_height = content_h
+        scroll_offset = &app->habits.scroll
+        x := measure_x
+        w := measure_w
+        y := (int)page.y + Scale(12)
+        title := GetLocaleText("tab_habits")
+        title_font := AppTitleFontSize(title, w / 2)
+        progress: [64] char = {0}
+        button_w := AppTextWidth(GetLocaleText("habit_new_button"), AppFontSize()) +
+            Scale(32)
 
-    Text((TextProps){
-        .bounds={(x), (y), 0, 0},
-        .text=(title),
-        .font=(title_font),
-        .color=(GetThemeText()),
-        .wrap=TextWrapNone
-    })
-    snprintf(progress, sizeof(progress), GetLocaleText("habits_done_count_label"),
-             habits_done_today(app), habits_due_today(app))
-    Text((TextProps){
-        .bounds={(x), (y + Scale(35)), 0, 0},
-        .text=(progress),
-        .font=(GetSmallFontSize()),
-        .color=(Fade(GetThemeText(), 0.72f)),
-        .wrap=TextWrapNone
-    })
-    if Button((ButtonProps){
-        .bounds = {(float)(x + w - button_w), (float)y,
-                   (float)button_w, (float)Scale(48)},
-        .label = GetLocaleText("habit_new_button"), .id = 24000,
-        .font = GetFontSize(), .tone = ButtonToneAccent, .emphasis = ButtonEmphasisFilled,
-        .disabled = app->habits.count >= HABIT_MAX || app->modal.active
-    }) {
-        habits_begin_new_detail(app)
-        EndUIScrollPage(page)
-        return
-    }
-    grid = BeginGridCursor(habits_focus_grid_props(x, page.content_y + Scale(82), w))
-    for int i = 0; i < app->habits.count; i++ {
-        if i == app->habits.selected {
-            grid = GridStep(grid, habits_focus_card_height(), 1)
-            cell := grid.item
-            habits_focus_draw_card(app, i, (int)cell.x, (int)cell.y, (int)cell.width)
-        } else {
-            grid = GridStep(grid, habits_focus_collapsed_height(), 1)
-            cell := grid.item
-            habits_focus_draw_collapsed(app, i, (int)cell.x, (int)cell.y, (int)cell.width)
+        Text((TextProps){
+            .bounds={(x), (y), 0, 0},
+            .text=(title),
+            .wrap=TextWrapNone
+        })
+        snprintf(progress, sizeof(progress), GetLocaleText("habits_done_count_label"),
+                 habits_done_today(app), habits_due_today(app))
+        Text((TextProps){
+            .bounds={(x), (y + Scale(35)), 0, 0},
+            .text=(progress),
+            .wrap=TextWrapNone
+        })
+        if Button((ButtonProps){
+            .bounds = {(float)(x + w - button_w), (float)y,
+                       (float)button_w, (float)Scale(48)},
+            .label = GetLocaleText("habit_new_button"), .id = 24000,
+            .disabled = app->habits.count >= HABIT_MAX || app->modal.active
+        }) {
+            habits_begin_new_detail(app)
+            return
+        }
+        grid = BeginGridCursor(habits_focus_grid_props(x, page.y + Scale(82), w))
+        for int i = 0; i < app->habits.count; i++ {
+            if i == app->habits.selected {
+                grid = GridStep(grid, habits_focus_card_height(), 1)
+                cell := grid.item
+                habits_focus_draw_card(app, i, (int)cell.x, (int)cell.y, (int)cell.width)
+            } else {
+                grid = GridStep(grid, habits_focus_collapsed_height(), 1)
+                cell := grid.item
+                habits_focus_draw_collapsed(app, i, (int)cell.x, (int)cell.y, (int)cell.width)
+            }
         }
     }
-    EndUIScrollPage(page)
 }
 
 habits_draw_subpage_header :: (app: InnerBreeze*, statistics: int) -> int #private {
     top_h := Scale(58)
     selector_h := Scale(40)
     selector_y := top_h + Scale(10)
-    side := GetUIPageSidePadding()
+    side := GetPageSidePadding()
     selector_w := view_width - side * 2
     selected_view := app->habits.view_mode == HABIT_VIEW_CALENDAR ? 1 : 0
     views: [2] const char* = {
@@ -1787,8 +1717,11 @@ habits_draw_subpage_header :: (app: InnerBreeze*, statistics: int) -> int #priva
     if app->habits.selected >= 0 && app->habits.selected < app->habits.count {
         active = &app->habits.items[app->habits.selected]
     }
-    if ReturnTitleBar(app->icons[UI_ICON_TYPE_LEFT],
-            active != nil ? active->name : GetLocaleText("tab_habits"), top_h) {
+    if TitleBar((TitleBarProps){
+            .title = active != nil ? active->name : GetLocaleText("tab_habits"),
+            .height = top_h,
+            .leading_icon = app->icons[ICON_LEFT],
+            .has_leading_action = 1}) {
         habits_return_to_focus(app)
         return -1
     }
@@ -1799,8 +1732,10 @@ habits_draw_subpage_header :: (app: InnerBreeze*, statistics: int) -> int #priva
         selector_w = Scale(CONTENT_MAX_W)
     }
     selector_x := (view_width - selector_w) / 2
-    if Dropdown(24600, selector_x, selector_y, selector_w, selector_h,
-                views, 2, &selected_view) {
+    if Dropdown((DropdownProps){.id = 24600,
+                .bounds = {selector_x, selector_y, selector_w, selector_h},
+                .options = views, .option_count = 2,
+                .selected_index = &selected_view}) {
         app->habits.view_mode = selected_view == 1
             ? HABIT_VIEW_CALENDAR : HABIT_VIEW_WEEKLY
         app->habits.tab = selected_view == 1
@@ -1819,7 +1754,7 @@ draw_habits_screen :: (app: InnerBreeze*) {
     y: int
     viewport_h: int
 
-    side_padding: int = GetUIPageSidePadding()
+    side_padding: int = GetPageSidePadding()
     max_w: int = Scale(CONTENT_MAX_W)
     month_h: int = Scale(42)
     grid_gap: int = Scale(4)
@@ -1847,7 +1782,6 @@ draw_habits_screen :: (app: InnerBreeze*) {
 
     cell_clicked: int
     page_ctx: HabitsScrollPageContext
-    page: UIScrollPage
     weekly_days: int = HABIT_WEEKLY_INITIAL_DAYS
 
     if app == nil {
@@ -1871,7 +1805,7 @@ draw_habits_screen :: (app: InnerBreeze*) {
     y = content_top + Scale(8)
     viewport_h = view_height - content_top - content_bottom
 
-    GetUICenteredColumn(max_w, side_padding, &content_x, &content_w)
+    GetCenteredColumn(max_w, side_padding, &content_x, &content_w)
 
     if app->habits.count > 0 &&
        app->habits.screen_mode == HABITS_SCREEN_OVERVIEW {
@@ -1892,10 +1826,10 @@ draw_habits_screen :: (app: InnerBreeze*) {
         button_w: int = content_w < Scale(240) ? content_w : Scale(240)
         button_h: int = Scale(42)
         empty_y: int = content_top + viewport_h / 2 - Scale(46)
-        empty_w: int = TextWidth(empty_text, empty_font)
+        empty_w: int = AppTextWidth(empty_text, empty_font)
 
 
-        BeginUIClip((int)app->camera.offset.x,
+        BeginClip((int)app->camera.offset.x,
                        (int)(app->camera.offset.y +
                              content_top * app->camera.zoom),
                        (int)(view_width * app->camera.zoom),
@@ -1903,21 +1837,18 @@ draw_habits_screen :: (app: InnerBreeze*) {
         Text((TextProps){
             .bounds={(content_x + (content_w - empty_w) / 2), (empty_y), 0, 0},
             .text=(empty_text),
-            .font=(empty_font),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         if Button((ButtonProps){
             .bounds = {(float)(content_x + (content_w - button_w) / 2), (float)(empty_y + Scale(38)), (float)(button_w), (float)(button_h)},
             .label = create_text,
-            .font = GetFontSize(),
             .tone = ButtonToneAccent,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
         }) {
             habits_begin_new_detail(app)
         }
-        EndUIClip()
+        EndClip()
         return
     }
 
@@ -2005,152 +1936,143 @@ draw_habits_screen :: (app: InnerBreeze*) {
         month_h,
         grid_gap
     }
-    page = BeginUIScrollPage((UIScrollPageSpec){
-        .y = scroll_y,
-        .height = scroll_h,
-        .max_content_width = max_w,
-        .scroll_offset = &app->habits.scroll,
-        .content_height = habits_scroll_page_content_height,
-        .user_data = &page_ctx
-    })
+    page_h := habits_scroll_page_content_height(content_w, &page_ctx)
+    Scroll page: {
+        bounds = {0, (float)scroll_y, (float)view_width, (float)scroll_h}
+        content_height = page_h
+        scroll_offset = &app->habits.scroll
 
-    content_x = page.content_x
-    content_w = page.content_w
-    y = page.content_y + Scale(8)
+        content_x := (int)page.x
+        content_w := (int)page.width
+        y := (int)page.y + Scale(8)
 
-    if app->habits.view_mode == HABIT_VIEW_WEEKLY {
-        draw_habits_weekly_view(app, active, selected, linked_ctx,
-                                   content_x, content_w, y, weekly_days)
-        EndUIScrollPage(page)
-        return
-    }
+        if app->habits.view_mode == HABIT_VIEW_WEEKLY {
+            draw_habits_weekly_view(app, active, selected, linked_ctx,
+                                       content_x, content_w, y, weekly_days)
+            return
+        }
 
-    forward_disabled = app->habits.month_offset >= 0
-    if Button((ButtonProps){
-        .bounds = {(float)(content_x), (float)(y), (float)(Scale(44)), (float)(month_h)},
-        .label = "<",
-        .font = GetFontSize(),
-        .tone = ButtonToneNeutral,
-        .emphasis = ButtonEmphasisSoft,
-        .disabled = 0
-    }) {
-        app->habits.month_offset--
-    }
-    if Button((ButtonProps){
-        .bounds = {(float)(content_x + content_w - Scale(44)), (float)(y), (float)(Scale(44)), (float)(month_h)},
-        .label = ">",
-        .font = GetFontSize(),
-        .tone = ButtonToneNeutral,
-        .emphasis = ButtonEmphasisSoft,
-        .disabled = forward_disabled
-    }) {
-        app->habits.month_offset++
-    }
-    Text((TextProps){
-        .bounds={(content_x + (content_w - TextWidth(month_label, Text24)) / 2), (GetUIControlTextY(month_label, y, month_h, Text24)), 0, 0},
-        .text=(month_label),
-        .font=(Text24),
-        .color=(GetThemeText()),
-        .wrap=TextWrapNone
-    })
+        forward_disabled = app->habits.month_offset >= 0
+        if Button((ButtonProps){
+            .bounds = {(float)(content_x), (float)(y), (float)(Scale(44)), (float)(month_h)},
+            .label = "<",
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = 0
+        }) {
+            app->habits.month_offset--
+        }
+        if Button((ButtonProps){
+            .bounds = {(float)(content_x + content_w - Scale(44)), (float)(y), (float)(Scale(44)), (float)(month_h)},
+            .label = ">",
+            .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft,
+            .disabled = forward_disabled
+        }) {
+            app->habits.month_offset++
+        }
+        Text((TextProps){
+            .bounds={(content_x + (content_w - AppTextWidth(month_label, Text24)) / 2), (AppControlTextY(month_label, y, month_h, Text24)), 0, 0},
+            .text=(month_label),
+            .wrap=TextWrapNone
+        })
 
-    grid_x = content_x
-    grid_y = y + month_h + Scale(12)
-    cell_w = (content_w - grid_gap * 6) / 7
-    cell_h = Scale(58)
-    if cell_h < cell_w {
-        cell_h = cell_w
-    }
-    habit_calendar_draw_weekdays(grid_x, grid_y, content_w, grid_gap)
-    grid_y += Scale(22)
+        grid_x = content_x
+        grid_y = y + month_h + Scale(12)
+        cell_w = (content_w - grid_gap * 6) / 7
+        cell_h = Scale(58)
+        if cell_h < cell_w {
+            cell_h = cell_w
+        }
+        habit_calendar_draw_weekdays(grid_x, grid_y, content_w, grid_gap)
+        grid_y += Scale(22)
 
-    for int row = 0; row < 6; row++ {
-        for int col = 0; col < 7; col++ {
-                slot: int = row * 7 + col
-                day: int = slot - first_wday + 1
-                cell_x: int = grid_x + col * (cell_w + grid_gap)
-                cell_y: int = grid_y + row * (cell_h + grid_gap)
-                day_label: [16] char = {0}
-                day_index: int
-                completed: int
-                future_day: int
-                has_linked_day: int
-                count: int = 0
-                action: int = 0
-                counting_enabled: int
-                minimum_count: int
+        for int row = 0; row < 6; row++ {
+            for int col = 0; col < 7; col++ {
+                    slot: int = row * 7 + col
+                    day: int = slot - first_wday + 1
+                    cell_x: int = grid_x + col * (cell_w + grid_gap)
+                    cell_y: int = grid_y + row * (cell_h + grid_gap)
+                    day_label: [16] char = {0}
+                    day_index: int
+                    completed: int
+                    future_day: int
+                    has_linked_day: int
+                    count: int = 0
+                    action: int = 0
+                    counting_enabled: int
+                    minimum_count: int
 
-                if day < 1 || day > days_in_month {
-                    continue
-                }
-
-                snprintf(day_label, sizeof(day_label), "%d", day)
-                day_index = year * 10000 + mon * 100 + day
-                future_day = day_index > today_index
-                has_linked_day = linked_ctx != nil &&
-                    habit_linked_has_day(linked_ctx, day_index)
-                counting_enabled = habit_counting_enabled(active)
-                minimum_count =
-                    habit_linked_session_count_for_day(linked_ctx, day_index)
-                if counting_enabled {
-                    count = habit_effective_day_count(active, day_index,
-                                                      linked_ctx)
-                }
-                completed = habit_completed_day(active, day_index)
-                if !completed && !future_day &&
-                   ((!counting_enabled && has_linked_day) ||
-                    (counting_enabled && count >= habit_counter_target(active))) {
-                    completed = 1
-                }
-
-                if counting_enabled {
-                    target: int = habit_counter_target(active)
-                    progress: float = (float)count / (float)target
-
-                    action = habit_counter_day_action(app, selected, day_index,
-                                                      cell_x, cell_y,
-                                                      cell_w, cell_h,
-                                                      future_day,
-                                                      !has_linked_day)
-                    cell_clicked = habit_calendar_day_cell(app, cell_x, cell_y,
-                        cell_w, cell_h, day_label, progress, future_day,
-                        day_index == today_index, active->color)
-                    if action == 0 && has_linked_day && !future_day && cell_clicked {
-                        habit_open_linked_edit_page(app, selected, day_index)
+                    if day < 1 || day > days_in_month {
+                        continue
                     }
-                } else if habit_calendar_day_cell(app, cell_x, cell_y,
-                                                  cell_w, cell_h, day_label,
-                                                  completed ? 1.0f : 0.0f,
-                                                  future_day,
-                                                  day_index == today_index,
-                                                  active->color) {
-                    if has_linked_day {
-                        habit_open_linked_edit_page(app, selected, day_index)
-                    } else {
-                        habit_toggle_day(&app->habits, selected, day_index)
+
+                    snprintf(day_label, sizeof(day_label), "%d", day)
+                    day_index = year * 10000 + mon * 100 + day
+                    future_day = day_index > today_index
+                    has_linked_day = linked_ctx != nil &&
+                        habit_linked_has_day(linked_ctx, day_index)
+                    counting_enabled = habit_counting_enabled(active)
+                    minimum_count =
+                        habit_linked_session_count_for_day(linked_ctx, day_index)
+                    if counting_enabled {
+                        count = habit_effective_day_count(active, day_index,
+                                                          linked_ctx)
+                    }
+                    completed = habit_completed_day(active, day_index)
+                    if !completed && !future_day &&
+                       ((!counting_enabled && has_linked_day) ||
+                        (counting_enabled && count >= habit_counter_target(active))) {
+                        completed = 1
+                    }
+
+                    if counting_enabled {
+                        target: int = habit_counter_target(active)
+                        progress: float = (float)count / (float)target
+
+                        action = habit_counter_day_action(app, selected, day_index,
+                                                          cell_x, cell_y,
+                                                          cell_w, cell_h,
+                                                          future_day,
+                                                          !has_linked_day)
+                        cell_clicked = habit_calendar_day_cell(app, cell_x, cell_y,
+                            cell_w, cell_h, day_label, progress, future_day,
+                            day_index == today_index, active->color)
+                        if action == 0 && has_linked_day && !future_day && cell_clicked {
+                            habit_open_linked_edit_page(app, selected, day_index)
+                        }
+                    } else if habit_calendar_day_cell(app, cell_x, cell_y,
+                                                      cell_w, cell_h, day_label,
+                                                      completed ? 1.0f : 0.0f,
+                                                      future_day,
+                                                      day_index == today_index,
+                                                      active->color) {
+                        if has_linked_day {
+                            habit_open_linked_edit_page(app, selected, day_index)
+                        } else {
+                            habit_toggle_day(&app->habits, selected, day_index)
+                            active = &app->habits.items[selected]
+                            app_auto_sync(app)
+                        }
+                    }
+
+                    if action == 1 || action == -1 {
+                        habit_apply_count_action(app, selected, day_index,
+                                                    action, minimum_count)
                         active = &app->habits.items[selected]
+                        count = habit_effective_day_count(active, day_index,
+                                                          linked_ctx)
+                        completed = count >= habit_counter_target(active)
                         app_auto_sync(app)
                     }
-                }
-
-                if action == 1 || action == -1 {
-                    habit_apply_count_action(app, selected, day_index,
-                                                action, minimum_count)
-                    active = &app->habits.items[selected]
-                    count = habit_effective_day_count(active, day_index,
-                                                      linked_ctx)
-                    completed = count >= habit_counter_target(active)
-                    app_auto_sync(app)
-                }
-                habit_calendar_day_metadata(app, cell_x, cell_y,
-                                            cell_w, cell_h,
-                                            counting_enabled, count,
-                                            minimum_count, future_day,
-                                            active->color)
+                    habit_calendar_day_metadata(app, cell_x, cell_y,
+                                                cell_w, cell_h,
+                                                counting_enabled, count,
+                                                minimum_count, future_day,
+                                                active->color)
+            }
         }
     }
-
-    EndUIScrollPage(page)
 }
 
 route habits {

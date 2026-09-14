@@ -223,7 +223,6 @@ typedef struct ScreenshotRequest {
     int height;
     int theme_id;
     int dark_mode;
-    int theme_style;
     char scene[64];
     char output[512];
 } ScreenshotRequest;
@@ -407,7 +406,7 @@ app_frame(InnerBreeze*app)
 
     if(mem_debug_frame_count == 2 || mem_debug_frame_count == 240) {
         KryonMemReport(mem_debug_frame_count == 2 ? "frame-2" : "frame-240");
-        UIFontMemoryReport(mem_debug_frame_count == 2 ? "frame-2" : "frame-240");
+        TextFontMemoryReport(mem_debug_frame_count == 2 ? "frame-2" : "frame-240");
     }
     mem_debug_frame_count++;
 #endif
@@ -435,14 +434,14 @@ app_frame(InnerBreeze*app)
 
     BeginDrawing();
     ClearBackground(BLACK);
-    BeginUIClip(viewport.x, viewport.y, viewport.width, viewport.height);
+    BeginClip(viewport.x, viewport.y, viewport.width, viewport.height);
     app_update_draw(app, (Rectangle){
         (float)viewport.x,
         (float)viewport.y,
         (float)viewport.width,
         (float)viewport.height
     });
-    EndUIClip();
+    EndClip();
 #elif defined(PLATFORM_WEB)
     draw_full_frame(app, width, height);
 #else
@@ -495,8 +494,7 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         .width = config.width,
         .height = config.height,
         .theme_id = SCREENSHOT_THEME_CURRENT,
-        .dark_mode = 0,
-        .theme_style = THEME_STYLE_SYSTEM
+        .dark_mode = 0
     };
 
     for(int i = 1; i < argc; i++) {
@@ -521,9 +519,6 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         } else if(strcmp(arg, "--screenshot-dark") == 0 && value != NULL) {
             request->dark_mode = parse_int_arg(value, request->dark_mode) != 0;
             i++;
-        } else if(strcmp(arg, "--screenshot-style") == 0 && value != NULL) {
-            request->theme_style = parse_int_arg(value, request->theme_style);
-            i++;
         }
     }
 
@@ -533,9 +528,6 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         request->width = 320;
     if(request->height < 320)
         request->height = 320;
-    if(request->theme_style < THEME_STYLE_SYSTEM ||
-       request->theme_style > THEME_STYLE_DEFAULT)
-        request->theme_style = THEME_STYLE_SYSTEM;
     if(request->theme_id < SCREENSHOT_THEME_CURRENT || request->theme_id >= THEME_COUNT)
         request->theme_id = SCREENSHOT_THEME_CURRENT;
 }
@@ -680,7 +672,6 @@ setup_screenshot_scene(InnerBreeze*app, const ScreenshotRequest *request)
     app->habits_guide_seen = 1;
     app->tutorial_seen = 1;
     screenshot_seed_habits(app);
-    app->theme_style = request->theme_style;
     screenshot_apply_theme(app, request->theme_id, request->dark_mode);
 
     if(strcmp(request->scene, "lists") == 0) {
@@ -1086,7 +1077,7 @@ native_after_window(void)
      * and ESC is already handled by individual screens via IsKeyPressed. */
     SetExitKey(0);
 #endif
-    InitUIDPI();
+    InitDPI();
     return 1;
 }
 
@@ -1105,7 +1096,7 @@ native_after_app_init(InnerBreeze*app, int argc, char **argv)
         }
     }
     KryonMemReport("after-app-init");
-    UIFontMemoryReport("after-app-init");
+    TextFontMemoryReport("after-app-init");
 
     #if ANDROID_BUILD
     app->fullscreen_enabled = 0;
@@ -1113,7 +1104,7 @@ native_after_app_init(InnerBreeze*app, int argc, char **argv)
 #if ANDROID_BUILD
     ConfigureFramePacing(15, 30);
 #else
-    ConfigureFramePacing(5, 60);
+    ConfigureFramePacing(30, 60);
 #endif
     SetFramePacingActive(1);
     UpdateFramePacing();

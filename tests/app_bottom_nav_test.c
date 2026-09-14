@@ -1,7 +1,7 @@
 #include "app/app.h"
 #include "app/app_nav.h"
 #include "locale.h"
-#include "ui.h"
+#include "ui_tree.h"
 #include "screens/settings/settings_screen.h"
 
 #include <stdbool.h>
@@ -28,6 +28,7 @@ static int icon_button_click_index = -1;
 static int icon_button_draw_count = 0;
 static Rectangle rail_bounds[5];
 static int rail_bounds_count = 0;
+static int route_request_count = 0;
 static int scroll_page_content_w_override = 0;
 static int pointer_release_consumed = 0;
 static Vector2 mouse_position = {0};
@@ -61,6 +62,7 @@ reset_state(void)
     icon_button_click_index = -1;
     icon_button_draw_count = 0;
     rail_bounds_count = 0;
+    route_request_count = 0;
     scroll_page_content_w_override = 0;
     pointer_release_consumed = 0;
     mouse_position = (Vector2){0};
@@ -238,21 +240,18 @@ Scale(int px)
     return px;
 }
 
-UIWidgetNode
-NodeTabBar(TabBarProps bar)
+int
+TabBar(TabBarProps bar)
 {
-    UIWidgetNode node = {0};
-    node.bounds.height = 44;
     (void)bar;
-    return node;
+    return 0;
 }
 
-UIWidgetNode
-NodeTitleBar(int height)
+int
+TitleBar(TitleBarProps title_bar)
 {
-    UIWidgetNode node = {0};
-    node.bounds.height = height > 0 ? height : 52;
-    return node;
+    (void)title_bar;
+    return 0;
 }
 
 KeyID
@@ -274,17 +273,6 @@ End(void)
 {
 }
 
-int
-GetNodeHeight(UIWidgetNode node)
-{
-    return (int)node.bounds.height;
-}
-
-int
-GetFontSize(void)
-{
-    return 16;
-}
 
 int
 GetUIControlTextY(const char *text, int y, int h, int font)
@@ -312,13 +300,6 @@ TestText(TextProps props)
     if(props.text != NULL && strcmp(props.text, "tab_elist") == 0) {
         elist_label_count++;
     }
-}
-
-void
-TitleBar(const char *title, int height)
-{
-    (void)title;
-    (void)height;
 }
 
 int
@@ -349,12 +330,6 @@ FormatLocaleText(char *out, size_t out_size, const char *key, ...)
     snprintf(out, out_size, "%s", key != NULL ? key : "");
 }
 
-int
-UIHref(HrefProps link)
-{
-    (void)link;
-    return 0;
-}
 
 bool
 CheckCollisionPointRec(Vector2 point, Rectangle rec)
@@ -396,15 +371,6 @@ UIInputCapturesClick(Vector2 point)
     return 0;
 }
 
-int
-InvisibleButton(InvisibleButtonProps props)
-{
-    if((int)props.id == invisible_button_clicked_id) {
-        invisible_button_clicked_id = -1;
-        return 1;
-    }
-    return 0;
-}
 
 void
 MarkUIClickable(void)
@@ -429,42 +395,15 @@ NavigationBar(NavigationBarProps nav)
     };
 }
 
-UIWidgetNode
-NodeNavigationBar(NavigationBarProps nav)
+int
+GetNodeHeightById(int id)
 {
-    UIWidgetNode node = {0};
-    node.bounds.height = 80;
-    (void)nav;
-    return node;
+    (void)id;
+    return 0;
 }
 
-SidebarAccountHeaderResult
-SidebarAccountHeader(SidebarAccountHeaderProps header)
-{
-    (void)header;
-    return (SidebarAccountHeaderResult){
-        .height = 138
-    };
-}
 
-UIScrollView
-BeginUIScrollContainer(UIScrollArea area)
-{
-    return (UIScrollView){
-        .content_x = area.content_x,
-        .content_y = (int)area.bounds.y,
-        .content_w = area.content_width,
-        .viewport_h = (int)area.bounds.height,
-        .content_h = area.content_height
-    };
-}
 
-void
-EndUIScrollContainer(UIScrollArea area, UIScrollView view)
-{
-    (void)area;
-    (void)view;
-}
 
 int
 Button(ButtonProps props)
@@ -490,7 +429,7 @@ Button(ButtonProps props)
     }
     if(mouse_released && !pointer_release_consumed &&
        CheckCollisionPointRec(mouse_position, props.bounds)) {
-        UIConsumeRelease();
+        ConsumeRelease();
         return 1;
     }
     return 0;
@@ -509,9 +448,8 @@ UpdateReorderList(ReorderList list)
 }
 
 void
-ReorderHandle(int id, int x, int y, int w, int h, int active)
+AppReorderHandle(int x, int y, int w, int h, int active)
 {
-    (void)id;
     (void)x;
     (void)y;
     (void)w;
@@ -520,73 +458,92 @@ ReorderHandle(int id, int x, int y, int w, int h, int active)
 }
 
 void
-ReorderPlaceholder(Rectangle bounds)
+AppReorderPlaceholder(Rectangle bounds)
 {
     (void)bounds;
 }
 
-UIScrollPage
-BeginUIScrollPage(UIScrollPageSpec spec)
+int
+MeasureTextWidth(const char *text, int font_size, const char *typeface)
 {
-    return (UIScrollPage){
-        .content_x = 16,
-        .content_y = spec.y,
-        .content_w = scroll_page_content_w_override > 0
-                         ? scroll_page_content_w_override
-                         : 288,
-        .content_h = spec.height
-    };
+    (void)typeface;
+    if(text == NULL)
+        return 0;
+    return (int)strlen(text) * (font_size > 0 ? font_size / 2 : 8);
+}
+
+Color
+DarkenColor(Color color, int amount)
+{
+    (void)amount;
+    return color;
 }
 
 void
-EndUIScrollPage(UIScrollPage page)
+PushInspectSource(const char *path, int line)
 {
-    (void)page;
-}
-
-UIScreenScaffold
-BeginUIScreenScaffold(UIScreenScaffoldSpec spec)
-{
-    UIScreenScaffold scaffold = {0};
-    int title_h = spec.title_height > 0
-                      ? spec.title_height
-                      : GetNodeHeight(NodeTitleBar(0));
-    int top_gap = spec.top_gap > 0 ? spec.top_gap : 0;
-
-    scaffold.title_height = title_h;
-    if(spec.draw_title != NULL)
-        scaffold.closed = spec.draw_title(spec.title, title_h,
-                                          spec.title_user_data != NULL
-                                              ? spec.title_user_data
-                                              : spec.user_data);
-    scaffold.content_y = title_h + top_gap;
-    scaffold.content_h = view_height - scaffold.content_y -
-                         spec.bottom_reserved;
-    if(scaffold.content_h < 0)
-        scaffold.content_h = 0;
-    scaffold.page = BeginUIScrollPage((UIScrollPageSpec){
-        .y = scaffold.content_y,
-        .height = scaffold.content_h,
-        .max_content_width = spec.max_content_width,
-        .min_content_width = spec.min_content_width,
-        .side_padding = spec.side_padding,
-        .scroll_offset = spec.scroll_offset,
-        .wheel_step = spec.wheel_step,
-        .scrollbar_x = spec.scrollbar_x,
-        .measure_passes = spec.measure_passes,
-        .content_height = spec.content_height,
-        .user_data = spec.user_data
-    });
-    scaffold.content_x = scaffold.page.content_x;
-    scaffold.content_w = scaffold.page.content_w;
-    scaffold.y = scaffold.page.content_y;
-    return scaffold;
+    (void)path;
+    (void)line;
 }
 
 void
-EndUIScreenScaffold(UIScreenScaffold scaffold)
+PopInspectSource(void)
 {
-    EndUIScrollPage(scaffold.page);
+}
+
+Color
+LightenColor(Color color, int amount)
+{
+    (void)amount;
+    return color;
+}
+
+int
+IsDesktopMode(void)
+{
+    return desktop_mode;
+}
+
+int
+ReleaseConsumed(void)
+{
+    return pointer_release_consumed;
+}
+
+int
+GetPageSidePadding(void)
+{
+    return 0;
+}
+
+void
+GetCenteredColumn(int max_w, int side_pad, int *x, int *w)
+{
+    if(x == NULL || w == NULL)
+        return;
+    *w = view_width - side_pad * 2;
+    if(max_w > 0 && *w > max_w)
+        *w = max_w;
+    *x = (view_width - *w) / 2;
+}
+
+Rectangle
+ScrollScope(Rectangle bounds, int content_height, int *scroll_offset)
+{
+    int content_w = scroll_page_content_w_override > 0
+                        ? scroll_page_content_w_override
+                        : 288;
+
+    (void)content_height;
+    (void)scroll_offset;
+    bounds.x = 16;
+    bounds.width = (float)content_w;
+    return bounds;
+}
+
+void
+ScrollEndScope(void)
+{
 }
 
 int
@@ -629,23 +586,15 @@ GetSmallFontSize(void)
 }
 
 int
-Dropdown(int id, int x, int y, int w, int h, const char **options,
-         int option_count, int *selected_index)
+Dropdown(DropdownProps props)
 {
-    (void)id;
-    (void)x;
-    (void)y;
-    (void)w;
-    (void)h;
-    (void)options;
-    (void)option_count;
-    (void)selected_index;
+    (void)props;
     return 0;
 }
 
 
 void
-Icon(int id, int x, int y, int size, UIIconType icon, Color tint)
+Icon(int id, int x, int y, int size, IconType icon, Color tint)
 {
     (void)id;
     (void)x;
@@ -656,45 +605,16 @@ Icon(int id, int x, int y, int size, UIIconType icon, Color tint)
 }
 
 void
-ClearUIInputCaptures(void)
+ClearInputCaptures(void)
 {
-}
-
-int
-UIPointerReleaseOutside(Rectangle bounds)
-{
-    Vector2 mouse = GetMousePosition();
-
-    return mouse_released &&
-           !pointer_release_consumed &&
-           !CheckCollisionPointRec(mouse, bounds);
 }
 
 void
-UIConsumeRelease(void)
+ConsumeRelease(void)
 {
     pointer_release_consumed = 1;
 }
 
-DismissibleOverlayResult
-DismissibleOverlay(DismissibleOverlayProps overlay)
-{
-    DismissibleOverlayResult result = {0};
-    Vector2 mouse = GetMousePosition();
-
-    if(mouse_released && !pointer_release_consumed &&
-       !overlay.dismiss_disabled &&
-       !CheckCollisionPointRec(mouse, overlay.bounds)) {
-        pointer_release_consumed = 1;
-        result.closed = 1;
-        result.outside_released = 1;
-        result.release_consumed = 1;
-    } else {
-        result.release_consumed = pointer_release_consumed;
-    }
-
-    return result;
-}
 
 const char *
 GetLocaleText(const char *key)
@@ -753,6 +673,13 @@ app_switch_route(InnerBreeze*app, AppRoute route)
     app->profile_tab = route.profile_tab;
     app->habits.screen_mode = route.habits_screen_mode;
     app->habits.tab = route.habits_tab;
+}
+
+void
+app_request_route(InnerBreeze*app, AppRoute route)
+{
+    route_request_count++;
+    app_switch_route(app, route);
 }
 
 void
@@ -913,10 +840,8 @@ test_unblocked_bottom_nav_click_still_routes(void)
            "unblocked bottom nav click should route to habits");
     expect(reset_settings_preview_count == 0,
            "habits route should not reset settings preview");
-    expect(app_content_bottom_reserved(&app) == 80,
+    expect(app_content_bottom_reserved(&app) == 86,
            "bottom nav should reserve larger touch height");
-    expect(bottom_nav_last.bottom_margin == 0,
-           "bottom nav should preserve zero Android margin");
 }
 
 static void
@@ -932,9 +857,6 @@ test_edge_bottom_nav_routes_are_applied(void)
            "habits edge route should draw bottom nav");
     expect(app.breathing.screen == ScreenHabits,
            "habits edge route should switch to habits");
-
-    expect(bottom_nav_last.bottom_margin == 0,
-           "bottom nav should not apply Android system nav margin inside the safe viewport");
 }
 
 static void
@@ -961,7 +883,7 @@ test_profile_draws_mobile_nav_without_profile_item(void)
            "profile mobile nav fourth item should be settings");
     expect(app_current_nav_route(&app) == APP_NAV_ROUTE_PROFILE,
            "profile should still expose its route for state tracking");
-    expect(app_content_bottom_reserved(&app) == 80,
+    expect(app_content_bottom_reserved(&app) == 86,
            "profile should reserve mobile bottom nav height");
     expect(app.breathing.screen == ScreenProfile,
            "profile mobile nav should not route without a click");
@@ -1049,7 +971,7 @@ test_empty_bottom_nav_recovers_settings_item(void)
            "empty bottom nav only item should be settings");
     expect(app.breathing.screen == ScreenSettings,
            "empty bottom nav settings should open settings");
-    expect(app_content_bottom_reserved(&app) == 80,
+    expect(app_content_bottom_reserved(&app) == 86,
            "empty bottom nav should reserve settings bar space");
 }
 
@@ -1380,6 +1302,89 @@ test_elist_navigation_sanitizer_and_desktop_route(void)
 }
 
 static void
+test_desktop_rail_clicks_route_once_per_release(void)
+{
+    InnerBreeze app = test_app();
+
+    reset_state();
+    desktop_mode = 1;
+    view_width = 812;
+    view_height = 720;
+    mouse_position = (Vector2){-100, 206};
+    mouse_released = 1;
+
+    app_draw_bottom_nav(&app);
+
+    expect(route_request_count == 1,
+           "desktop rail click should request exactly one route");
+    expect(pointer_release_consumed == 1,
+           "desktop rail click should consume the release");
+    expect(app.main_tab == APP_MAIN_TAB_ELIST &&
+           app.breathing.screen == ScreenEList,
+           "desktop rail click should route on the same pass");
+
+    app_draw_bottom_nav(&app);
+
+    expect(route_request_count == 1,
+           "second nav evaluation in the same frame must not route again");
+    expect(app.main_tab == APP_MAIN_TAB_ELIST &&
+           app.breathing.screen == ScreenEList,
+           "second nav evaluation should preserve the first route");
+
+    reset_state();
+    app = test_app();
+    desktop_mode = 1;
+    view_width = 812;
+    view_height = 720;
+    app.blocked_input_frame = app.breathing.frame;
+    mouse_position = (Vector2){-100, 206};
+    mouse_released = 1;
+
+    app_draw_bottom_nav(&app);
+
+    expect(route_request_count == 0,
+           "blocked same-frame desktop rail release must not route");
+    expect(app.breathing.screen == ScreenStart &&
+           app.main_tab == APP_MAIN_TAB_PRACTICE,
+           "blocked desktop rail release must leave the screen alone");
+
+    reset_state();
+    app = test_app();
+    desktop_mode = 1;
+    view_width = 812;
+    view_height = 720;
+    app.nav_rail_collapsed = 1;
+    mouse_position = (Vector2){-44, 206};
+    mouse_released = 1;
+
+    app_draw_bottom_nav(&app);
+
+    expect(route_request_count == 1,
+           "collapsed desktop rail click should request a route");
+    expect(app.main_tab == APP_MAIN_TAB_ELIST &&
+           app.breathing.screen == ScreenEList,
+           "collapsed desktop rail click should route immediately");
+
+    reset_state();
+    app = test_app();
+    desktop_mode = 1;
+    view_width = 812;
+    view_height = 720;
+    app.navigation_placement = NAVIGATION_RIGHT;
+    mouse_position = (Vector2){856, 206};
+    mouse_released = 1;
+
+    app_draw_bottom_nav(&app);
+
+    expect(route_request_count == 1,
+           "right desktop rail click should request a route");
+    expect(app.main_tab == APP_MAIN_TAB_ELIST &&
+           app.breathing.screen == ScreenEList,
+           "right desktop rail click should route immediately");
+    reset_state();
+}
+
+static void
 test_desktop_rail_spacing(void)
 {
     const int heights[] = {476, 560, 720};
@@ -1432,6 +1437,7 @@ test_navigation_placement_and_collapse(void)
     expect(app.nav_rail_collapsed && app_nav_desktop_rail_width(&app) == 88,
            "collapse control must narrow the rail");
     expect(save_settings_count == 1, "collapsed state must be saved");
+    app.breathing.frame++;
     invisible_button_clicked_id = 6691;
     app_draw_bottom_nav(&app);
     expect(!app.nav_rail_collapsed && app_nav_desktop_rail_width(&app) == 224,
@@ -1441,7 +1447,7 @@ test_navigation_placement_and_collapse(void)
     expect(app_content_bottom_reserved(&app) == 0,
            "top placement must not leave an empty bottom navigation strip");
     app_draw_bottom_nav(&app);
-    expect(bottom_nav_last.view_height == 1 && bottom_nav_last.bottom_margin == 1,
+    expect(bottom_nav_last.view_height == 1,
            "top bar must be drawn above the translated content viewport");
     reset_state();
 }
@@ -1472,6 +1478,7 @@ main(void)
     test_habit_editor_preserves_desktop_rail();
     test_top_level_nav_leaves_habit_child_screens();
     test_elist_navigation_sanitizer_and_desktop_route();
+    test_desktop_rail_clicks_route_once_per_release();
 
     if(failures > 0) {
         fprintf(stderr, "%d app bottom nav test failure(s)\n", failures);

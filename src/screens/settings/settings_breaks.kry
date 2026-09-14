@@ -35,7 +35,7 @@ settings_breaks_content_height :: (app: InnerBreeze*, content_w: int) -> int {
     }
     for int t = 0; t < 3; t++ {
         header := GetLocaleText(timer_keys[t])
-        height += Scale(44) + GetNodeHeight(NodeParagraph((ParagraphSpec){.text = header, .width = label_w}, 0, 0))
+        height += Scale(44) + AppParagraphHeight(header, label_w, 0, 0)
         height += settings_breaks_timer_row_h(GetLocaleText("settings_breaks_timer_enabled"), label_w)
         height += settings_breaks_slider_h()
         height += settings_breaks_slider_h()
@@ -53,13 +53,11 @@ settings_breaks_draw_status :: (app: InnerBreeze*, x: int, w: int, y: int*) #pri
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("settings_breaks_status")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(30)
 
-    muted := DarkenUIColor(GetThemeText(), 40)
+    muted := DarkenColor(GetThemeText(), 40)
     names: [3] const char* = {
         GetLocaleText("break_micro_title"),
         GetLocaleText("break_rest_title"),
@@ -88,40 +86,23 @@ settings_breaks_draw_status :: (app: InnerBreeze*, x: int, w: int, y: int*) #pri
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(names[t]),
-            .font=(Text12),
-            .color=(muted),
             .wrap=TextWrapNone
         })
         Text((TextProps){
-            .bounds={(bar_x - Scale(8) - TextWidth(line, Text12)), (*y), 0, 0},
+            .bounds={(bar_x - Scale(8) - AppTextWidth(line, Text12)), (*y), 0, 0},
             .text=(line),
-            .font=(Text12),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
 
-        track := DarkenUIColor(GetThemeBackground(), 26)
-        border := DarkenUIColor(GetThemeText(), 60)
-        fill := (Color){74, 178, 102, 255}
-        idle_col := (Color){240, 200, 60, 255}
         if timer->limit_s > 0 {
-            fraction := timer->active_s * (bar_w - 2) / timer->limit_s
-            if fraction > bar_w - 2 {
-                fraction = bar_w - 2
-            }
-            Rect(bar_x, *y + Scale(2), bar_w, Scale(12), track, border)
-            if fraction > 0 {
-                Rect(bar_x + 1, *y + Scale(3), fraction, Scale(10), fill, fill)
-            }
-            # Same yellow idle tip as the HUD: fills the rest of the bar while
-            # the user is away; full means a natural break resets the timer.
-            if timer->state == BreakStateRunning && timer->duration_s > 0 &&
-               timer->idle_s > 0 && !timer->idle_latched {
-                tip := (bar_w - 2 - fraction) * timer->idle_s / timer->duration_s
-                if tip > 0 {
-                    Rect(bar_x + 1 + fraction, *y + Scale(3), tip, Scale(10), idle_col, idle_col)
-                }
-            }
+            Progress((ProgressProps){
+                .bounds = {(float)bar_x, (float)(*y + Scale(3)),
+                           (float)bar_w, (float)Scale(10)},
+                .min = 0,
+                .max = timer->limit_s,
+                .value = timer->active_s,
+                .label = ""
+            })
         }
         *y += Scale(22)
     }
@@ -150,8 +131,6 @@ settings_breaks_draw_timer :: (app: InnerBreeze*, t: int, x: int, w: int, y: int
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(header),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(34)
@@ -223,18 +202,14 @@ settings_breaks_draw_week :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("settings_breaks_week_stats")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(30)
     if count <= 0 {
-        muted := DarkenUIColor(GetThemeText(), 40)
+        muted := DarkenColor(GetThemeText(), 40)
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("settings_breaks_no_data")),
-            .font=(Text12),
-            .color=(muted),
             .wrap=TextWrapNone
         })
         *y += Scale(24)
@@ -254,7 +229,7 @@ settings_breaks_draw_week :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
         postponed[t] += rows[i].postponed
     }
 
-    muted := DarkenUIColor(GetThemeText(), 40)
+    muted := DarkenColor(GetThemeText(), 40)
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
         line: [128] char
         name: const char* = t == BREAK_REST ? GetLocaleText("break_rest_title") : t == BREAK_DAILY ? GetLocaleText("break_daily_title") : GetLocaleText("break_micro_title")
@@ -263,8 +238,6 @@ settings_breaks_draw_week :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(line),
-            .font=(Text12),
-            .color=(muted),
             .wrap=TextWrapNone
         })
         *y += Scale(20)
@@ -298,11 +271,10 @@ settings_breaks_draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("settings_breaks_block_mode")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
-    if Dropdown(540, x, *y + Scale(26), w, Scale(36), block_options, 3, &block_mode) {
+    if Dropdown((DropdownProps){.id = 540, .bounds = {x, *y + Scale(26), w, Scale(36)},
+        .options = block_options, .option_count = 3, .selected_index = &block_mode}) {
         app->break_block_mode = block_mode
         app->settings_dirty = 1
     }
@@ -332,7 +304,6 @@ settings_breaks_draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     if Button((ButtonProps){
         .bounds = {(float)(x), (float)(*y), (float)(button_w), (float)(Scale(40))},
         .label = GetLocaleText("settings_breaks_rest_now"),
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = 0

@@ -59,8 +59,8 @@ static void nativeSetDeviceDensity(JNIEnv *env, jobject thiz, jfloat density)
     (void)env;
     (void)thiz;
 
-    extern void SetUIDeviceDensity(float);
-    SetUIDeviceDensity(density);
+    extern void SetDeviceDensity(float);
+    SetDeviceDensity(density);
 }
 
 static jint nativeGetPlayInBackground(JNIEnv *env, jobject thiz)

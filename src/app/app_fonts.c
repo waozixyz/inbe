@@ -10,7 +10,7 @@ app_running_in_kryon_preview(void)
 {
     const char *inspect = getenv("KRYON_INSPECT");
 
-    return IsUIInspectActive() ||
+    return IsInspectActive() ||
            (inspect != NULL && inspect[0] != '\0' && strcmp(inspect, "0") != 0);
 }
 
@@ -31,13 +31,13 @@ register_ui_font_source(const char *name, const char *path,
     asset = GetEmbeddedAsset(path);
     if(asset == NULL) {
 #if defined(KRYON_PLATFORM_PLAN9)
-        return RegisterUIFontFileSource(name, path, codepoints, codepoint_count);
+        return RegisterTextFontFileSource(name, path, codepoints, codepoint_count);
 #else
         return 0;
 #endif
     }
 
-    return RegisterUIFontSource(name, GetEmbeddedAssetExtension(path),
+    return RegisterTextFontSource(name, GetEmbeddedAssetExtension(path),
                                 asset->data, asset->size,
                                 codepoints, codepoint_count);
 }
@@ -48,9 +48,9 @@ register_desktop_system_ui_font(void)
 {
     char font_path[512];
 
-    if(!GetSystemUIFontFile(font_path, (int)sizeof(font_path)))
+    if(!GetSystemTextFontFile(font_path, (int)sizeof(font_path)))
         return 0;
-    if(!RegisterUIFontFileSource("ui", font_path, NULL, 0)) {
+    if(!RegisterTextFontFileSource("ui", font_path, NULL, 0)) {
         TraceLog(LOG_WARNING, "APP: failed to load system UI font: %s",
                  font_path);
         return 0;
@@ -80,7 +80,7 @@ register_android_system_font_fallbacks(void)
     };
 
     for(size_t i = 0; i < sizeof(fonts) / sizeof(fonts[0]); i++)
-        (void)RegisterUIFontFileSource(fonts[i].name, fonts[i].path, NULL, 0);
+        (void)RegisterTextFontFileSource(fonts[i].name, fonts[i].path, NULL, 0);
 }
 #endif
 
@@ -145,24 +145,24 @@ load_locale_font(InnerBreeze*app)
         return 0;
 #endif
 
-    if(!IsUIInspectActive())
-        ClearUIFonts();
+    if(!IsInspectActive())
+        ClearTextFonts();
 #if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
     system_font_active = register_desktop_system_ui_font();
 #endif
     if(system_font_active && font_asset != NULL) {
-        (void)RegisterUIFontSource("ui-locale", GetEmbeddedAssetExtension(font_path),
+        (void)RegisterTextFontSource("ui-locale", GetEmbeddedAssetExtension(font_path),
                                    font_asset->data, font_asset->size,
                                    NULL, 0);
     } else {
         if(font_asset != NULL) {
-            if(!RegisterUIFontSource("ui", GetEmbeddedAssetExtension(font_path),
+            if(!RegisterTextFontSource("ui", GetEmbeddedAssetExtension(font_path),
                                      font_asset->data, font_asset->size,
                                      NULL, 0))
                 goto done;
         } else {
 #if defined(KRYON_PLATFORM_PLAN9)
-            if(!RegisterUIFontFileSource("ui", font_path, NULL, 0))
+            if(!RegisterTextFontFileSource("ui", font_path, NULL, 0))
                 goto done;
 #else
             goto done;
@@ -173,7 +173,7 @@ load_locale_font(InnerBreeze*app)
     register_android_system_font_fallbacks();
 #endif
     register_language_picker_fonts();
-    if(!UseUIFont("ui"))
+    if(!UseTextFont("ui"))
         goto done;
 
     white = GenImageColor(1, 1, WHITE);
@@ -187,8 +187,8 @@ load_locale_font(InnerBreeze*app)
     ok = 1;
 
 done:
-    if(!ok && !IsUIInspectActive())
-        ClearUIFonts();
+    if(!ok && !IsInspectActive())
+        ClearTextFonts();
     return ok;
 }
 
@@ -197,8 +197,8 @@ unload_locale_font(InnerBreeze*app)
 {
     if(app == NULL)
         return;
-    if(!IsUIInspectActive())
-        ClearUIFonts();
+    if(!IsInspectActive())
+        ClearTextFonts();
 }
 
 void
@@ -206,6 +206,6 @@ discard_locale_font_cpu(InnerBreeze*app)
 {
     if(app == NULL)
         return;
-    if(!IsUIInspectActive())
-        ClearUIFonts();
+    if(!IsInspectActive())
+        ClearTextFonts();
 }

@@ -11,19 +11,15 @@ app_draw_close_title_bar :: (app: InnerBreeze*, title: const char*,
     x := view_width - button_total - Scale(8)
     y := (height - button_total) / 2
     if y < 0 { y = 0 }
-    TitleBar(title, height)
+    TitleBar((TitleBarProps){.title = title, .height = height})
     if app != nil && !app->modal.active &&
        Button((ButtonProps){
            .id = 0,
            .bounds = {(float)(x), (float)(y),
                       (float)((button_size) + (padding) * 2),
                       (float)((button_size) + (padding) * 2)},
-           .icon = app->icons[UI_ICON_TYPE_X], .icon_only = 1,
-           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-           .style = {.normal = {
-               .fields = StyleIconSize,
-               .icon_size = (float)(button_size) * 1000.0f / Scale(1000)
-           }}
+           .icon_type = ICON_X, .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
        }) {
         return 1
     }
@@ -36,7 +32,7 @@ app_scaffold_close_title :: (title: const char*, height: int,
 }
 
 app_draw_close_dropdown_title_bar :: (app: InnerBreeze*,
-                                      dropdown: UITitleBarDropdown,
+                                      dropdown: TitleBarDropdown,
                                       height: int) -> int #export {
 
     button_size := Scale(22)
@@ -53,21 +49,19 @@ app_draw_close_dropdown_title_bar :: (app: InnerBreeze*,
     if dropdown_w < 1 { dropdown_w = 1 }
     DrawRectangle(0, 0, view_width, height, GetThemeBackground())
     DrawLine(0, height - 1, view_width, height - 1,
-             DarkenUIColor(GetThemeButton(), 18))
-    Dropdown(dropdown.id, dropdown_x, dropdown_y, dropdown_w, dropdown_h,
-             dropdown.options, dropdown.option_count, dropdown.selected_index)
+             DarkenColor(GetThemeButton(), 18))
+    Dropdown((DropdownProps){.id = dropdown.id,
+             .bounds = {dropdown_x, dropdown_y, dropdown_w, dropdown_h},
+             .options = dropdown.options, .option_count = dropdown.option_count,
+             .selected_index = dropdown.selected_index})
     if app != nil && !app->modal.active &&
        Button((ButtonProps){
            .id = 0,
            .bounds = {(float)(close_x), (float)(close_y),
                       (float)((button_size) + (padding) * 2),
                       (float)((button_size) + (padding) * 2)},
-           .icon = app->icons[UI_ICON_TYPE_X], .icon_only = 1,
-           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-           .style = {.normal = {
-               .fields = StyleIconSize,
-               .icon_size = (float)(button_size) * 1000.0f / Scale(1000)
-           }}
+           .icon_type = ICON_X, .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
        }) {
         return 1
     }
@@ -80,8 +74,7 @@ app_toolbar_height :: () -> int #export {
 
 app_content_top_reserved :: (app: const InnerBreeze*) -> int #export {
     if app != nil && app->breathing.screen == ScreenStart {
-        tabs := (TabBarProps){0}
-        return GetNodeHeight(NodeTabBar(tabs))
+        return GetTabBarHeight()
     }
     return app_toolbar_height()
 }

@@ -16,15 +16,13 @@ content_height :: (content_w: int) -> int {
     unused content_w
 
     #if WEB {
-        return Scale(314) + Scale(208)
+        return Scale(366) + Scale(208)
     } #else {
-        return Scale(298) + Scale(208)
+        return Scale(350) + Scale(208)
     }
 }
 
 draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*) {
-    result := (ThemeSettingsResult){0}
-
     if app == NULL || y == NULL || state == NULL {
         return
     }
@@ -40,31 +38,19 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
     }
     Text((TextProps){
         .bounds = {(float)x, (float)*y, (float)w, (float)Scale(24)},
-        .text = GetLocaleText("navigation_placement"), .font = Text16
+        .text = GetLocaleText("navigation_placement")
     })
     *y += Scale(28)
-    if Dropdown(149, x, *y, w, Scale(40), placements, 5, &app->navigation_placement) {
+    if Dropdown((DropdownProps){.id = 149, .bounds = {x, *y, w, Scale(40)},
+        .options = placements, .option_count = 5,
+        .selected_index = &app->navigation_placement}) {
         app->settings_scroll = 0
         app_block_current_click(app)
         save_settings(app)
     }
     *y += Scale(56)
 
-    settings := (ThemeSettingsProps){
-        .id_base = 101,
-        .x = x,
-        .y = *y,
-        .w = w,
-        .theme_source = &app->theme_source,
-        .theme_mode = &app->theme_mode,
-        .theme_id = &app->theme_id,
-        .theme_style = nil,
-        .allow_system_source = 1,
-        .allow_system_mode = ANDROID_BUILD,
-        .system_theme_label = GetSystemThemeNameCached()
-    }
-
-    if ThemeSettings(settings, &state->menu_state, &result) {
+    if draw_theme_settings(app, x, w, y) {
         #if !ANDROID {
             if app->theme_source == APP_THEME_SOURCE_SYSTEM {
                 app->theme_mode = APP_THEME_SYSTEM
@@ -72,19 +58,22 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
         }
         app_refresh_theme(app)
         app->settings_dirty = 1
-        if result.style_changed {
-            save_settings(app)
-        } else {
-            app->settings_save_delay_ticks = 18
-        }
+        app->settings_save_delay_ticks = 18
     }
-    *y += GetNodeHeight(NodeThemeSettings(settings))
     *y += Scale(24)
+
+    glow_effects := app->glow_effects_enabled
+    if ui.commit_toggle_row(app, x, w, y,
+                            GetLocaleText("appearance_glow_effects_label"),
+                            &glow_effects, 1) {
+        app->glow_effects_enabled = glow_effects
+        SetFancyEffectsEnabled(app->glow_effects_enabled)
+    }
+    *y += Scale(6)
 
     if Button((ButtonProps){
         .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(44))},
         .label = GetLocaleText("customize_nav_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = app->modal.active
@@ -94,10 +83,72 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
     *y += Scale(58)
 }
 
+draw_theme_settings :: (app: InnerBreeze*, x: int, w: int, y: int*) -> int #private {
+    changed := 0
+    row_label_gap := Scale(8)
+    row_gap := Scale(14)
+    row_h := Scale(40)
+    font := AppFontSize()
+    mode_options: [3] const char* = {
+        GetLocaleText("theme_follow_device"),
+        GetLocaleText("theme_light"),
+        GetLocaleText("theme_dark")
+    }
+    mode_index := app->theme_mode
+
+    if mode_index < APP_THEME_SYSTEM || mode_index > APP_THEME_DARK {
+        mode_index = APP_THEME_SYSTEM
+    }
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("theme_mode_label")),
+        .wrap=TextWrapNone
+    })
+    if Dropdown((DropdownProps){.id = 102,
+        .bounds = {x, *y + font + row_label_gap, w, row_h},
+        .options = mode_options, .option_count = 3,
+        .selected_index = &mode_index}) {
+        app->theme_mode = mode_index
+        changed = 1
+    }
+    *y += font + row_label_gap + row_h + row_gap
+
+    theme_options: [THEME_COUNT + 1] const char* = {0}
+    theme_options[0] = GetLocaleText("theme_system")
+    for int i = 0; i < THEME_COUNT; i++ {
+        theme_options[i + 1] = GetThemeLabel((ThemeId)i)
+    }
+    theme_index := app->theme_source == APP_THEME_SOURCE_SYSTEM
+        ? 0
+        : app->theme_id + 1
+    if theme_index < 0 || theme_index > THEME_COUNT {
+        theme_index = 1
+    }
+    Text((TextProps){
+        .bounds={(x), (*y), 0, 0},
+        .text=(GetLocaleText("theme_color_label")),
+        .wrap=TextWrapNone
+    })
+    if Dropdown((DropdownProps){.id = 103,
+        .bounds = {x, *y + font + row_label_gap, w, row_h},
+        .options = theme_options, .option_count = THEME_COUNT + 1,
+        .selected_index = &theme_index}) {
+        if theme_index == 0 {
+            app->theme_source = APP_THEME_SOURCE_SYSTEM
+        } else {
+            app->theme_source = APP_THEME_SOURCE_APP
+            app->theme_id = clampi(theme_index - 1, 0, THEME_COUNT - 1)
+        }
+        changed = 1
+    }
+    *y += font + row_label_gap + row_h + row_gap
+    return changed
+}
+
 draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     scale_value := scale_drag_active ? scale_drag_value : app->ui_scale_tenths
     multiplier := scale_value / 10.0f
-    effective: float = multiplier * GetUIDPIScale()
+    effective: float = multiplier * GetDPIScale()
     scale_text: [16] char
     step_w := Scale(28)
     step_gap := Scale(8)
@@ -110,9 +161,9 @@ draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     slider_changed := 0
     snprintf(scale_text, sizeof(scale_text), "%.1fx", effective)
     if Button((ButtonProps){
-        .id = 141, .label = "-", .font = GetFontSize(),
-        .bounds = {(x + step_w / 2) - fmaxf(TextWidth("-", GetFontSize()) + Scale(16), Scale(34)) / 2.0f,
-                   (float)(step_y), fmaxf(TextWidth("-", GetFontSize()) + Scale(16), Scale(34)), fmaxf(TextLineHeight(GetFontSize()) + Scale(8), Scale(34))},
+        .id = 141, .label = "-",
+        .bounds = {(x + step_w / 2) - fmaxf(AppTextWidth("-", AppFontSize()) + Scale(16), Scale(34)) / 2.0f,
+                   (float)(step_y), fmaxf(AppTextWidth("-", AppFontSize()) + Scale(16), Scale(34)), fmaxf(AppTextLineHeight(AppFontSize()) + Scale(8), Scale(34))},
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
         if scale_value > 5 {
@@ -124,9 +175,12 @@ draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         slider_x = x
         slider_w = w
     }
-    slider_changed = Slider(140, slider_x, *y,
-                            slider_w, GetLocaleText("appearance_scale_label"),
-                            5, 25, &scale_value, "", scale_text)
+    unused scale_text
+    slider_changed = Slider((SliderProps){.id = 140,
+        .bounds = {slider_x, *y, slider_w, Scale(56)},
+        .label = GetLocaleText("appearance_scale_label"),
+        .kind = NumericInt, .int_values = &scale_value,
+        .value_count = 1, .min = 5, .max = 25, .format = "%d"})
     if slider_changed {
         if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
             scale_drag_active = 0
@@ -140,9 +194,9 @@ draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     }
     if slider_w < w {
         if Button((ButtonProps){
-        .id = 142, .label = "+", .font = GetFontSize(),
-        .bounds = {(x + w - step_w / 2) - fmaxf(TextWidth("+", GetFontSize()) + Scale(16), Scale(34)) / 2.0f,
-                   (float)(step_y), fmaxf(TextWidth("+", GetFontSize()) + Scale(16), Scale(34)), fmaxf(TextLineHeight(GetFontSize()) + Scale(8), Scale(34))},
+        .id = 142, .label = "+",
+        .bounds = {(x + w - step_w / 2) - fmaxf(AppTextWidth("+", AppFontSize()) + Scale(16), Scale(34)) / 2.0f,
+                   (float)(step_y), fmaxf(AppTextWidth("+", AppFontSize()) + Scale(16), Scale(34)), fmaxf(AppTextLineHeight(AppFontSize()) + Scale(8), Scale(34))},
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
             if scale_value < 25 {
@@ -170,52 +224,57 @@ settings_screen_draw_theme_picker_modal :: (app: InnerBreeze*) #export {
     modal_h := Scale(360)
     title := GetLocaleText("theme_picker_title")
     frame := (UIPanelFrame){0}
-    scroll_area := (UIScrollArea){0}
-    scroll_view := (UIScrollView){0}
     picker_h := 0
-    draw_w := 0
 
-    frame = ModalFrame(modal_w, modal_h, title, (Texture2D){0}, app->icons[UI_ICON_TYPE_X])
+    frame = AppModalFrame(modal_w, modal_h, title, 0, ICON_X)
     if frame.right_clicked {
         app_close_modal(app)
         return
     }
 
-    draw_w = frame.content_w
-    picker_h = GetNodeHeight(NodeThemePicker(0, 0, draw_w))
-    scroll_area = (UIScrollArea){
-        .bounds = {
-            (float)frame.content_x,
-            (float)frame.content_y,
-            (float)frame.content_w,
-            (float)frame.content_h
-        },
-        .content_height = picker_h,
-        .content_x = frame.content_x,
-        .content_width = frame.content_w,
-        .scroll_offset = &app->theme_state.theme_picker_scroll,
-        .wheel_step = Scale(42),
-        .scrollbar_x = frame.content_x + frame.content_w - Scale(8)
-    }
+    picker_h = theme_picker_content_height(frame.content_w)
 
-    for int i = 0; i < 3; i++ {
-        measured := MeasureUIScrollContainer(scroll_area)
-        if measured.content_w == draw_w {
-            break
+    Scroll picker: {
+        bounds = (Rectangle){(float)frame.content_x, (float)frame.content_y,
+                             (float)frame.content_w, (float)frame.content_h}
+        content_height = picker_h
+        scroll_offset = &app->theme_state.theme_picker_scroll
+        if draw_theme_picker((int)picker.x, (int)picker.y,
+                             (int)picker.width, app->dark_mode, &app->theme_id) {
+            app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1)
+            app->theme_source = APP_THEME_SOURCE_APP
+            app_refresh_theme(app)
+            app->settings_dirty = 1
+            save_settings(app)
+            app_close_modal(app)
         }
-        draw_w = measured.content_w
-        scroll_area.content_height = GetNodeHeight(NodeThemePicker(0, 0, draw_w))
     }
+}
 
-    picker_h = GetNodeHeight(NodeThemePicker(0, 0, draw_w))
-    scroll_area.content_height = picker_h
-    scroll_view = BeginUIScrollContainer(scroll_area)
-    if ThemePicker(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {
-        app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1)
-        app_refresh_theme(app)
-        app->settings_dirty = 1
-        save_settings(app)
-        app_close_modal(app)
+theme_picker_content_height :: (w: int) -> int #private {
+    unused w
+    return THEME_COUNT * Scale(46)
+}
+
+draw_theme_picker :: (x: int, y: int, w: int, dark_mode: int, theme_id: int*) -> int #private {
+    unused dark_mode
+    selected := theme_id != nil ? *theme_id : THEME_SKY
+    changed := 0
+
+    for int i = 0; i < THEME_COUNT; i++ {
+        if Button((ButtonProps){
+            .id = 51000 + i,
+            .bounds = {(float)x, (float)(y + i * Scale(46)),
+                       (float)w, (float)Scale(40)},
+            .label = GetThemeLabel((ThemeId)i),
+            .tone = selected == i ? ButtonToneAccent : ButtonToneNeutral,
+            .emphasis = selected == i ? ButtonEmphasisFilled : ButtonEmphasisSoft
+        }) {
+            if theme_id != nil {
+                *theme_id = i
+            }
+            changed = 1
+        }
     }
-    EndUIScrollContainer(scroll_area, scroll_view)
+    return changed
 }

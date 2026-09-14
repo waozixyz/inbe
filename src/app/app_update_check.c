@@ -20,7 +20,7 @@
  * (APP_DATA_ROOT) skips the check so CI stays offline-deterministic.
  */
 #define APPCAST_URL \
-    "https://github.com/waozixyz/breathing/releases/latest/download/appcast.json"
+    "https://github.com/waozixyz/inbe/releases/latest/download/appcast.json"
 #define UPDATE_CHECK_INTERVAL_S (24 * 60 * 60)
 #define UPDATE_LAST_CHECK_KEY "update_check_last_unix"
 
@@ -81,7 +81,7 @@ update_flow_note_state(void)
              * hear about updates from their package manager. */
             if(kry_update_flow_artifact(flow) != NULL &&
                !shown_available_toast) {
-                ShowToast(GetLocaleText("update_available_toast"));
+                Toast((ToastProps){.message = GetLocaleText("update_available_toast")});
                 shown_available_toast = 1;
             }
             /* Test/automation hook: fetch immediately instead of waiting
@@ -168,7 +168,7 @@ update_download_url(void)
         if(release[0] != '\0')
             return release;
     }
-    return "https://github.com/waozixyz/breathing/releases";
+    return "https://github.com/waozixyz/inbe/releases";
 }
 
 UpdateFlow

@@ -75,19 +75,6 @@ profile_content_height :: (content_w: int, user_data: void*) -> int {
     return Scale(12) + profile_sync_content_height(content_w)
 }
 
-profile_text_style :: () -> TextInputStyle #private {
-    border := DarkenUIColor(GetThemeBackground(), 22)
-    return (TextInputStyle){
-        .background = DarkenUIColor(GetThemeBackground(), 4),
-        .border = border,
-        .focus_border = border,
-        .text = GetThemeText(),
-        .cursor = GetThemeText(),
-        .radius = 0.12f,
-        .padding_x = Scale(10)
-    }
-}
-
 profile_save_identity :: (app: InnerBreeze*) #private {
     if app == nil {
         return
@@ -126,7 +113,6 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     intention_commit := 0
     name_was_focused := app->profile_name_focused
     intention_was_focused := app->profile_intention_focused
-    style := profile_text_style()
 
     if sync_account_load(&account) {
         alias = storage_get_setting_text("sync_account_alias")
@@ -146,11 +132,7 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
                    (float)icon_size, (float)icon_size},
         .icon = app->icons[app->profile_picture_icon],
         .icon_only = 1, .circle = 1,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .style = {.normal = {
-            .fields = StyleIconSize,
-            .icon_size = (float)(icon_size - Scale(18)) * 1000.0f / Scale(1000)
-        }}
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
         app->profile_picture_picker_scroll = 0
         app_open_modal(app, UIModalProfilePicturePicker)
@@ -159,8 +141,6 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     Text((TextProps){
         .bounds={(field_x), (*y), 0, 0},
         .text=(account_text),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 20)),
         .wrap=TextWrapNone
     })
     *y += Scale(22)
@@ -168,8 +148,6 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     Text((TextProps){
         .bounds={(field_x), (*y), 0, 0},
         .text=(GetLocaleText("profile_name_label")),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 35)),
         .wrap=TextWrapNone
     })
     TextField((TextFieldProps){
@@ -179,9 +157,7 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         .cursor_position = &app->profile_name_cursor,
         .focused = &app->profile_name_focused,
         .max_codepoints = 40,
-        .font = GetFontSize(),
         .focus_id = 813,
-        .style = style,
         .commit_pressed = &name_commit
     })
     *y += Scale(64)
@@ -189,8 +165,6 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     Text((TextProps){
         .bounds={(field_x), (*y), 0, 0},
         .text=(GetLocaleText("profile_intention_label")),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 35)),
         .wrap=TextWrapNone
     })
     TextField((TextFieldProps){
@@ -200,9 +174,7 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         .cursor_position = &app->profile_intention_cursor,
         .focused = &app->profile_intention_focused,
         .max_codepoints = 90,
-        .font = GetFontSize(),
         .focus_id = 814,
-        .style = style,
         .commit_pressed = &intention_commit
     })
     *y += Scale(58)
@@ -217,22 +189,18 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
 profile_draw_metric_card :: (x: int, w: int, y: int*, label: const char*,
                              value: const char*) #private {
     h := Scale(58)
-    value_w := TextWidth(value, GetFontSize())
+    value_w := AppTextWidth(value, AppFontSize())
 
     DrawRectangleRounded((Rectangle){(float)x, (float)*y, (float)w, (float)h},
-                         0.12f, 8, DarkenUIColor(GetThemeBackground(), 7))
+                         0.12f, 8, DarkenColor(GetThemeBackground(), 7))
     Text((TextProps){
         .bounds={(x + Scale(12)), (*y + Scale(20)), 0, 0},
         .text=(label),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 28)),
         .wrap=TextWrapNone
     })
     Text((TextProps){
         .bounds={(x + w - value_w - Scale(12)), (*y + Scale(17)), 0, 0},
         .text=(value),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += h + Scale(8)
@@ -260,54 +228,44 @@ profile_draw_hub_section_label :: (x: int, y: int*, label: const char*) #private
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(label),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(32)
 }
 
 profile_draw_hub_stat_card :: (x: int, y: int, w: int, h: int,
-                               icon: Texture2D, label: const char*,
+                               icon_type: IconType, label: const char*,
                                value: const char*, icon_color: Color) #private {
     icon_box := Scale(34)
     icon_size := Scale(18)
     center_x := x + w / 2
     icon_x := center_x - icon_box / 2
     value_font := Scale(22)
-    label_font := GetSmallFontSize()
-    value_w := TextWidth(value, value_font)
-    label_w := TextWidth(label, label_font)
+    label_font := AppSmallFontSize()
+    value_w := AppTextWidth(value, value_font)
+    label_w := AppTextWidth(label, label_font)
 
-    DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)h},
-                         0.14f, 10, DarkenUIColor(GetThemeBackground(), 7))
-    DrawCircle(center_x, y + Scale(26), icon_box / 2,
-               DarkenUIColor(icon_color, 18))
-    DrawTexturePro(icon,
-                   (Rectangle){0, 0, (float)icon.width,
-                               (float)icon.height},
-                   (Rectangle){(float)(icon_x + (icon_box - icon_size) / 2),
-                               (float)(y + Scale(26) - icon_size / 2),
-                               (float)icon_size, (float)icon_size},
-                   (Vector2){0, 0}, 0.0f, WHITE)
+    Card((CardProps){
+        .bounds={(float)x, (float)y, (float)w, (float)h}
+    })
+    Circle(center_x, y + Scale(26), icon_box / 2,
+           LightenColor(icon_color, 12))
+    Icon(0, icon_x + (icon_box - icon_size) / 2,
+         y + Scale(26) - icon_size / 2, icon_size, icon_type, WHITE)
     Text((TextProps){
         .bounds={(center_x - label_w / 2), (y + Scale(54)), 0, 0},
         .text=(label),
-        .font=(label_font),
-        .color=(DarkenUIColor(GetThemeText(), 20)),
         .wrap=TextWrapNone
     })
     Text((TextProps){
         .bounds={(center_x - value_w / 2), (y + Scale(78)), 0, 0},
         .text=(value),
-        .font=(value_font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
 }
 
 profile_draw_hub_route_card :: (app: InnerBreeze*, x: int, y: int*, w: int,
-                                h: int, icon: Texture2D, title: const char*,
+                                h: int, icon_type: IconType, title: const char*,
                                 subtitle: const char*, value: const char*,
                                 tab: int) #private {
     bounds := (Rectangle){(float)x, (float)*y, (float)w, (float)h}
@@ -316,8 +274,8 @@ profile_draw_hub_route_card :: (app: InnerBreeze*, x: int, y: int*, w: int,
     icon_x := x + Scale(14)
     text_x := icon_x + icon_box + Scale(12)
     arrow := "›"
-    arrow_w := TextWidth(arrow, Scale(Text24))
-    value_w := value != nil ? TextWidth(value, GetSmallFontSize()) : 0
+    arrow_w := AppTextWidth(arrow, Scale(Text24))
+    value_w := value != nil ? AppTextWidth(value, AppSmallFontSize()) : 0
     text_w := w - (text_x - x) - Scale(48)
 
     if value_w > 0 {
@@ -326,33 +284,24 @@ profile_draw_hub_route_card :: (app: InnerBreeze*, x: int, y: int*, w: int,
     if Button((ButtonProps){
         .bounds = bounds,
         .label = "",
-        .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft
         }) {
         profile_open_tab_card(app, tab)
     }
-    DrawCircle(icon_x + icon_box / 2, *y + h / 2, icon_box / 2,
-               DarkenUIColor(GetThemeButton(), 12))
-    DrawTexturePro(icon,
-                   (Rectangle){0, 0, (float)icon.width,
-                               (float)icon.height},
-                   (Rectangle){(float)(icon_x + (icon_box - icon_size) / 2),
-                               (float)(*y + h / 2 - icon_size / 2),
-                               (float)icon_size, (float)icon_size},
-                   (Vector2){0, 0}, 0.0f, WHITE)
+    Circle(icon_x + icon_box / 2, *y + h / 2, icon_box / 2,
+           DarkenColor(GetThemeButton(), 12))
+    Icon(0, icon_x + (icon_box - icon_size) / 2,
+         *y + h / 2 - icon_size / 2, icon_size, icon_type, WHITE)
     profile_draw_fitted_text(title, text_x, *y + Scale(16), text_w,
-                             GetFontSize(), GetThemeText())
+                             AppFontSize())
     profile_draw_fitted_text(subtitle, text_x, *y + Scale(42), text_w,
-                             GetSmallFontSize(),
-                             DarkenUIColor(GetThemeText(), 28))
+                             AppSmallFontSize())
     if value_w > 0 {
         Text((TextProps){
             .bounds={(x + w - Scale(42) - value_w),
                      (*y + h / 2 - Scale(9)), 0, 0},
             .text=(value),
-            .font=(GetSmallFontSize()),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
     }
@@ -360,8 +309,6 @@ profile_draw_hub_route_card :: (app: InnerBreeze*, x: int, y: int*, w: int,
         .bounds={(x + w - Scale(24) - arrow_w / 2),
                  (*y + h / 2 - Scale(18)), 0, 0},
         .text=(arrow),
-        .font=(Scale(Text24)),
-        .color=(DarkenUIColor(GetThemeText(), 20)),
         .wrap=TextWrapNone
     })
     *y += h + Scale(10)
@@ -401,40 +348,35 @@ profile_draw_hub_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
                  GetLocaleText("profile_sync_prompt_body"))
     }
 
-    DrawRectangleRounded(bounds, 0.14f, 12, DarkenUIColor(GetThemeBackground(), 8))
+    DrawRectangleRounded(bounds, 0.14f, 12, DarkenColor(GetThemeBackground(), 8))
     DrawRectangleGradientV(x, *y, w, card_h,
                            Fade(GetThemeButton(), 0.32f),
                            Fade(GetThemeBackground(), 0.0f))
     DrawRectangleRoundedLinesEx(bounds, 0.14f, 12, 1.0f,
-                                DarkenUIColor(GetThemeButton(), 18))
+                                DarkenColor(GetThemeButton(), 18))
     if Button((ButtonProps){
         .bounds = {(float)avatar_x, (float)avatar_y,
                    (float)avatar, (float)avatar},
         .icon = app->icons[app->profile_picture_icon],
         .icon_only = 1, .circle = 1,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .style = {.normal = {
-            .fields = StyleIconSize,
-            .icon_size = (float)(avatar - Scale(26)) * 1000.0f / Scale(1000)
-        }}
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
         app->profile_picture_picker_scroll = 0
         app_open_modal(app, UIModalProfilePicturePicker)
     }
     profile_draw_fitted_text(title, text_x, *y + Scale(34),
                              w - (text_x - x) - Scale(18),
-                             Scale(Text18), GetThemeText())
+                             Scale(Text18))
     Paragraph((ParagraphSpec){
         .text = subtitle,
         .width = w - (text_x - x) - Scale(18),
-        .font = GetSmallFontSize(),
+        .font = AppSmallFontSize(),
         .line_gap = Scale(3)
     }, text_x, &subtitle_y)
     if Button((ButtonProps){
         .bounds = {(float)(text_x), (float)(*y + Scale(108)), (float)(w - (text_x - x) - Scale(18)), (float)(Scale(38))},
         .label = GetLocaleText(has_account ? "sync_account_title"
                                                : "sync_create_account_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = 0
@@ -475,7 +417,7 @@ profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     profile_draw_hub_section_label(x, y, GetLocaleText("profile_progress_title"))
     snprintf(value, sizeof(value), loading ? "…" : "%d/%d", done, due)
     profile_draw_hub_stat_card(x, *y, stat_w, stat_h,
-                               app->icons[UI_ICON_TYPE_CALENDAR],
+                               ICON_CALENDAR,
                                GetLocaleText("profile_today_short"), value,
                                GetThemeButton())
     if loading {
@@ -484,13 +426,13 @@ profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         snprintf(value, sizeof(value), "%d", active_days)
     }
     profile_draw_hub_stat_card(x + stat_w + stat_gap, *y, stat_w, stat_h,
-                               app->icons[UI_ICON_TYPE_ACTIVITY],
+                               ICON_ACTIVITY,
                                GetLocaleText("profile_active_days_short"),
                                value, GetThemeCircle())
     snprintf(value, sizeof(value), loading ? "…" : "%d", practice_sessions)
     profile_draw_hub_stat_card(x + (stat_w + stat_gap) * 2, *y,
                                w - (stat_w + stat_gap) * 2, stat_h,
-                               app->icons[UI_ICON_TYPE_STAT],
+                               ICON_STAT,
                                GetLocaleText("profile_sessions_short"),
                                value, GetThemeLink())
     *y += stat_h + Scale(14)
@@ -503,7 +445,7 @@ profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     }
 
     profile_draw_hub_route_card(app, x, y, w, Scale(76),
-                                app->icons[UI_ICON_TYPE_PROFILE],
+                                ICON_PROFILE,
                                 GetLocaleText("profile_friends_title"),
                                 insight, nil, PROFILE_TAB_FRIENDS)
     if pending_count > 0 {
@@ -515,7 +457,7 @@ profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
                          "profile_friends_summary", friend_count)
     }
     profile_draw_hub_route_card(app, x, y, w, Scale(76),
-                                app->icons[UI_ICON_TYPE_STAT],
+                                ICON_STAT,
                                 GetLocaleText("profile_leaderboard_title"),
                                 GetLocaleText("profile_leaderboard_preview_body"),
                                 GetLocaleText("profile_no_rank_short"),
@@ -523,12 +465,12 @@ profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     profile_format_size(storage_value, sizeof(storage_value),
                         storage_total_size())
     profile_draw_hub_route_card(app, x, y, w, Scale(68),
-                                app->icons[UI_ICON_TYPE_SAVE],
+                                ICON_SAVE,
                                 GetLocaleText("profile_data_management_title"),
                                 GetLocaleText("profile_data_management_body"),
                                 storage_value, PROFILE_TAB_DATA)
     profile_draw_hub_route_card(app, x, y, w, Scale(68),
-                                app->icons[UI_ICON_TYPE_GLOBE],
+                                ICON_GLOBE,
                                 GetLocaleText("profile_account_sync_title"),
                                 GetLocaleText("profile_account_sync_body"),
                                 friends_value, PROFILE_TAB_SYNC)
@@ -536,23 +478,18 @@ profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
 
 profile_draw_stat_row :: (x: int, w: int, y: int*, label: const char*,
                          value: const char*) #private {
-    font := GetFontSize()
-    small_font := GetSmallFontSize()
+    font := AppFontSize()
     value_w := 0
 
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(label),
-        .font=(small_font),
-        .color=(DarkenUIColor(GetThemeText(), 35)),
         .wrap=TextWrapNone
     })
-    value_w = TextWidth(value, font)
+    value_w = AppTextWidth(value, font)
     Text((TextProps){
         .bounds={(x + w - value_w), (*y - Scale(2)), 0, 0},
         .text=(value),
-        .font=(font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(28)
@@ -570,7 +507,7 @@ profile_draw_data_summary :: (x: int, w: int, y: int*) #private {
 }
 
 profile_draw_divider :: (x: int, w: int, y: int) #private {
-    DrawLine(x, y, x + w, y, DarkenUIColor(GetThemeBackground(), 28))
+    DrawLine(x, y, x + w, y, DarkenColor(GetThemeBackground(), 28))
 }
 
 profile_tab_title :: (tab: int) -> const char* #private {
@@ -597,9 +534,9 @@ profile_draw_tabs :: (app: InnerBreeze*, y: int, h: int) -> int #private {
     clicked := -1
     tab_w := view_width / PROFILE_TAB_COUNT
 
-    DrawRectangle(0, y, view_width, h, DarkenUIColor(GetThemeBackground(), 6))
+    DrawRectangle(0, y, view_width, h, DarkenColor(GetThemeBackground(), 6))
     DrawLine(0, y + h - 1, view_width, y + h - 1,
-             DarkenUIColor(GetThemeBackground(), 24))
+             DarkenColor(GetThemeBackground(), 24))
     for int i = 0; i < PROFILE_TAB_COUNT; i++ {
         x := i * tab_w
         w := i == PROFILE_TAB_COUNT - 1 ? view_width - x : tab_w
@@ -607,7 +544,6 @@ profile_draw_tabs :: (app: InnerBreeze*, y: int, h: int) -> int #private {
         if Button((ButtonProps){
             .bounds = {(float)x, (float)y, (float)w, (float)h},
             .label = profile_tab_title(i),
-            .font = GetSmallFontSize(),
             .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft, .selected = selected
         }) {
@@ -626,7 +562,7 @@ profile_draw_tabs :: (app: InnerBreeze*, y: int, h: int) -> int #private {
 }
 
 profile_draw_fitted_text :: (text: const char*, x: int, y: int, max_w: int,
-                            font: int, color: Color) #private {
+                            font: int) #private {
     fitted: [HABIT_NAME_SIZE + 4] char = {0}
 
     if text == nil || max_w <= 0 {
@@ -637,8 +573,6 @@ profile_draw_fitted_text :: (text: const char*, x: int, y: int, max_w: int,
     Text((TextProps){
         .bounds={(x), (y), 0, 0},
         .text=(fitted),
-        .font=(font),
-        .color=(color),
         .wrap=TextWrapNone
     })
 }
@@ -651,8 +585,7 @@ profile_draw_data :: (app: InnerBreeze*, x: int, w: int, y: int*) {
 }
 
 profile_draw_habits :: (app: InnerBreeze*, x: int, w: int, y: int*) {
-    font := GetFontSize()
-    small := GetSmallFontSize()
+    font := AppFontSize()
     btn_h := Scale(32)
     btn_w := Scale(74)
     gap := Scale(8)
@@ -668,15 +601,13 @@ profile_draw_habits :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         name_w := stack_rows ? w : w - controls_w - gap
 
         profile_draw_fitted_text(app->habits.items[i].name, x,
-                                    row_y + Scale(7), name_w, font,
-                                    GetThemeText())
+                                    row_y + Scale(7), name_w, font)
         if stack_rows {
             row_y += Scale(36)
         }
         if Button((ButtonProps){
             .bounds = {(float)(stack_rows ? x : x + w - btn_w * 2 - gap), (float)(row_y), (float)(btn_w), (float)(btn_h)},
             .label = GetLocaleText("move_up_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = i == 0
@@ -689,7 +620,6 @@ profile_draw_habits :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         if Button((ButtonProps){
             .bounds = {(float)(stack_rows ? x + btn_w + gap : x + w - btn_w), (float)(row_y), (float)(btn_w), (float)(btn_h)},
             .label = GetLocaleText("move_down_button"),
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = i == app->habits.count - 1
@@ -707,8 +637,6 @@ profile_draw_habits :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("habit_empty_title")),
-            .font=(small),
-            .color=(DarkenUIColor(GetThemeText(), 35)),
             .wrap=TextWrapNone
         })
     }
@@ -728,10 +656,16 @@ profile_screen_draw_remove_friend_modal :: (app: InnerBreeze*) {
                 app->profile_pending_friend_remove_name[0] != '\0'
                     ? app->profile_pending_friend_remove_name
                     : "this friend")
-    modal_result = Modal(GetLocaleText("profile_friend_remove_title"),
-                               message,
-                               GetLocaleText("cancel_button"),
-                               GetLocaleText("delete_button"))
+    actions: [2] ModalAction = {
+        {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("delete_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
+    }
+    modal_result = Modal((ModalProps){
+        .title = GetLocaleText("profile_friend_remove_title"),
+        .message = message,
+        .actions = actions,
+        .action_count = 2
+    })
     if modal_result == 1 {
         app->profile_pending_friend_remove_id[0] = '\0'
         app->profile_pending_friend_remove_name[0] = '\0'
@@ -754,23 +688,30 @@ profile_screen_draw_remove_friend_modal :: (app: InnerBreeze*) {
     }
 }
 
-profile_screen_draw :: (app: InnerBreeze*) -> int {
-    if app == nil {
-        return 0
-    }
-
-    header_h := GetNodeHeight(NodeTitleBar(0))
-    content_y := header_h + Scale(8)
-    content_h := view_height - content_y - app_content_bottom_reserved(app)
-    page := (UIScrollPage){0}
-    y := 0
-    title := GetLocaleText("tab_profile")
-
+profile_screen_handle_platform_import :: (app: InnerBreeze*) #private {
     #if ANDROID {
         settings_data_handle_android_import(app)
     } #else_if WEB {
         settings_data_handle_web_import(app)
     }
+}
+
+profile_screen_draw :: (app: InnerBreeze*) -> int {
+    if app == nil {
+        return 0
+    }
+
+    header_h := AppTitleBarHeight()
+    content_y := header_h + Scale(8)
+    content_h := view_height - content_y - app_content_bottom_reserved(app)
+    content_x := 0
+    content_w := 0
+    page_content_h := 0
+    max_w := Scale(CONTENT_MAX_W)
+    y := 0
+    title := GetLocaleText("tab_profile")
+
+    profile_screen_handle_platform_import(app)
 
     if app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT ||
        (app->profile_view == PROFILE_VIEW_MAIN && app->profile_tab == PROFILE_TAB_SYNC) {
@@ -789,7 +730,9 @@ profile_screen_draw :: (app: InnerBreeze*) -> int {
         title = profile_tab_title(app->profile_tab)
     }
 
-    if ReturnTitleBar(app->icons[UI_ICON_TYPE_LEFT], title, header_h) {
+    if TitleBar((TitleBarProps){.title = title, .height = header_h,
+                                .leading_icon = app->icons[ICON_LEFT],
+                                .has_leading_action = 1}) {
         app_block_current_click(app)
         if app->profile_view == PROFILE_VIEW_MAIN &&
            app->profile_tab != PROFILE_TAB_OVERVIEW {
@@ -813,35 +756,39 @@ profile_screen_draw :: (app: InnerBreeze*) -> int {
     if content_h < 0 {
         content_h = 0
     }
-    page = BeginUIScrollPage((UIScrollPageSpec){
-        .y = content_y,
-        .height = content_h,
-        .max_content_width = Scale(CONTENT_MAX_W),
-        .min_content_width = Scale(320),
-        .scroll_offset = &app->profile_scroll,
-        .content_height = profile_content_height,
-        .user_data = app
-    })
-    y = page.content_y + Scale(12)
-
-    if app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT {
-        settings_sync_account_draw_config(app, page.content_x, page.content_w, &y)
-    } else if app->profile_view == PROFILE_VIEW_DATA {
-        profile_draw_data(app, page.content_x, page.content_w, &y)
-    } else if app->profile_view == PROFILE_VIEW_HABITS {
-        profile_draw_habits(app, page.content_x, page.content_w, &y)
-    } else if app->profile_tab == PROFILE_TAB_OVERVIEW {
-        profile_draw_overview(app, page.content_x, page.content_w, &y)
-    } else if app->profile_tab == PROFILE_TAB_DATA {
-        profile_draw_data(app, page.content_x, page.content_w, &y)
-    } else if app->profile_tab == PROFILE_TAB_FRIENDS {
-        profile_social_draw_friends(app, page.content_x, page.content_w, &y)
-    } else if app->profile_tab == PROFILE_TAB_LEADERBOARD {
-        profile_social_draw_leaderboard(app, page.content_x, page.content_w, &y)
-    } else {
-        settings_sync_account_draw_config(app, page.content_x, page.content_w, &y)
+    if max_w > view_width - GetPageSidePadding() * 2 {
+        max_w = view_width - GetPageSidePadding() * 2
     }
-    EndUIScrollPage(page)
+    if max_w < Scale(320) {
+        max_w = Scale(320)
+    }
+    GetCenteredColumn(max_w, GetPageSidePadding(), &content_x, &content_w)
+    page_content_h = profile_content_height(content_w, app)
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)content_y, (float)view_width, (float)content_h}
+        content_height = page_content_h
+        scroll_offset = &app->profile_scroll
+
+        y := (int)page.y + Scale(12)
+
+        if app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT {
+            settings_sync_account_draw_config(app, content_x, content_w, &y)
+        } else if app->profile_view == PROFILE_VIEW_DATA {
+            profile_draw_data(app, content_x, content_w, &y)
+        } else if app->profile_view == PROFILE_VIEW_HABITS {
+            profile_draw_habits(app, content_x, content_w, &y)
+        } else if app->profile_tab == PROFILE_TAB_OVERVIEW {
+            profile_draw_overview(app, content_x, content_w, &y)
+        } else if app->profile_tab == PROFILE_TAB_DATA {
+            profile_draw_data(app, content_x, content_w, &y)
+        } else if app->profile_tab == PROFILE_TAB_FRIENDS {
+            profile_social_draw_friends(app, content_x, content_w, &y)
+        } else if app->profile_tab == PROFILE_TAB_LEADERBOARD {
+            profile_social_draw_leaderboard(app, content_x, content_w, &y)
+        } else {
+            settings_sync_account_draw_config(app, content_x, content_w, &y)
+        }
+    }
 
     return 0
 }

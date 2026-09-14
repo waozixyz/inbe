@@ -8,10 +8,6 @@
     PATTERNS_MANUAL_PAGES = 3
 }
 
-PatternsManualPageContext :: struct {
-    page: int
-}
-
 static patterns_manual_body_keys: [PATTERNS_MANUAL_PAGES] const char* = {
     "patterns_manual_choose_text",
     "patterns_manual_phases_text",
@@ -64,13 +60,12 @@ patterns_manual_visual_height :: (step: int) -> int #private {
     return Scale(248)
 }
 
-patterns_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
-    ctx := (PatternsManualPageContext*)user_data
-    step := ctx != nil ? ctx->page : 0
+patterns_manual_content_height :: (step: int, content_w: int) -> int #private {
+    paragraph := patterns_manual_paragraph(step, content_w)
     h := patterns_manual_visual_height(step) + Scale(18) +
          manual_screen_guide_header_height() +
-         GetNodeHeight(NodeParagraph(
-             patterns_manual_paragraph(step, content_w), 0, 0))
+         AppParagraphHeight(paragraph.text, paragraph.width,
+                            paragraph.font, paragraph.line_gap)
 
     return h
 }
@@ -89,8 +84,6 @@ patterns_manual_phase_card :: (label: const char*, count: int, x: int,
                                y: int, w: int, h: int, index: int,
                                active: int) #private {
     fill := active ? GetThemeButton() : GetThemeSurface()
-    text_color := active ? GetThemeButtonText() : GetThemeText()
-    meta_color := active ? Fade(GetThemeButtonText(), 0.82f) : GetThemeMutedText()
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
     badge_size := Scale(28)
     badge_x := x + Scale(12)
@@ -105,32 +98,26 @@ patterns_manual_phase_card :: (label: const char*, count: int, x: int,
     snprintf(count_text, sizeof(count_text), "%d", index + 1)
     Text((TextProps){
         .bounds={
-            (badge_x + (badge_size - TextWidth(count_text, GetSmallFontSize())) / 2),
-            (TextBaselineY(count_text, badge_y, badge_size, GetSmallFontSize())),
+            (badge_x + (badge_size - AppTextWidth(count_text, AppSmallFontSize())) / 2),
+            (AppControlTextY(count_text, badge_y, badge_size, AppSmallFontSize())),
             0, 0
         },
         .text=(count_text),
-        .font=(GetSmallFontSize()),
-        .color=(active ? GetThemeButton() : GetThemeText()),
         .wrap=TextWrapNone
     })
     Text((TextProps){
-        .bounds={(x + Scale(54)), (TextBaselineY(label, y, h, GetFontSize())), 0, 0},
+        .bounds={(x + Scale(54)), (AppControlTextY(label, y, h, AppFontSize())), 0, 0},
         .text=(label),
-        .font=(GetFontSize()),
-        .color=(text_color),
         .wrap=TextWrapNone
     })
     snprintf(count_text, sizeof(count_text), "%d", count)
     Text((TextProps){
         .bounds={
-            (x + w - Scale(18) - TextWidth(count_text, GetFontSize())),
-            (TextBaselineY(count_text, y, h, GetFontSize())),
+            (x + w - Scale(18) - AppTextWidth(count_text, AppFontSize())),
+            (AppControlTextY(count_text, y, h, AppFontSize())),
             0, 0
         },
         .text=(count_text),
-        .font=(GetFontSize()),
-        .color=(meta_color),
         .wrap=TextWrapNone
     })
 }
@@ -159,13 +146,10 @@ patterns_manual_preset_card :: (app: InnerBreeze*, preset: int,
     selected := app->patterns.preset == preset
     fill := selected ? GetThemeButton() : GetThemeSurface()
     border := selected ? GetThemeCircle() : GetThemeBorder()
-    text_color := selected ? GetThemeButtonText() : GetThemeText()
-    ratio_color := selected ? Fade(GetThemeButtonText(), 0.82f) : GetThemeMutedText()
     label := GetLocaleText(patterns_preset_label_key(preset))
-    label_font := FitFontSize(label, (int)bounds.width - Scale(22),
-                              GetFontSize(), GetSmallFontSize())
-    ratio_font := GetSmallFontSize()
-    label_w := TextWidth(label, label_font)
+    label_font := AppFitFontSize(label, (int)bounds.width - Scale(22),
+                              AppFontSize(), AppSmallFontSize())
+    label_w := AppTextWidth(label, label_font)
     ratio: [32] char = {0}
 
     DrawRectangleRounded(bounds, 0.2f, 10, fill)
@@ -177,12 +161,10 @@ patterns_manual_preset_card :: (app: InnerBreeze*, preset: int,
             0, 0
         },
         .text=(label),
-        .font=(label_font),
-        .color=(text_color),
         .wrap=TextWrapNone
     })
     patterns_manual_preset_ratio_text(app, preset, ratio, sizeof(ratio))
-    ratio_w := TextWidth(ratio, ratio_font)
+    ratio_w := AppTextWidth(ratio, AppSmallFontSize())
     Text((TextProps){
         .bounds={
             ((int)bounds.x + ((int)bounds.width - ratio_w) / 2),
@@ -190,49 +172,43 @@ patterns_manual_preset_card :: (app: InnerBreeze*, preset: int,
             0, 0
         },
         .text=(ratio),
-        .font=(ratio_font),
-        .color=(ratio_color),
         .wrap=TextWrapNone
     })
 }
 
-patterns_manual_draw_preset_selector :: (app: InnerBreeze*, page: UIScrollPage,
-                                         y: int*) #private {
+patterns_manual_draw_preset_selector :: (app: InnerBreeze*, content_x: int,
+                                         content_w: int, y: int*) #private {
     visual_h := patterns_manual_visual_height(0)
-    bounds := (Rectangle){(float)page.content_x, (float)*y,
-                          (float)page.content_w, (float)visual_h}
+    bounds := (Rectangle){(float)content_x, (float)*y,
+                          (float)content_w, (float)visual_h}
     pad := Scale(16)
     gap := Scale(12)
     button_h := Scale(58)
     header_h := Scale(56)
-    card_w := (page.content_w - pad * 2 - gap) / 2
+    card_w := (content_w - pad * 2 - gap) / 2
     current_ratio: [32] char = {0}
 
     DrawRectangleRounded(bounds, 0.12f, 10, GetThemeSurfaceAlt())
     patterns_ratio_text(app, current_ratio, sizeof(current_ratio))
     Text((TextProps){
         .bounds={
-            (page.content_x + pad),
+            (content_x + pad),
             (*y + Scale(18)),
-            (page.content_w - pad * 2),
+            (content_w - pad * 2),
             Scale(24)
         },
         .text=(GetLocaleText("patterns_preset_label")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone,
         .vertical_align=TextAlignCenter
     })
     Text((TextProps){
         .bounds={
-            (page.content_x + pad),
+            (content_x + pad),
             (*y + Scale(44)),
-            (page.content_w - pad * 2),
+            (content_w - pad * 2),
             Scale(22)
         },
         .text=(current_ratio),
-        .font=(GetSmallFontSize()),
-        .color=(GetThemeMutedText()),
         .wrap=TextWrapNone
     })
     preset_count := patterns_preset_count()
@@ -241,12 +217,12 @@ patterns_manual_draw_preset_selector :: (app: InnerBreeze*, page: UIScrollPage,
         row := i / 2
         col := i % 2
         button_w := card_w
-        button_x := page.content_x + pad + col * (card_w + gap)
+        button_x := content_x + pad + col * (card_w + gap)
         button_y := *y + header_h + Scale(18) + row * (button_h + gap)
 
         if i == preset_count - 1 {
-            button_w = page.content_w - pad * 2
-            button_x = page.content_x + pad
+            button_w = content_w - pad * 2
+            button_x = content_x + pad
         }
         patterns_manual_preset_card(app, i, (Rectangle){
             (float)button_x, (float)button_y,
@@ -256,14 +232,14 @@ patterns_manual_draw_preset_selector :: (app: InnerBreeze*, page: UIScrollPage,
     *y += visual_h + Scale(18)
 }
 
-patterns_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
-                                step: int, y: int*) #private {
+patterns_manual_draw_visual :: (app: InnerBreeze*, content_x: int,
+                                content_w: int, step: int, y: int*) #private {
     visual_h := patterns_manual_visual_height(step)
-    bounds := (Rectangle){(float)page.content_x, (float)*y,
-                          (float)page.content_w, (float)visual_h}
+    bounds := (Rectangle){(float)content_x, (float)*y,
+                          (float)content_w, (float)visual_h}
 
     if step == 0 {
-        patterns_manual_draw_preset_selector(app, page, y)
+        patterns_manual_draw_preset_selector(app, content_x, content_w, y)
         return
     }
     DrawRectangleRounded(bounds, 0.12f, 10, GetThemeSurfaceAlt())
@@ -275,9 +251,9 @@ patterns_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
             GetLocaleText("patterns_phase_hold_out")
         }
         gap := Scale(10)
-        card_x := page.content_x + Scale(16)
+        card_x := content_x + Scale(16)
         card_y := *y + Scale(18)
-        card_w := page.content_w - Scale(32)
+        card_w := content_w - Scale(32)
         card_h := Scale(54)
 
         for int i = 0; i < 4; i++ {
@@ -290,8 +266,8 @@ patterns_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
         ratio: [32] char = {0}
         duration: [32] char = {0}
         card_gap := Scale(12)
-        card_x := page.content_x + Scale(16)
-        card_w := page.content_w - Scale(32)
+        card_x := content_x + Scale(16)
+        card_w := content_w - Scale(32)
         card_h := Scale(76)
         card_y := *y + Scale(24)
 
@@ -323,8 +299,6 @@ patterns_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
                 Scale(24)
             },
             .text=(GetLocaleText("patterns_preset_label")),
-            .font=(GetFontSize()),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone,
             .vertical_align=TextAlignCenter
         })
@@ -336,8 +310,6 @@ patterns_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
                 Scale(22)
             },
             .text=(ratio),
-            .font=(GetSmallFontSize()),
-            .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
         card_y += card_h + card_gap
@@ -361,8 +333,6 @@ patterns_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
                 Scale(24)
             },
             .text=(GetLocaleText("patterns_duration_label")),
-            .font=(GetFontSize()),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone,
             .vertical_align=TextAlignCenter
         })
@@ -374,8 +344,6 @@ patterns_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
                 Scale(22)
             },
             .text=(duration),
-            .font=(GetSmallFontSize()),
-            .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
     }
@@ -386,10 +354,17 @@ patterns_manual_draw :: (app: InnerBreeze*) {
     layout := (PracticeManualLayout){0}
     responsive_max_w := (int)(view_width * 0.96f)
     step := clampi(app->tutorial_step, 0, PATTERNS_MANUAL_PAGES - 1)
+    side_padding := manual_screen_tutorial_side_padding()
+    content_x := 0
+    content_w := 0
+    y: int
 
     app->tutorial_step = step
     if responsive_max_w > manual_screen_tutorial_max_width() {
         responsive_max_w = manual_screen_tutorial_max_width()
+    }
+    if responsive_max_w < Scale(200) {
+        responsive_max_w = Scale(200)
     }
     practice_screen_manual_layout(app, UIModalPracticeManual,
                                   PATTERNS_MANUAL_PAGES,
@@ -397,36 +372,30 @@ patterns_manual_draw :: (app: InnerBreeze*) {
                                   Scale(120), &layout)
     manual_screen_draw_title_bar(app, GetLocaleText("patterns_title"),
                                  layout.title_h, patterns_manual_close)
-    page_ctx := (PatternsManualPageContext){step}
-    page := BeginUIScrollPage((UIScrollPageSpec){
-        .y = layout.content_y,
-        .height = layout.content_h,
-        .max_content_width = responsive_max_w,
-        .min_content_width = Scale(200),
-        .side_padding = manual_screen_tutorial_side_padding(),
-        .scroll_offset = &app->manual_scroll,
-        .content_height = patterns_manual_content_height,
-        .user_data = &page_ctx
-    })
-    y := page.content_y
+    GetCenteredColumn(responsive_max_w, side_padding, &content_x, &content_w)
+    content_h := patterns_manual_content_height(step, content_w)
 
-    hero_page := page
-    hero_y := y
-    hero := manual_screen_hero_bounds(page.content_x, page.content_w,
-                                      hero_y,
-                                      patterns_manual_visual_height(step))
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)layout.content_y,
+                             (float)view_width, (float)layout.content_h}
+        content_height = content_h
+        scroll_offset = &app->manual_scroll
 
-    hero_page.content_x = (int)hero.x
-    hero_page.content_w = (int)hero.width
-    patterns_manual_draw_visual(app, hero_page, step, &y)
-    manual_screen_draw_hero_progress(
-        hero, step, PATTERNS_MANUAL_PAGES)
-    manual_screen_draw_guide_header(
-        GetLocaleText(patterns_manual_title_keys[step]), step,
-        PATTERNS_MANUAL_PAGES, page.content_x, &y, page.content_w)
-    Paragraph(patterns_manual_paragraph(step, page.content_w),
-              page.content_x, &y)
-    EndUIScrollPage(page)
+        y := (int)page.y
+
+        hero := manual_screen_hero_bounds(content_x, content_w,
+                                          y,
+                                          patterns_manual_visual_height(step))
+        patterns_manual_draw_visual(app, (int)hero.x, (int)hero.width,
+                                    step, &y)
+        manual_screen_draw_hero_progress(
+            hero, step, PATTERNS_MANUAL_PAGES)
+        manual_screen_draw_guide_header(
+            GetLocaleText(patterns_manual_title_keys[step]), step,
+            PATTERNS_MANUAL_PAGES, content_x, &y, content_w)
+        Paragraph(patterns_manual_paragraph(step, content_w),
+                  content_x, &y)
+    }
 
     manual_screen_guide_controls(app, (ManualGuideNav){
         .page = step,

@@ -32,23 +32,6 @@ static g_leaderboard_sort_metric: int = PROFILE_LEADERBOARD_STREAK
 
 static sync_server_url_key: const char* = "sync_server_url"
 
-text_style :: () -> TextInputStyle #private {
-    return (TextInputStyle){
-        .background = DarkenUIColor(GetThemeBackground(), 6),
-        .border = DarkenUIColor(GetThemeBackground(), 34),
-        .focus_border = GetThemeButton(),
-        .text = GetThemeText(),
-        .cursor = GetThemeText(),
-        .radius = 0.0f,
-        .padding_x = Scale(10)
-    }
-}
-
-friend_filter :: (codepoint: int, user_data: void*) -> int #private {
-    unused user_data
-    return codepoint > 32 && codepoint < 127
-}
-
 sync_url :: (out: char*, out_size: size_t) -> int {
     saved := storage_get_setting_text(sync_server_url_key)
 
@@ -259,8 +242,6 @@ draw_json_people :: (json: const char*, array_key: const char*,
                     app: InnerBreeze*) #private {
     array_path: [48] char = {0}
     count := 0
-    font := GetFontSize()
-    small := GetSmallFontSize()
     with_remove: int = !with_actions && strcmp(array_key, "friends") == 0
     with_cancel: int = !with_actions && strcmp(array_key, "outgoing") == 0
 
@@ -269,8 +250,6 @@ draw_json_people :: (json: const char*, array_key: const char*,
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("profile_none_label")),
-            .font=(small),
-            .color=(DarkenUIColor(GetThemeText(), 35)),
             .wrap=TextWrapNone
         })
         *y += Scale(24)
@@ -282,8 +261,6 @@ draw_json_people :: (json: const char*, array_key: const char*,
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("profile_none_label")),
-            .font=(small),
-            .color=(DarkenUIColor(GetThemeText(), 35)),
             .wrap=TextWrapNone
         })
         *y += Scale(24)
@@ -345,8 +322,6 @@ draw_json_people :: (json: const char*, array_key: const char*,
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(title),
-            .font=(font),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
 
@@ -360,12 +335,8 @@ draw_json_people :: (json: const char*, array_key: const char*,
                 .bounds = {(float)(x + w - button_w), (float)(*y - Scale(6)),
                            (float)((icon_size) + (icon_padding) * 2),
                            (float)((icon_size) + (icon_padding) * 2)},
-                .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
-                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-                .style = {.normal = {
-                    .fields = StyleIconSize,
-                    .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
-                }}
+                .icon_type = ICON_TRASH, .icon_only = 1,
+                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
             }) {
                 prompt_remove_friend(app, display_id, title)
             }
@@ -379,12 +350,8 @@ draw_json_people :: (json: const char*, array_key: const char*,
                 .bounds = {(float)(x + w - button_w), (float)(*y - Scale(6)),
                            (float)((icon_size) + (icon_padding) * 2),
                            (float)((icon_size) + (icon_padding) * 2)},
-                .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
-                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-                .style = {.normal = {
-                    .fields = StyleIconSize,
-                    .icon_size = (float)(icon_size) * 1000.0f / Scale(1000)
-                }}
+                .icon_type = ICON_TRASH, .icon_only = 1,
+                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
             }) &&
                sync_url(url, sizeof(url)) {
                 app_request_friend_decline(app, id)
@@ -399,7 +366,6 @@ draw_json_people :: (json: const char*, array_key: const char*,
             if Button((ButtonProps){
                 .bounds = {(float)(x), (float)(*y + Scale(22)), (float)(btn_w), (float)(Scale(30))},
                 .label = GetLocaleText("profile_friend_accept_button"),
-                .font = GetFontSize(),
                 .tone = ButtonToneAccent,
                 .emphasis = ButtonEmphasisFilled,
                 .disabled = 0
@@ -412,7 +378,6 @@ draw_json_people :: (json: const char*, array_key: const char*,
             if Button((ButtonProps){
                 .bounds = {(float)(x + btn_w + Scale(8)), (float)(*y + Scale(22)), (float)(btn_w), (float)(Scale(30))},
                 .label = GetLocaleText("profile_friend_decline_button"),
-                .font = GetFontSize(),
                 .tone = ButtonToneNeutral,
                 .emphasis = ButtonEmphasisSoft,
                 .disabled = 0
@@ -429,7 +394,6 @@ draw_json_people :: (json: const char*, array_key: const char*,
 }
 
 draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
-    font := GetFontSize()
     btn_h := Scale(34)
 
     commit := 0
@@ -453,8 +417,6 @@ draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("profile_friends_title")),
-        .font=(font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(30)
@@ -462,8 +424,6 @@ draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("profile_friend_input_label")),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 35)),
         .wrap=TextWrapNone
     })
     *y += Scale(22)
@@ -475,10 +435,7 @@ draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         .cursor_position = &app->profile_friend_input_cursor,
         .focused = &app->profile_friend_input_focused,
         .max_codepoints = 79,
-        .font = GetFontSize(),
         .focus_id = 810,
-        .style = profile_social_text_style(),
-        .filter = profile_social_friend_filter,
         .commit_pressed = &commit
     })
     *y += Scale(46)
@@ -486,7 +443,6 @@ draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     if (Button((ButtonProps){
         .bounds = {(float)(x), (float)(*y), (float)(w), (float)(btn_h)},
         .label = GetLocaleText("profile_add_friend_button"),
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = app->profile_friend_input[0] == '\0'
@@ -518,8 +474,6 @@ draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("profile_incoming_title")),
-            .font=(font),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         *y += Scale(28)
@@ -531,8 +485,6 @@ draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("profile_friends_title")),
-        .font=(font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     *y += Scale(28)
@@ -543,8 +495,6 @@ draw_friends :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("profile_outgoing_title")),
-            .font=(font),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         *y += Scale(28)
@@ -587,13 +537,11 @@ friends_content_height :: (app: InnerBreeze*, content_w: int) -> int {
 
 draw_leaderboard_value :: (x: int, w: int, y: int, value: const char*,
                           font: int) #private {
-    rank_w := TextWidth(value, font)
+    rank_w := AppTextWidth(value, font)
 
     Text((TextProps){
         .bounds={(x + w - rank_w), (y), 0, 0},
         .text=(value),
-        .font=(font),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
 }
@@ -749,8 +697,7 @@ draw_leaderboard_rows :: (app: InnerBreeze*, json: const char*,
                          x: int, w: int, y: int*) #private {
     rows := 0
     cache_rows := 0
-    font := GetFontSize()
-    small := GetSmallFontSize()
+    font := AppFontSize()
     draw_rows: [24] ProfileLeaderboardDrawRow = {0}
     account: SyncAccount
     has_account := sync_account_load(&account) && account.public_id[0] != '\0'
@@ -776,8 +723,6 @@ draw_leaderboard_rows :: (app: InnerBreeze*, json: const char*,
         Text((TextProps){
             .bounds={(x + Scale(24)), (*y), 0, 0},
             .text=(GetLocaleText("profile_updating_status")),
-            .font=(small),
-            .color=(DarkenUIColor(GetThemeText(), 20)),
             .wrap=TextWrapNone
         })
         *y += Scale(30)
@@ -857,8 +802,6 @@ draw_leaderboard_rows :: (app: InnerBreeze*, json: const char*,
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(name),
-            .font=(font),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         draw_leaderboard_value(x, w, *y, draw_rows[i].value, font)
@@ -869,8 +812,6 @@ draw_leaderboard_rows :: (app: InnerBreeze*, json: const char*,
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("profile_no_leaderboard_data")),
-            .font=(small),
-            .color=(DarkenUIColor(GetThemeText(), 35)),
             .wrap=TextWrapNone
         })
         *y += Scale(24)
@@ -1049,7 +990,6 @@ draw_combined_leaderboard :: (app: InnerBreeze*, x: int, w: int,
         if Button((ButtonProps){
             .bounds = {(float)hx, (float)*y, (float)widths[c], (float)header_h},
             .label = columns[c],
-            .font = GetSmallFontSize(),
             .disabled = c == 0,
             .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft, .selected = selected
@@ -1066,28 +1006,22 @@ draw_combined_leaderboard :: (app: InnerBreeze*, x: int, w: int,
                     names[i])
         if i % 2 == 1 {
             DrawRectangle(x, *y, w, row_h,
-                          DarkenUIColor(GetThemeBackground(), 5))
+                          DarkenColor(GetThemeBackground(), 5))
         }
         Text((TextProps){
             .bounds={(x + Scale(6)), (*y + Scale(8)), 0, 0},
             .text=(rank_names[i]),
-            .font=(GetSmallFontSize()),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         Text((TextProps){
             .bounds={(x + name_w + Scale(6)), (*y + Scale(8)), 0, 0},
             .text=(rows[i].streak),
-            .font=(GetSmallFontSize()),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         if show_average {
             Text((TextProps){
                 .bounds={(x + name_w + value_w + Scale(6)), (*y + Scale(8)), 0, 0},
                 .text=(rows[i].average),
-                .font=(GetSmallFontSize()),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
         }
@@ -1097,8 +1031,6 @@ draw_combined_leaderboard :: (app: InnerBreeze*, x: int, w: int,
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("profile_no_leaderboard_data")),
-            .font=(GetSmallFontSize()),
-            .color=(DarkenUIColor(GetThemeText(), 35)),
             .wrap=TextWrapNone
         })
         *y += Scale(24)
@@ -1160,7 +1092,6 @@ draw_choice_row :: (app: InnerBreeze*, x: int, w: int, y: int*, value: int*,
         if Button((ButtonProps){
             .bounds = {(float)bx, (float)*y, (float)bw, (float)btn_h},
             .label = labels[i],
-            .font = GetSmallFontSize(),
             .disabled = selected,
             .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft, .selected = selected
@@ -1206,8 +1137,6 @@ draw_leaderboard :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("profile_practice_label")),
-        .font=(GetSmallFontSize()),
-        .color=(DarkenUIColor(GetThemeText(), 35)),
         .wrap=TextWrapNone
     })
     *y += Scale(22)
@@ -1219,9 +1148,9 @@ draw_leaderboard :: (app: InnerBreeze*, x: int, w: int, y: int*) {
             practice_selection = i
         }
     }
-    if Dropdown(811, x, *y, w, Scale(36),
-                       practice_options, EXERCISE_COUNT,
-                       &practice_selection) {
+    if Dropdown((DropdownProps){.id = 811, .bounds = {x, *y, w, Scale(36)},
+                       .options = practice_options, .option_count = EXERCISE_COUNT,
+                       .selected_index = &practice_selection}) {
         app->profile_leaderboard_practice = practice_ordered_id(practice_selection)
     }
     if app->profile_leaderboard_practice != before_practice {

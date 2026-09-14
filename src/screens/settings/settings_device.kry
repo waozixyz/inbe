@@ -70,8 +70,6 @@ settings_device_draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: Sett
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("language_label")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     if app_locale_dropdown(101, x, *y + Scale(26), w,
@@ -87,21 +85,24 @@ settings_device_draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: Sett
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(GetLocaleText("orientation_label")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
-    if Dropdown(103, x, *y + Scale(26), w, Scale(36),
-                            orientation_options, orientation_option_count,
-                            &app->orientation_mode) {
+    if Dropdown((DropdownProps){.id = 103,
+                            .bounds = {x, *y + Scale(26), w, Scale(36)},
+                            .options = orientation_options,
+                            .option_count = orientation_option_count,
+                            .selected_index = &app->orientation_mode}) {
         state->orientation_changed = 1
     }
     state->draw_orientation_menu = 1
     *y += Scale(76)
 
     #if DESKTOP {
-        if Checkbox(0, x, *y, GetLocaleText("fullscreen_label"),
-                                &app->fullscreen_enabled) {
+        if Checkbox((CheckboxProps){.id = 0,
+                                    .bounds = {(float)x, (float)*y,
+                                               (float)w, (float)Scale(36)},
+                                    .label = GetLocaleText("fullscreen_label"),
+                                    .value = &app->fullscreen_enabled}) {
             app_desktop_set_fullscreen(app->fullscreen_enabled)
             app->settings_dirty = 1
         }
@@ -123,12 +124,12 @@ settings_device_draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: Sett
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("desktop_startup_mode_label")),
-            .font=(GetFontSize()),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
-        if Dropdown(104, x, *y + Scale(26), w, Scale(36),
-                                 startup_options, 2, &startup_mode) {
+        if Dropdown((DropdownProps){.id = 104,
+                                 .bounds = {x, *y + Scale(26), w, Scale(36)},
+                                 .options = startup_options, .option_count = 2,
+                                 .selected_index = &startup_mode}) {
             app->desktop_startup_mode = startup_mode
             app->settings_dirty = 1
             save_settings(app)
@@ -144,12 +145,12 @@ settings_device_draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: Sett
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("desktop_close_action_label")),
-            .font=(GetFontSize()),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
-        if Dropdown(105, x, *y + Scale(26), w, Scale(36),
-                                 close_options, 3, &close_action) {
+        if Dropdown((DropdownProps){.id = 105,
+                                 .bounds = {x, *y + Scale(26), w, Scale(36)},
+                                 .options = close_options, .option_count = 3,
+                                 .selected_index = &close_action}) {
             app->desktop_close_action = close_action
             app->settings_dirty = 1
             save_settings(app)

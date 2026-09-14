@@ -111,23 +111,23 @@ load_navigation_mode :: (cache: const SettingsLoadCache*) -> int #private {
     return NAV_MODE_TABBAR
 }
 
-default_profile_picture_icon :: () -> UIIconType #private {
-    fallback := GetUIProfilePictureIconType(0)
-    return fallback != UI_ICON_TYPE_NONE ? fallback : UI_ICON_TYPE_PROFILE
+default_profile_picture_icon :: () -> IconType #private {
+    fallback := GetProfileImageIconType(0)
+    return fallback != ICON_NONE ? fallback : ICON_PROFILE
 }
 
-is_profile_picture_icon :: (type: UIIconType) -> int #private {
-    for int i = 0; i < GetUIProfilePictureIconCount(); i++ {
-        if GetUIProfilePictureIconType(i) == type {
+is_profile_picture_icon :: (type: IconType) -> int #private {
+    for int i = 0; i < GetProfileImageIconCount(); i++ {
+        if GetProfileImageIconType(i) == type {
             return 1
         }
     }
     return 0
 }
 
-load_profile_picture_icon :: (cache: const SettingsLoadCache*) -> UIIconType #private {
+load_profile_picture_icon :: (cache: const SettingsLoadCache*) -> IconType #private {
     fallback := default_profile_picture_icon()
-    type := (UIIconType)settings_cache_get_int(cache, "profile_picture_icon",
+    type := (IconType)settings_cache_get_int(cache, "profile_picture_icon",
                                                fallback)
 
     return is_profile_picture_icon(type) ? type : fallback
@@ -185,7 +185,7 @@ reset_settings_preview :: (app: InnerBreeze*) {
     app->settings_preview.progressive_speed = 0
     app->settings_preview.play_in_background = play_in_background
     app->settings_preview.breath_animation = breath_animation
-    GetUICenteredColumn(CONTENT_MAX_W, CONTENT_SIDE_PAD, nil, &content_w)
+    GetCenteredColumn(CONTENT_MAX_W, CONTENT_SIDE_PAD, nil, &content_w)
     update_preview_bounds(&app->settings_preview, content_w, Scale(132))
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths,
                       pause_seconds)
@@ -219,7 +219,7 @@ save_settings :: (app: InnerBreeze*) {
     save_setting_int("theme_source", app->theme_source)
     save_setting_int("dark_mode", app->dark_mode)
     save_setting_int("theme_mode", app->theme_mode)
-    save_setting_int("theme_style", app->theme_style)
+    save_setting_int("glow_effects", app->glow_effects_enabled ? 1 : 0)
     save_setting_int("orientation_mode", app->orientation_mode)
     save_setting_int("ui_scale", app->ui_scale_tenths)
     save_setting_int("navigation_mode", app->navigation_mode)
@@ -636,9 +636,8 @@ app_load_settings :: (app: InnerBreeze*) -> int {
                             APP_THEME_SOURCE_SYSTEM)
     load_clamped_setting(&settings_cache, &app->theme_mode, "theme_mode",
                             APP_THEME_SYSTEM, APP_THEME_SYSTEM, APP_THEME_DARK)
-    load_clamped_setting(&settings_cache, &app->theme_style, "theme_style",
-                            THEME_STYLE_SYSTEM, THEME_STYLE_SYSTEM,
-                            THEME_STYLE_DEFAULT)
+    load_bool_setting(&settings_cache, &app->glow_effects_enabled,
+                         "glow_effects", 0)
     load_clamped_setting(&settings_cache, &app->orientation_mode,
                             "orientation_mode", APP_ORIENTATION_SYSTEM,
                             APP_ORIENTATION_SYSTEM, APP_ORIENTATION_SENSOR)

@@ -14,17 +14,7 @@ elist_field :: (app: InnerBreeze*, bounds: Rectangle) -> TextFieldProps #private
         .focused = &app->elist.input_focused,
         .focus_id = 6501,
         .commit_pressed = &app->elist.input_committed,
-        .max_codepoints = elist_types.ELIST_TITLE_SIZE - 1,
-        .font = GetFontSize(),
-        .style = (TextInputStyle){
-            .background = DarkenUIColor(GetThemeBackground(), 4),
-            .border = Fade(GetThemeText(), 0.22f),
-            .focus_border = GetThemeButtonHover(),
-            .text = GetThemeText(),
-            .cursor = GetThemeText(),
-            .radius = 0.08f,
-            .padding_x = Scale(12)
-        }
+        .max_codepoints = elist_types.ELIST_TITLE_SIZE - 1
     }
 }
 
@@ -33,6 +23,9 @@ elist_reload :: (app: InnerBreeze*) #private {
         return
     }
     storage_elist_load(&app->elist)
+    for int i = 0; i < elist_types.ELIST_ITEM_MAX; i++ {
+        ResetSwipe(&app->elist_item_swipes[i])
+    }
     app->elist.loaded = 1
 }
 
@@ -43,7 +36,7 @@ elist_begin_input :: (app: InnerBreeze*, editing_item: int,
     app->elist.input_cursor = (int)strlen(app->elist.input)
     app->elist.input_focused = 1
     app->elist.input_error = 0
-    SetUIFocus(6501)
+    SetFocus(6501)
     app->elist.editing_item = editing_item
 }
 
@@ -109,7 +102,7 @@ elist_select_list :: (app: InnerBreeze*, index: int) #private {
     state->input_focused = 0
     state->input_error = 0
     state->input_committed = 0
-    SetUIFocus(0)
+    SetFocus(0)
 }
 
 elist_draw_empty :: (x: int, y: int, w: int) #private {
@@ -119,16 +112,12 @@ elist_draw_empty :: (x: int, y: int, w: int) #private {
     Text((TextProps){
         .bounds = {(float)x, (float)y, (float)w, (float)Scale(30)},
         .text = title,
-        .font = Text20,
-        .color = GetThemeText(),
         .align = TextAlignCenter,
         .wrap = TextWrapAuto
     })
     Text((TextProps){
         .bounds = {(float)x, (float)(y + Scale(40)), (float)w, (float)Scale(48)},
         .text = detail,
-        .font = GetSmallFontSize(),
-        .color = GetThemeMutedText(),
         .align = TextAlignCenter,
         .wrap = TextWrapAuto
     })
@@ -152,61 +141,42 @@ draw_elist_screen :: (app: InnerBreeze*) {
         elist_reload(app)
     }
 
-    if state->list_count > 0 && state->selected_list >= 0 &&
-       Button((ButtonProps){
-           .id = 0,
-           .bounds = {(float)(view_width - Scale(88)), (float)(Scale(15)),
-                      (float)((Scale(22)) + (Scale(8)) * 2),
-                      (float)((Scale(22)) + (Scale(8)) * 2)},
-           .icon = app->icons[UI_ICON_TYPE_EDIT], .icon_only = 1,
-           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-           .style = {.normal = {
-               .fields = StyleIconSize,
-               .icon_size = (float)(Scale(22)) * 1000.0f / Scale(1000)
-           }}
-       }) {
-        elist_begin_input(app, -3, state->lists[state->selected_list].title)
-    }
-    if state->list_count > 0 && state->selected_list >= 0 &&
-       Button((ButtonProps){
-           .id = 0,
-           .bounds = {(float)(view_width - Scale(48)), (float)(Scale(15)),
-                      (float)((Scale(22)) + (Scale(8)) * 2),
-                      (float)((Scale(22)) + (Scale(8)) * 2)},
-           .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
-           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-           .style = {.normal = {
-               .fields = StyleIconSize,
-               .icon_size = (float)(Scale(22)) * 1000.0f / Scale(1000)
-           }}
-       }) {
-        storage_elist_delete_list(state->lists[state->selected_list].id)
-        state->selected_list = 0
-        elist_reload(app)
-        app_auto_sync(app)
-        return
-    }
     for int i = 0; i < state->list_count; i++ {
         list_tabs[i] = (Tab){.label = state->lists[i].title}
     }
-    selector_w := content_w - Scale(200)
-    if state->list_count > 0 {
+    header_action_w := Scale(118)
+    header_gap := Scale(10)
+    header_actions := header_action_w
+    if state->list_count > 0 && state->selected_list >= 0 {
+        header_actions += Scale(88)
+    }
+    selector_w := content_w - header_actions - header_gap
+    if selector_w < Scale(160) {
+        header_actions = header_action_w
+        selector_w = content_w - header_actions - header_gap
+    }
+    if selector_w < Scale(120) {
+        selector_w = content_w - header_action_w - header_gap
+    }
+    if selector_w < 0 {
+        selector_w = 0
+    }
+    if state->list_count > 0 && selector_w > 0 {
         selected := TabBar((TabBarProps){
             .id = 6500,
             .bounds = {(float)x, (float)y, (float)selector_w, (float)tab_h},
             .tabs = list_tabs,
             .count = state->list_count,
             .selected_index = state->selected_list,
-            .font = GetFontSize(),
             .min_tab_width = Scale(88),
-            .max_tab_width = Scale(180)
+            .max_tab_width = selector_w
         })
         elist_select_list(app, selected)
     }
     if Button((ButtonProps){
-        .bounds = {(float)(x + selector_w + Scale(8)), (float)(y), (float)(Scale(104)), (float)(tab_h)},
+        .bounds = {(float)(x + content_w - header_action_w), (float)(y),
+                   (float)header_action_w, (float)(tab_h)},
         .label = GetLocaleText("elist_new_list"),
-        .font = GetFontSize(),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = 0
@@ -214,14 +184,41 @@ draw_elist_screen :: (app: InnerBreeze*) {
         elist_begin_input(app, -2, "")
         return
     }
+    if state->list_count > 0 && state->selected_list >= 0 &&
+       header_actions > header_action_w {
+        icon_y := y + (tab_h - (Scale(22) + Scale(8) * 2)) / 2
+        edit_x := x + content_w - header_action_w - Scale(84)
+        if Button((ButtonProps){
+           .id = 0,
+           .bounds = {(float)edit_x, (float)icon_y,
+                      (float)((Scale(22)) + (Scale(8)) * 2),
+                      (float)((Scale(22)) + (Scale(8)) * 2)},
+           .icon_type = ICON_EDIT, .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+       }) {
+            elist_begin_input(app, -3, state->lists[state->selected_list].title)
+        }
+        if Button((ButtonProps){
+           .id = 0,
+           .bounds = {(float)(edit_x + Scale(40)), (float)icon_y,
+                      (float)((Scale(22)) + (Scale(8)) * 2),
+                      (float)((Scale(22)) + (Scale(8)) * 2)},
+           .icon_type = ICON_TRASH, .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+       }) {
+            storage_elist_delete_list(state->lists[state->selected_list].id)
+            state->selected_list = 0
+            elist_reload(app)
+            app_auto_sync(app)
+            return
+        }
+    }
     y += tab_h + Scale(16)
 
     if state->input_error {
         Text((TextProps){
             .bounds = {(float)x, (float)y, (float)content_w, (float)Scale(40)},
             .text = GetLocaleText("results_write_failed"),
-            .font = GetSmallFontSize(),
-            .color = GetThemeText(),
             .wrap = TextWrapAuto
         })
         y += Scale(48)
@@ -235,7 +232,6 @@ draw_elist_screen :: (app: InnerBreeze*) {
             .bounds = {(float)(x), (float)(y), (float)(content_w), (float)(Scale(40))},
             .label = state->editing_item == -3 ? GetLocaleText("done_button") :
                                                     GetLocaleText("elist_create_list"),
-            .font = GetFontSize(),
             .tone = ButtonToneAccent,
             .emphasis = ButtonEmphasisFilled,
             .disabled = state->input[0] == '\0'
@@ -258,7 +254,6 @@ draw_elist_screen :: (app: InnerBreeze*) {
         .bounds = {(float)(x + field_w + Scale(8)), (float)(y), (float)(Scale(84)), (float)(Scale(44))},
         .label = state->editing_item >= 0 ? GetLocaleText("done_button") :
                                                GetLocaleText("elist_add_item"),
-        .font = GetFontSize(),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = state->input[0] == '\0'
@@ -279,23 +274,44 @@ draw_elist_screen :: (app: InnerBreeze*) {
             break
         }
         bounds := (Rectangle){(float)x, (float)y, (float)content_w, (float)row_h}
-        DrawRectangleRounded(bounds, 0.08f, 8,
-                             DarkenUIColor(GetThemeBackground(), 5))
+        swipe := UpdateSwipe(&app->elist_item_swipes[i], (SwipeSpec){
+            .bounds = bounds,
+            .directions = SwipeHorizontal,
+            .min_distance = (float)Scale(44),
+            .axis_bias = 1.35f,
+            .max_duration = 0.6f
+        })
+        if swipe.direction == SwipeLeft {
+            elist_begin_input(app, i, item->title)
+            return
+        }
+        if swipe.direction == SwipeRight {
+            storage_elist_delete_item(item->id)
+            elist_reload(app)
+            app_auto_sync(app)
+            return
+        }
+        Card((CardProps){
+            .bounds = bounds
+        })
         done := item->done
-        if Checkbox(6400 + i, x + Scale(10), y + Scale(17), "", &done) {
+        if Checkbox((CheckboxProps){.id = 6400 + i,
+                                    .bounds = {(float)(x + Scale(10)),
+                                               (float)(y + Scale(17)),
+                                               (float)Scale(28),
+                                               (float)Scale(28)},
+                                    .label = "",
+                                    .value = &done}) {
             storage_elist_update_item(item->id, item->title, item->comment,
                                       done, item->sort_order)
             elist_reload(app)
             app_auto_sync(app)
             return
         }
-        text_color := item->done ? GetThemeMutedText() : GetThemeText()
         Text((TextProps){
             .bounds = {(float)(x + Scale(46)), (float)(y + Scale(9)),
                        (float)(content_w - Scale(132)), (float)Scale(24)},
             .text = item->title,
-            .font = GetFontSize(),
-            .color = text_color,
             .wrap = TextWrapNone
         })
         if item->comment[0] != '\0' {
@@ -303,8 +319,6 @@ draw_elist_screen :: (app: InnerBreeze*) {
                 .bounds = {(float)(x + Scale(46)), (float)(y + Scale(32)),
                            (float)(content_w - Scale(132)), (float)Scale(18)},
                 .text = item->comment,
-                .font = GetSmallFontSize(),
-                .color = GetThemeMutedText(),
                 .wrap = TextWrapNone
             })
         }
@@ -313,12 +327,8 @@ draw_elist_screen :: (app: InnerBreeze*) {
             .bounds = {(float)(x + content_w - Scale(78)), (float)(y + Scale(12)),
                        (float)((Scale(20)) + (Scale(7)) * 2),
                        (float)((Scale(20)) + (Scale(7)) * 2)},
-            .icon = app->icons[UI_ICON_TYPE_EDIT], .icon_only = 1,
-            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-            .style = {.normal = {
-                .fields = StyleIconSize,
-                .icon_size = (float)(Scale(20)) * 1000.0f / Scale(1000)
-            }}
+            .icon_type = ICON_EDIT, .icon_only = 1,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
         }) {
             elist_begin_input(app, i, item->title)
         }
@@ -327,12 +337,8 @@ draw_elist_screen :: (app: InnerBreeze*) {
             .bounds = {(float)(x + content_w - Scale(40)), (float)(y + Scale(12)),
                        (float)((Scale(20)) + (Scale(7)) * 2),
                        (float)((Scale(20)) + (Scale(7)) * 2)},
-            .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
-            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-            .style = {.normal = {
-                .fields = StyleIconSize,
-                .icon_size = (float)(Scale(20)) * 1000.0f / Scale(1000)
-            }}
+            .icon_type = ICON_TRASH, .icon_only = 1,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
         }) {
             storage_elist_delete_item(item->id)
             elist_reload(app)

@@ -4,7 +4,6 @@
 #import "app_shell.h" #private
 #import "storage.h" #private
 #import "sync_account.h" #private
-#import "screens/profile_social.h" #private
 #import "screens/settings/settings_screen.h" #private
 #import <stdio.h>
 #import <string.h>
@@ -27,7 +26,7 @@ AppSidebarSettingsItem :: struct {
 }
 
 app_nav_sidebar_separator :: () -> Color #private {
-    return DarkenUIColor(GetThemeSurface(), 16)
+    return DarkenColor(GetThemeSurface(), 16)
 }
 
 app_nav_mark_int_used :: (value: int) #private {
@@ -38,7 +37,7 @@ app_nav_mark_int_used :: (value: int) #private {
 
 app_active_practice_title_height :: () -> int {
     min_height := Scale(76)
-    title_height := GetNodeHeight(NodeTitleBar(0))
+    title_height := AppTitleBarHeight()
 
     return title_height > min_height ? title_height : min_height
 }
@@ -74,23 +73,21 @@ app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, he
         max_w = content_w - Scale(24)
     }
 
-    title_w = TextWidth(title, font)
-    while font > GetFontSize() && title_w > max_w {
+    title_w = AppTextWidth(title, font)
+    while font > AppFontSize() && title_w > max_w {
         font--
-        title_w = TextWidth(title, font)
+        title_w = AppTextWidth(title, font)
     }
 
-    TitleBar("", height)
+    TitleBar((TitleBarProps){.title = "", .height = height})
     Text((TextProps){
         .bounds = {
             (float)(content_x + (content_w - title_w) / 2),
-            (float)GetUIControlTextY(title, 0, height, font),
+            (float)AppControlTextY(title, 0, height, font),
             0.0f,
             0.0f
         },
         .text = title,
-        .font = font,
-        .color = GetThemeText(),
         .wrap = TextWrapNone
     })
     if app != NULL && !app->modal.active &&
@@ -99,12 +96,8 @@ app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, he
            .bounds = {(float)(close_x), (float)(close_y),
                       (float)((button_size) + (padding) * 2),
                       (float)((button_size) + (padding) * 2)},
-           .icon = app->icons[UI_ICON_TYPE_X], .icon_only = 1,
-           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-           .style = {.normal = {
-               .fields = StyleIconSize,
-               .icon_size = (float)(button_size) * 1000.0f / Scale(1000)
-           }}
+           .icon_type = ICON_X, .icon_only = 1,
+           .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
        }) {
         return 1
     }
@@ -149,7 +142,7 @@ app_navigation_placement :: (app: const InnerBreeze*) -> int {
         return app->navigation_placement
     }
     #if DESKTOP {
-        return IsUIDesktopMode() ? NAVIGATION_LEFT : NAVIGATION_BOTTOM
+        return IsDesktopMode() ? NAVIGATION_LEFT : NAVIGATION_BOTTOM
     } #else {
         return NAVIGATION_BOTTOM
     }
@@ -193,7 +186,7 @@ app_bottom_nav_configurable_route :: (route: int) -> int #private {
 
 app_nav_bottom_profile_enabled :: () -> int #private {
     #if DESKTOP {
-        return IsUIDesktopMode()
+        return IsDesktopMode()
     } #else {
         return 0
     }
@@ -420,8 +413,10 @@ app_open_main_tab :: (app: InnerBreeze*, main_tab: int, persist: int) #private {
     }
     app_leave_habit_child_route(app)
     if main_tab == APP_MAIN_TAB_NONE {
+        route := app_current_route(app)
         app->main_tab = APP_MAIN_TAB_NONE
-        app_switch_screen(app, ScreenStart)
+        route.screen = ScreenStart
+        app_request_route(app, route)
         if persist {
             save_settings(app)
         }
@@ -432,7 +427,9 @@ app_open_main_tab :: (app: InnerBreeze*, main_tab: int, persist: int) #private {
     if app->main_tab == APP_MAIN_TAB_PRACTICE {
         app->practice_tab = PRACTICE_TAB_PLAY
     }
-    app_switch_screen(app, app_screen_for_main_tab(app->main_tab))
+    route := app_current_route(app)
+    route.screen = app_screen_for_main_tab(app->main_tab)
+    app_request_route(app, route)
     if persist {
         save_settings(app)
     }
@@ -456,13 +453,12 @@ app_open_profile_tab :: (app: InnerBreeze*, tab: int) #private {
     app->profile_scroll = 0
     app->sync_server_url_focused = 0
     settings_screen_clear_status()
-    app_block_current_click(app)
     route = app_current_route(app)
     route.screen = ScreenProfile
     route.profile_view = PROFILE_VIEW_MAIN
     route.profile_tab = clampi(tab, PROFILE_TAB_OVERVIEW, PROFILE_TAB_COUNT - 1)
     app->nav_sidebar_return_on_back = return_to_sidebar
-    app_switch_route(app, route)
+    app_request_route(app, route)
 }
 
 app_apply_nav_route :: (app: InnerBreeze*, route: int) {
@@ -506,7 +502,7 @@ app_apply_nav_route :: (app: InnerBreeze*, route: int) {
             next.settings_tab = SETTINGS_TAB_COUNT
             app->settings_scroll = 0
             settings_screen_clear_status()
-            app_switch_route(app, next)
+            app_request_route(app, next)
         }
     }
 }
@@ -541,7 +537,8 @@ app_navigation_height :: (app: const InnerBreeze*) -> int {
        !app_is_blank_home(app) {
         return 0
     }
-    return GetNodeHeight(NodeNavigationBar((NavigationBarProps){0}))
+    # Matches the Material NavigationBar height drawn by app_draw_bottom_nav.
+    return Scale(86)
 }
 
 app_content_bottom_reserved :: (app: const InnerBreeze*) -> int {
@@ -646,12 +643,11 @@ app_open_settings_tab :: (app: InnerBreeze*, tab: int) #private {
     app_leave_habit_child_route(app)
     app->settings_scroll = 0
     settings_screen_clear_status()
-    app_block_current_click(app)
     route = app_current_route(app)
     route.screen = ScreenSettings
     route.settings_tab = tab
     app->nav_sidebar_return_on_back = return_to_sidebar
-    app_switch_route(app, route)
+    app_request_route(app, route)
 }
 
 app_sidebar_settings_button :: (app: InnerBreeze*, x: int, y: int*, w: int,
@@ -661,7 +657,7 @@ app_sidebar_settings_button :: (app: InnerBreeze*, x: int, y: int*, w: int,
 
     if Button((ButtonProps){
         .bounds = {(float)x, (float)(*y), (float)w, (float)h},
-        .id = (9100 + tab), .label = (settings_screen_tab_label(tab)), .font = Text16,
+        .id = (9100 + tab), .label = (settings_screen_tab_label(tab)),
         .disabled = disabled,
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
@@ -754,60 +750,6 @@ app_nav_profile_identity :: (app: InnerBreeze*, out: char*, out_size: size_t,
     }
 }
 
-app_draw_sidebar_profile_header :: (app: InnerBreeze*, x: int, y: int*, w: int,
-                                   has_account: int,
-                                   account_label: const char*,
-                                   account_subtitle: const char*) -> int #private {
-    header_h := Scale(138)
-    friends_count := has_account ? profile_social_friends_count(app) : 0
-    pending_count := has_account ? profile_social_pending_count(app) : 0
-    friends_text: [64] char
-    header: SidebarAccountHeaderResult
-
-    if pending_count > 0 {
-        FormatLocaleText(friends_text, sizeof(friends_text), "profile_friends_pending_summary", friends_count, pending_count)
-    } else {
-        snprintf(friends_text, sizeof(friends_text),
-                    GetLocaleText("profile_friends_summary"), friends_count)
-    }
-
-    header = SidebarAccountHeader((SidebarAccountHeaderProps){
-        .x = x,
-        .y = *y,
-        .width = w,
-        .height = header_h,
-        .username = account_label,
-        .subtitle = account_subtitle,
-        .friends_text = friends_text,
-        .icons = app != NULL ? app->icons : NULL,
-        .pfp_icon_type = app != NULL ? app->profile_picture_icon : UI_ICON_TYPE_NONE,
-        .content_padding_x = Scale(16),
-        .current_frame = app != NULL ? app->breathing.frame : 0,
-        .block_click_frame = app != NULL ? app->nav_sidebar_open_frame : -1
-    })
-
-    if header.pfp_clicked {
-        app->profile_picture_picker_scroll = 0
-        app_open_modal(app, UIModalProfilePicturePicker)
-        *y += header.height + Scale(12)
-        return 1
-    }
-    if header.friends_clicked {
-        app_apply_nav_route(app, has_account ? APP_NAV_ROUTE_FRIENDS
-                                                : APP_NAV_ROUTE_ACCOUNT)
-        *y += header.height + Scale(12)
-        return 1
-    }
-    if header.username_clicked {
-        app_apply_nav_route(app, APP_NAV_ROUTE_PROFILE)
-        *y += header.height + Scale(12)
-        return 1
-    }
-
-    *y += header.height + Scale(12)
-    return 0
-}
-
 app_open_customize_nav :: (app: InnerBreeze*) {
     return_to_sidebar: int
 
@@ -823,8 +765,39 @@ app_open_customize_nav :: (app: InnerBreeze*) {
     app->nav_sidebar_open = 0
     app->nav_sidebar_prior_screen = 0
     app->nav_sidebar_return_on_back = return_to_sidebar
-    app_block_current_click(app)
-    app_switch_screen(app, ScreenCustomizeNav)
+    route := app_current_route(app)
+    route.screen = ScreenCustomizeNav
+    app_request_route(app, route)
+}
+
+app_sidebar_settings_items :: (items: *AppSidebarSettingsItem,
+                               capacity: int) -> int #private {
+    #if DESKTOP {
+        written: [6] const AppSidebarSettingsItem = {
+            {SETTINGS_TAB_DEVICE},
+            {SETTINGS_TAB_AUDIO},
+            {SETTINGS_TAB_BREAKS},
+            {SETTINGS_TAB_NOTIFICATIONS},
+            {SETTINGS_TAB_THEME},
+            {SETTINGS_TAB_ABOUT}
+        }
+        for int i = 0; i < 6 && i < capacity; i++ {
+            items[i] = written[i]
+        }
+        return 6
+    } #else {
+        written: [5] const AppSidebarSettingsItem = {
+            {SETTINGS_TAB_DEVICE},
+            {SETTINGS_TAB_AUDIO},
+            {SETTINGS_TAB_NOTIFICATIONS},
+            {SETTINGS_TAB_THEME},
+            {SETTINGS_TAB_ABOUT}
+        }
+        for int i = 0; i < 5 && i < capacity; i++ {
+            items[i] = written[i]
+        }
+        return 5
+    }
 }
 
 app_draw_nav_sidebar :: (app: InnerBreeze*) {
@@ -840,42 +813,16 @@ app_draw_nav_sidebar :: (app: InnerBreeze*) {
     header_h: int
     scroll_y: int
     scroll_h: int
-    y: int
     scrim: Color = BLACK
-    area: UIScrollArea
-    view: UIScrollView
-    account: SyncAccount
-    has_account: int
-    account_label: [96] char
-    account_subtitle: [96] char
-    overlay: DismissibleOverlayResult
-    settings_count := 6
-    #if DESKTOP {
-        settings_items: [6] const AppSidebarSettingsItem = {
-            {SETTINGS_TAB_DEVICE},
-            {SETTINGS_TAB_AUDIO},
-            {SETTINGS_TAB_BREAKS},
-            {SETTINGS_TAB_NOTIFICATIONS},
-            {SETTINGS_TAB_THEME},
-            {SETTINGS_TAB_ABOUT}
-        }
-    } #else {
-        settings_items: [5] const AppSidebarSettingsItem = {
-            {SETTINGS_TAB_DEVICE},
-            {SETTINGS_TAB_AUDIO},
-            {SETTINGS_TAB_NOTIFICATIONS},
-            {SETTINGS_TAB_THEME},
-            {SETTINGS_TAB_ABOUT}
-        }
-        settings_count = 5
-    }
+    settings_items: [6] AppSidebarSettingsItem
+    settings_count := app_sidebar_settings_items(&settings_items[0], 6)
 
     if app == NULL || (!app->nav_sidebar_open && !app_nav_sidebar_screen_active(app)) {
         return
     }
 
     if !app->modal.active {
-        ClearUIInputCaptures()
+        ClearInputCaptures()
     }
 
     sidebar_w = app_nav_sidebar_width()
@@ -898,20 +845,27 @@ app_draw_nav_sidebar :: (app: InnerBreeze*) {
         footer_y = 0
     }
 
+    # Dismissible overlay: full-view scrim with the sidebar cut out; a
+    # release outside the panel dismisses it.
     scrim.a = 92
-    overlay = DismissibleOverlay((DismissibleOverlayProps){
-        .bounds = {(float)sidebar_x, 0.0f, (float)sidebar_w,
-                   (float)view_height},
-        .view_width = view_width,
-        .view_height = view_height,
-        .scrim = scrim,
-        .dismiss_disabled = app->modal.active
-    })
+    DrawRectangle(0, 0, sidebar_x, view_height, scrim)
+    DrawRectangle(sidebar_x + sidebar_w, 0,
+                  view_width - sidebar_x - sidebar_w, view_height, scrim)
+    overlay := !app->modal.active &&
+        IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+        !ReleaseConsumed() &&
+        !CheckCollisionPointRec(GetMousePosition(),
+                                (Rectangle){(float)sidebar_x, 0.0f,
+                                            (float)sidebar_w,
+                                            (float)view_height})
+    if overlay {
+        ConsumeRelease()
+    }
     DrawRectangle(sidebar_x, 0, sidebar_w, view_height,
-                  DarkenUIColor(GetThemeBackground(), 8))
+                  DarkenColor(GetThemeBackground(), 8))
     DrawRectangleGradientH(sidebar_x, 0, sidebar_w, view_height,
-                           DarkenUIColor(GetThemeBackground(), 4),
-                           DarkenUIColor(GetThemeBackground(), 12))
+                           DarkenColor(GetThemeBackground(), 4),
+                           DarkenColor(GetThemeBackground(), 12))
     DrawLine(sidebar_x + sidebar_w - 1, 0, sidebar_x + sidebar_w - 1,
              view_height, Fade(GetThemeText(), 0.18f))
     if sidebar_x + sidebar_w < view_width {
@@ -923,21 +877,12 @@ app_draw_nav_sidebar :: (app: InnerBreeze*) {
         return
     }
 
-    if app->nav_sidebar_open_frame != app->breathing.frame && overlay.closed {
+    if app->nav_sidebar_open_frame != app->breathing.frame && overlay {
         app_close_nav_sidebar(app)
         return
     }
 
-    has_account = sync_account_load(&account)
-    app_nav_profile_identity(app, account_label, sizeof(account_label),
-                             account_subtitle, sizeof(account_subtitle))
-    header_y = 0
-    if app_draw_sidebar_profile_header(app, sidebar_x, &header_y, sidebar_w,
-                                       has_account, account_label,
-                                       account_subtitle) {
-        return
-    }
-
+    header_y = Scale(24)
     header_h = header_y
     scroll_y = header_h
     scroll_h = view_height - footer_h - scroll_y
@@ -945,31 +890,25 @@ app_draw_nav_sidebar :: (app: InnerBreeze*) {
         scroll_h = 0
     }
 
-    area = (UIScrollArea){
-        .bounds = {(float)sidebar_x, (float)scroll_y, (float)sidebar_w,
-                   (float)scroll_h},
-        .content_height = settings_count * (Scale(38) + Scale(8)),
-        .content_x = sidebar_x + pad,
-        .content_width = sidebar_w - pad * 2,
-        .scroll_offset = &app->nav_sidebar_scroll,
-        .wheel_step = Scale(42),
-        .scrollbar_x = sidebar_x + sidebar_w - Scale(8)
+    Scroll page: {
+        bounds = (Rectangle){(float)sidebar_x, (float)scroll_y,
+                             (float)sidebar_w, (float)scroll_h}
+        content_height = settings_count * (Scale(38) + Scale(8))
+        scroll_offset = &app->nav_sidebar_scroll
+
+        items_y := (int)page.y
+        if app_draw_sidebar_settings_items(app, sidebar_x + pad, &items_y,
+                                           sidebar_w - pad * 2, settings_items,
+                                           settings_count) {
+            return
+        }
     }
-    view = BeginUIScrollContainer(area)
-    y = view.content_y
-    if app_draw_sidebar_settings_items(app, area.content_x, &y,
-                                       area.content_width, settings_items,
-                                       settings_count) {
-        EndUIScrollContainer(area, view)
-        return
-    }
-    EndUIScrollContainer(area, view)
 
     DrawRectangle(sidebar_x, footer_y, sidebar_w, view_height - footer_y,
-                  DarkenUIColor(GetThemeBackground(), 10))
+                  DarkenColor(GetThemeBackground(), 10))
     if Button((ButtonProps){
         .bounds = {(float)(sidebar_x + pad), (float)close_y, (float)(sidebar_w - pad * 2), (float)close_h},
-        .id = 9199, .label = GetLocaleText("close_button"), .font = Text16,
+        .id = 9199, .label = GetLocaleText("close_button"),
         .disabled = (app->modal.active),
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
@@ -1078,10 +1017,12 @@ app_customize_nav_scaffold_title :: (title: const char*, height: int,
     app := (InnerBreeze*)user_data
 
     if app == nil || app->modal.active {
-        TitleBar(title, height)
+        TitleBar((TitleBarProps){.title = title, .height = height})
         return 0
     }
-    if ReturnTitleBar(app->icons[UI_ICON_TYPE_LEFT], title, height) {
+    if TitleBar((TitleBarProps){.title = title, .height = height,
+                                .leading_icon = app->icons[ICON_LEFT],
+                                .has_leading_action = 1}) {
         app_block_current_click(app)
         app_open_main_tab(app, app->main_tab, 0)
         return 1
@@ -1091,7 +1032,6 @@ app_customize_nav_scaffold_title :: (title: const char*, height: int,
 
 app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     options: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const char*
-    scaffold: UIScreenScaffold
     reorder_items: [APP_BOTTOM_NAV_CONTENT_MAX] ReorderItem
     reorder: ReorderListResult
     selected: [APP_BOTTOM_NAV_CONTENT_MAX] int
@@ -1107,6 +1047,13 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     action_to_index := -1
     action_route := APP_NAV_ROUTE_NONE
     option_count := app_nav_config_option_count()
+    side_padding := GetPageSidePadding()
+    max_content_w := Scale(CONTENT_MAX_W)
+    content_x := 0
+    content_w := 0
+    content_h: int
+    title_h := AppTitleBarHeight()
+    top_gap := Scale(8)
 
     if app == NULL {
         return 0
@@ -1131,144 +1078,154 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
         options[3] = app_nav_route_label(APP_NAV_ROUTE_SETTINGS)
     }
 
-    scaffold = BeginUIScreenScaffold((UIScreenScaffoldSpec){
-        .title = GetLocaleText("customize_nav_title"),
-        .top_gap = Scale(8),
-        .max_content_width = Scale(CONTENT_MAX_W),
-        .min_content_width = Scale(300),
-        .scroll_offset = &app->nav_sidebar_scroll,
-        .draw_title = app_customize_nav_scaffold_title,
-        .title_user_data = app
-    })
-    if scaffold.closed {
-        EndUIScreenScaffold(scaffold)
+    if app_customize_nav_scaffold_title(GetLocaleText("customize_nav_title"),
+                                        title_h, app) {
         return 1
     }
-    y = scaffold.page.content_y
 
-    for int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++ {
-        selected[i] = app_nav_option_index(app->bottom_nav_config_routes[i])
+    if max_content_w > view_width - side_padding * 2 {
+        max_content_w = view_width - side_padding * 2
     }
-
-    for int i = 0; i < draw_count; i++ {
-        row_y[i] = y + i * row_h
-        reorder_items[i] = (ReorderItem){
-            .id = app->bottom_nav_config_routes[i] * 100 + i + 1,
-            .bounds = {(float)scaffold.page.content_x, (float)row_y[i],
-                       (float)scaffold.page.content_w, (float)row_h},
-            .disabled = 0
-        }
+    if max_content_w < Scale(300) {
+        max_content_w = Scale(300)
     }
-
-    reorder = UpdateReorderList((ReorderList){
-        .id = 701,
-        .bounds = {(float)scaffold.page.content_x, (float)scaffold.page.content_y,
-                   (float)scaffold.page.content_w,
-                   (float)(row_h * draw_count)},
-        .items = reorder_items,
-        .item_count = draw_count,
-        .handle_width = handle_w,
-        .scroll_offset = &app->nav_sidebar_scroll,
-        .max_scroll = scaffold.page.view.max_scroll,
-        .viewport_top = (int)scaffold.page.area.bounds.y,
-        .viewport_bottom = (int)(scaffold.page.area.bounds.y + scaffold.page.area.bounds.height)
-    })
-    if reorder.committed {
-        action = APP_NAV_CONFIG_ACTION_MOVE
-        action_index = reorder.from_index
-        action_to_index = reorder.to_index
-    }
-
-    for int i = 0; i < draw_count; i++ {
-        icon_w := Scale(36)
-        icon_gap := Scale(8)
-        dropdown_x := scaffold.page.content_x + handle_w
-        trash_x := scaffold.page.content_x + scaffold.page.content_w - icon_w
-        dropdown_w := trash_x - icon_gap - dropdown_x
-        dropdown_y := row_y[i] + (row_h - button_h) / 2
-
-        if dropdown_w < Scale(48) {
-            dropdown_w = Scale(48)
-        }
-
-        if reorder.dragging && i == reorder.active_index {
-            continue
-        }
-
-        ReorderHandle(0, scaffold.page.content_x, row_y[i], handle_w, row_h,
-                               reorder.active && i == reorder.active_index)
-        if Dropdown(740 + i, dropdown_x, dropdown_y,
-                                dropdown_w, button_h, options,
-                                option_count, &selected[i]) &&
-           action == APP_NAV_CONFIG_ACTION_NONE {
-            action = APP_NAV_CONFIG_ACTION_SET
-            action_index = i
-            action_route = app_nav_route_for_option(selected[i])
-        }
-        if Button((ButtonProps){
-            .id = 0,
-            .bounds = {(float)(trash_x), (float)(dropdown_y - Scale(2)),
-                       (float)((Scale(20)) + (Scale(8)) * 2),
-                       (float)((Scale(20)) + (Scale(8)) * 2)},
-            .icon = app->icons[UI_ICON_TYPE_TRASH], .icon_only = 1,
-            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-            .style = {.normal = {
-                .fields = StyleIconSize,
-                .icon_size = (float)(Scale(20)) * 1000.0f / Scale(1000)
-            }}
-        }) &&
-           action == APP_NAV_CONFIG_ACTION_NONE {
-            action = APP_NAV_CONFIG_ACTION_REMOVE
-            action_index = i
-        }
-    }
-    if reorder.dragging && reorder.target_index >= 0 &&
-       reorder.target_index < draw_count {
-        ReorderPlaceholder(reorder_items[reorder.target_index].bounds)
-    }
-    if reorder.dragging && reorder.active_index >= 0 &&
-       reorder.active_index < draw_count {
-        i := reorder.active_index
-        icon_w := Scale(36)
-        icon_gap := Scale(8)
-        dropdown_x := scaffold.page.content_x + handle_w
-        trash_x := scaffold.page.content_x + scaffold.page.content_w - icon_w
-        dropdown_w := trash_x - icon_gap - dropdown_x
-        overlay_y := row_y[i] + reorder.drag_delta_y
-        dropdown_y := overlay_y + (row_h - button_h) / 2
-
-        if dropdown_w < Scale(48) {
-            dropdown_w = Scale(48)
-        }
-        DrawRectangle(scaffold.page.content_x, overlay_y, scaffold.page.content_w, row_h,
-                         LightenUIColor(GetThemeBackground(), 8))
-        ReorderHandle(0, scaffold.page.content_x, overlay_y, handle_w, row_h, 1)
-        Dropdown(740 + i, dropdown_x, dropdown_y,
-                                dropdown_w, button_h, options,
-                                option_count, &selected[i])
-        Icon(0, trash_x + Scale(8), dropdown_y + Scale(6),
-             Scale(20), UI_ICON_TYPE_TRASH, GetThemeIcon())
-    }
-
-    y += row_h * draw_count
-
+    GetCenteredColumn(max_content_w, side_padding, &content_x, &content_w)
+    content_h = draw_count * row_h
     if draw_count < option_count {
-
-        if Button((ButtonProps){
-            .bounds = {(float)(scaffold.page.content_x), (float)(y), (float)(scaffold.page.content_w), (float)(button_h)},
-            .label = GetLocaleText("customize_nav_add"),
-            .font = GetFontSize(),
-            .tone = ButtonToneNeutral,
-            .emphasis = ButtonEmphasisSoft,
-            .disabled = 0
-        }) &&
-           action == APP_NAV_CONFIG_ACTION_NONE {
-            action = APP_NAV_CONFIG_ACTION_ADD
-        }
-        y += button_h + Scale(14)
+        content_h += button_h + Scale(14)
     }
 
-    EndUIScreenScaffold(scaffold)
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)(title_h + top_gap),
+                             (float)view_width,
+                             (float)(view_height - title_h - top_gap)}
+        content_height = content_h
+        scroll_offset = &app->nav_sidebar_scroll
+
+        list_y := (int)page.y
+
+        for int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++ {
+            selected[i] = app_nav_option_index(app->bottom_nav_config_routes[i])
+        }
+
+        for int i = 0; i < draw_count; i++ {
+            row_y[i] = list_y + i * row_h
+            reorder_items[i] = (ReorderItem){
+                .id = app->bottom_nav_config_routes[i] * 100 + i + 1,
+                .bounds = {(float)content_x, (float)row_y[i],
+                           (float)content_w, (float)row_h},
+                .disabled = 0
+            }
+        }
+
+        reorder = UpdateReorderList((ReorderList){
+            .id = 701,
+            .bounds = {(float)content_x, (float)list_y,
+                       (float)content_w,
+                       (float)(row_h * draw_count)},
+            .items = reorder_items,
+            .item_count = draw_count,
+            .handle_width = handle_w,
+            .scroll_offset = &app->nav_sidebar_scroll,
+            .max_scroll = content_h > view_height - title_h - top_gap
+                              ? content_h - (view_height - title_h - top_gap)
+                              : 0,
+            .viewport_top = title_h + top_gap,
+            .viewport_bottom = view_height
+        })
+        if reorder.committed {
+            action = APP_NAV_CONFIG_ACTION_MOVE
+            action_index = reorder.from_index
+            action_to_index = reorder.to_index
+        }
+
+        for int i = 0; i < draw_count; i++ {
+            icon_w := Scale(36)
+            icon_gap := Scale(8)
+            dropdown_x := content_x + handle_w
+            trash_x := content_x + content_w - icon_w
+            dropdown_w := trash_x - icon_gap - dropdown_x
+            dropdown_y := row_y[i] + (row_h - button_h) / 2
+
+            if dropdown_w < Scale(48) {
+                dropdown_w = Scale(48)
+            }
+
+            if reorder.dragging && i == reorder.active_index {
+                continue
+            }
+
+            AppReorderHandle(content_x, row_y[i], handle_w, row_h,
+                                reorder.active && i == reorder.active_index)
+            if Dropdown((DropdownProps){.id = 740 + i,
+                                    .bounds = {dropdown_x, dropdown_y, dropdown_w, button_h},
+                                    .options = options, .option_count = option_count,
+                                    .selected_index = &selected[i]}) &&
+               action == APP_NAV_CONFIG_ACTION_NONE {
+                action = APP_NAV_CONFIG_ACTION_SET
+                action_index = i
+                action_route = app_nav_route_for_option(selected[i])
+            }
+            if Button((ButtonProps){
+                .id = 0,
+                .bounds = {(float)(trash_x), (float)(dropdown_y - Scale(2)),
+                           (float)((Scale(20)) + (Scale(8)) * 2),
+                           (float)((Scale(20)) + (Scale(8)) * 2)},
+                .icon_type = ICON_TRASH, .icon_only = 1,
+                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+            }) &&
+               action == APP_NAV_CONFIG_ACTION_NONE {
+                action = APP_NAV_CONFIG_ACTION_REMOVE
+                action_index = i
+            }
+        }
+        if reorder.dragging && reorder.target_index >= 0 &&
+           reorder.target_index < draw_count {
+            AppReorderPlaceholder(reorder_items[reorder.target_index].bounds)
+        }
+        if reorder.dragging && reorder.active_index >= 0 &&
+           reorder.active_index < draw_count {
+            i := reorder.active_index
+            icon_w := Scale(36)
+            icon_gap := Scale(8)
+            dropdown_x := content_x + handle_w
+            trash_x := content_x + content_w - icon_w
+            dropdown_w := trash_x - icon_gap - dropdown_x
+            overlay_y := row_y[i] + reorder.drag_delta_y
+            dropdown_y := overlay_y + (row_h - button_h) / 2
+
+            if dropdown_w < Scale(48) {
+                dropdown_w = Scale(48)
+            }
+            DrawRectangle(content_x, overlay_y, content_w, row_h,
+                             LightenColor(GetThemeBackground(), 8))
+            AppReorderHandle(content_x, overlay_y, handle_w, row_h, 1)
+            Dropdown((DropdownProps){.id = 740 + i,
+                                    .bounds = {dropdown_x, dropdown_y, dropdown_w, button_h},
+                                    .options = options, .option_count = option_count,
+                                    .selected_index = &selected[i]})
+            Icon(0, trash_x + Scale(8), dropdown_y + Scale(6),
+                 Scale(20), ICON_TRASH, GetThemeIcon())
+        }
+
+        y += row_h * draw_count
+
+        if draw_count < option_count {
+
+            if Button((ButtonProps){
+                .bounds = {(float)(content_x), (float)(y), (float)(content_w), (float)(button_h)},
+                .label = GetLocaleText("customize_nav_add"),
+                .tone = ButtonToneNeutral,
+                .emphasis = ButtonEmphasisSoft,
+                .disabled = 0
+            }) &&
+               action == APP_NAV_CONFIG_ACTION_NONE {
+                action = APP_NAV_CONFIG_ACTION_ADD
+            }
+            y += button_h + Scale(14)
+        }
+
+    }
 
     if action == APP_NAV_CONFIG_ACTION_MOVE {
         changed = app_move_bottom_nav_config_route(app, action_index,

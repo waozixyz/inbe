@@ -24,6 +24,22 @@ SettingsMobileHubRow :: struct {
     route: int
 }
 
+SettingsDesktopLayout :: struct {
+    content_x: int
+    content_y: int
+    content_w: int
+    content_h: int
+    list_x: int
+    list_y: int
+    list_w: int
+    list_h: int
+    panel_x: int
+    panel_y: int
+    panel_w: int
+    panel_h: int
+    panel_pad: int
+}
+
 theme_panel :: #import "src/screens/settings/settings_theme"
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
@@ -78,19 +94,12 @@ settings_screen_clear_status :: () {
 }
 
 settings_draw_status :: (x: int, y: int*) #private {
-    status_font := 0
-    status_color := (Color){0}
-
     if unified_status[0] == '\0' {
         return
     }
-    status_font = GetSmallFontSize()
-    status_color = unified_status_type == 2 ? RED : GetThemeText()
     Text((TextProps){
         .bounds={(x), (*y), 0, 0},
         .text=(unified_status),
-        .font=(status_font),
-        .color=(status_color),
         .wrap=TextWrapNone
     })
     *y += Scale(18)
@@ -98,8 +107,6 @@ settings_draw_status :: (x: int, y: int*) #private {
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(unified_detail),
-            .font=(status_font),
-            .color=(DarkenUIColor(GetThemeText(), 40)),
             .wrap=TextWrapNone
         })
         *y += Scale(18)
@@ -178,29 +185,24 @@ settings_screen_tab_label :: (tab: int) -> const char* {
 settings_scaffold_title :: (title: const char*, height: int, user_data: void*) -> int #private {
     app := (InnerBreeze*)user_data
 
-    if app == nil {
-        TitleBar(title, height)
+    if app == nil || app->modal.active {
+        TitleBar((TitleBarProps){.title = title, .height = height})
         return 0
     }
 
-    if app_draw_close_title_bar(app, title, height) {
+    if TitleBar((TitleBarProps){.title = title, .height = height,
+                                .leading_icon = app->icons[ICON_LEFT],
+                                .has_leading_action = 1}) {
+        app_block_current_click(app)
         app->settings_scroll = 0
         if app->modal.type == UIModalThemePicker {
             app_close_modal(app)
         }
         settings_screen_clear_status()
-        #if !DESKTOP {
-            if app->settings_tab != SETTINGS_TAB_MOBILE_HUB {
-                route := app_current_route(app)
-                route.screen = ScreenSettings
-                route.settings_tab = SETTINGS_TAB_MOBILE_HUB
-                app_switch_route(app, route)
-                return 1
-            }
-        }
-        if !app_return_to_nav_sidebar_if_needed(app) {
-            app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? ScreenHabits : ScreenStart)
-        }
+        route := app_current_route(app)
+        route.screen = ScreenSettings
+        route.settings_tab = SETTINGS_TAB_MOBILE_HUB
+        app_switch_route(app, route)
         return 1
     }
     return 0
@@ -246,6 +248,35 @@ settings_tab_subtitle :: (tab: int) -> const char* #private {
     return ""
 }
 
+settings_screen_normalize :: (app: InnerBreeze*) #private {
+    if app == NULL {
+        return
+    }
+    if app->settings_tab < 0 || app->settings_tab > SETTINGS_TAB_MOBILE_HUB {
+        app->settings_tab = SETTINGS_TAB_MOBILE_HUB
+    }
+    #if !DESKTOP {
+        if app->settings_tab == SETTINGS_TAB_BREAKS {
+            app->settings_tab = SETTINGS_TAB_DEVICE
+        }
+    }
+}
+
+settings_screen_prepare :: (app: InnerBreeze*) #private {
+    if app == NULL {
+        return
+    }
+    #if ANDROID {
+        settings_data_handle_android_import(app)
+    } #else_if WEB {
+        settings_data_handle_web_import(app)
+    }
+    settings_audio_handle_import(app)
+    if app->settings_tab == SETTINGS_TAB_AUDIO {
+        meditation_music_update(app)
+    }
+}
+
 settings_mobile_row_value :: (app: InnerBreeze*, tab: int, route: int) -> const char* #private {
     unused app
     if route == APP_NAV_ROUTE_DATA {
@@ -269,7 +300,7 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
     icon_x := x + Scale(14)
     text_x := icon_x + icon_size + Scale(14)
     chevron_w := Scale(18)
-    value_w := TextWidth(row.value, Text14)
+    value_w := AppTextWidth(row.value, Text14)
     title_w := w - (text_x - x) - value_w - chevron_w - Scale(30)
 
     clicked := Button((ButtonProps){
@@ -279,34 +310,28 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
         .disabled = app->modal.active
     })
     Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
-         row.icon, LightenUIColor(GetThemeButtonHover(), 54))
+         row.icon, LightenColor(GetThemeButtonHover(), 54))
     Text((TextProps){
         .bounds={(float)text_x,
-                 (float)GetUIControlTextY(row.label, y, h, Text18),
+                 (float)AppControlTextY(row.label, y, h, Text18),
                  (float)title_w, (float)Scale(24)},
         .text=(row.label),
-        .font=(Text18),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     if row.value != NULL && row.value[0] != '\0' {
         Text((TextProps){
             .bounds={(float)(x + w - value_w - chevron_w - Scale(18)),
-                     (float)GetUIControlTextY(row.value, y, h, Text14),
+                     (float)AppControlTextY(row.value, y, h, Text14),
                      (float)value_w, (float)Scale(20)},
             .text=(row.value),
-            .font=(Text14),
-            .color=(Fade(GetThemeText(), 0.62f)),
             .wrap=TextWrapNone
         })
     }
     Text((TextProps){
         .bounds={(float)(x + w - chevron_w - Scale(12)),
-                 (float)GetUIControlTextY(">", y, h, Text18),
+                 (float)AppControlTextY(">", y, h, Text18),
                  0, 0},
         .text=(">"),
-        .font=(Text18),
-        .color=(Fade(GetThemeText(), 0.66f)),
         .wrap=TextWrapNone
     })
     if clicked {
@@ -340,7 +365,7 @@ settings_mobile_profile_strip :: (app: InnerBreeze*, x: int, y: int, w: int) -> 
         .disabled = app->modal.active
     })
     DrawCircle(avatar_x + avatar / 2, avatar_y + avatar / 2, avatar / 2,
-               LightenUIColor(GetThemeButton(), 30))
+               LightenColor(GetThemeButton(), 30))
     DrawTexturePro(app->icons[app->profile_picture_icon],
                    (Rectangle){0.0f, 0.0f,
                                (float)app->icons[app->profile_picture_icon].width,
@@ -352,8 +377,6 @@ settings_mobile_profile_strip :: (app: InnerBreeze*, x: int, y: int, w: int) -> 
         .bounds={(float)text_x, (float)(y + Scale(17)),
                  (float)(w - (text_x - x) - Scale(14)), (float)Scale(24)},
         .text=(label),
-        .font=(Text20),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     if subtitle[0] != '\0' {
@@ -361,8 +384,6 @@ settings_mobile_profile_strip :: (app: InnerBreeze*, x: int, y: int, w: int) -> 
             .bounds={(float)text_x, (float)(y + Scale(42)),
                      (float)(w - (text_x - x) - Scale(14)), (float)Scale(18)},
             .text=(subtitle),
-            .font=(Text14),
-            .color=(Fade(GetThemeText(), 0.66f)),
             .wrap=TextWrapNone
         })
     }
@@ -386,17 +407,17 @@ settings_mobile_hub_draw_content :: (content_x: int, content_y: int,
     app := (InnerBreeze*)user_data
     y := content_y
     rows: [6] SettingsMobileHubRow = {
-        {GetLocaleText("settings_tab_device"), "", UI_ICON_TYPE_GEAR,
+        {GetLocaleText("settings_tab_device"), "", ICON_GEAR,
          SETTINGS_TAB_DEVICE, APP_NAV_ROUTE_NONE},
-        {GetLocaleText("settings_section_appearance"), "", UI_ICON_TYPE_LIGHTON,
+        {GetLocaleText("settings_section_appearance"), "", ICON_LIGHTON,
          SETTINGS_TAB_THEME, APP_NAV_ROUTE_NONE},
-        {GetLocaleText("settings_tab_audio"), "", UI_ICON_TYPE_SOUND,
+        {GetLocaleText("settings_tab_audio"), "", ICON_SOUND,
          SETTINGS_TAB_AUDIO, APP_NAV_ROUTE_NONE},
-        {GetLocaleText("settings_tab_notifications"), "", UI_ICON_TYPE_ROUTINE,
+        {GetLocaleText("settings_tab_notifications"), "", ICON_ROUTINE,
          SETTINGS_TAB_NOTIFICATIONS, APP_NAV_ROUTE_NONE},
-        {GetLocaleText("profile_data"), "", UI_ICON_TYPE_SAVE,
+        {GetLocaleText("profile_data"), "", ICON_SAVE,
          SETTINGS_TAB_DEVICE, APP_NAV_ROUTE_DATA},
-        {GetLocaleText("settings_tab_about"), "", UI_ICON_TYPE_TEXT,
+        {GetLocaleText("settings_tab_about"), "", ICON_TEXT,
          SETTINGS_TAB_ABOUT, APP_NAV_ROUTE_NONE}
     }
 
@@ -414,21 +435,40 @@ settings_mobile_hub_draw_content :: (content_x: int, content_y: int,
 }
 
 settings_screen_draw_mobile_hub :: (app: InnerBreeze*) -> int #private {
-    scaffold := BeginUIScreenScaffold((UIScreenScaffoldSpec){
-        .title = GetLocaleText("settings_title"),
-        .top_gap = Scale(8),
-        .bottom_reserved = app_content_bottom_reserved(app),
-        .max_content_width = Scale(CONTENT_MAX_W),
-        .min_content_width = Scale(280),
-        .scroll_offset = &app->settings_scroll,
-        .content_height = settings_mobile_hub_content_height,
-        .user_data = app,
-        .draw_title = nil
-    })
-    settings_mobile_hub_draw_content(scaffold.page.content_x,
-                                     scaffold.page.content_y,
-                                     scaffold.page.content_w, app)
-    EndUIScreenScaffold(scaffold)
+    side_padding := GetPageSidePadding()
+    max_content_w := Scale(CONTENT_MAX_W)
+    available := view_width - side_padding * 2
+    content_x := 0
+    content_w := 0
+    content_h := 0
+    top := 0
+    height := 0
+
+    TitleBar((TitleBarProps){.title = GetLocaleText("settings_title"),
+                             .height = AppTitleBarHeight()})
+
+    if max_content_w > available {
+        max_content_w = available
+    }
+    if max_content_w < Scale(280) {
+        max_content_w = Scale(280)
+    }
+    GetCenteredColumn(max_content_w, side_padding, &content_x, &content_w)
+    content_h = settings_mobile_hub_content_height(content_w, app)
+
+    top = AppTitleBarHeight() + Scale(8)
+    height = view_height - top - app_content_bottom_reserved(app)
+    if height < 0 {
+        height = 0
+    }
+
+    Scroll hub: {
+        bounds = (Rectangle){(float)0, (float)top, (float)view_width, (float)height}
+        content_height = content_h
+        scroll_offset = &app->settings_scroll
+        settings_mobile_hub_draw_content(content_x, (int)hub.y,
+                                         (int)hub.width, app)
+    }
     return 1
 }
 
@@ -467,9 +507,7 @@ settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int
                                      w: int, h: int, id: int) -> int #private {
     active := app != NULL && app->settings_tab == tab
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    text_color := active ? WHITE : GetThemeText()
-    icon_color := active ? LightenUIColor(GetThemeButtonHover(), 64) : GetThemeText()
-    subtitle_color := active ? Fade(WHITE, 0.72f) : Fade(GetThemeText(), 0.62f)
+    icon_color := active ? LightenColor(GetThemeButtonHover(), 64) : GetThemeText()
     icon_size := Scale(24)
     icon_x := x + Scale(14)
     text_x := icon_x + icon_size + Scale(12)
@@ -484,19 +522,17 @@ settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int
         .disabled = app->modal.active
     })
     Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
-         tab == SETTINGS_TAB_ABOUT ? UI_ICON_TYPE_TEXT :
-         tab == SETTINGS_TAB_AUDIO ? UI_ICON_TYPE_SOUND :
-         tab == SETTINGS_TAB_NOTIFICATIONS ? UI_ICON_TYPE_ROUTINE :
-         tab == SETTINGS_TAB_THEME ? UI_ICON_TYPE_LIGHTON :
-         tab == SETTINGS_TAB_BREAKS ? UI_ICON_TYPE_ACTIVITY :
-         UI_ICON_TYPE_GEAR,
+         tab == SETTINGS_TAB_ABOUT ? ICON_TEXT :
+         tab == SETTINGS_TAB_AUDIO ? ICON_SOUND :
+         tab == SETTINGS_TAB_NOTIFICATIONS ? ICON_ROUTINE :
+         tab == SETTINGS_TAB_THEME ? ICON_LIGHTON :
+         tab == SETTINGS_TAB_BREAKS ? ICON_ACTIVITY :
+         ICON_GEAR,
          icon_color)
     Text((TextProps){
         .bounds={(float)text_x, (float)title_y,
                  (float)(w - (text_x - x) - Scale(12)), (float)Scale(22)},
         .text=(settings_screen_tab_label(tab)),
-        .font=(Text18),
-        .color=(text_color),
         .wrap=TextWrapNone
     })
     if settings_tab_subtitle(tab)[0] != '\0' {
@@ -504,8 +540,6 @@ settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int
             .bounds={(float)text_x, (float)subtitle_y,
                      (float)(w - (text_x - x) - Scale(12)), (float)Scale(18)},
             .text=(settings_tab_subtitle(tab)),
-            .font=(Text12),
-            .color=(subtitle_color),
             .wrap=TextWrapNone
         })
     }
@@ -520,89 +554,97 @@ settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int
     return 0
 }
 
-settings_screen_draw_desktop :: (app: InnerBreeze*) -> int #private {
-    device_state := (SettingsDeviceState){0}
-    page_ctx := (SettingsScrollPageContext){app, app != NULL ? app->settings_tab : SETTINGS_TAB_DEVICE}
+settings_desktop_layout :: (layout: SettingsDesktopLayout*) -> int #private {
     outer_pad := Scale(24)
     header_h := Scale(70)
     gap := Scale(18)
     list_w := Scale(250)
-    content_x := outer_pad
-    content_y := outer_pad
-    content_w := view_width - outer_pad * 2
-    content_h := view_height - outer_pad * 2
-    list_x := content_x
-    list_y := content_y + header_h
-    list_h := content_h - header_h
-    panel_x := list_x + list_w + gap
-    panel_y := list_y
-    panel_w := content_w - list_w - gap
-    panel_h := list_h
     panel_pad := Scale(26)
-    y := panel_y + panel_pad
-    title := settings_screen_tab_label(app->settings_tab)
-    subtitle := settings_tab_subtitle(app->settings_tab)
-    row_h := Scale(72)
-    row_gap := Scale(10)
-    area: UIScrollArea
-    view: UIScrollView
-    drawn := 0
 
-    if content_w < Scale(640) || panel_w < Scale(320) {
+    if layout == NULL {
         return 0
     }
+    layout->content_x = outer_pad
+    layout->content_y = outer_pad
+    layout->content_w = view_width - outer_pad * 2
+    layout->content_h = view_height - outer_pad * 2
+    layout->list_x = layout->content_x
+    layout->list_y = layout->content_y + header_h
+    layout->list_w = list_w
+    layout->list_h = layout->content_h - header_h
+    layout->panel_x = layout->list_x + list_w + gap
+    layout->panel_y = layout->list_y
+    layout->panel_w = layout->content_w - list_w - gap
+    layout->panel_h = layout->list_h
+    layout->panel_pad = panel_pad
+
+    return layout->content_w >= Scale(640) && layout->panel_w >= Scale(320)
+}
+
+settings_desktop_draw_header :: (layout: SettingsDesktopLayout, tab: int) #private {
+    subtitle := settings_tab_subtitle(tab)
 
     Text((TextProps){
-        .bounds={(float)content_x, (float)content_y, 0, 0},
+        .bounds={(float)layout.content_x, (float)layout.content_y, 0, 0},
         .text=(GetLocaleText("settings_title")),
-        .font=(Text32),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     if subtitle[0] != '\0' {
         Text((TextProps){
-            .bounds={(float)content_x, (float)(content_y + Scale(40)), 0, 0},
+            .bounds={(float)layout.content_x,
+                     (float)(layout.content_y + Scale(40)), 0, 0},
             .text=(subtitle),
-            .font=(Text14),
-            .color=(Fade(GetThemeText(), 0.66f)),
             .wrap=TextWrapNone
         })
     }
+}
 
-    DrawRectangleRounded((Rectangle){(float)list_x, (float)list_y,
-                         (float)list_w, (float)list_h},
-                         0.025f, 10, DarkenUIColor(GetThemeBackground(), 4))
-    DrawRectangleRoundedLinesEx((Rectangle){(float)list_x, (float)list_y,
-                                (float)list_w, (float)list_h},
+settings_desktop_draw_nav :: (app: InnerBreeze*, layout: SettingsDesktopLayout) #private {
+    row_h := Scale(72)
+    row_gap := Scale(10)
+
+    DrawRectangleRounded((Rectangle){(float)layout.list_x, (float)layout.list_y,
+                         (float)layout.list_w, (float)layout.list_h},
+                         0.025f, 10, DarkenColor(GetThemeBackground(), 4))
+    DrawRectangleRoundedLinesEx((Rectangle){(float)layout.list_x, (float)layout.list_y,
+                                (float)layout.list_w, (float)layout.list_h},
                                 0.025f, 10, 1.0f, Fade(GetThemeText(), 0.07f))
     for int i = 0; i < settings_desktop_tab_count(); i++ {
         tab := settings_desktop_tab_at(i)
         settings_desktop_category_button(app, tab,
-            list_x + Scale(10), list_y + Scale(10) + i * (row_h + row_gap),
-            list_w - Scale(20), row_h, 7400 + i)
+            layout.list_x + Scale(10),
+            layout.list_y + Scale(10) + i * (row_h + row_gap),
+            layout.list_w - Scale(20), row_h, 7400 + i)
     }
-    DrawRectangleRounded((Rectangle){(float)panel_x, (float)panel_y,
-                         (float)panel_w, (float)panel_h},
-                         0.018f, 10, DarkenUIColor(GetThemeBackground(), 3))
-    DrawRectangleRoundedLinesEx((Rectangle){(float)panel_x, (float)panel_y,
-                                (float)panel_w, (float)panel_h},
+}
+
+settings_desktop_draw_panel :: (app: InnerBreeze*, layout: SettingsDesktopLayout) #private {
+    device_state := (SettingsDeviceState){0}
+    page_ctx := (SettingsScrollPageContext){app, app != NULL ? app->settings_tab : SETTINGS_TAB_DEVICE}
+    y := layout.panel_y + layout.panel_pad
+    title := settings_screen_tab_label(app->settings_tab)
+    subtitle := settings_tab_subtitle(app->settings_tab)
+    content_h := 0
+    drawn := 0
+
+    DrawRectangleRounded((Rectangle){(float)layout.panel_x, (float)layout.panel_y,
+                         (float)layout.panel_w, (float)layout.panel_h},
+                         0.018f, 10, DarkenColor(GetThemeBackground(), 3))
+    DrawRectangleRoundedLinesEx((Rectangle){(float)layout.panel_x, (float)layout.panel_y,
+                                (float)layout.panel_w, (float)layout.panel_h},
                                 0.018f, 10, 1.0f, Fade(GetThemeText(), 0.07f))
     Text((TextProps){
-        .bounds={(float)(panel_x + panel_pad), (float)y,
-                 (float)(panel_w - panel_pad * 2), (float)Scale(30)},
+        .bounds={(float)(layout.panel_x + layout.panel_pad), (float)y,
+                 (float)(layout.panel_w - layout.panel_pad * 2), (float)Scale(30)},
         .text=(title),
-        .font=(Text24),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
     y += Scale(34)
     if subtitle[0] != '\0' {
         Text((TextProps){
-            .bounds={(float)(panel_x + panel_pad), (float)y,
-                     (float)(panel_w - panel_pad * 2), (float)Scale(22)},
+            .bounds={(float)(layout.panel_x + layout.panel_pad), (float)y,
+                     (float)(layout.panel_w - layout.panel_pad * 2), (float)Scale(22)},
             .text=(subtitle),
-            .font=(Text14),
-            .color=(Fade(GetThemeText(), 0.68f)),
             .wrap=TextWrapNone
         })
         y += Scale(36)
@@ -611,22 +653,19 @@ settings_screen_draw_desktop :: (app: InnerBreeze*) -> int #private {
     }
 
     page_ctx.tab = app->settings_tab
-    area = (UIScrollArea){
-        .bounds = {(float)(panel_x + panel_pad), (float)y,
-                   (float)(panel_w - panel_pad * 2),
-                   (float)(panel_y + panel_h - panel_pad - y)},
-        .content_height = settings_scroll_page_content_height(panel_w - panel_pad * 2, &page_ctx),
-        .content_x = panel_x + panel_pad,
-        .content_width = panel_w - panel_pad * 2,
-        .scroll_offset = &app->settings_scroll,
-        .wheel_step = Scale(42),
-        .scrollbar_x = panel_x + panel_w - Scale(14)
+    content_h = settings_scroll_page_content_height(
+        layout.panel_w - layout.panel_pad * 2, &page_ctx)
+
+    Scroll panel: {
+        bounds = {(float)(layout.panel_x + layout.panel_pad), (float)y,
+                  (float)(layout.panel_w - layout.panel_pad * 2),
+                  (float)(layout.panel_y + layout.panel_h - layout.panel_pad - y)}
+        content_height = content_h
+        scroll_offset = &app->settings_scroll
+        y := (int)panel.y
+        settings_draw_tab_content(app, app->settings_tab, (int)panel.x,
+                                  (int)panel.width, &y, &device_state, &drawn)
     }
-    view = BeginUIScrollContainer(area)
-    y = view.content_y
-    settings_draw_tab_content(app, app->settings_tab, view.content_x,
-                              view.content_w, &y, &device_state, &drawn)
-    EndUIScrollContainer(area, view)
 
     if app->settings_tab == SETTINGS_TAB_DEVICE {
         settings_device_handle_overlays(app, &device_state)
@@ -634,90 +673,94 @@ settings_screen_draw_desktop :: (app: InnerBreeze*) -> int #private {
     if app->settings_tab == SETTINGS_TAB_NOTIFICATIONS {
         settings_notifications_handle_overlays(app)
     }
+}
+
+settings_screen_draw_desktop :: (app: InnerBreeze*) -> int #private {
+    layout := (SettingsDesktopLayout){0}
+
+    if app == NULL || !settings_desktop_layout(&layout) {
+        return 0
+    }
+    settings_desktop_draw_header(layout, app->settings_tab)
+    settings_desktop_draw_nav(app, layout)
+    settings_desktop_draw_panel(app, layout)
     return 1
 }
 
+settings_screen_draw_desktop_if_enabled :: (app: InnerBreeze*) -> int #private {
+    #if DESKTOP {
+        if app_nav_desktop_rail_enabled(app) &&
+           settings_screen_draw_desktop(app) {
+            return 1
+        }
+    }
+    return 0
+}
+
 settings_screen_draw :: (app: InnerBreeze*) -> int {
+
     device_state := (SettingsDeviceState){0}
     page_ctx := (SettingsScrollPageContext){0}
-    scaffold := (UIScreenScaffold){0}
+    side_padding := 0
+    max_content_w := 0
+    available := 0
+    content_x := 0
+    content_w := 0
+    content_h := 0
+    top := 0
+    height := 0
     y := 0
     drawn := 0
     title := (const char*)NULL
 
-    if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
-        app->settings_drag_slider = 0
+    settings_screen_normalize(app)
+    if app->settings_tab == SETTINGS_TAB_MOBILE_HUB {
+        settings_screen_draw_mobile_hub(app)
+        return 0
     }
 
-    #if !DESKTOP {
-        if app->settings_tab < 0 || app->settings_tab > SETTINGS_TAB_MOBILE_HUB {
-            app->settings_tab = SETTINGS_TAB_MOBILE_HUB
-        }
-        if app->settings_tab == SETTINGS_TAB_MOBILE_HUB {
-            settings_screen_draw_mobile_hub(app)
-            return 0
-        }
-    } #else {
-        if app->settings_tab < 0 || app->settings_tab >= SETTINGS_TAB_COUNT {
-            app->settings_tab = SETTINGS_TAB_DEVICE
-        }
-    }
-    #if !DESKTOP {
-        if app->settings_tab == SETTINGS_TAB_BREAKS {
-            app->settings_tab = SETTINGS_TAB_DEVICE
-        }
-    }
+    settings_screen_prepare(app)
 
-    #if ANDROID {
-        settings_data_handle_android_import(app)
-    } #else_if WEB {
-        settings_data_handle_web_import(app)
-    }
-    settings_audio_handle_import(app)
-    if app->settings_tab == SETTINGS_TAB_AUDIO {
-        meditation_music_update(app)
-    }
-
-    #if DESKTOP {
-        if app_nav_desktop_rail_enabled(app) &&
-           settings_screen_draw_desktop(app) {
-            if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-               app->settings_dirty && app->settings_save_delay_ticks <= 0 {
-                save_settings(app)
-            }
-            return 0
-        }
+    if settings_screen_draw_desktop_if_enabled(app) {
+        return 0
     }
 
     title = settings_screen_tab_label(app->settings_tab)
     page_ctx = (SettingsScrollPageContext){app, app->settings_tab}
-    scaffold = BeginUIScreenScaffold((UIScreenScaffoldSpec){
-        .title = title,
-        .top_gap = Scale(8),
-        .bottom_reserved = app_content_bottom_reserved(app),
-        .max_content_width = Scale(CONTENT_MAX_W),
-        .min_content_width = Scale(320),
-        .scroll_offset = &app->settings_scroll,
-        .content_height = settings_scroll_page_content_height,
-        .user_data = &page_ctx,
-        .draw_title = settings_scaffold_title,
-        .title_user_data = app
-    })
-    y = scaffold.page.content_y
+    settings_scaffold_title(title, AppTitleBarHeight(), app)
 
-    settings_draw_tab_content(app, app->settings_tab, scaffold.page.content_x,
-                              scaffold.page.content_w, &y, &device_state,
-                              &drawn)
+    side_padding = GetPageSidePadding()
+    max_content_w = Scale(CONTENT_MAX_W)
+    available = view_width - side_padding * 2
+    if max_content_w > available {
+        max_content_w = available
+    }
+    if max_content_w < Scale(320) {
+        max_content_w = Scale(320)
+    }
+    GetCenteredColumn(max_content_w, side_padding, &content_x, &content_w)
+    content_h = settings_scroll_page_content_height(content_w, &page_ctx)
 
-    EndUIScreenScaffold(scaffold)
+    top = AppTitleBarHeight() + Scale(8)
+    height = view_height - top - app_content_bottom_reserved(app)
+    if height < 0 {
+        height = 0
+    }
+
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)top, (float)view_width, (float)height}
+        content_height = content_h
+        scroll_offset = &app->settings_scroll
+        y := (int)page.y
+        settings_draw_tab_content(app, app->settings_tab, content_x,
+                                  (int)page.width, &y, &device_state, &drawn)
+    }
+
     if app->settings_tab == SETTINGS_TAB_DEVICE {
         settings_device_handle_overlays(app, &device_state)
     }
     if app->settings_tab == SETTINGS_TAB_NOTIFICATIONS {
         settings_notifications_handle_overlays(app)
-    }
-    if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && app->settings_dirty && app->settings_save_delay_ticks <= 0 {
-        save_settings(app)
     }
 
     return 0

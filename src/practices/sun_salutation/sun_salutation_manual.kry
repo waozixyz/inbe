@@ -8,10 +8,6 @@
     SUN_MANUAL_PAGES = 3
 }
 
-SunManualPageContext :: struct {
-    page: int
-}
-
 static sun_manual_body_keys: [SUN_MANUAL_PAGES] const char* = {
     "sun_manual_move_text",
     "sun_manual_guide_text",
@@ -54,12 +50,12 @@ sun_manual_paragraph :: (step: int, content_w: int) -> ParagraphSpec #private {
         GetLocaleText(sun_manual_body_keys[step]), content_w)
 }
 
-sun_manual_content_height :: (content_w: int, user_data: void*) -> int #private {
-    ctx := (SunManualPageContext*)user_data
+sun_manual_content_height :: (step: int, content_w: int) -> int #private {
+    paragraph := sun_manual_paragraph(step, content_w)
 
     return Scale(178 + 18 + 68) +
-           GetNodeHeight(NodeParagraph(
-               sun_manual_paragraph(ctx->page, content_w), 0, 0))
+           AppParagraphHeight(paragraph.text, paragraph.width,
+                              paragraph.font, paragraph.line_gap)
 }
 
 sun_manual_draw_pose :: (Texture2D sheet, int pose, Rectangle bounds) #private {
@@ -77,20 +73,20 @@ sun_manual_draw_pose :: (Texture2D sheet, int pose, Rectangle bounds) #private {
     }
 }
 
-sun_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
-                           step: int, y: int*) #private {
+sun_manual_draw_visual :: (app: InnerBreeze*, content_x: int,
+                           content_w: int, step: int, y: int*) #private {
     visual_h := Scale(178)
-    visual := (Rectangle){(float)page.content_x, (float)*y,
-                          (float)page.content_w, (float)visual_h}
+    visual := (Rectangle){(float)content_x, (float)*y,
+                          (float)content_w, (float)visual_h}
 
     DrawRectangleRounded(visual, 0.12f, 10, GetThemeSurface())
     if step < 2 {
-        pose_w := (page.content_w - Scale(36)) / 3
+        pose_w := (content_w - Scale(36)) / 3
         poses: [3] int = {0, step == 0 ? 5 : 3, step == 0 ? 11 : 7}
 
         for int i = 0; i < 3; i++ {
             pose_bounds := (Rectangle){
-                (float)(page.content_x + Scale(10) +
+                (float)(content_x + Scale(10) +
                         i * (pose_w + Scale(8))),
                 (float)(*y + Scale(24)),
                 (float)pose_w,
@@ -109,43 +105,37 @@ sun_manual_draw_visual :: (app: InnerBreeze*, page: UIScrollPage,
 
         snprintf(value, sizeof(value), "%dx", app->sun_salutation.repetitions)
         Text((TextProps){
-            .bounds={(page.content_x + Scale(18)), (line_y), 0, 0},
+            .bounds={(content_x + Scale(18)), (line_y), 0, 0},
             .text=(GetLocaleText("sun_salutation_repetitions_label")),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         Text((TextProps){
-            .bounds={(page.content_x + page.content_w - Scale(54)), (line_y), 0, 0},
+            .bounds={(content_x + content_w - Scale(54)), (line_y), 0, 0},
             .text=(value),
-            .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
         line_y += Scale(45)
         snprintf(value, sizeof(value), "%d s", app->sun_salutation.start_seconds)
         Text((TextProps){
-            .bounds={(page.content_x + Scale(18)), (line_y), 0, 0},
+            .bounds={(content_x + Scale(18)), (line_y), 0, 0},
             .text=(GetLocaleText("sun_salutation_start_speed_label")),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         Text((TextProps){
-            .bounds={(page.content_x + page.content_w - Scale(54)), (line_y), 0, 0},
+            .bounds={(content_x + content_w - Scale(54)), (line_y), 0, 0},
             .text=(value),
-            .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
         line_y += Scale(45)
         snprintf(value, sizeof(value), "%d s", app->sun_salutation.end_seconds)
         Text((TextProps){
-            .bounds={(page.content_x + Scale(18)), (line_y), 0, 0},
+            .bounds={(content_x + Scale(18)), (line_y), 0, 0},
             .text=(GetLocaleText("sun_salutation_end_speed_label")),
-            .color=(GetThemeText()),
             .wrap=TextWrapNone
         })
         Text((TextProps){
-            .bounds={(page.content_x + page.content_w - Scale(54)), (line_y), 0, 0},
+            .bounds={(content_x + content_w - Scale(54)), (line_y), 0, 0},
             .text=(value),
-            .color=(GetThemeMutedText()),
             .wrap=TextWrapNone
         })
     }
@@ -156,10 +146,17 @@ sun_manual_draw :: (app: InnerBreeze*) {
     layout := (PracticeManualLayout){0}
     responsive_max_w := (int)(view_width * 0.96f)
     step := clampi(app->tutorial_step, 0, SUN_MANUAL_PAGES - 1)
+    side_padding := manual_screen_tutorial_side_padding()
+    content_x := 0
+    content_w := 0
+    y: int
 
     app->tutorial_step = step
     if responsive_max_w > manual_screen_tutorial_max_width() {
         responsive_max_w = manual_screen_tutorial_max_width()
+    }
+    if responsive_max_w < Scale(200) {
+        responsive_max_w = Scale(200)
     }
     practice_screen_manual_layout(app, UIModalPracticeManual,
                                   SUN_MANUAL_PAGES,
@@ -167,34 +164,27 @@ sun_manual_draw :: (app: InnerBreeze*) {
                                   Scale(120), &layout)
     manual_screen_draw_title_bar(app, GetLocaleText("exercise_sun_salutation"),
                                  layout.title_h, sun_manual_close)
-    page_ctx := (SunManualPageContext){step}
-    page := BeginUIScrollPage((UIScrollPageSpec){
-        .y = layout.content_y,
-        .height = layout.content_h,
-        .max_content_width = responsive_max_w,
-        .min_content_width = Scale(200),
-        .side_padding = manual_screen_tutorial_side_padding(),
-        .scroll_offset = &app->manual_scroll,
-        .content_height = sun_manual_content_height,
-        .user_data = &page_ctx
-    })
-    y := page.content_y
+    GetCenteredColumn(responsive_max_w, side_padding, &content_x, &content_w)
+    content_h := sun_manual_content_height(step, content_w)
 
-    hero_page := page
-    hero_y := y
-    hero := manual_screen_hero_bounds(page.content_x, page.content_w,
-                                      hero_y, Scale(178))
+    Scroll page: {
+        bounds = (Rectangle){(float)0, (float)layout.content_y,
+                             (float)view_width, (float)layout.content_h}
+        content_height = content_h
+        scroll_offset = &app->manual_scroll
 
-    hero_page.content_x = (int)hero.x
-    hero_page.content_w = (int)hero.width
-    sun_manual_draw_visual(app, hero_page, step, &y)
-    manual_screen_draw_hero_progress(
-        hero, step, SUN_MANUAL_PAGES)
-    manual_screen_draw_guide_header(GetLocaleText(sun_manual_title_keys[step]),
-                                    step, SUN_MANUAL_PAGES,
-                                    page.content_x, &y, page.content_w)
-    Paragraph(sun_manual_paragraph(step, page.content_w), page.content_x, &y)
-    EndUIScrollPage(page)
+        y := (int)page.y
+
+        hero := manual_screen_hero_bounds(content_x, content_w,
+                                          y, Scale(178))
+        sun_manual_draw_visual(app, (int)hero.x, (int)hero.width, step, &y)
+        manual_screen_draw_hero_progress(
+            hero, step, SUN_MANUAL_PAGES)
+        manual_screen_draw_guide_header(GetLocaleText(sun_manual_title_keys[step]),
+                                        step, SUN_MANUAL_PAGES,
+                                        content_x, &y, content_w)
+        Paragraph(sun_manual_paragraph(step, content_w), content_x, &y)
+    }
 
     manual_screen_guide_controls(app, (ManualGuideNav){
         .page = step,

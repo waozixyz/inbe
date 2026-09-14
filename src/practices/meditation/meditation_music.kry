@@ -228,8 +228,8 @@ meditation_music_draw_download_progress :: (app: InnerBreeze*, x: int, y: int, w
         fill_w = w
     }
 
-    DrawRectangle(x, y, w, bar_h, DarkenUIColor(bg, 28))
-    Bevel(x, y, w, bar_h, DarkenUIColor(bg, 55), LightenUIColor(bg, 35))
+    DrawRectangle(x, y, w, bar_h, DarkenColor(bg, 28))
+    Bevel(x, y, w, bar_h, DarkenColor(bg, 55), LightenColor(bg, 35))
     if fill_w > 0 {
         inner_w := fill_w - Scale(4)
 
@@ -249,15 +249,18 @@ attribution_paragraph :: (content_w: int) -> ParagraphSpec #private {
         .text = GetLocaleText("meditation_music_attribution"),
         .width = content_w,
         .font = Text12,
-        .color = DarkenUIColor(GetThemeText(), 34),
     }
 }
 
 attribution_height :: (content_w: int) -> int #private {
+    paragraph: ParagraphSpec
+
     if content_w <= 0 {
         return 0
     }
-    return GetNodeHeight(NodeParagraph(attribution_paragraph(content_w), 0, 0))
+    paragraph = attribution_paragraph(content_w)
+    return AppParagraphHeight(paragraph.text, paragraph.width,
+                              paragraph.font, paragraph.line_gap)
 }
 
 draw_attribution :: (content_x: int, content_w: int, y: int*) #private {
@@ -691,8 +694,6 @@ meditation_music_draw_practice_settings :: (app: InnerBreeze*,
     Text((TextProps){
         .bounds={(content_x), (*y), 0, 0},
         .text=(GetLocaleText("practice_background_music_label")),
-        .font=(GetFontSize()),
-        .color=(GetThemeText()),
         .wrap=TextWrapNone
     })
 
@@ -709,14 +710,11 @@ meditation_music_draw_practice_settings :: (app: InnerBreeze*,
     if selection < 0 || selection > track_count {
         selection = 0
     }
-    if Dropdown(451 + practice,
-                            content_x,
-                            *y + Scale(26),
-                            content_w,
-                            Scale(48),
-                            track_options,
-                            track_count + 1,
-                            &selection) {
+    if Dropdown((DropdownProps){.id = 451 + practice,
+                            .bounds = {content_x, *y + Scale(26), content_w, Scale(48)},
+                            .options = track_options,
+                            .option_count = track_count + 1,
+                            .selected_index = &selection}) {
         if selection <= 0 {
             app->meditation.music_practice_tracks[practice] = AUDIO_MUSIC_NONE
             app->meditation.music_practice_mask &= ~(1 << practice)
@@ -744,14 +742,13 @@ meditation_music_draw_practice_settings :: (app: InnerBreeze*,
         } else {
             test_label = GetLocaleText("meditation_music_test_button")
         }
-        button_w = TextWidth(test_label, GetFontSize()) + Scale(24)
+        button_w = AppTextWidth(test_label, AppFontSize()) + Scale(24)
         if button_w > content_w {
             button_w = content_w
         }
         if Button((ButtonProps){
             .bounds = {(float)(content_x), (float)(*y), (float)(button_w), (float)(button_h)},
             .label = test_label,
-            .font = GetFontSize(),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = 0
@@ -771,14 +768,13 @@ meditation_music_draw_practice_settings :: (app: InnerBreeze*,
         } else {
             download_label = GetLocaleText("meditation_music_download_button")
         }
-        button_w = TextWidth(download_label, GetFontSize()) + Scale(24)
+        button_w = AppTextWidth(download_label, AppFontSize()) + Scale(24)
         if button_w > content_w {
             button_w = content_w
         }
         if Button((ButtonProps){
             .bounds = {(float)(content_x), (float)(*y), (float)(button_w), (float)(button_h)},
             .label = download_label,
-            .font = GetFontSize(),
             .tone = ButtonToneAccent,
             .emphasis = ButtonEmphasisFilled,
             .disabled = 0
@@ -798,8 +794,6 @@ meditation_music_draw_practice_settings :: (app: InnerBreeze*,
             Text((TextProps){
                 .bounds={(content_x), (*y), 0, 0},
                 .text=(download_status),
-                .font=(GetFontSize()),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
             *y += Scale(28)
@@ -809,8 +803,6 @@ meditation_music_draw_practice_settings :: (app: InnerBreeze*,
             Text((TextProps){
                 .bounds={(content_x), (*y), 0, 0},
                 .text=(app->meditation.music_status),
-                .font=(GetFontSize()),
-                .color=(GetThemeText()),
                 .wrap=TextWrapNone
             })
             *y += Scale(34)

@@ -6,31 +6,31 @@
     PRACTICE_AUDIO_MUSIC_POPUP_ID = 15001
 }
 
-practice_audio_sound_icon_for_volume :: (app: InnerBreeze*) -> Texture2D #private {
+practice_audio_sound_icon_for_volume :: (app: InnerBreeze*) -> IconType #private {
     vol: int
 
     if app == nil {
-        return (Texture2D){0}
+        return ICON_NONE
     }
 
     vol = app->sound_volume
     if vol <= 0 {
-        return app->icons[UI_ICON_TYPE_SOUND0]
+        return ICON_SOUND0
     }
     if vol <= 25 {
-        return app->icons[UI_ICON_TYPE_SOUND1]
+        return ICON_SOUND1
     }
     if vol <= 75 {
-        return app->icons[UI_ICON_TYPE_SOUND2]
+        return ICON_SOUND2
     }
-    return app->icons[UI_ICON_TYPE_SOUND3]
+    return ICON_SOUND3
 }
 
-practice_audio_music_icon :: (app: InnerBreeze*) -> Texture2D #private {
+practice_audio_music_icon :: (app: InnerBreeze*) -> IconType #private {
     if app == nil {
-        return (Texture2D){0}
+        return ICON_NONE
     }
-    return app->icons[UI_ICON_TYPE_MUSIC]
+    return ICON_MUSIC
 }
 
 practice_draw_audio_controls :: (app: InnerBreeze*) {
@@ -46,13 +46,13 @@ practice_draw_audio_controls :: (app: InnerBreeze*) {
         control_y = 0
     }
 
-    if IconSliderPopup((IconSliderPopupProps){
+    if AppIconSliderPopup((IconSliderPopupProps){
         .id = PRACTICE_AUDIO_SOUND_POPUP_ID,
         .x = Scale(8),
         .y = control_y,
         .icon_size = icon_size,
         .icon_padding = icon_padding,
-        .icon = practice_audio_sound_icon_for_volume(app),
+        .icon_type = practice_audio_sound_icon_for_volume(app),
         .open = &app->volume_popup_active,
         .value = &app->sound_volume,
         .min = SETTINGS_VOLUME_MIN,
@@ -64,13 +64,13 @@ practice_draw_audio_controls :: (app: InnerBreeze*) {
         save_settings(app)
     }
 
-    if IconSliderPopup((IconSliderPopupProps){
+    if AppIconSliderPopup((IconSliderPopupProps){
         .id = PRACTICE_AUDIO_MUSIC_POPUP_ID,
         .x = Scale(60),
         .y = control_y,
         .icon_size = icon_size,
         .icon_padding = icon_padding,
-        .icon = practice_audio_music_icon(app),
+        .icon_type = practice_audio_music_icon(app),
         .open = &app->music_volume_popup_active,
         .value = &app->music_volume,
         .min = SETTINGS_VOLUME_MIN,

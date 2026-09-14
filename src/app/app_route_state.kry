@@ -2,6 +2,12 @@
 
 #import "app.h"
 #import "screens/profile_social.h" #private
+#import <stdlib.h> #private
+
+app_route_debug_enabled :: () -> int #private {
+    value := getenv("INBE_DEBUG_ROUTE")
+    return value != nil && value[0] != '\0'
+}
 
 app_current_route :: (app: const InnerBreeze*) -> AppRoute #export {
     route := (AppRoute){0}
@@ -69,11 +75,27 @@ apply_route :: (app: InnerBreeze*, route: AppRoute) #private {
 
 app_switch_route :: (app: InnerBreeze*, route: AppRoute) #export {
     if app == nil || routes_equal(app_current_route(app), route) { return }
+    before := app_current_route(app)
     if route.screen == ScreenHabits && app->breathing.screen != ScreenHabits {
         app->habits.focus_selected_tab = 1
     }
     apply_route(app, route)
     enter_route(app, app_current_route(app))
+    if app_route_debug_enabled() {
+        TraceLog(LOG_INFO, "ROUTE switch frame=%d screen=%d->%d",
+                 app->breathing.frame, before.screen, route.screen)
+    }
+}
+
+app_request_route :: (app: InnerBreeze*, route: AppRoute) #export {
+    if app == nil { return }
+    if app_route_debug_enabled() {
+        current := app_current_route(app)
+        TraceLog(LOG_INFO, "ROUTE request frame=%d screen=%d->%d",
+                 app->breathing.frame, current.screen, route.screen)
+    }
+    app_switch_route(app, route)
+    RouterNavigate(&app->route_router, route.screen)
 }
 
 app_switch_screen :: (app: InnerBreeze*, screen: int) #export {

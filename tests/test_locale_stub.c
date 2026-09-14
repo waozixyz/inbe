@@ -27,13 +27,13 @@ GetLocaleText(const char *key)
 }
 
 void
-PushUIInspectSource(const char *path, int line)
+PushInspectSource(const char *path, int line)
 {
     (void)path;
     (void)line;
 }
 
 void
-PopUIInspectSource(void)
+PopInspectSource(void)
 {
 }

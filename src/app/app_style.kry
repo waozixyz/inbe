@@ -1,0 +1,7 @@
+#module "app.style"
+
+/* Activate the shared Material style pack. Kryon resolves every control's
+ * colors, typography, and materials from the active pack; the app owns no
+ * per-widget visual overrides. */
+
+#style <material> as material
