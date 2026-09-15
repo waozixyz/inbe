@@ -1817,3 +1817,6 @@ En bas
 [navigation_top]
 En haut
 ---
+[appearance_style_label]
+Style
+---

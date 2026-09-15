@@ -731,7 +731,6 @@ profile_screen_draw :: (app: InnerBreeze*) -> int {
     }
 
     if TitleBar((TitleBarProps){.title = title, .height = header_h,
-                                .leading_icon = app->icons[ICON_LEFT],
                                 .has_leading_action = 1}) {
         app_block_current_click(app)
         if app->profile_view == PROFILE_VIEW_MAIN &&

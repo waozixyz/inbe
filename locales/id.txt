@@ -1817,3 +1817,6 @@ Kanan
 [navigation_top]
 Atas
 ---
+[appearance_style_label]
+Gaya
+---

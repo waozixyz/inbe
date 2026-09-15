@@ -129,7 +129,6 @@ manual_screen_draw_title_bar :: (app: InnerBreeze*, title: const char*,
         return 0
     }
     if !TitleBar((TitleBarProps){.title = title, .height = title_h,
-                                 .leading_icon = app->icons[ICON_LEFT],
                                  .has_leading_action = 1}) {
         return 0
     }

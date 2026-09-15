@@ -1817,3 +1817,6 @@ Direita
 [navigation_top]
 Em cima
 ---
+[appearance_style_label]
+Estilo
+---

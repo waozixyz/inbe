@@ -27,6 +27,7 @@
 #include "app/app_notifications.h"
 #include "platform/app_desktop_tray.h"
 #include "screens/language_screen.h"
+#include "app/app_style.h"
 #include "screens/manual_screen.h"
 #include "screens/break_overlay.h"
 #include "breaks/app_breaks.h"
@@ -479,6 +480,7 @@ app_reload_after_import(InnerBreeze*app, int reload_settings)
     if(reload_settings) {
         if(app_load_settings(app))
             save_settings(app);
+        app_apply_style(app);
         reset_settings_preview(app);
         practice_update_session_sounds(app);
     }
@@ -715,6 +717,7 @@ app_init(void *vapp) {
     data_init();
     if(app_load_settings(app))
         save_settings(app);
+    app_apply_style(app);
     app_init_donation_reminder_observed_practice_count(app);
     if(!load_locale_font(app))
         TraceLog(LOG_WARNING, "FONT: Failed to load Noto UI font -> using built-in default");
@@ -1914,7 +1917,6 @@ app_update_draw(void *vapp, Rectangle viewport) {
         updateapp(app);
         app_profile_record_update(profile_update_start);
         EndInterfaceFrame();
-        EndFrame();
     } else {
     BeginClip((int)viewport.x, (int)viewport.y, full_width, full_height);
         BeginMode2D(app->camera);
@@ -1924,7 +1926,6 @@ app_update_draw(void *vapp, Rectangle viewport) {
             Overlays();
             app_profile_record_update(profile_update_start);
             EndInterfaceFrame();
-            EndFrame();
         EndMode2D();
     EndClip();
     }

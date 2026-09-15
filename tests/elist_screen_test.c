@@ -11,13 +11,13 @@ static int save_succeeds = 1;
 static int sync_calls;
 static char saved_comment[ELIST_COMMENT_SIZE];
 
-void PushUIInspectSource(const char *path, int line)
+void PushInspectSource(const char *path, int line)
 {
     (void)path;
     (void)line;
 }
 
-void PopUIInspectSource(void)
+void PopInspectSource(void)
 {
 }
 
@@ -26,7 +26,12 @@ int Scale(int value)
     return value;
 }
 
-void SetUIFocus(int id)
+void ResetSwipe(SwipeGesture *gesture)
+{
+    memset(gesture, 0, sizeof(*gesture));
+}
+
+void SetFocus(int id)
 {
     focused_id = id;
 }

@@ -715,6 +715,7 @@ struct InnerBreeze {
     char language[16];
     int language_system;
     int language_selected;
+    int style_index;
     int language_index;
     int language_needs_save;
     int manual_scroll;

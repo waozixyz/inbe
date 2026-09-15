@@ -10,7 +10,7 @@
  * the Workrave semantics: activity-based timers, natural breaks, the prompt
  * escalation loop, skip/postpone, micro->rest promotion, the daily limit,
  * operation modes, and reading mode. Pure engine: no raylib. The k2c
- * transpiler emits PushUIInspectSource / PopUIInspectSource debug markers into
+ * transpiler emits PushInspectSource / PopInspectSource debug markers into
  * every generated function, so we provide no-op stubs (same pattern as
  * breath_timing_test.c).
  */
@@ -28,14 +28,14 @@ expect(int condition, const char *message)
 
 /* k2c-emitted debug-source markers. */
 void
-PushUIInspectSource(const char *path, int line)
+PushInspectSource(const char *path, int line)
 {
     (void)path;
     (void)line;
 }
 
 void
-PopUIInspectSource(void)
+PopInspectSource(void)
 {
 }
 

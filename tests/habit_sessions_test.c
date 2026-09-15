@@ -86,14 +86,14 @@ add_record(const char *path, int year, int month, int day, int activity,
 }
 
 void
-PushUIInspectSource(const char *path, int line)
+PushInspectSource(const char *path, int line)
 {
     (void)path;
     (void)line;
 }
 
 void
-PopUIInspectSource(void)
+PopInspectSource(void)
 {
 }
 
@@ -180,7 +180,7 @@ app_switch_screen(InnerBreeze*app, int screen)
 }
 
 void
-SetUIFocusTextInputActive(int active)
+SetFocusTextInputActive(int active)
 {
     focus_active = active;
 }

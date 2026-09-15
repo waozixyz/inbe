@@ -1817,3 +1817,6 @@ Rechts
 [navigation_top]
 Oben
 ---
+[appearance_style_label]
+Stil
+---

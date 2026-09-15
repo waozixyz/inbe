@@ -392,7 +392,8 @@ FONT_FILES := \
 	$(FONT_SUBSET_DIR)/NotoSansKR-App-Regular.otf \
 	$(FONT_SUBSET_DIR)/NotoSansTC-App-Regular.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
-EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
+STYLE_FILES := $(wildcard $(KRYON_DIR)/styles/kryon/*.kss)
+EMBEDDED_ASSET_FILES := $(STYLE_FILES) $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
 KRY_GEN_DIR := $(BUILD_DIR)/kryon/generated
 KRY_SRCS := $(shell find src -type f -name '*.kry' 2>/dev/null | LC_ALL=C sort)
 KRY_GEN_SRCS := $(patsubst %.kry,$(KRY_GEN_DIR)/%.c,$(KRY_SRCS))
@@ -481,7 +482,7 @@ ifeq ($(KRYON_BACKEND),raylib)
 KRYON_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 KRYON_NATIVE_BACKEND_DEPS := $(RAYLIB_A)
 KRYON_NATIVE_BACKEND_LIBS := $(RAYLIB_A)
-KRYON_NATIVE_BACKEND_CFLAGS := $(RAY_CFLAGS)
+KRYON_NATIVE_BACKEND_CFLAGS := -DKRYON_BACKEND_RAYLIB=1 $(RAY_CFLAGS)
 KRYON_NATIVE_BACKEND_LDLIBS := $(RAY_LDLIBS)
 else ifeq ($(KRYON_BACKEND),libdraw)
 KRYON_SRCS += $(KRYON_LIBDRAW_SRCS)
@@ -604,7 +605,7 @@ kry-c-plan9: $(KRY_GEN_STAMP)
 		-o $(PLAN9_GENERATED) $(KRY_SRCS)
 	find $(PLAN9_GENERATED) -type f -name '*.c' | LC_ALL=C sort > $(PLAN9_FILE_LIST)
 	sh vendor/kryon/scripts/embed-assets.sh $(PLAN9_EMBEDDED_ASSETS_C) \
-		$(LOCALE_FILES) $(IMAGE_FILES) $(FONT_FILES)
+		$(STYLE_FILES) $(LOCALE_FILES) $(IMAGE_FILES) $(FONT_FILES)
 
 $(KRY_GEN_SRCS) $(KRY_GEN_HDRS) $(KRY_PROJECT_HDR) $(KRY_PROJECT_C): $(KRY_GEN_STAMP)
 
@@ -814,11 +815,8 @@ font-bundle-check:
 	done
 
 font-subsets:
-	$(MAKE) -C $(KRYON_DIR) font-subsets \
-		FONT_SUBSET_OUT_DIR="$(abspath $(FONT_SUBSET_DIR))" \
-		FONT_SUBSET_SOURCE_DIR="$(abspath $(KRYON_DIR)/fonts/noto)" \
-		FONT_SUBSET_PREFIX=BreathSession \
-		FONT_SUBSET_CORPUS="$(abspath locales) $(abspath assets/fonts/input_common.txt)"
+	sh $(KRYON_DIR)/scripts/subset-fonts.sh "$(FONT_SUBSET_DIR)" \
+		"$(KRYON_DIR)/fonts/noto" App locales assets/fonts/input_common.txt
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.h src/screens/habits/habits.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections \

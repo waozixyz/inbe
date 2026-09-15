@@ -1,7 +1,134 @@
 #module "app.style"
-
-/* Activate the shared Material style pack. Kryon resolves every control's
- * colors, typography, and materials from the active pack; the app owns no
- * per-widget visual overrides. */
+#import "app.h"
+#import <stdio.h>
+#import <stdlib.h>
+#import <string.h>
 
 #style <material> as material
+
+style_pack_id :: (index: int) -> const char* #export {
+    switch index {
+    case 1:
+        return "material"
+    case 2:
+        return "tk"
+    case 3:
+        return "lightfield"
+    default:
+        return "vanilla"
+    }
+}
+
+style_pack_label :: (index: int) -> const char* #export {
+    switch index {
+    case 1:
+        return "Material"
+    case 2:
+        return "TK"
+    case 3:
+        return "Lightfield"
+    default:
+        return "Vanilla"
+    }
+}
+
+static applied_style: int = -1
+static applied_colors: ThemeColors
+
+app_apply_style :: (app: InnerBreeze*) #export {
+    if app == NULL {
+        return
+    }
+    scheme := GetThemeScheme()
+    colors := (ThemeColors){
+        .background = GetThemeBackground(),
+        .surface = GetThemeSurface(),
+        .surface_raised = GetThemeSurfaceAlt(),
+        .surface_sunken = scheme.surface_container,
+        .text = GetThemeText(),
+        .text_muted = GetThemeMutedText(),
+        .border = GetThemeBorder(),
+        .border_strong = scheme.outline,
+        .divider = GetThemeBorder(),
+        .focus = GetThemeButton(),
+        .accent = GetThemeButton(),
+        .accent_hover = GetThemeButtonHover(),
+        .accent_pressed = MixThemeColor(GetThemeButton(), GetThemeText(), 0.12f),
+        .on_accent = GetThemeButtonText(),
+        .danger = scheme.error,
+        .on_danger = GetThemeReadableText(scheme.error)
+    }
+    if applied_style == app->style_index &&
+       memcmp(&applied_colors, &colors, sizeof(ThemeColors)) == 0 &&
+       FindStylePack("inbe") != NULL {
+        SetActiveStylePack("inbe")
+        return
+    }
+    if !EnsureBuiltInStylePacks() {
+        TraceLog(LOG_ERROR, "STYLE: Built-in style assets are unavailable")
+        return
+    }
+    path: [128] char
+    snprintf(path, sizeof(path), "styles/kryon/%s.kss", style_pack_id(app->style_index))
+    source := LoadEmbeddedAssetText(path)
+    if source == NULL {
+        TraceLog(LOG_ERROR, "STYLE: Could not load %s", path)
+        return
+    }
+    tokens: [] StyleColorToken = {
+        {"canvas", ColorToInt(colors.background)},
+        {"text", ColorToInt(colors.text)},
+        {"muted", ColorToInt(colors.text_muted)},
+        {"surface", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface, 0.87f) : colors.surface))},
+        {"surface-end", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface_raised, 0.93f) : colors.surface_raised))},
+        {"card", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface_raised, 0.87f) : colors.surface_raised))},
+        {"card-end", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface, 0.93f) : colors.surface))},
+        {"panel", ColorToInt(colors.surface_raised)},
+        {"panel-hover", ColorToInt(colors.surface)},
+        {"panel-pressed", ColorToInt(colors.surface_sunken)},
+        {"button", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface_raised, 0.87f) : colors.surface_raised))},
+        {"button-end", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface, 0.93f) : colors.surface))},
+        {"button-hover", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface, 0.93f) : colors.surface))},
+        {"button-hover-end", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface_raised, 0.93f) : colors.surface_raised))},
+        {"button-pressed", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface_sunken, 0.93f) : colors.surface_sunken))},
+        {"button-pressed-end", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface, 0.93f) : colors.surface))},
+        {"button-disabled", ColorToInt(colors.surface)},
+        {"dropdown-end", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface_raised, 0.93f) : colors.surface_raised))},
+        {"border", ColorToInt(colors.border)},
+        {"border-soft", ColorToInt(colors.divider)},
+        {"border-hover", ColorToInt(colors.border_strong)},
+        {"border-hover-strong", ColorToInt(colors.border_strong)},
+        {"border-disabled", ColorToInt(colors.divider)},
+        {"card-border", ColorToInt(colors.border)},
+        {"outline-border", ColorToInt(colors.border_strong)},
+        {"focus", ColorToInt(colors.focus)},
+        {"accent", ColorToInt(colors.accent)},
+        {"accent-end", ColorToInt(colors.accent_pressed)},
+        {"accent-hover", ColorToInt(colors.accent_hover)},
+        {"accent-hover-end", ColorToInt(colors.accent)},
+        {"accent-border", ColorToInt(colors.accent_pressed)},
+        {"accent-ink", ColorToInt(colors.on_accent)},
+        {"danger", ColorToInt(colors.danger)},
+        {"danger-hover", ColorToInt(colors.danger)},
+        {"danger-ink", ColorToInt(colors.on_danger)},
+        {"danger-border", ColorToInt(colors.danger)},
+        {"row", ColorToInt((app->style_index == 3 ? ColorAlpha(colors.surface, 0.67f) : colors.surface))},
+        {"thumb-ink", ColorToInt(colors.on_accent)},
+        {"divider", ColorToInt(colors.divider)},
+        {"track", ColorToInt(colors.surface_sunken)},
+        {"track-hover", ColorToInt(colors.surface_raised)},
+        {"field", ColorToInt(colors.surface_sunken)},
+        {"field-border", ColorToInt(colors.border)},
+        {"scroll-thumb", ColorToInt(colors.text_muted)},
+        {"scroll-border", ColorToInt(colors.border_strong)}
+    }
+    if RegisterStylePackVariant("inbe", source, style_pack_label(app->style_index),
+                                tokens, sizeof(tokens) / sizeof(tokens[0])) {
+        SetActiveStylePack("inbe")
+        applied_style = app->style_index
+        applied_colors = colors
+    } else {
+        TraceLog(LOG_ERROR, "STYLE: Could not apply the selected color variation")
+    }
+    free(source)
+}

@@ -1817,3 +1817,6 @@ Derecha
 [navigation_top]
 Arriba
 ---
+[appearance_style_label]
+Estilo
+---

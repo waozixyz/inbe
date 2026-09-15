@@ -1817,3 +1817,6 @@ Dismiss forever
 [navigation_top]
 Сверху
 ---
+[appearance_style_label]
+Стиль
+---

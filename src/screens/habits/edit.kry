@@ -362,7 +362,6 @@ draw_form :: (app: InnerBreeze*) #private {
     }
     title := GetLocaleText(app->habit_edit.is_new ? "habit_new_title" : "habit_edit_title")
     if TitleBar((TitleBarProps){.title = title, .height = top,
-                                .leading_icon = app->icons[ICON_LEFT],
                                 .has_leading_action = 1}) {
         cancel(app)
         app_switch_screen(app, ScreenHabits)

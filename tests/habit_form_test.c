@@ -5,9 +5,9 @@
 #include <string.h>
 
 static int saves, syncs;
-void PushUIInspectSource(const char *p, int n) { (void)p; (void)n; }
-void PopUIInspectSource(void) {}
-void SetUIFocusTextInputActive(int active) { (void)active; }
+void PushInspectSource(const char *p, int n) { (void)p; (void)n; }
+void PopInspectSource(void) {}
+void SetFocusTextInputActive(int active) { (void)active; }
 void app_switch_screen(InnerBreeze*app, int screen) { app->breathing.screen = screen; }
 void save_settings(InnerBreeze*app) { (void)app; }
 int app_auto_sync(InnerBreeze*app) { (void)app; ++syncs; return 0; }

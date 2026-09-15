@@ -1817,3 +1817,6 @@ Vpravo
 [navigation_top]
 Nahoře
 ---
+[appearance_style_label]
+Styl
+---

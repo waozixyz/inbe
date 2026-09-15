@@ -1817,3 +1817,6 @@ Destra
 [navigation_top]
 In alto
 ---
+[appearance_style_label]
+Stile
+---

@@ -23,8 +23,8 @@ int data_save_session_path_for_activity(const int *rounds, int count, int topic,
     if(out && size) snprintf(out, size, "session-1");
     return 1;
 }
-void PushUIInspectSource(const char *path, int line) { (void)path; (void)line; }
-void PopUIInspectSource(void) {}
+void PushInspectSource(const char *path, int line) { (void)path; (void)line; }
+void PopInspectSource(void) {}
 int practice_count(void) { return 4; }
 int practice_clamp_id(int id) { return id >= 0 && id < 4 ? id : 0; }
 int practice_ordered_id(int index) { return index; }

@@ -1849,3 +1849,6 @@ Right
 [navigation_top]
 Top
 ---
+[appearance_style_label]
+Style
+---

@@ -2,6 +2,7 @@
 
 #import "app.h"
 #import "app/app_settings.h"
+#import "app/app_style.h"
 #import "app/device_preferences.h"
 #import "src/screens/settings/settings_types.h"
 #import <stdio.h>
@@ -16,9 +17,9 @@ content_height :: (content_w: int) -> int {
     unused content_w
 
     #if WEB {
-        return Scale(366) + Scale(208)
+        return Scale(366) + Scale(292)
     } #else {
-        return Scale(350) + Scale(208)
+        return Scale(350) + Scale(292)
     }
 }
 
@@ -27,6 +28,25 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
         return
     }
 
+    styles: [4] const char* = {
+        style_pack_label(0), style_pack_label(1),
+        style_pack_label(2), style_pack_label(3)
+    }
+    Text((TextProps){
+        .bounds = {x, *y, w, Scale(24)},
+        .text = GetLocaleText("appearance_style_label")
+    })
+    *y += Scale(28)
+    if Dropdown((DropdownProps){
+        .id = 150, .bounds = {x, *y, w, Scale(40)},
+        .options = styles, .option_count = 4,
+        .selected_index = &app->style_index
+    }) {
+        app_apply_style(app)
+        app_block_current_click(app)
+        save_settings(app)
+    }
+    *y += Scale(56)
     draw_scale_row(app, x, w, y)
 
     placements: [5] const char* = {
@@ -51,11 +71,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
     *y += Scale(56)
 
     if draw_theme_settings(app, x, w, y) {
-        #if !ANDROID {
-            if app->theme_source == APP_THEME_SOURCE_SYSTEM {
-                app->theme_mode = APP_THEME_SYSTEM
-            }
-        }
         app_refresh_theme(app)
         app->settings_dirty = 1
         app->settings_save_delay_ticks = 18
@@ -107,7 +122,8 @@ draw_theme_settings :: (app: InnerBreeze*, x: int, w: int, y: int*) -> int #priv
     if Dropdown((DropdownProps){.id = 102,
         .bounds = {x, *y + font + row_label_gap, w, row_h},
         .options = mode_options, .option_count = 3,
-        .selected_index = &mode_index}) {
+        .selected_index = &mode_index,
+        .disabled = app->theme_source == APP_THEME_SOURCE_SYSTEM}) {
         app->theme_mode = mode_index
         changed = 1
     }
@@ -135,6 +151,7 @@ draw_theme_settings :: (app: InnerBreeze*, x: int, w: int, y: int*) -> int #priv
         .selected_index = &theme_index}) {
         if theme_index == 0 {
             app->theme_source = APP_THEME_SOURCE_SYSTEM
+            app->theme_mode = APP_THEME_SYSTEM
         } else {
             app->theme_source = APP_THEME_SOURCE_APP
             app->theme_id = clampi(theme_index - 1, 0, THEME_COUNT - 1)

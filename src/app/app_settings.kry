@@ -215,6 +215,7 @@ save_settings :: (app: InnerBreeze*) {
     save_setting_int("tutorial_step", app->tutorial_step)
     save_setting_int("habits_guide_seen", app->habits_guide_seen ? 1 : 0)
     save_setting_int("exercise_manual_seen_mask", app->exercise_manual_seen_mask)
+    save_setting_int("style_pack", app->style_index)
     save_setting_int("theme", app->theme_id)
     save_setting_int("theme_source", app->theme_source)
     save_setting_int("dark_mode", app->dark_mode)
@@ -629,6 +630,7 @@ app_load_settings :: (app: InnerBreeze*) -> int {
     if music_max < 0 {
         music_max = 0
     }
+    load_clamped_setting(&settings_cache, &app->style_index, "style_pack", 1, 0, 3)
     load_clamped_setting(&settings_cache, &app->theme_id, "theme", 0, 0,
                             THEME_COUNT - 1)
     load_clamped_setting(&settings_cache, &app->theme_source, "theme_source",

@@ -17,8 +17,8 @@ bool IsKeyPressed(int key) { (void)key; return false; }
 int TextInputActive(void) { return text_input_active; }
 void SetFramePacingActive(int active) { frame_pacing_active = active != 0; }
 void UpdateFramePacing(void) { update_count++; }
-void PushUIInspectSource(const char *file, int line) { (void)file; (void)line; }
-void PopUIInspectSource(void) {}
+void PushInspectSource(const char *file, int line) { (void)file; (void)line; }
+void PopInspectSource(void) {}
 const PracticeDefinition *practice_active(const InnerBreeze *app) { (void)app; return NULL; }
 
 static int

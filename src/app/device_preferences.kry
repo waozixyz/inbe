@@ -1,3 +1,4 @@
+#import "app/app_style.h"
 #import "app.h"
 #import "platform.h"
 
@@ -118,10 +119,8 @@ app_refresh_theme :: (app: InnerBreeze*) {
                           ? THEME_SOURCE_SYSTEM
                           : THEME_SOURCE_APP)
 
-    #if !ANDROID {
-        if app->theme_source == APP_THEME_SOURCE_SYSTEM {
-            app->theme_mode = APP_THEME_SYSTEM
-        }
+    if app->theme_source == APP_THEME_SOURCE_SYSTEM {
+        app->theme_mode = APP_THEME_SYSTEM
     }
 
     SetThemeMode((ThemeMode)app->theme_mode)
@@ -140,6 +139,7 @@ app_refresh_theme :: (app: InnerBreeze*) {
     }
 
     SetCurrentTheme(app->theme_id, app->dark_mode)
+    app_apply_style(app)
 }
 
 app_apply_orientation_preference :: (app: InnerBreeze*) {

@@ -192,7 +192,10 @@ add_custom_target(kryon_raylib_generated DEPENDS
 file(GLOB APP_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
 file(GLOB APP_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 file(GLOB APP_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner*.png")
+file(GLOB APP_STYLE_ASSETS RELATIVE "${REPO_ROOT}"
+    "${KRYON_DIR}/styles/kryon/*.kss")
 set(APP_EMBEDDED_INPUTS
+    ${APP_STYLE_ASSETS}
     ${APP_LOCALE_ASSETS}
     assets/easteregg/art.png
     assets/easteregg/waozi.png

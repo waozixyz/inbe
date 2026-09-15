@@ -171,40 +171,20 @@ desktop_rail_button :: (app: InnerBreeze*, route: int, rail_x: int, y: int, item
     rail_w := app_nav_desktop_rail_width(app)
     margin := Scale(16)
     item_w := rail_w - margin * 2
-    icon_size := Scale(24)
     label := app_nav_route_label(route)
     bounds := (Rectangle){(float)(rail_x + margin), (float)y, (float)item_w, (float)item_h}
     active := bottom_nav_route_active(app, route)
-    tint := Fade(GetThemeText(), 0.82f)
-    label_font := Text16
-    icon_x := rail_x + margin + Scale(16)
-    if app->nav_rail_collapsed {
-        icon_x = rail_x + (rail_w - icon_size) / 2
-    }
-    icon_y := y + (item_h - icon_size) / 2
-    label_x := icon_x + icon_size + Scale(14)
-
     clicked := Button((ButtonProps){
         .bounds = bounds, .id = 6600 + route,
+        .label = app->nav_rail_collapsed ? NULL : label,
+        .icon_type = bottom_nav_route_icon_type(route),
+        .icon_only = app->nav_rail_collapsed,
         .tone = active ? ButtonToneAccent : ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .selected = active,
         .disabled = app->modal.active ||
                     app->blocked_input_frame == app->breathing.frame
     })
-    Icon(0, icon_x, icon_y, icon_size,
-         bottom_nav_route_icon_type(route), tint)
-    if !app->nav_rail_collapsed {
-        Text((TextProps){
-            .bounds = {(float)label_x,
-                (float)AppControlTextY(label, y, item_h, label_font),
-                (float)(rail_x + rail_w - margin - Scale(12) - label_x),
-                (float)Scale(24)},
-            .text = label,
-            .wrap = TextWrapNone
-        })
-    }
-
     if clicked {
         app_apply_nav_route(app, route)
         return 1
@@ -374,7 +354,11 @@ app_draw_bottom_nav :: (app: InnerBreeze*) {
         for int i = 0; i < route_count; i++ {
             routes[i] = app->bottom_nav_routes[i]
         }
-        if app->blocked_input_frame != app->breathing.frame || !IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+        blocked := app->blocked_input_frame == app->breathing.frame && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
+        if blocked {
+            PushInputCapture((Rectangle){0, 0, view_width, view_height}, 0)
+        }
+        {
             for int i = 0; i < route_count; i++ {
                 route := routes[i]
                 items[i] = (NavigationBarItem){
@@ -391,9 +375,12 @@ app_draw_bottom_nav :: (app: InnerBreeze*) {
                 .height = Scale(86),
                 .count = route_count, .items = items
             })
-            if result.clicked_route != APP_NAV_ROUTE_NONE {
+            if !blocked && result.clicked_route != APP_NAV_ROUTE_NONE {
                 app_apply_nav_route(app, result.clicked_route)
             }
+        }
+        if blocked {
+            PopInputCapture()
         }
     }
 

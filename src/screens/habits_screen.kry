@@ -1720,7 +1720,6 @@ habits_draw_subpage_header :: (app: InnerBreeze*, statistics: int) -> int #priva
     if TitleBar((TitleBarProps){
             .title = active != nil ? active->name : GetLocaleText("tab_habits"),
             .height = top_h,
-            .leading_icon = app->icons[ICON_LEFT],
             .has_leading_action = 1}) {
         habits_return_to_focus(app)
         return -1

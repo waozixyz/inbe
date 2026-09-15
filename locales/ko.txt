@@ -1817,3 +1817,6 @@ Dismiss forever
 [navigation_top]
 위쪽
 ---
+[appearance_style_label]
+스타일
+---

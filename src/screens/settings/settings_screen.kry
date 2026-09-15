@@ -191,7 +191,6 @@ settings_scaffold_title :: (title: const char*, height: int, user_data: void*) -
     }
 
     if TitleBar((TitleBarProps){.title = title, .height = height,
-                                .leading_icon = app->icons[ICON_LEFT],
                                 .has_leading_action = 1}) {
         app_block_current_click(app)
         app->settings_scroll = 0
@@ -467,7 +466,7 @@ settings_screen_draw_mobile_hub :: (app: InnerBreeze*) -> int #private {
         content_height = content_h
         scroll_offset = &app->settings_scroll
         settings_mobile_hub_draw_content(content_x, (int)hub.y,
-                                         (int)hub.width, app)
+                                         content_w, app)
     }
     return 1
 }
@@ -753,7 +752,7 @@ settings_screen_draw :: (app: InnerBreeze*) -> int {
         scroll_offset = &app->settings_scroll
         y := (int)page.y
         settings_draw_tab_content(app, app->settings_tab, content_x,
-                                  (int)page.width, &y, &device_state, &drawn)
+                                  content_w, &y, &device_state, &drawn)
     }
 
     if app->settings_tab == SETTINGS_TAB_DEVICE {

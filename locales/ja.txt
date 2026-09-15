@@ -1819,3 +1819,6 @@ Dismiss forever
 [navigation_top]
 上
 ---
+[appearance_style_label]
+スタイル
+---

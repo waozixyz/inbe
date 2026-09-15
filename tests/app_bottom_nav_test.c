@@ -87,18 +87,6 @@ DrawRectangle(int posX, int posY, int width, int height, Color color)
 }
 
 void
-PushUIInspectSource(const char *path, int line)
-{
-    (void)path;
-    (void)line;
-}
-
-void
-PopUIInspectSource(void)
-{
-}
-
-void
 DrawLine(int startPosX, int startPosY, int endPosX, int endPosY, Color color)
 {
     (void)startPosX;
@@ -408,6 +396,9 @@ GetNodeHeightById(int id)
 int
 Button(ButtonProps props)
 {
+    if(props.label != NULL && strcmp(props.label, "tab_elist") == 0)
+        elist_label_count++;
+
     if((props.id == 6690 || (props.id >= 6600 && props.id < 6690)) &&
        rail_bounds_count < 5) {
         rail_bounds[rail_bounds_count++] = props.bounds;
@@ -602,6 +593,18 @@ Icon(int id, int x, int y, int size, IconType icon, Color tint)
     (void)size;
     (void)icon;
     (void)tint;
+}
+
+void
+PushInputCapture(Rectangle bounds, int allow_inside)
+{
+    (void)bounds;
+    (void)allow_inside;
+}
+
+void
+PopInputCapture(void)
+{
 }
 
 void
@@ -814,8 +817,8 @@ test_same_frame_modal_close_consumes_bottom_nav_click(void)
 
     app_draw_bottom_nav(&app);
 
-    expect(bottom_nav_draw_count == 0,
-           "same-frame modal close must skip bottom nav draw");
+    expect(bottom_nav_draw_count == 1,
+           "same-frame modal close must keep bottom nav visible");
     expect(app.breathing.screen == ScreenStart,
            "same-frame modal close must not route");
     expect(reset_settings_preview_count == 0,
