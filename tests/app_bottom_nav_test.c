@@ -1455,9 +1455,33 @@ test_navigation_placement_and_collapse(void)
     reset_state();
 }
 
+static void
+test_settings_navigation_opens_overview(void)
+{
+    for(int desktop = 0; desktop <= 1; desktop++) {
+        reset_state();
+        InnerBreeze app = test_app();
+        desktop_mode = desktop;
+        app.settings_tab = SETTINGS_TAB_DEVICE;
+        app.settings_scroll = 160;
+        if(desktop)
+            invisible_button_clicked_id = 6600 + APP_NAV_ROUTE_SETTINGS;
+        else
+            bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+        app_draw_bottom_nav(&app);
+        expect(app.breathing.screen == ScreenSettings,
+               "Settings navigation should open Settings");
+        expect(app.settings_tab == SETTINGS_TAB_MOBILE_HUB,
+               "Settings navigation should open the overview, not Device");
+        expect(app.settings_scroll == 0,
+               "Settings overview should start at the top");
+    }
+}
+
 int
 main(void)
 {
+    test_settings_navigation_opens_overview();
     test_desktop_rail_spacing();
     test_navigation_placement_and_collapse();
     test_default_bottom_nav_routes_include_elist();

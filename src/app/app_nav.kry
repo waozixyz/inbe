@@ -492,18 +492,7 @@ app_apply_nav_route :: (app: InnerBreeze*, route: int) {
         app->nav_sidebar_return_on_back = return_to_sidebar
         app_open_main_tab(app, APP_MAIN_TAB_ELIST, 1)
     } else if route == APP_NAV_ROUTE_SETTINGS {
-        #if DESKTOP {
-            app_open_settings_tab(app, SETTINGS_TAB_DEVICE)
-        } #else {
-            app_leave_habit_child_route(app)
-            next := app_current_route(app)
-            app->nav_sidebar_open = 0
-            next.screen = ScreenSettings
-            next.settings_tab = SETTINGS_TAB_COUNT
-            app->settings_scroll = 0
-            settings_screen_clear_status()
-            app_request_route(app, next)
-        }
+        app_open_settings_tab(app, SETTINGS_TAB_MOBILE_HUB)
     }
 }
 
