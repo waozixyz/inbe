@@ -311,27 +311,26 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
     Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
          row.icon, LightenColor(GetThemeButtonHover(), 54))
     Text((TextProps){
-        .bounds={(float)text_x,
-                 (float)AppControlTextY(row.label, y, h, Text18),
-                 (float)title_w, (float)Scale(24)},
+        .bounds = {(float)text_x, (float)y, (float)title_w, (float)h},
         .text=(row.label),
-        .wrap=TextWrapNone
+        .wrap = TextWrapNone,
+        .vertical_align = TextAlignCenter
     })
     if row.value != NULL && row.value[0] != '\0' {
         Text((TextProps){
             .bounds={(float)(x + w - value_w - chevron_w - Scale(18)),
-                     (float)AppControlTextY(row.value, y, h, Text14),
-                     (float)value_w, (float)Scale(20)},
+                     (float)y, (float)value_w, (float)h},
             .text=(row.value),
-            .wrap=TextWrapNone
+            .wrap = TextWrapNone,
+            .vertical_align = TextAlignCenter
         })
     }
     Text((TextProps){
         .bounds={(float)(x + w - chevron_w - Scale(12)),
-                 (float)AppControlTextY(">", y, h, Text18),
-                 0, 0},
+                 (float)y, (float)chevron_w, (float)h},
         .text=(">"),
-        .wrap=TextWrapNone
+        .wrap = TextWrapNone,
+        .vertical_align = TextAlignCenter
     })
     if clicked {
         if row.route != APP_NAV_ROUTE_NONE {
