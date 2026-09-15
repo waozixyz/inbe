@@ -28,10 +28,11 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
         return
     }
 
-    styles: [4] const char* = {
-        style_pack_label(0), style_pack_label(1),
+    styles: [3] const char* = {
+        style_pack_label(1),
         style_pack_label(2), style_pack_label(3)
     }
+    selected_style := app->style_index - 1
     Text((TextProps){
         .bounds = {x, *y, w, Scale(24)},
         .text = GetLocaleText("appearance_style_label")
@@ -39,9 +40,10 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
     *y += Scale(28)
     if Dropdown((DropdownProps){
         .id = 150, .bounds = {x, *y, w, Scale(40)},
-        .options = styles, .option_count = 4,
-        .selected_index = &app->style_index
+        .options = styles, .option_count = 3,
+        .selected_index = &selected_style
     }) {
+        app->style_index = selected_style + 1
         app_apply_style(app)
         app_block_current_click(app)
         save_settings(app)

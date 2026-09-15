@@ -630,7 +630,7 @@ app_load_settings :: (app: InnerBreeze*) -> int {
     if music_max < 0 {
         music_max = 0
     }
-    load_clamped_setting(&settings_cache, &app->style_index, "style_pack", 1, 0, 3)
+    load_clamped_setting(&settings_cache, &app->style_index, "style_pack", 1, 1, 3)
     load_clamped_setting(&settings_cache, &app->theme_id, "theme", 0, 0,
                             THEME_COUNT - 1)
     load_clamped_setting(&settings_cache, &app->theme_source, "theme_source",
