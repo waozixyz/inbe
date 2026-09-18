@@ -469,6 +469,8 @@ draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
 meditation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     time_text: [32] char
     font := Text24
+    circle: Color = GetThemeCircle()
+    circle_radius := Scale(86)
     max_w: int
     text_w: int
     title_h := app_active_practice_title_height()
@@ -484,6 +486,10 @@ meditation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
 
     practice_draw_audio_controls(app)
 
+    DrawCircle(center_x, center_y, (float)(circle_radius + Scale(20)),
+               Fade(circle, 0.24f))
+    DrawCircle(center_x, center_y, (float)circle_radius, circle)
+
     format_time(time_text, sizeof(time_text), app->meditation.remaining_seconds)
     max_w = view_width - Scale(48)
     if AppTextWidth(time_text, font) > max_w {
@@ -493,10 +499,12 @@ meditation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     Text((TextProps){
         .bounds={(center_x - text_w / 2), (AppControlTextY(time_text, center_y - font, font * 2, font)), 0, 0},
         .text=(time_text),
+        .font=font,
+        .color=GetThemeReadableText(circle),
         .wrap=TextWrapNone
     })
 
-    draw_extend_controls(app, center_x, center_y + Scale(42))
+    draw_extend_controls(app, center_x, center_y + circle_radius + Scale(24))
     if app->meditation.complete_waiting {
         return
     }

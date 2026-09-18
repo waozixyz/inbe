@@ -759,6 +759,8 @@ setup_screenshot_scene(InnerBreeze*app, const ScreenshotRequest *request)
 
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_MEDITATION;
+        app->meditation.music_practice_tracks[EXERCISE_MEDITATION] =
+            AUDIO_MUSIC_NONE;
         practice = practice_get(EXERCISE_MEDITATION);
         if(practice != NULL && practice->start != NULL)
             practice->start(app);
@@ -814,6 +816,11 @@ setup_screenshot_scene(InnerBreeze*app, const ScreenshotRequest *request)
         storage_set_setting_text("sync_account_alias", "waozi");
         app->nav_sidebar_open = 1;
         app->nav_sidebar_open_frame = -1;
+    } else if(strcmp(request->scene, "close_prompt") == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->breathing.screen = ScreenStart;
+        app->close_prompt_open = 1;
+        app->close_prompt_result = AppClosePromptNone;
     } else if(strcmp(request->scene, "data") == 0 ||
               strcmp(request->scene, "profile_data") == 0) {
         app->profile_view = PROFILE_VIEW_MAIN;
