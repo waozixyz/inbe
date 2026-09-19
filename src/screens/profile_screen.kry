@@ -731,22 +731,7 @@ profile_screen_draw :: (app: InnerBreeze*) -> int {
     if TitleBar((TitleBarProps){.title = title, .height = header_h,
                                 .has_leading_action = 1}) {
         app_block_current_click(app)
-        if app->profile_view == PROFILE_VIEW_MAIN &&
-           app->profile_tab != PROFILE_TAB_OVERVIEW {
-            app->profile_tab = PROFILE_TAB_OVERVIEW
-            app->profile_scroll = 0
-            app->sync_server_url_focused = 0
-            return 1
-        }
-        if app->profile_tab == PROFILE_TAB_OVERVIEW {
-            profile_save_identity(app)
-        }
-        app->profile_scroll = 0
-        app->sync_server_url_focused = 0
-        if app_return_to_nav_sidebar_if_needed(app) {
-            return 1
-        }
-        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? ScreenHabits : ScreenStart)
+        profile_screen_back(app)
         return 1
     }
 
@@ -799,5 +784,26 @@ route profile {
 profile :: (app: InnerBreeze*) #ui {
     Screen root: {
     unused profile_screen_draw(app)
+    }
+}
+
+profile_screen_back :: (app: InnerBreeze*) #export {
+    if app->profile_view == PROFILE_VIEW_MAIN &&
+       app->profile_tab != PROFILE_TAB_OVERVIEW {
+        app->profile_tab = PROFILE_TAB_OVERVIEW
+        app->profile_scroll = 0
+        app->sync_server_url_focused = 0
+        return
+    }
+    if app->profile_tab == PROFILE_TAB_OVERVIEW {
+        profile_save_identity(app)
+    }
+    app->profile_scroll = 0
+    app->sync_server_url_focused = 0
+    if app->profile_return_to_settings {
+        app->profile_return_to_settings = 0
+        app_apply_nav_route(app, APP_NAV_ROUTE_SETTINGS)
+    } else {
+        app_switch_screen(app, app_screen_for_main_tab(app->main_tab))
     }
 }

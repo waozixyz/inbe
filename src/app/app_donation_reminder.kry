@@ -66,7 +66,7 @@ app_handle_donation_reminder_action :: (app: InnerBreeze*, action: int) #export 
 reminder_safe :: (app: const InnerBreeze*, first_run_guide_active: int,
                   habits_guide_active: int) -> int #private {
     if app == nil || app->donation_reminder_dismissed { return 0 }
-    if app->modal.active || app->close_prompt_open || app->nav_sidebar_open { return 0 }
+    if app->modal.active || app->close_prompt_open { return 0 }
     if first_run_guide_active || habits_guide_active { return 0 }
     if app->file_dialog_active || app->backgrounded { return 0 }
     if app->habit_edit.active || app->habit_session_edit.active { return 0 }

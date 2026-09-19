@@ -12,6 +12,7 @@ int view_width = 320;
 int view_height = 560;
 
 static int failures = 0;
+static int account_available = 0;
 static int desktop_mode = 0;
 static int elist_label_count = 0;
 static int profile_label_class = -1;
@@ -50,6 +51,7 @@ static void
 reset_state(void)
 {
     desktop_mode = 0;
+    account_available = 0;
     elist_label_count = 0;
     profile_label_class = -1;
     profile_subtitle_class = -1;
@@ -304,10 +306,10 @@ TestText(TextProps props)
     if(props.text != NULL && strcmp(props.text, "tab_elist") == 0) {
         elist_label_count++;
     }
-    if(props.text != NULL && strcmp(props.text, "app_title") == 0) {
+    if(props.text != NULL && strcmp(props.text, "Test User") == 0) {
         profile_label_class = props.class_name;
     }
-    if(props.text != NULL && strcmp(props.text, "profile_no_account") == 0) {
+    if(props.text != NULL && strcmp(props.text, "tab_profile") == 0) {
         profile_subtitle_class = props.class_name;
     }
 }
@@ -737,8 +739,9 @@ settings_screen_clear_status(void)
 int
 sync_account_load(SyncAccount *account)
 {
-    (void)account;
-    return 0;
+    memset(account, 0, sizeof(*account));
+    snprintf(account->public_id, sizeof(account->public_id), "Test User");
+    return account_available;
 }
 
 const char *
@@ -1092,112 +1095,6 @@ test_open_main_tab_none_returns_blank_start(void)
 }
 
 static void
-test_compact_sidebar_close_footer_closes_to_home(void)
-{
-    InnerBreeze app = test_app();
-
-    reset_state();
-    view_width = 320;
-    app.breathing.screen = ScreenNavSidebar;
-    app.nav_sidebar_open = 1;
-    app.nav_sidebar_open_frame = app.breathing.frame - 1;
-    invisible_button_clicked_id = 9199;
-
-    app_draw_bottom_nav(&app);
-
-    expect(app.nav_sidebar_open == 0,
-           "sidebar footer close should close sidebar");
-    expect(app.breathing.screen == ScreenStart,
-           "sidebar footer close should return to current home screen");
-    expect(app.blocked_input_frame == app.breathing.frame,
-           "sidebar footer close should block same-frame bottom nav clicks");
-}
-
-static void
-test_overlay_sidebar_outside_release_blocks_bottom_nav(void)
-{
-    InnerBreeze app = test_app();
-
-    reset_state();
-    view_width = 720;
-    app.nav_sidebar_open = 1;
-    app.nav_sidebar_open_frame = app.breathing.frame - 1;
-    mouse_released = 1;
-    mouse_position = (Vector2){520, 20};
-
-    app_draw_bottom_nav(&app);
-
-    expect(app.nav_sidebar_open == 0,
-           "outside release should close overlay sidebar");
-    expect(pointer_release_consumed == 1,
-           "outside release should be consumed");
-    expect(app.blocked_input_frame == app.breathing.frame,
-           "outside release close should block same-frame bottom nav clicks");
-}
-
-static void
-test_consumed_pfp_release_does_not_close_sidebar(void)
-{
-    InnerBreeze app = test_app();
-
-    reset_state();
-    view_width = 720;
-    app.nav_sidebar_open = 1;
-    app.nav_sidebar_open_frame = app.breathing.frame - 1;
-    app.modal.active = 0;
-    mouse_released = 1;
-    pointer_release_consumed = 1;
-    mouse_position = (Vector2){100, 20};
-
-    app_draw_bottom_nav(&app);
-
-    expect(app.nav_sidebar_open == 1,
-           "consumed pfp picker release must not close sidebar");
-}
-
-static void
-test_sidebar_child_back_returns_to_compact_sidebar(void)
-{
-    InnerBreeze app = test_app();
-
-    reset_state();
-    view_width = 320;
-    app.breathing.screen = ScreenNavSidebar;
-    app.nav_sidebar_open = 1;
-
-    app_apply_nav_route(&app, APP_NAV_ROUTE_ACCOUNT);
-    expect(app.breathing.screen == ScreenProfile,
-           "sidebar account route should open profile");
-    expect(app.nav_sidebar_return_on_back == 1,
-           "sidebar child route should remember compact sidebar return");
-
-    expect(app_return_to_nav_sidebar_if_needed(&app) == 1,
-           "profile back should return to compact sidebar");
-    expect(app.breathing.screen == ScreenNavSidebar &&
-           app.nav_sidebar_open == 1,
-           "profile back should reopen sidebar screen");
-}
-
-static void
-test_sidebar_screen_closes_when_width_expands(void)
-{
-    InnerBreeze app = test_app();
-
-    reset_state();
-    view_width = 320;
-    app.breathing.screen = ScreenNavSidebar;
-    app.nav_sidebar_open = 1;
-
-    view_width = 720;
-    app_update_nav_sidebar_mode(&app);
-
-    expect(app.nav_sidebar_open == 0,
-           "expanded sidebar should close instead of becoming overlay");
-    expect(app.breathing.screen == ScreenStart,
-           "expanded sidebar should return to home screen");
-}
-
-static void
 test_habit_editor_preserves_desktop_rail(void)
 {
     InnerBreeze app = {0};
@@ -1416,6 +1313,7 @@ test_desktop_profile_text_contrast(void)
         reset_state();
         InnerBreeze app = test_app();
         desktop_mode = 1;
+        account_available = 1;
         if(active) {
             app.breathing.screen = ScreenProfile;
         }
@@ -1523,10 +1421,54 @@ test_settings_navigation_opens_overview(void)
     }
 }
 
+static void
+test_settings_back_returns_through_hub(void)
+{
+    reset_state();
+    InnerBreeze app = test_app();
+    app.main_tab = APP_MAIN_TAB_ELIST;
+    app.breathing.screen = ScreenSettings;
+    app.settings_tab = SETTINGS_TAB_THEME;
+    app.settings_scroll = 120;
+    app.settings_dirty = 1;
+    app_settings_back(&app);
+    expect(app.breathing.screen == ScreenSettings &&
+           app.settings_tab == SETTINGS_TAB_MOBILE_HUB,
+           "Back from a category must return to the modern Settings hub");
+    expect(app.settings_scroll == 0 && save_settings_count == 1,
+           "Back must reset category scroll and save pending settings");
+    app_settings_back(&app);
+    expect(app.breathing.screen == ScreenEList,
+           "Back from Settings must restore Lists when it was the main tab");
+    app_apply_nav_route(&app, APP_NAV_ROUTE_SETTINGS);
+    app_apply_nav_route(&app, APP_NAV_ROUTE_PROFILE);
+    expect(app.profile_return_to_settings,
+           "Profile opened from Settings must remember its parent");
+    app_apply_nav_route(&app, APP_NAV_ROUTE_ELIST);
+    app_apply_nav_route(&app, APP_NAV_ROUTE_PROFILE);
+    expect(!app.profile_return_to_settings,
+           "Profile opened elsewhere must not retain a stale Settings parent");
+}
+
+static void
+test_signed_out_profile_identity(void)
+{
+    reset_state();
+    InnerBreeze app = test_app();
+    char label[96], subtitle[96];
+    snprintf(app.profile_display_name, sizeof(app.profile_display_name), "Stale name");
+    app_nav_profile_identity(&app, label, sizeof(label), subtitle, sizeof(subtitle));
+    expect(strcmp(label, GetLocaleText("profile_no_account")) == 0,
+           "Signed out profile must show No account, not the app or stale user name");
+    expect(subtitle[0] == '\0', "Signed out profile must not repeat No account");
+}
+
 int
 main(void)
 {
+    test_signed_out_profile_identity();
     test_settings_navigation_opens_overview();
+    test_settings_back_returns_through_hub();
     test_desktop_profile_text_contrast();
     test_desktop_rail_spacing();
     test_navigation_placement_and_collapse();
@@ -1543,11 +1485,6 @@ main(void)
     test_customize_nav_delete_last_does_not_add_same_frame();
     test_customize_nav_delete_icon_draws_on_narrow_rows();
     test_open_main_tab_none_returns_blank_start();
-    test_compact_sidebar_close_footer_closes_to_home();
-    test_overlay_sidebar_outside_release_blocks_bottom_nav();
-    test_consumed_pfp_release_does_not_close_sidebar();
-    test_sidebar_child_back_returns_to_compact_sidebar();
-    test_sidebar_screen_closes_when_width_expands();
     test_habit_editor_preserves_desktop_rail();
     test_top_level_nav_leaves_habit_child_screens();
     test_elist_navigation_sanitizer_and_desktop_route();

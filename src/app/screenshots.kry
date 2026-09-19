@@ -379,14 +379,6 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->settings_tab = SETTINGS_TAB_NOTIFICATIONS
         app->breathing.screen = ScreenSettings
-    } else if strcmp(request->scene, "nav_sidebar") == 0 {
-        app->main_tab = APP_MAIN_TAB_PRACTICE
-        app->breathing.screen = ScreenStart
-        snprintf(app->profile_display_name, sizeof(app->profile_display_name),
-        "%s", "Waozi")
-        storage_set_setting_text("sync_account_alias", "waozi")
-        app->nav_sidebar_open = 1
-        app->nav_sidebar_open_frame = -1
     } else if strcmp(request->scene, "close_prompt") == 0 {
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->breathing.screen = ScreenStart

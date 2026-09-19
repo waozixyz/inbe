@@ -6,7 +6,7 @@
 #import <string.h> #private
 
 InbeRouterConstants :: enum {
-    INBE_ROUTER_ROUTE_COUNT = 16
+    INBE_ROUTER_ROUTE_COUNT = 15
 }
 
 static app_router_routes: [INBE_ROUTER_ROUTE_COUNT] const RouterRoute = {
@@ -23,7 +23,6 @@ static app_router_routes: [INBE_ROUTER_ROUTE_COUNT] const RouterRoute = {
     {ScreenHabits, -1, "habits", "Habits", "main"},
     {ScreenEList, -1, "elist", "Exercises", "main"},
     {ScreenCustomizeNav, ScreenSettings, "customize_nav", "Customize Navigation", "settings"},
-    {ScreenNavSidebar, -1, "nav_sidebar", "Navigation", "main"},
     {ScreenHabitEdit, ScreenHabits, "habit_edit", "Habit Edit", "habits"},
     {ScreenHabitSessionEdit, ScreenHabits, "habit_session_edit", "Habit Session Edit", "habits"}
 }
@@ -56,8 +55,6 @@ route_id_for_screen :: (screen: int) -> const char* #private {
         return "elist"
     case ScreenCustomizeNav:
         return "customize_nav"
-    case ScreenNavSidebar:
-        return "nav_sidebar"
     case ScreenHabitEdit:
         return "habit_edit"
     case ScreenHabitSessionEdit:
@@ -81,7 +78,6 @@ screen_for_route_id :: (id: const char*) -> int #export {
     if strcmp(id, "habits") == 0 { return ScreenHabits }
     if strcmp(id, "elist") == 0 { return ScreenEList }
     if strcmp(id, "customize_nav") == 0 { return ScreenCustomizeNav }
-    if strcmp(id, "nav_sidebar") == 0 { return ScreenNavSidebar }
     if strcmp(id, "habit_edit") == 0 { return ScreenHabitEdit }
     if strcmp(id, "habit_session_edit") == 0 { return ScreenHabitSessionEdit }
     return -1

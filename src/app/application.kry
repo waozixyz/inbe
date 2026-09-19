@@ -607,7 +607,7 @@ app_init :: (vapp: void*) #export {
     memset(&app->camera, 0, sizeof(app->camera))
     app->play_circle_hover = 0
     app->play_circle_scale = 1.0f
-    app->settings_tab = SETTINGS_TAB_DEVICE
+    app->settings_tab = SETTINGS_TAB_MOBILE_HUB
     memset(&app->habit_edit, 0, sizeof(app->habit_edit))
     app->habit_edit.index = -1
     app->habit_edit.color.r = 99
@@ -647,39 +647,15 @@ handle_back_button :: (app: InnerBreeze*) #private {
         }
         break
         case ScreenSettings:
-        if app->settings_dirty {
-            save_settings(app)
-        }
-        settings_screen_clear_status()
-        if app_return_to_nav_sidebar_if_needed(app) {
-            break
-        }
-        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
-        ? ScreenHabits
-        : ScreenStart)
-        app->settings_scroll = 0
+        app_settings_back(app)
         break
         case ScreenProfile:
-        app->profile_scroll = 0
-        app->sync_server_url_focused = 0
-        settings_screen_clear_status()
-        if app_return_to_nav_sidebar_if_needed(app) {
-            break
-        }
-        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
-        ? ScreenHabits
-        : ScreenStart)
+        profile_screen_back(app)
         break
         case ScreenCustomizeNav:
-        if app_return_to_nav_sidebar_if_needed(app) {
-            break
-        }
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
         ? ScreenHabits
         : ScreenStart)
-        break
-        case ScreenNavSidebar:
-        app_close_nav_sidebar(app)
         break
         case ScreenPracticeConfig:
         app_leave_practice_config(app)
@@ -1407,7 +1383,6 @@ updateapp :: (app: InnerBreeze*) #private {
         }
     }
     app_breaks_update(app)
-    app_update_nav_sidebar_mode(app)
     app_notifications_tick(app)
     for i = 0; i < practice_count(); i++ {
         practice: const PracticeDefinition* = practice_get(i)
@@ -1432,9 +1407,6 @@ updateapp :: (app: InnerBreeze*) #private {
     input_rect.y = 0
     input_rect.width = (float)view_width
     input_rect.height = (float)view_height
-    if app->nav_sidebar_open {
-        PushInputCapture(input_rect, 0)
-    }
     if app->modal.active {
         BeginModalLayer()
     }
@@ -1465,9 +1437,7 @@ updateapp :: (app: InnerBreeze*) #private {
         }
     }
     if back_requested {
-        if app->nav_sidebar_open || app->breathing.screen == ScreenNavSidebar {
-            app_close_nav_sidebar(app)
-        } else if app->close_prompt_open {
+        if app->close_prompt_open {
             app->close_prompt_open = 0
         } else if first_run_guide_active || habits_guide_active {
             if first_run_guide_active {
@@ -1483,20 +1453,14 @@ updateapp :: (app: InnerBreeze*) #private {
         }
     }
     #if !ANDROID_BUILD && !#defined(PLATFORM_WEB) {
-        # Ctrl+Q quits from any screen. Esc closes the navigation sidebar first,
-        # then quits only when idle on the home screen; deeper screens bind Esc
-        # to their own back/cancel handlers.
+        # Ctrl+Q quits from any screen; Esc quits only from idle home.
         if IsKeyPressed(KEY_Q) &&
         (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL)) {
             app_request_desktop_quit(app)
         } else if IsKeyPressed(KEY_ESCAPE) &&
-        (app->nav_sidebar_open ||
-        app->breathing.screen == ScreenNavSidebar) {
-            app_close_nav_sidebar(app)
-        } else if IsKeyPressed(KEY_ESCAPE) &&
         app->breathing.screen == ScreenStart &&
         app->practice_tab == PRACTICE_TAB_PLAY &&
-        !app->nav_sidebar_open && !app->modal.active &&
+        !app->modal.active &&
         !first_run_guide_active && !habits_guide_active {
             app_request_desktop_quit(app)
         }
@@ -1510,8 +1474,6 @@ updateapp :: (app: InnerBreeze*) #private {
         goto finish_frame
         case ScreenCustomizeNav:
         app_draw_customize_nav_page(app)
-        goto finish_frame
-        case ScreenNavSidebar:
         goto finish_frame
         case ScreenLanguage:
         language_screen_draw(app)

@@ -8,6 +8,26 @@ elist_types :: #import "screens/elist_types"
 #import <stdlib.h> #private
 #import <string.h> #private
 
+storage_elist_initialized :: () -> int #private {
+    if storage_get_setting_int("elist_initialized", 0) != 0 {
+        return 1
+    }
+    statement: sqlite3_stmt* = nil
+    if sqlite3_prepare_v2(g_storage.db,
+                          "SELECT 1 FROM elist_lists WHERE user_id=?1 LIMIT 1",
+                          -1, &statement, nil) != SQLITE_OK {
+        return 1
+    }
+    bind_text(statement, 1, g_storage.user_id)
+    result := sqlite3_step(statement)
+    sqlite3_finalize(statement)
+    if result == SQLITE_ROW {
+        # Existing and deleted lists both mean setup has already happened.
+        storage_set_setting_int("elist_initialized", 1)
+    }
+    return result != SQLITE_DONE
+}
+
 storage_elist_load :: (value: void*) -> int #export {
     state := (elist_types.EListState*)value
     statement: sqlite3_stmt* = nil
@@ -39,9 +59,10 @@ storage_elist_load :: (value: void*) -> int #export {
         list->updated_at = sqlite3_column_int64(statement, 4)
     }
     sqlite3_finalize(statement)
-    if state->list_count == 0 {
+    if !storage_elist_initialized() {
         created_id: [37]char = {0}
         if storage_elist_create_list(GetLocaleText("elist_default_list"), created_id) {
+            storage_set_setting_int("elist_initialized", 1)
             storage_elist_create_item(created_id, GetLocaleText("elist_default_item_breathe"), "", nil)
             storage_elist_create_item(created_id, GetLocaleText("elist_default_item_walk"), "", nil)
             storage_elist_create_item(created_id, GetLocaleText("elist_default_item_water"), "", nil)
@@ -78,13 +99,6 @@ storage_elist_load :: (value: void*) -> int #export {
         item->updated_at = sqlite3_column_int64(statement, 7)
     }
     sqlite3_finalize(statement)
-    if state->item_count == 0 && state->list_count == 1 &&
-       strcmp(state->lists[0].title, GetLocaleText("elist_default_list")) == 0 {
-        storage_elist_create_item(state->lists[0].id, GetLocaleText("elist_default_item_breathe"), "", nil)
-        storage_elist_create_item(state->lists[0].id, GetLocaleText("elist_default_item_walk"), "", nil)
-        storage_elist_create_item(state->lists[0].id, GetLocaleText("elist_default_item_water"), "", nil)
-        return storage_elist_load(value)
-    }
     if state->selected_list >= state->list_count {
         state->selected_list = state->list_count - 1
     }

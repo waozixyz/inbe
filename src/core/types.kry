@@ -28,8 +28,7 @@
     ScreenProfile
     ScreenHabits
     ScreenCustomizeNav
-    ScreenNavSidebar
-    ScreenHabitEdit
+    ScreenHabitEdit = 14
     ScreenHabitSessionEdit
     ScreenEList
     ScreenBreak

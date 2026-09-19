@@ -184,15 +184,7 @@ settings_scaffold_title :: (title: const char*, height: int, user_data: void*) -
     if TitleBar((TitleBarProps){.title = title, .height = height,
                                 .has_leading_action = 1}) {
         app_block_current_click(app)
-        app->settings_scroll = 0
-        if app->modal.type == UIModalThemePicker {
-            app_close_modal(app)
-        }
-        settings_screen_clear_status()
-        route := app_current_route(app)
-        route.screen = ScreenSettings
-        route.settings_tab = SETTINGS_TAB_MOBILE_HUB
-        app_switch_route(app, route)
+        app_settings_back(app)
         return 1
     }
     return 0
@@ -675,7 +667,9 @@ settings_screen_draw :: (app: InnerBreeze*) -> int {
 
     title = settings_screen_tab_label(app->settings_tab)
     page_ctx = (SettingsScrollPageContext){app, app->settings_tab}
-    settings_scaffold_title(title, AppTitleBarHeight(), app)
+    if settings_scaffold_title(title, AppTitleBarHeight(), app) {
+        return 0
+    }
 
     side_padding = GetPageSidePadding()
     max_content_w = Scale(CONTENT_MAX_W)

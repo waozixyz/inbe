@@ -2356,6 +2356,31 @@ write_text_file(const char *path, const char *text)
 }
 
 static void
+test_deleted_list_defaults_stay_deleted(void)
+{
+    char root[512];
+    EListState state = {0};
+    make_clean_root(root, sizeof(root), "elist-defaults-once");
+    check_true("init list defaults db", storage_init(root));
+    check_true("load initial lists", storage_elist_load(&state));
+    check_int("initial list count", state.list_count, 1);
+    check_int("initial task count", state.item_count, 3);
+    for(int i = 0; i < state.item_count; i++)
+        check_true("delete starter task", storage_elist_delete_item(state.items[i].id));
+    check_true("reload empty list", storage_elist_load(&state));
+    check_int("deleted tasks stay deleted", state.item_count, 0);
+    check_true("delete last list", storage_elist_delete_list(state.lists[0].id));
+    /* Simulate an existing installation predating the initialization marker. */
+    storage_set_setting_int("elist_initialized", 0);
+    storage_close();
+    check_true("reopen empty lists db", storage_init(root));
+    check_true("reload deleted lists", storage_elist_load(&state));
+    check_int("deleted lists stay deleted after restart", state.list_count, 0);
+    check_int("deleted tasks stay deleted after restart", state.item_count, 0);
+    storage_close();
+}
+
+static void
 test_onelist_import_and_sync_collections(void)
 {
     char root[512];
@@ -2648,6 +2673,7 @@ main(void)
     test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
     test_onelist_import_and_sync_collections();
+    test_deleted_list_defaults_stay_deleted();
     test_empty_initialized_habits_seed_meditation_on_startup();
     test_default_habits_can_wait_for_language_setup();
     test_existing_default_meditation_is_not_repaired_on_startup();

@@ -304,11 +304,6 @@ app_draw_bottom_nav :: (app: InnerBreeze*) {
         return
     }
 
-    if app != NULL && (app->nav_sidebar_open || app_nav_sidebar_screen_active(app)) {
-        app_draw_nav_sidebar(app)
-        return
-    }
-
     if bottom_nav_should_draw(app) {
         app_sanitize_bottom_nav_routes(app)
         route_count = app->bottom_nav_route_count
@@ -345,5 +340,4 @@ app_draw_bottom_nav :: (app: InnerBreeze*) {
         }
     }
 
-    app_draw_nav_sidebar(app)
 }
