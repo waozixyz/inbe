@@ -220,7 +220,7 @@ save_settings :: (app: InnerBreeze*) {
     save_setting_int("theme_source", app->theme_source)
     save_setting_int("dark_mode", app->dark_mode)
     save_setting_int("theme_mode", app->theme_mode)
-    save_setting_int("glow_effects", app->glow_effects_enabled ? 1 : 0)
+    save_setting_int("style_lightfield_glow", app->lightfield_glow_enabled ? 1 : 0)
     save_setting_int("orientation_mode", app->orientation_mode)
     save_setting_int("ui_scale", app->ui_scale_tenths)
     save_setting_int("navigation_mode", app->navigation_mode)
@@ -638,8 +638,13 @@ app_load_settings :: (app: InnerBreeze*) -> int {
                             APP_THEME_SOURCE_SYSTEM)
     load_clamped_setting(&settings_cache, &app->theme_mode, "theme_mode",
                             APP_THEME_SYSTEM, APP_THEME_SYSTEM, APP_THEME_DARK)
-    load_bool_setting(&settings_cache, &app->glow_effects_enabled,
-                         "glow_effects", 0)
+    # Keep the old preference for Lightfield only, until its own choice exists.
+    legacy_glow := settings_cache_get_int(&settings_cache, "glow_effects", 0)
+    load_bool_setting(&settings_cache, &app->lightfield_glow_enabled,
+    "style_lightfield_glow", legacy_glow)
+    if settings_cache_get(&settings_cache, "style_lightfield_glow") == nil {
+        save_setting_int("style_lightfield_glow", app->lightfield_glow_enabled)
+    }
     load_clamped_setting(&settings_cache, &app->orientation_mode,
                             "orientation_mode", APP_ORIENTATION_SYSTEM,
                             APP_ORIENTATION_SYSTEM, APP_ORIENTATION_SENSOR)

@@ -89,6 +89,12 @@ static const char *derived_keys[] = {
     NULL
 };
 
+/* Older backups can still import these keys; loading migrates their values. */
+static const char *legacy_imported_keys[] = {
+    "glow_effects",
+    NULL
+};
+
 static int
 key_is_whitelisted(const char *key, const char **list)
 {
@@ -234,7 +240,9 @@ main(void)
     }
     for(int i = 0; i < imported.count; i++) {
         if(!keyset_contains(&saved, imported.keys[i]) &&
-           !key_is_whitelisted(imported.keys[i], helper_saved_keys)) {
+           !key_is_whitelisted(imported.keys[i], helper_saved_keys) &&
+           !(key_is_whitelisted(imported.keys[i], legacy_imported_keys) &&
+             keyset_contains(&loaded, imported.keys[i]))) {
             fprintf(stderr, "FAIL importable setting [%s] is never saved\n",
                     imported.keys[i]);
             failures++;

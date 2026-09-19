@@ -124,7 +124,6 @@ app_refresh_theme :: (app: InnerBreeze*) {
     }
 
     SetThemeMode((ThemeMode)app->theme_mode)
-    SetFancyEffectsEnabled(app->glow_effects_enabled)
 
     #if ANDROID {
         SetSystemThemeDarkMode(android_device_system_dark() != 0)

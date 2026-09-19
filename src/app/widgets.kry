@@ -1,6 +1,7 @@
 #import "app.h"
 #import "runtime/modal.h"
 #import "runtime/guide.h"
+#import "runtime/paragraph.h"
 #import "runtime/reorder.h"
 #import "runtime/toolbar.h"
 #import <stdio.h>
@@ -46,8 +47,11 @@ AppModalFrame :: (width: int, height: int, title: const char*, left_icon_type: i
         .content_w = (int)layout.content.width, .content_h = (int)layout.content.height
     }
     SetModalCapture(layout.panel)
+    input := SaveFrameState()
+    pointer := input.mouse_world_override_enabled ? input.mouse_world_override
+    : GetScreenToWorld2D(GetMousePosition(), input.camera)
     dismissal := ModalOutsideDismissalFor(IsMouseButtonReleased(MOUSE_BUTTON_LEFT),
-    ReleaseConsumed(), CheckCollisionPointRec(GetMousePosition(), layout.panel))
+    ReleaseConsumed(), CheckCollisionPointRec(pointer, layout.panel))
     if dismissal.dismissed {
         ConsumeRelease()
         frame.right_clicked = 1
@@ -89,17 +93,30 @@ AppGuideOverlay :: (guide: GuideOverlayProps) -> UIGuideResult #export {
     widget_frame(StyleKindGuide(), 17), widget_frame(StyleKindGuide(), 15))
     step := GuideStepFor(*guide.step, guide.count)
     anchor := guide.steps[step].anchor
+    if anchor.width <= 0 || anchor.height <= 0 {
+        return result
+    }
+    if metrics.button_size < Scale(44) {
+        metrics.button_size = Scale(44)
+    }
+    if metrics.close_size < Scale(44) {
+        metrics.close_size = Scale(44)
+    }
     tip_width := GuideTipWidth(width, guide.max_width, metrics)
     maximum_height := GuideMaxTipHeight(height, guide.reserved_top, guide.reserved_bottom, metrics)
     font := GuideParagraphFontFor(guide.paragraph_font, 0, AppFontSize())
-    gap := GuideLineGapFor(guide.line_gap, metrics)
+    gap := ParagraphDefaultLineGap(GetScale())
     text_width := tip_width - metrics.pad * 2
-    text_height := AppParagraphHeight(guide.steps[step].text, text_width, font, gap)
+    paragraph := ParseTextLayout(guide.steps[step].text, (Texture2D){0}, ICON_NONE, 0)
+    ReflowTextLayout(&paragraph, text_width, font, gap)
+    text_height := GetTextLayoutHeight(&paragraph)
     while GuideShouldShrinkParagraphFont(text_height,
     GuideParagraphHeightLimit(maximum_height, metrics), font, AppSmallFontSize()) {
         font--
-        text_height = AppParagraphHeight(guide.steps[step].text, text_width, font, gap)
+        ReflowTextLayout(&paragraph, text_width, font, gap)
+        text_height = GetTextLayoutHeight(&paragraph)
     }
+    FreeTextLayout(&paragraph)
     tip := GuideTipBounds(anchor, tip_width, GuideTipHeight(text_height, maximum_height, metrics),
     width, height, guide.reserved_top, guide.reserved_bottom, metrics)
     layout := GuideLayoutFor(tip, text_width, text_height, step, guide.count, metrics)
@@ -113,6 +130,13 @@ AppGuideOverlay :: (guide: GuideOverlayProps) -> UIGuideResult #export {
     Box(scrim.left, scrim_color, BLANK)
     Box(scrim.right, scrim_color, BLANK)
     Box(anchor, BLANK, GetThemeText())
+    arrow := GuideArrowFor(tip, anchor, metrics)
+    Line((int)arrow.line_start.x, (int)arrow.line_start.y,
+    (int)arrow.line_end.x, (int)arrow.line_end.y, GetThemeText())
+    Line((int)arrow.tip0.x, (int)arrow.tip0.y,
+    (int)arrow.tip1.x, (int)arrow.tip1.y, GetThemeText())
+    Line((int)arrow.tip0.x, (int)arrow.tip0.y,
+    (int)arrow.tip2.x, (int)arrow.tip2.y, GetThemeText())
     widget_panel(tip, panel)
     Text((TextProps){.text = guide.steps[step].text, .bounds = layout.text,
         .font = font, .wrap = TextWrapAuto})
@@ -124,16 +148,16 @@ AppGuideOverlay :: (guide: GuideOverlayProps) -> UIGuideResult #export {
     previous := IsKeyPressed(KEY_LEFT)
     next := IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_ENTER)
     close := IsKeyPressed(KEY_BACK) || IsKeyPressed(KEY_ESCAPE)
-    if Button((ButtonProps){.bounds = layout.close_button, .icon_type = guide.close_icon_type,
+    if Button((ButtonProps){.id = 83110, .bounds = layout.close_button, .icon_type = guide.close_icon_type,
         .icon_only = 1, .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft}) {
         close = 1
     }
-    if step > 0 && Button((ButtonProps){.bounds = layout.back_button,
+    if step > 0 && Button((ButtonProps){.id = 83111, .bounds = layout.back_button,
         .icon_type = guide.back_icon_type, .icon_only = 1,
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft}) {
         previous = 1
     }
-    if Button((ButtonProps){.bounds = layout.next_button,
+    if Button((ButtonProps){.id = 83112, .bounds = layout.next_button,
         .icon_type = layout.finish ? guide.done_icon_type : guide.next_icon_type,
         .icon_only = 1, .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft}) {
         next = 1

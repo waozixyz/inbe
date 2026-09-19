@@ -23,6 +23,7 @@
     X("dark_mode") \
     X("theme_mode") \
     X("glow_effects") \
+    X("style_lightfield_glow") \
     X("orientation_mode") \
     X("ui_scale") \
     X("main_tab") \

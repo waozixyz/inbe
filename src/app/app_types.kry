@@ -584,6 +584,7 @@ InnerBreeze :: struct {
     tutorial_seen: int
     habits_guide_step: int
     habits_guide_seen: int
+    habits_guide_anchors: [6] Rectangle
     exercise_manual_seen_mask: int
     practice_home_scroll: int
     practice_home_swipe: SwipeGesture
@@ -597,7 +598,7 @@ InnerBreeze :: struct {
     theme_source: int
     dark_mode: int
     theme_mode: int
-    glow_effects_enabled: int
+    lightfield_glow_enabled: int
     orientation_mode: int
     ui_scale_tenths: int
     navigation_mode: int

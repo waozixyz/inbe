@@ -233,6 +233,14 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
         storage_elist_create_list("Home", nil)
         storage_elist_create_list("Weekend", nil)
         app->elist.loaded = 0
+    } else if strncmp(request->scene, "habits_guide_", 13) == 0 {
+        app->main_tab = APP_MAIN_TAB_HABITS
+        app->breathing.screen = ScreenHabits
+        app->habits_guide_seen = 0
+        app->habits_guide_step = clampi(atoi(request->scene + 13), 0, 5)
+        if strcmp(request->scene + 13, "empty") == 0 {
+            app->habits.count = 0
+        }
     } else if strcmp(request->scene, "statistics") == 0 {
         app->main_tab = APP_MAIN_TAB_HABITS
         app->habits.tab = HABIT_TAB_STATISTICS

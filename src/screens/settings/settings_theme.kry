@@ -19,6 +19,11 @@ static scale_drag_value: int = 0
 
 content_height :: (app: InnerBreeze*, content_w: int) -> int {
     sidebar_h := 0
+    glow_h := 0
+    if style_pack_has_glow(app->style_index) {
+        glow_h = ui.toggle_row_height(GetLocaleText("appearance_glow_effects_label"),
+        content_w) + Scale(6)
+    }
     if app_nav_desktop_rail_enabled(app) {
         options: [2] SegmentOption = {
             {GetLocaleText("navigation_sidebar_expanded"), false},
@@ -32,11 +37,11 @@ content_height :: (app: InnerBreeze*, content_w: int) -> int {
     }
 
     #if ANDROID {
-        return Scale(350) + Scale(292) + sidebar_h + Scale(80)
+        return Scale(350) + Scale(234) + sidebar_h + glow_h + Scale(80)
     } #else_if WEB {
-        return Scale(366) + Scale(292) + sidebar_h
+        return Scale(366) + Scale(234) + sidebar_h + glow_h
     } #else {
-        return Scale(350) + Scale(292) + sidebar_h
+        return Scale(350) + Scale(234) + sidebar_h + glow_h
     }
 }
 
@@ -86,10 +91,19 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
     }) {
         app->style_index = selected_style + 1
         app_apply_style(app)
+        app->settings_scroll = 0
         app_block_current_click(app)
         save_settings(app)
     }
     *y += Scale(56)
+    if style_pack_has_glow(app->style_index) {
+        if ui.commit_toggle_row(app, x, w, y,
+        GetLocaleText("appearance_glow_effects_label"),
+        &app->lightfield_glow_enabled, 1) {
+            app_apply_style(app)
+        }
+        *y += Scale(6)
+    }
     draw_scale_row(app, x, w, y)
 
     placements: [5] const char* = {
@@ -142,15 +156,6 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
         app->settings_save_delay_ticks = 18
     }
     *y += Scale(24)
-
-    glow_effects := app->glow_effects_enabled
-    if ui.commit_toggle_row(app, x, w, y,
-                            GetLocaleText("appearance_glow_effects_label"),
-                            &glow_effects, 1) {
-        app->glow_effects_enabled = glow_effects
-        SetFancyEffectsEnabled(app->glow_effects_enabled)
-    }
-    *y += Scale(6)
 
     if Button((ButtonProps){
         .bounds = {(float)(x), (float)(*y), (float)(w), (float)(Scale(44))},
@@ -207,9 +212,11 @@ settings_screen_draw_app_icon_modal :: (app: InnerBreeze*) #export {
                 }
             }
         }
+        message := GetLocaleText(state->app_icon_error ? "app_icon_error" : "app_icon_hint")
         Text((TextProps){
             .bounds = {frame.content_x, frame.content_y + Scale(184), frame.content_w, 0},
-            .text = GetLocaleText(state->app_icon_error ? "app_icon_error" : "app_icon_hint")
+            .text = message, .wrap = TextWrapNone,
+            .font = AppFitFontSize(message, frame.content_w, AppSmallFontSize(), Scale(Text8))
         })
     } #else {
         unused app

@@ -35,10 +35,16 @@ style_pack_label :: (index: int) -> const char* #export {
 static applied_style: int = -1
 static applied_colors: ThemeColors
 
+style_pack_has_glow :: (index: int) -> int #export {
+    return index == 3
+}
+
 app_apply_style :: (app: InnerBreeze*) #export {
     if app == NULL {
         return
     }
+    SetFancyEffectsEnabled(!style_pack_has_glow(app->style_index) ||
+    app->lightfield_glow_enabled)
     scheme := GetThemeScheme()
     colors := (ThemeColors){
         .background = GetThemeBackground(),

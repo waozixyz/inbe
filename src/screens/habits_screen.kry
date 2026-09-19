@@ -282,6 +282,7 @@ habits_screen_dismiss_first_run_guide :: (app: InnerBreeze*) {
 habits_screen_first_run_guide_active :: (app: const InnerBreeze*) -> int {
     return app != nil &&
         !app->habits_guide_seen &&
+    app->habits.count > 0 &&
         !app->modal.active &&
         app->breathing.screen == ScreenHabits &&
         !storage_has_sync_account()
@@ -301,75 +302,10 @@ habits_screen_prepare_first_run_guide :: (app: InnerBreeze*) {
         habit_edit_cancel(app)
     }
     app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
-    app->habits.selected = -1
+    app->habits.selected = step >= 2 && app->habits.count > 0 ? 0 : -1
     app->habits.tab = HABIT_TAB_WEEKLY
     app->habits.view_mode = HABIT_VIEW_WEEKLY
     app->habits.scroll = 0
-}
-
-habits_cards_progress_anchor :: (app: InnerBreeze*) -> Rectangle #private {
-    x: int
-    w: int
-    y := habits_screen_top_reserved(app) + Scale(51)
-    pad := Scale(5)
-    progress: [64] char = {0}
-
-    GetCenteredColumn(Scale(CONTENT_MAX_W), GetPageSidePadding(),
-                        &x, &w)
-    snprintf(progress, sizeof(progress),
-             GetLocaleText("habits_done_count_label"),
-             habits_done_today(app), habits_due_today(app))
-    return (Rectangle){(float)(x - pad), (float)(y - pad),
-                       (float)(AppTextWidth(progress, AppSmallFontSize()) + pad * 2),
-                       (float)(AppTextLineHeight(AppSmallFontSize()) + pad * 2)}
-}
-
-habits_cards_first_anchor :: (app: InnerBreeze*) -> Rectangle #private {
-    x: int
-    w: int
-    y := habits_screen_top_reserved(app) + Scale(86)
-
-    GetCenteredColumn(Scale(CONTENT_MAX_W), GetPageSidePadding(),
-                        &x, &w)
-    return (Rectangle){(float)x, (float)y, (float)w,
-                       (float)habits_focus_collapsed_height()}
-}
-
-habits_expanded_card_action_anchor :: (app: InnerBreeze*, action: int) -> Rectangle #private {
-    x: int
-    w: int
-    y := habits_screen_top_reserved(app) + Scale(86)
-    gap := Scale(8)
-    action_x: int
-    action_w: int
-
-    GetCenteredColumn(Scale(CONTENT_MAX_W), GetPageSidePadding(),
-                        &x, &w)
-    action_w = (w - Scale(28) - gap * 2) / 3
-    action_x = x + Scale(14) + action * (action_w + gap)
-    return (Rectangle){
-        (float)action_x,
-        (float)(y + Scale(78)),
-        (float)action_w,
-        (float)Scale(52)
-    }
-}
-
-habits_expanded_card_week_anchor :: (app: InnerBreeze*) -> Rectangle #private {
-    x: int
-    w: int
-    y := habits_screen_top_reserved(app) + Scale(86)
-    section_y := y + Scale(144)
-    body_y := section_y + AppTextLineHeight(AppSmallFontSize()) + Scale(12)
-
-    GetCenteredColumn(Scale(CONTENT_MAX_W), GetPageSidePadding(),
-                        &x, &w)
-    return (Rectangle){
-        (float)(x + Scale(14)),
-        (float)body_y,
-        (float)(w - Scale(28)),
-        (float)Scale(72)
-    }
 }
 
 habits_draw_fitted_text :: (text: const char*, x: int, y: int,
@@ -452,27 +388,27 @@ habits_screen_draw_first_run_guide :: (app: InnerBreeze*) {
     }
 
     steps[0] = (UIGuideStep){
-        habits_cards_progress_anchor(app),
+        app->habits_guide_anchors[0],
         GetLocaleText("habits_guide_overview_progress")
     }
     steps[1] = (UIGuideStep){
-        habits_cards_first_anchor(app),
+        app->habits_guide_anchors[1],
         GetLocaleText("habits_guide_overview_grid")
     }
     steps[2] = (UIGuideStep){
-        habits_expanded_card_action_anchor(app, 0),
+        app->habits_guide_anchors[2],
         GetLocaleText("habits_guide_meditation_views")
     }
     steps[3] = (UIGuideStep){
-        habits_expanded_card_action_anchor(app, 1),
+        app->habits_guide_anchors[3],
         GetLocaleText("habits_guide_meditation_statistics")
     }
     steps[4] = (UIGuideStep){
-        habits_expanded_card_action_anchor(app, 2),
+        app->habits_guide_anchors[4],
         GetLocaleText("habits_guide_meditation_edit")
     }
     steps[5] = (UIGuideStep){
-        habits_expanded_card_week_anchor(app),
+        app->habits_guide_anchors[5],
         GetLocaleText("habits_guide_meditation_session_data")
     }
 
@@ -1243,6 +1179,11 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
     metric_gap := Scale(10)
     metric_w := (w - metric_gap) / 2
     columns := clampi(w / Scale(44), 5, 7)
+    if selected == 0 {
+        app->habits_guide_anchors[5] = (Rectangle){
+            (float)x, (float)row_y, (float)w, (float)row_h
+        }
+    }
 
     if counting {
         snprintf(today_label, sizeof(today_label), "%s  %d",
@@ -1465,6 +1406,9 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
         })
     }
     actions = FlexStep(actions, action_size, action_size)
+    if selected == 0 {
+        app->habits_guide_anchors[2] = actions.item
+    }
     if Button((ButtonProps){
         .bounds = actions.item,
         .icon_type = ICON_CALENDAR,
@@ -1475,6 +1419,9 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
         return
     }
     actions = FlexStep(actions, action_size, action_size)
+    if selected == 0 {
+        app->habits_guide_anchors[3] = actions.item
+    }
     if Button((ButtonProps){
         .bounds = actions.item,
         .icon_type = ICON_STAT,
@@ -1485,6 +1432,9 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
         return
     }
     actions = FlexStep(actions, action_size, action_size)
+    if selected == 0 {
+        app->habits_guide_anchors[4] = actions.item
+    }
     if Button((ButtonProps){
         .bounds = actions.item,
         .icon_type = ICON_EDIT,
@@ -1623,7 +1573,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
             }
         }
     }
-    if !app->modal.active &&
+    if !app->modal.active && !input_captured &&
        CheckCollisionPointRec(mouse, row_bounds) &&
        IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
         app_block_current_click(app)
@@ -1646,6 +1596,9 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
 
 draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
     context := (HabitsFocusPageContext){app}
+    for int i = 0; i < HABITS_GUIDE_STEPS; i++ {
+        app->habits_guide_anchors[i] = (Rectangle){0}
+    }
     measure_x: int
     measure_w: int
     content_h: int
@@ -1677,10 +1630,15 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
         })
         snprintf(progress, sizeof(progress), GetLocaleText("habits_done_count_label"),
                  habits_done_today(app), habits_due_today(app))
+        progress_font := AppSmallFontSize()
+        app->habits_guide_anchors[0] = (Rectangle){
+            (float)x, (float)(y + Scale(35)),
+            (float)AppTextWidth(progress, progress_font),
+            (float)(progress_font + Scale(4))
+        }
         Text((TextProps){
-            .bounds={(x), (y + Scale(35)), 0, 0},
-            .text=(progress),
-            .wrap=TextWrapNone
+            .bounds = app->habits_guide_anchors[0],
+            .font = progress_font, .text = progress, .wrap = TextWrapNone
         })
         if Button((ButtonProps){
             .bounds = {(float)(x + w - button_w), (float)y,
@@ -1700,6 +1658,9 @@ draw_habits_focus :: (app: InnerBreeze*, content_top: int) #private {
             } else {
                 grid = GridStep(grid, habits_focus_collapsed_height(), 1)
                 cell := grid.item
+                if i == 0 {
+                    app->habits_guide_anchors[1] = cell
+                }
                 habits_focus_draw_collapsed(app, i, (int)cell.x, (int)cell.y, (int)cell.width)
             }
         }
