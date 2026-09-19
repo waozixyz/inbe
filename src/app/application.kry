@@ -607,7 +607,8 @@ app_init :: (vapp: void*) #export {
     memset(&app->camera, 0, sizeof(app->camera))
     app->play_circle_hover = 0
     app->play_circle_scale = 1.0f
-    app->settings_tab = SETTINGS_TAB_MOBILE_HUB
+    app->settings_tab = SETTINGS_TAB_DEVICE
+    app->settings_overview = 1
     memset(&app->habit_edit, 0, sizeof(app->habit_edit))
     app->habit_edit.index = -1
     app->habit_edit.color.r = 99

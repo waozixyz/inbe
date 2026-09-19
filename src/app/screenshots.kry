@@ -217,6 +217,7 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
     app->language_selected = 1
     app_close_modal(app)
     app->settings_scroll = 0
+    app->settings_overview = 0
     app->manual_scroll = 0
     app->tutorial_step = 0
     app->habits_guide_seen = 1
@@ -371,6 +372,8 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->settings_tab = SETTINGS_TAB_THEME
         app->breathing.screen = ScreenSettings
+    } else if strcmp(request->scene, "settings_overview") == 0 {
+        app_apply_nav_route(app, APP_NAV_ROUTE_SETTINGS)
     } else if strcmp(request->scene, "settings_session") == 0 {
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->settings_tab = SETTINGS_TAB_DEVICE

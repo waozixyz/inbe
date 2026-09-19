@@ -679,6 +679,7 @@ app_current_route(const InnerBreeze*app)
     route.practice_tab = app->practice_tab;
     route.practice_config_tab = app->practice_config_tab;
     route.settings_tab = app->settings_tab;
+    route.settings_overview = app->settings_overview;
     route.profile_view = app->profile_view;
     route.profile_tab = app->profile_tab;
     route.habits_screen_mode = app->habits.screen_mode;
@@ -696,6 +697,7 @@ app_switch_route(InnerBreeze*app, AppRoute route)
     app->practice_tab = route.practice_tab;
     app->practice_config_tab = route.practice_config_tab;
     app->settings_tab = route.settings_tab;
+    app->settings_overview = route.settings_overview;
     app->profile_view = route.profile_view;
     app->profile_tab = route.profile_tab;
     app->habits.screen_mode = route.habits_screen_mode;
@@ -1414,8 +1416,8 @@ test_settings_navigation_opens_overview(void)
         app_draw_bottom_nav(&app);
         expect(app.breathing.screen == ScreenSettings,
                "Settings navigation should open Settings");
-        expect(app.settings_tab == SETTINGS_TAB_MOBILE_HUB,
-               "Settings navigation should open the overview, not Device");
+        expect(app.settings_overview && app.settings_tab == SETTINGS_TAB_DEVICE,
+               "Settings navigation should open the compact overview");
         expect(app.settings_scroll == 0,
                "Settings overview should start at the top");
     }
@@ -1433,7 +1435,7 @@ test_settings_back_returns_through_hub(void)
     app.settings_dirty = 1;
     app_settings_back(&app);
     expect(app.breathing.screen == ScreenSettings &&
-           app.settings_tab == SETTINGS_TAB_MOBILE_HUB,
+           app.settings_overview && app.settings_tab == SETTINGS_TAB_THEME,
            "Back from a category must return to the modern Settings hub");
     expect(app.settings_scroll == 0 && save_settings_count == 1,
            "Back must reset category scroll and save pending settings");
@@ -1493,10 +1495,47 @@ test_sidebar_breakpoint_uses_full_viewport(void)
     reset_state();
 }
 
+static void
+test_wide_settings_keeps_selected_category(void)
+{
+    reset_state();
+    InnerBreeze app = test_app();
+    desktop_mode = 1;
+    view_width = 1200;
+    view_height = 800;
+    app_capture_navigation_viewport(&app);
+    app.settings_tab = SETTINGS_TAB_AUDIO;
+    app.settings_overview = 1;
+    app_apply_nav_route(&app, APP_NAV_ROUTE_SETTINGS);
+    expect(app_settings_wide_layout(&app) && !app.settings_overview,
+           "wide Settings opens directly into its category panel");
+    expect(app.settings_tab == SETTINGS_TAB_AUDIO,
+           "wide Settings remembers the last category");
+    view_width = 976;
+    expect(app_settings_wide_layout(&app),
+           "content translation does not change Settings layout");
+    app_settings_back(&app);
+    expect(app.breathing.screen != ScreenSettings,
+           "wide Settings Back exits rather than exposing the compact overview");
+    app.navigation_placement = NAVIGATION_BOTTOM;
+    view_width = 900;
+    app_capture_navigation_viewport(&app);
+    expect(app_settings_wide_layout(&app),
+           "wide Settings is independent of bottom navigation placement");
+    view_width = 500;
+    app_capture_navigation_viewport(&app);
+    expect(!app_settings_wide_layout(&app), "narrow Settings uses compact layout");
+    app_apply_nav_route(&app, APP_NAV_ROUTE_SETTINGS);
+    expect(app.settings_overview && app.settings_tab == SETTINGS_TAB_AUDIO,
+           "compact entry shows overview without losing category memory");
+    reset_state();
+}
+
 int
 main(void)
 {
     test_sidebar_breakpoint_uses_full_viewport();
+    test_wide_settings_keeps_selected_category();
     test_signed_out_profile_identity();
     test_settings_navigation_opens_overview();
     test_settings_back_returns_through_hub();

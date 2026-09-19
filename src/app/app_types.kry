@@ -138,7 +138,6 @@ ProfileImagePickerResult :: struct {
     SETTINGS_TAB_THEME
     SETTINGS_TAB_ABOUT
     SETTINGS_TAB_COUNT
-    SETTINGS_TAB_MOBILE_HUB = SETTINGS_TAB_COUNT
 }
 
 #enum {
@@ -352,6 +351,7 @@ AppRoute :: struct {
     practice_tab: int
     practice_config_tab: int
     settings_tab: int
+    settings_overview: int
     profile_view: int
     profile_tab: int
     habits_screen_mode: int
@@ -506,6 +506,7 @@ InnerBreeze :: struct {
     sound_last_phase: int
     sound_last_dir: int
     sound_last_count: [CountSize] char
+    settings_navigation_scroll: int
     settings_scroll: int
     settings_drag_slider: int
     settings_drag_scrollbar: int
@@ -514,6 +515,7 @@ InnerBreeze :: struct {
     settings_dirty: int
     settings_save_delay_ticks: int
     settings_tab: int
+    settings_overview: int
     profile_view: int
     profile_tab: int
     profile_tab_scroll: int
@@ -606,6 +608,7 @@ InnerBreeze :: struct {
     bottom_nav_route_count: int
     bottom_nav_config_routes: [APP_BOTTOM_NAV_CONTENT_MAX] int
     bottom_nav_config_route_count: int
+    navigation_view_width: int
     navigation_view_height: int
     navigation_desktop_mode: int
     nav_rail_collapsed: int

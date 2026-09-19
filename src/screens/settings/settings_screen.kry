@@ -112,10 +112,6 @@ settings_screen_draw_status_reserved :: (x: int, y: int*, reserved_h: int) {
 }
 
 settings_tab_content_height :: (app: InnerBreeze*, tab: int, content_w: int) -> int #private {
-    if tab == SETTINGS_TAB_MOBILE_HUB {
-        return Scale(92) + settings_desktop_tab_count() * Scale(58) +
-               Scale(42)
-    }
     if tab == SETTINGS_TAB_THEME {
         return theme_panel.content_height(app, content_w)
     }
@@ -147,9 +143,6 @@ settings_scroll_page_content_height :: (content_w: int, user_data: void*) -> int
 }
 
 settings_screen_tab_label :: (tab: int) -> const char* {
-    if tab == SETTINGS_TAB_MOBILE_HUB {
-        return GetLocaleText("settings_title")
-    }
     if tab == SETTINGS_TAB_DEVICE {
         return GetLocaleText("settings_tab_device")
     }
@@ -229,8 +222,8 @@ settings_screen_normalize :: (app: InnerBreeze*) #private {
     if app == NULL {
         return
     }
-    if app->settings_tab < 0 || app->settings_tab > SETTINGS_TAB_MOBILE_HUB {
-        app->settings_tab = SETTINGS_TAB_MOBILE_HUB
+    if app->settings_tab < 0 || app->settings_tab >= SETTINGS_TAB_COUNT {
+        app->settings_tab = SETTINGS_TAB_DEVICE
     }
     #if !DESKTOP {
         if app->settings_tab == SETTINGS_TAB_BREAKS {
@@ -277,12 +270,19 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
     icon_x := x + Scale(14)
     text_x := icon_x + icon_size + Scale(14)
     chevron_w := Scale(18)
+    wide_nav := app_settings_wide_layout(app)
+    if wide_nav {
+        row.value = ""
+        chevron_w = 0
+    }
     value_w := AppTextWidth(row.value, Text14)
     title_w := w - (text_x - x) - value_w - chevron_w - Scale(30)
 
+    selected := wide_nav && row.route == APP_NAV_ROUTE_NONE && app->settings_tab == row.tab
     clicked := Button((ButtonProps){
         .bounds = bounds, .id = id,
-        .tone = ButtonToneNeutral,
+        .selected = selected,
+        .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft,
         .disabled = app->modal.active
     })
@@ -291,6 +291,7 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
     Text((TextProps){
         .bounds = {(float)text_x, (float)y, (float)title_w, (float)h},
         .text=(row.label),
+        .class_name = selected ? StyleClassId("selected-navigation") : 0,
         .wrap = TextWrapNone,
         .vertical_align = TextAlignCenter
     })
@@ -303,17 +304,20 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
             .vertical_align = TextAlignCenter
         })
     }
-    Text((TextProps){
-        .bounds={(float)(x + w - chevron_w - Scale(12)),
-                 (float)y, (float)chevron_w, (float)h},
-        .text=(">"),
-        .wrap = TextWrapNone,
-        .vertical_align = TextAlignCenter
-    })
+    if !wide_nav {
+        Text((TextProps){
+            .bounds={(float)(x + w - chevron_w - Scale(12)),
+                     (float)y, (float)chevron_w, (float)h},
+            .text=(">"),
+            .wrap = TextWrapNone,
+            .vertical_align = TextAlignCenter
+        })
+    }
     if clicked {
         if row.route != APP_NAV_ROUTE_NONE {
             app_apply_nav_route(app, row.route)
         } else {
+            app->settings_overview = 0
             app->settings_tab = row.tab
             app->settings_scroll = 0
             settings_screen_clear_status()
@@ -368,7 +372,7 @@ settings_mobile_hub_content_height :: (content_w: int, user_data: void*) -> int 
     unused content_w
     unused user_data
 
-    return Scale(76) + Scale(18) + settings_desktop_tab_count() * Scale(64) +
+    return Scale(76) + Scale(18) + (settings_desktop_tab_count() + 1) * Scale(64) +
            Scale(16)
 }
 
@@ -376,32 +380,30 @@ settings_mobile_hub_draw_content :: (content_x: int, content_y: int,
                                      content_w: int, user_data: void*) #private {
     app := (InnerBreeze*)user_data
     y := content_y
-    rows: [6] SettingsMobileHubRow = {
-        {GetLocaleText("settings_tab_device"), "", ICON_GEAR,
-         SETTINGS_TAB_DEVICE, APP_NAV_ROUTE_NONE},
-        {GetLocaleText("settings_section_appearance"), "", ICON_LIGHTON,
-         SETTINGS_TAB_THEME, APP_NAV_ROUTE_NONE},
-        {GetLocaleText("settings_tab_audio"), "", ICON_SOUND,
-         SETTINGS_TAB_AUDIO, APP_NAV_ROUTE_NONE},
-        {GetLocaleText("settings_tab_notifications"), "", ICON_ROUTINE,
-         SETTINGS_TAB_NOTIFICATIONS, APP_NAV_ROUTE_NONE},
-        {GetLocaleText("profile_data"), "", ICON_SAVE,
-         SETTINGS_TAB_DEVICE, APP_NAV_ROUTE_DATA},
-        {GetLocaleText("settings_tab_about"), "", ICON_TEXT,
-         SETTINGS_TAB_ABOUT, APP_NAV_ROUTE_NONE}
-    }
 
     if settings_mobile_profile_strip(app, content_x, y, content_w) {
         return
     }
     y += Scale(94)
-    for int i = 0; i < 6; i++ {
-        rows[i].value = settings_mobile_row_value(app, rows[i].tab, rows[i].route)
-        if settings_mobile_hub_row(app, rows[i], content_x, y, content_w, 7600 + i) {
+    for int i = 0; i < settings_desktop_tab_count(); i++ {
+        tab := settings_desktop_tab_at(i)
+        row := (SettingsMobileHubRow){settings_screen_tab_label(tab),
+            settings_mobile_row_value(app, tab, APP_NAV_ROUTE_NONE),
+            tab == SETTINGS_TAB_THEME ? ICON_LIGHTON :
+            tab == SETTINGS_TAB_AUDIO ? ICON_SOUND :
+            tab == SETTINGS_TAB_BREAKS ? ICON_ACTIVITY :
+            tab == SETTINGS_TAB_NOTIFICATIONS ? ICON_ROUTINE :
+            tab == SETTINGS_TAB_ABOUT ? ICON_TEXT : ICON_GEAR,
+            tab, APP_NAV_ROUTE_NONE}
+        if settings_mobile_hub_row(app, row, content_x, y, content_w, 7600 + i) {
             return
         }
         y += Scale(64)
     }
+    row := (SettingsMobileHubRow){GetLocaleText("profile_data"), "", ICON_SAVE,
+                                  SETTINGS_TAB_DEVICE, APP_NAV_ROUTE_DATA}
+    unused settings_mobile_hub_row(app, row, content_x, y, content_w, 7690)
+
 }
 
 settings_screen_draw_mobile_hub :: (app: InnerBreeze*) -> int #private {
@@ -435,7 +437,7 @@ settings_screen_draw_mobile_hub :: (app: InnerBreeze*) -> int #private {
     Scroll hub: {
         bounds = (Rectangle){(float)0, (float)top, (float)view_width, (float)height}
         content_height = content_h
-        scroll_offset = &app->settings_scroll
+        scroll_offset = &app->settings_navigation_scroll
         settings_mobile_hub_draw_content(content_x, (int)hub.y,
                                          content_w, app)
     }
@@ -473,50 +475,7 @@ settings_draw_tab_content :: (app: InnerBreeze*, tab: int, x: int, w: int,
     settings_about_draw(app, x, w, y)
 }
 
-settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int,
-                                     w: int, h: int, id: int) -> int #private {
-    active := app != NULL && app->settings_tab == tab
-    bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    icon_color := active ? GetThemeButtonText() : GetThemeText()
-    icon_size := Scale(24)
-    icon_x := x + Scale(14)
-    text_x := icon_x + icon_size + Scale(12)
-
-    clicked := Button((ButtonProps){
-        .bounds = bounds, .id = id,
-        .tone = active ? ButtonToneAccent : ButtonToneNeutral,
-        .selected = active,
-        .emphasis = ButtonEmphasisSoft,
-        .disabled = app->modal.active
-    })
-    Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
-         tab == SETTINGS_TAB_ABOUT ? ICON_TEXT :
-         tab == SETTINGS_TAB_AUDIO ? ICON_SOUND :
-         tab == SETTINGS_TAB_NOTIFICATIONS ? ICON_ROUTINE :
-         tab == SETTINGS_TAB_THEME ? ICON_LIGHTON :
-         tab == SETTINGS_TAB_BREAKS ? ICON_ACTIVITY :
-         ICON_GEAR,
-         icon_color)
-    Text((TextProps){
-        .bounds={(float)text_x, (float)y,
-                 (float)(w - (text_x - x) - Scale(12)), (float)h},
-        .vertical_align=TextAlignCenter,
-        .text=(settings_screen_tab_label(tab)),
-        .class_name = active ? StyleClassId("selected-navigation") : 0,
-        .wrap=TextWrapNone
-    })
-    if clicked {
-        if app != NULL && app->settings_tab != tab {
-            app->settings_tab = tab
-            app->settings_scroll = 0
-            settings_screen_clear_status()
-        }
-        return 1
-    }
-    return 0
-}
-
-settings_desktop_layout :: (layout: SettingsDesktopLayout*) -> int #private {
+settings_desktop_layout :: (app: InnerBreeze*, layout: SettingsDesktopLayout*) -> int #private {
     outer_pad := Scale(24)
     header_h := Scale(70)
     gap := Scale(18)
@@ -529,7 +488,7 @@ settings_desktop_layout :: (layout: SettingsDesktopLayout*) -> int #private {
     layout->content_x = outer_pad
     layout->content_y = outer_pad
     layout->content_w = view_width - outer_pad * 2
-    layout->content_h = view_height - outer_pad * 2
+    layout->content_h = view_height - app_content_bottom_reserved(app) - outer_pad * 2
     layout->list_x = layout->content_x
     layout->list_y = layout->content_y + header_h
     layout->list_w = list_w
@@ -543,31 +502,26 @@ settings_desktop_layout :: (layout: SettingsDesktopLayout*) -> int #private {
     return layout->content_w >= Scale(640) && layout->panel_w >= Scale(320)
 }
 
-settings_desktop_draw_header :: (layout: SettingsDesktopLayout) #private {
-    Text((TextProps){
-        .bounds={(float)layout.content_x, (float)layout.content_y, 0, 0},
-        .text=(GetLocaleText("settings_title")),
-        .wrap=TextWrapNone
-    })
+settings_desktop_draw_header :: (app: InnerBreeze*, layout: SettingsDesktopLayout) -> int #private {
+    return settings_scaffold_title(GetLocaleText("settings_title"), layout.list_y - Scale(12), app)
 }
 
 settings_desktop_draw_nav :: (app: InnerBreeze*, layout: SettingsDesktopLayout) #private {
-    row_h := Scale(72)
-    row_gap := Scale(10)
-
     DrawRectangleRounded((Rectangle){(float)layout.list_x, (float)layout.list_y,
                          (float)layout.list_w, (float)layout.list_h},
                          0.025f, 10, DarkenColor(GetThemeBackground(), 4))
     DrawRectangleRoundedLinesEx((Rectangle){(float)layout.list_x, (float)layout.list_y,
                                 (float)layout.list_w, (float)layout.list_h},
                                 0.025f, 10, 1.0f, Fade(GetThemeText(), 0.07f))
-    for int i = 0; i < settings_desktop_tab_count(); i++ {
-        tab := settings_desktop_tab_at(i)
-        settings_desktop_category_button(app, tab,
-            layout.list_x + Scale(10),
-            layout.list_y + Scale(10) + i * (row_h + row_gap),
-            layout.list_w - Scale(20), row_h, 7400 + i)
+    Scroll navigation: {
+        bounds = {(float)layout.list_x, (float)layout.list_y,
+                  (float)layout.list_w, (float)layout.list_h}
+        content_height = settings_mobile_hub_content_height(layout.list_w - Scale(20), app)
+        scroll_offset = &app->settings_navigation_scroll
+        settings_mobile_hub_draw_content(layout.list_x + Scale(10), (int)navigation.y,
+                                         layout.list_w - Scale(20), app)
     }
+
 }
 
 settings_desktop_draw_panel :: (app: InnerBreeze*, layout: SettingsDesktopLayout) #private {
@@ -618,23 +572,18 @@ settings_desktop_draw_panel :: (app: InnerBreeze*, layout: SettingsDesktopLayout
 settings_screen_draw_desktop :: (app: InnerBreeze*) -> int #private {
     layout := (SettingsDesktopLayout){0}
 
-    if app == NULL || !settings_desktop_layout(&layout) {
+    if app == NULL || !settings_desktop_layout(app, &layout) {
         return 0
     }
-    settings_desktop_draw_header(layout)
+    if settings_desktop_draw_header(app, layout) {
+        return 1
+    }
     settings_desktop_draw_nav(app, layout)
+    if app->breathing.screen != ScreenSettings {
+        return 1
+    }
     settings_desktop_draw_panel(app, layout)
     return 1
-}
-
-settings_screen_draw_desktop_if_enabled :: (app: InnerBreeze*) -> int #private {
-    #if DESKTOP {
-        if app_nav_desktop_rail_enabled(app) &&
-           settings_screen_draw_desktop(app) {
-            return 1
-        }
-    }
-    return 0
 }
 
 settings_screen_draw :: (app: InnerBreeze*) -> int {
@@ -654,14 +603,14 @@ settings_screen_draw :: (app: InnerBreeze*) -> int {
     title := (const char*)NULL
 
     settings_screen_normalize(app)
-    if app->settings_tab == SETTINGS_TAB_MOBILE_HUB {
-        settings_screen_draw_mobile_hub(app)
+    settings_screen_prepare(app)
+    if app_settings_wide_layout(app) {
+        app->settings_overview = 0
+        settings_screen_draw_desktop(app)
         return 0
     }
-
-    settings_screen_prepare(app)
-
-    if settings_screen_draw_desktop_if_enabled(app) {
+    if app->settings_overview {
+        settings_screen_draw_mobile_hub(app)
         return 0
     }
 

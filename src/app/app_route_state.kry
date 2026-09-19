@@ -16,6 +16,7 @@ app_current_route :: (app: const InnerBreeze*) -> AppRoute #export {
     route.exercise_type = app->exercise_type
     route.practice_tab = app->practice_tab
     route.practice_config_tab = app->practice_config_tab
+    route.settings_overview = app->settings_overview
     route.settings_tab = app->settings_tab
     route.profile_view = app->profile_view
     route.profile_tab = app->profile_tab
@@ -42,7 +43,8 @@ routes_equal :: (left: AppRoute, right: AppRoute) -> int #export {
                (left.practice_tab != PRACTICE_TAB_CONFIG ||
                 left.practice_config_tab == right.practice_config_tab)
     case ScreenSettings:
-        return left.settings_tab == right.settings_tab
+        return left.settings_tab == right.settings_tab &&
+               left.settings_overview == right.settings_overview
     case ScreenProfile:
         return left.profile_view == right.profile_view &&
                left.profile_tab == right.profile_tab
@@ -66,6 +68,7 @@ apply_route :: (app: InnerBreeze*, route: AppRoute) #private {
     app->exercise_type = route.exercise_type
     app->practice_tab = route.practice_tab
     app->practice_config_tab = route.practice_config_tab
+    app->settings_overview = route.settings_overview
     app->settings_tab = route.settings_tab
     app->profile_view = route.profile_view
     app->profile_tab = route.profile_tab
@@ -102,5 +105,8 @@ app_switch_screen :: (app: InnerBreeze*, screen: int) #export {
     if app == nil { return }
     route := app_current_route(app)
     route.screen = screen
+    if screen == ScreenSettings {
+        route.settings_overview = 0
+    }
     app_switch_route(app, route)
 }
