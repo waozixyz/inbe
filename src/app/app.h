@@ -33,6 +33,8 @@ void AppReorderHandle(int x, int y, int w, int h, int active);
 void AppReorderPlaceholder(Rectangle bounds);
 
 extern AppConfig config;
+int app_register_style_pack_variant(const char *source, const char *label,
+                                    ThemeColors colors, int style_index);
 
 int app_draw_close_title_bar(InnerBreeze*app, const char *title, int height);
 int app_scaffold_close_title(const char *title, int height, void *user_data);

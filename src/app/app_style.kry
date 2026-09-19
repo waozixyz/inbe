@@ -92,55 +92,8 @@ app_apply_style :: (app: InnerBreeze*) #export {
         }
         free(overrides)
     }
-    tokens: [] StyleColorToken = {
-        {"canvas", ColorToInt(colors.background)},
-        {"text", ColorToInt(colors.text)},
-        {"muted", ColorToInt(colors.text_muted)},
-        {"surface", ColorToInt((app->style_index == 3 ? Fade(colors.surface, 0.87f) : colors.surface))},
-        {"surface-end", ColorToInt((app->style_index == 3 ? Fade(colors.surface_raised, 0.93f) : colors.surface_raised))},
-        {"card", ColorToInt((app->style_index == 3 ? Fade(colors.surface_raised, 0.87f) : colors.surface_raised))},
-        {"card-end", ColorToInt((app->style_index == 3 ? Fade(colors.surface, 0.93f) : colors.surface))},
-        {"panel", ColorToInt(colors.surface_raised)},
-        {"panel-hover", ColorToInt(colors.surface)},
-        {"panel-pressed", ColorToInt(colors.surface_sunken)},
-        {"button", ColorToInt((app->style_index == 3 ? Fade(colors.surface_raised, 0.87f) : colors.surface_raised))},
-        {"button-end", ColorToInt((app->style_index == 3 ? Fade(colors.surface, 0.93f) : colors.surface))},
-        {"button-hover", ColorToInt((app->style_index == 3 ? Fade(colors.surface, 0.93f) : colors.surface))},
-        {"button-hover-end", ColorToInt((app->style_index == 3 ? Fade(colors.surface_raised, 0.93f) : colors.surface_raised))},
-        {"button-pressed", ColorToInt((app->style_index == 3 ? Fade(colors.surface_sunken, 0.93f) : colors.surface_sunken))},
-        {"button-pressed-end", ColorToInt((app->style_index == 3 ? Fade(colors.surface, 0.93f) : colors.surface))},
-        {"button-disabled", ColorToInt(colors.surface)},
-        {"dropdown-end", ColorToInt((app->style_index == 3 ? Fade(colors.surface_raised, 0.93f) : colors.surface_raised))},
-        {"border", ColorToInt(colors.border)},
-        {"border-soft", ColorToInt(colors.divider)},
-        {"border-hover", ColorToInt(colors.border_strong)},
-        {"border-hover-strong", ColorToInt(colors.border_strong)},
-        {"border-disabled", ColorToInt(colors.divider)},
-        {"card-border", ColorToInt(colors.border)},
-        {"outline-border", ColorToInt(colors.border_strong)},
-        {"focus", ColorToInt(colors.focus)},
-        {"accent", ColorToInt(colors.accent)},
-        {"accent-end", ColorToInt(colors.accent_pressed)},
-        {"accent-hover", ColorToInt(colors.accent_hover)},
-        {"accent-hover-end", ColorToInt(colors.accent)},
-        {"accent-border", ColorToInt(colors.accent_pressed)},
-        {"accent-ink", ColorToInt(colors.on_accent)},
-        {"danger", ColorToInt(colors.danger)},
-        {"danger-hover", ColorToInt(colors.danger)},
-        {"danger-ink", ColorToInt(colors.on_danger)},
-        {"danger-border", ColorToInt(colors.danger)},
-        {"row", ColorToInt((app->style_index == 3 ? Fade(colors.surface, 0.67f) : colors.surface))},
-        {"thumb-ink", ColorToInt(colors.on_accent)},
-        {"divider", ColorToInt(colors.divider)},
-        {"track", ColorToInt(colors.surface_sunken)},
-        {"track-hover", ColorToInt(colors.surface_raised)},
-        {"field", ColorToInt(colors.surface_sunken)},
-        {"field-border", ColorToInt(colors.border)},
-        {"scroll-thumb", ColorToInt(colors.text_muted)},
-        {"scroll-border", ColorToInt(colors.border_strong)}
-    }
-    if RegisterStylePackVariant("inbe", source, style_pack_label(app->style_index),
-    tokens, sizeof(tokens) / sizeof(tokens[0])) {
+    if app_register_style_pack_variant(source, style_pack_label(app->style_index),
+                                       colors, app->style_index) {
         SetActiveStylePack("inbe")
         applied_style = app->style_index
         applied_colors = colors

@@ -140,34 +140,57 @@ whm_config_draw_card :: (x: int, y: int, w: int, h: int) #private {
     DrawRectangleRoundedLinesEx(bounds, 0.08f, 10, 1.0f, GetThemeBorder())
 }
 
+whm_config_draw_static_breath_preview :: (center_x: int, center_y: int, radius: int) #private {
+    circle := GetThemeCircle()
+    link := GetThemeLink()
+    glow_r := radius + Scale(24)
+    ring_r := radius + Scale(12)
+
+    DrawCircleGradient((Vector2){(float)center_x, (float)center_y},
+                       (float)glow_r,
+                       Fade(link, 0.26f),
+                       Fade(GetThemeBackground(), 0.0f))
+    DrawRing((Vector2){(float)center_x, (float)center_y},
+             (float)(ring_r - Scale(4)), (float)ring_r,
+             0.0f, 360.0f, 96, Fade(link, 0.50f))
+    DrawCircleGradient((Vector2){(float)center_x, (float)center_y},
+                       (float)radius,
+                       LightenColor(circle, 34), circle)
+    DrawRing((Vector2){(float)center_x, (float)center_y},
+             (float)(radius - Scale(1)), (float)(radius + Scale(1)),
+             0.0f, 360.0f, 96, Fade(GetThemeText(), 0.44f))
+    DrawCircle(center_x - radius / 3, center_y - radius / 3,
+               radius / 5, Fade(WHITE, 0.24f))
+}
+
 whm_config_breath_card_height :: (app: InnerBreeze*) -> int #private {
-    h := Scale(82) + Scale(118) + Scale(60) +
-         Scale(70)
+    h := Scale(88) + Scale(154) + Scale(78) +
+         Scale(72)
 
     if app != nil && app->breathing.progressive_speed {
-        h += Scale(56)
+        h += Scale(66)
     }
     return h
 }
 
 whm_config_session_card_height :: () -> int #private {
-    return Scale(62) * 3 + Scale(18)
+    return Scale(82) * 3 + Scale(24)
 }
 
 whm_config_options_card_height :: () -> int #private {
-    return Scale(72) * 3
+    return Scale(88) * 3
 }
 
 whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: int,
                                y: int, draw_breath_animation_menu: int*) -> int #private {
     animation_options: [BreathAnimationCount] const char* = {0}
     card_h := whm_config_breath_card_height(app)
-    card_pad := Scale(18)
+    card_pad := Scale(22)
     card_x := content_x
     inner_x := content_x + card_pad
     inner_w := content_w - card_pad * 2
     inner_y := y + card_pad
-    preview_h := Scale(104)
+    preview_h := Scale(144)
     preview_radius := 0
     speed := app->breathing.speed_level
     max_rounds := app->breathing.max_rounds
@@ -208,23 +231,14 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
     }
     inner_y += Scale(82)
 
-    update_preview_bounds(&app->settings_preview, inner_w, preview_h)
-    apply_settings(&app->settings_preview, speed, max_rounds,
-                      max_breaths, pause_seconds)
-    app->settings_preview.progressive_speed = 0
-    breath_session_step(&app->settings_preview)
-    if app->settings_preview.phase != BreathPhaseBreathe {
-        reset_settings_preview(app)
-        update_preview_bounds(&app->settings_preview, inner_w, preview_h)
-        apply_settings(&app->settings_preview, speed, max_rounds,
-                          max_breaths, pause_seconds)
-        app->settings_preview.progressive_speed = 0
+    preview_radius = Scale(44)
+    if preview_radius > inner_w / 4 {
+        preview_radius = inner_w / 4
     }
-
-    preview_radius = (int)((float)app->settings_preview.rmax * 0.52f + 1.0f)
-    draw_breath_preview(&app->settings_preview, inner_x + inner_w / 2,
-                         inner_y + Scale(4) + preview_radius)
-    inner_y += preview_radius * 2 + Scale(18)
+    whm_config_draw_static_breath_preview(inner_x + inner_w / 2,
+                                          inner_y + preview_h / 2,
+                                          preview_radius)
+    inner_y += preview_h + Scale(20)
 
     if Slider((SliderProps){.id = 1,
                     .bounds = {inner_x, inner_y, inner_w, Scale(56)},
@@ -238,16 +252,16 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
         app->settings_preview.progressive_speed = 0
         app->settings_dirty = 1
     }
-    inner_y += Scale(60)
+    inner_y += Scale(78)
 
     Text((TextProps){
         .bounds={(inner_x), (inner_y), 0, 0},
         .text=(GetLocaleText("progressive_speed_label")),
         .wrap=TextWrapNone
     })
-    if Toggle((ToggleProps){.id = 0,
+    if Toggle((ToggleProps){.id = 1101,
                        .bounds = {inner_x + inner_w - toggle_w,
-                                  inner_y + (Scale(52) - toggle_h) / 2,
+                                  inner_y + (Scale(58) - toggle_h) / 2,
                                   toggle_w, toggle_h},
                        .value = &progressive_speed,
                        .off_label = GetLocaleText("toggle_off"),
@@ -256,7 +270,7 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
         app->settings_preview.progressive_speed = 0
         app->settings_dirty = 1
     }
-    inner_y += Scale(52)
+    inner_y += Scale(58)
 
     if app->breathing.progressive_speed {
         modify_w := AppTextWidth(GetLocaleText("modify_start_speed_button"),
@@ -295,7 +309,7 @@ whm_config_draw_session_card :: (app: InnerBreeze*, content_x: int, content_w: i
     max_breaths := int_from_count(app->breathing.maxbreaths)
     pause_seconds := app->breathing.pause_seconds
     card_h := whm_config_session_card_height()
-    card_pad := Scale(18)
+    card_pad := Scale(22)
     inner_x := content_x + card_pad
     inner_w := content_w - card_pad * 2
     inner_y := y + card_pad
@@ -313,7 +327,7 @@ whm_config_draw_session_card :: (app: InnerBreeze*, content_x: int, content_w: i
                           max_breaths, pause_seconds)
         app->settings_dirty = 1
     }
-    inner_y += Scale(62)
+    inner_y += Scale(82)
 
     if Slider((SliderProps){.id = 3,
                     .bounds = {inner_x, inner_y, inner_w, Scale(56)},
@@ -326,7 +340,7 @@ whm_config_draw_session_card :: (app: InnerBreeze*, content_x: int, content_w: i
                           max_breaths, pause_seconds)
         app->settings_dirty = 1
     }
-    inner_y += Scale(62)
+    inner_y += Scale(82)
 
     if Slider((SliderProps){.id = 4,
                     .bounds = {inner_x, inner_y, inner_w, Scale(56)},
@@ -349,7 +363,7 @@ whm_config_draw_options_card :: (app: InnerBreeze*, content_x: int, content_w: i
     advanced_session_controls := app->advanced_session_controls
     retention_marker_enabled := app->retention_marker_enabled
     card_h := whm_config_options_card_height()
-    card_pad := Scale(18)
+    card_pad := Scale(22)
     inner_x := content_x + card_pad
     inner_w := content_w - card_pad * 2
     inner_y := y + card_pad
@@ -363,9 +377,9 @@ whm_config_draw_options_card :: (app: InnerBreeze*, content_x: int, content_w: i
         .text=(GetLocaleText("double_tap_to_breathe_label")),
         .wrap=TextWrapNone
     })
-    if Toggle((ToggleProps){.id = 0,
+    if Toggle((ToggleProps){.id = 1201,
                        .bounds = {inner_x + inner_w - toggle_w,
-                                  inner_y + (Scale(52) - toggle_h) / 2,
+                                  inner_y + (Scale(60) - toggle_h) / 2,
                                   toggle_w, toggle_h},
                        .value = &double_tap_to_breathe,
                        .off_label = GetLocaleText("toggle_off"),
@@ -373,16 +387,16 @@ whm_config_draw_options_card :: (app: InnerBreeze*, content_x: int, content_w: i
         app->double_tap_to_breathe = double_tap_to_breathe
         app->settings_dirty = 1
     }
-    inner_y += Scale(72)
+    inner_y += Scale(88)
 
     Text((TextProps){
         .bounds={(inner_x), (inner_y), 0, 0},
         .text=(GetLocaleText("advanced_session_controls_label")),
         .wrap=TextWrapNone
     })
-    if Toggle((ToggleProps){.id = 0,
+    if Toggle((ToggleProps){.id = 1202,
                        .bounds = {inner_x + inner_w - toggle_w,
-                                  inner_y + (Scale(52) - toggle_h) / 2,
+                                  inner_y + (Scale(60) - toggle_h) / 2,
                                   toggle_w, toggle_h},
                        .value = &advanced_session_controls,
                        .off_label = GetLocaleText("toggle_off"),
@@ -390,16 +404,16 @@ whm_config_draw_options_card :: (app: InnerBreeze*, content_x: int, content_w: i
         app->advanced_session_controls = advanced_session_controls
         app->settings_dirty = 1
     }
-    inner_y += Scale(72)
+    inner_y += Scale(88)
 
     Text((TextProps){
         .bounds={(inner_x), (inner_y), 0, 0},
         .text=(GetLocaleText("retention_marker_label")),
         .wrap=TextWrapNone
     })
-    if Toggle((ToggleProps){.id = 0,
+    if Toggle((ToggleProps){.id = 1203,
                        .bounds = {inner_x + inner_w - toggle_w,
-                                  inner_y + (Scale(52) - toggle_h) / 2,
+                                  inner_y + (Scale(60) - toggle_h) / 2,
                                   toggle_w, toggle_h},
                        .value = &retention_marker_enabled,
                        .off_label = GetLocaleText("toggle_off"),
@@ -502,14 +516,20 @@ whm_config_screen_draw :: (app: InnerBreeze*) {
     practice_screen_handle_config_title(app, GetLocaleText("practice_configure_button"),
                                            UIModalPracticeConfig, nil)
 
-    if max_content_w > view_width - side_padding * 2 {
-        max_content_w = view_width - side_padding * 2
+    available_w := view_width - side_padding * 2
+    top_gap := Scale(16)
+
+    if max_content_w > available_w {
+        max_content_w = available_w
     }
-    if max_content_w < Scale(320) {
-        max_content_w = Scale(320)
+    if max_content_w < available_w && view_width <= Scale(520) {
+        max_content_w = available_w
+    }
+    if max_content_w < Scale(240) {
+        max_content_w = available_w
     }
     GetCenteredColumn(max_content_w, side_padding, &content_x, &content_w)
-    content_h := whm_config_content_height(app, content_w)
+    content_h := whm_config_content_height(app, content_w) + top_gap
 
     Scroll page: {
         bounds = (Rectangle){(float)0, (float)layout.scroll_y,
@@ -518,7 +538,8 @@ whm_config_screen_draw :: (app: InnerBreeze*) {
         scroll_offset = &app->settings_scroll
 
         whm_config_draw_combined(app, content_x, content_w,
-                                 (int)page.y, &draw_breath_animation_menu)
+                                 (int)page.y + top_gap,
+                                 &draw_breath_animation_menu)
     }
 
     if app->modal.active && app->modal.type == UIModalEditProgressiveStartSpeed {

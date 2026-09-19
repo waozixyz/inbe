@@ -104,10 +104,10 @@ screenshot_day_index_offset :: (offset_days: int) -> int #private {
     return (day.tm_year + 1900) * 10000 + (day.tm_mon + 1) * 100 + day.tm_mday
 }
 
-static screenshot_seed_habits_offsets: [] const int = {0, 1, 2, 4, 5, 7, 8, 10, 12, 13,
+static screenshot_seed_habits_offsets: [18] const int = {0, 1, 2, 4, 5, 7, 8, 10, 12, 13,
     15, 17, 18, 20, 21, 24, 25, 27}
 
-static screenshot_seed_habits_counts: [] const int = {2, 1, 1, 3, 1, 1, 2, 1, 1, 2,
+static screenshot_seed_habits_counts: [18] const int = {2, 1, 1, 3, 1, 1, 2, 1, 1, 2,
     1, 1, 2, 1, 3, 1, 1, 2}
 
 screenshot_seed_habits :: (app: InnerBreeze*) #private {
@@ -148,7 +148,7 @@ screenshot_seed_habits :: (app: InnerBreeze*) #private {
         local_date: int = screenshot_day_index_offset(day)
         session_path: [FS_PATH_MAX] char = {0}
         checkin: StorageSessionCheckin = {0}
-        rounds: [] int = {
+        rounds: [3] int = {
             32 + progress * 4,
             37 + progress * 4,
             41 + progress * 5
@@ -188,7 +188,7 @@ screenshot_setup_result_scene :: (app: InnerBreeze*, activity: int) #private {
     app->exercise_type = activity
     app->breathing.screen = ScreenResults
     if activity == EXERCISE_WIM_HOF {
-        rounds: [] int = {48, 61, 74, 69}
+        rounds: [4] int = {48, 61, 74, 69}
         app_prepare_session_results(app, EXERCISE_WIM_HOF, 0, 0, nil,
         rounds, 4, "db:screenshot-whm")
         app->session_result.mood = 4

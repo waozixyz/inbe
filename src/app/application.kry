@@ -146,7 +146,7 @@ app_consume_close_prompt_result :: (app: InnerBreeze*) -> AppClosePromptResult #
 app_draw_session_exit_modal :: (can_save: int, save_message: const char*, discard_message: const char*) -> SessionExitModalResult #export {
     modal_result: int
     if can_save {
-        actions: [] ModalAction = {
+        actions: [3] ModalAction = {
             {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
             {GetLocaleText("save_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
             {GetLocaleText("discard_button"), ButtonToneDanger, ButtonEmphasisSoft, 0},
@@ -162,7 +162,7 @@ app_draw_session_exit_modal :: (can_save: int, save_message: const char*, discar
             return SessionExitModalDiscard
         }
     } else {
-        actions: [] ModalAction = {
+        actions: [2] ModalAction = {
             {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
             {GetLocaleText("exit_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
         }
@@ -1297,7 +1297,7 @@ draw_global_modal :: (app: InnerBreeze*) #private {
         return
     }
     if app->modal.type == UIModalMeditationNetworkError {
-        actions: [] ModalAction = {
+        actions: [2] ModalAction = {
             {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
             {GetLocaleText("retry_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
         }
