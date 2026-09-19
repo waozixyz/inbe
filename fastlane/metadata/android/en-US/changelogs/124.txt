@@ -1,15 +1,27 @@
 Changed
 ---
 - Added cat, sea turtle, and crescent moon profile pictures in place of three similar tree choices.
+- Added the new peaceful meditation logo and made it the default app icon, with app icon selection available from Appearance.
 - Updated Kryon controls, navigation, styling, and text editing throughout the app.
 - Material is now the default style. Choose Material, TK, or Lightfield in Appearance, with color themes available within each style.
+- Navigation customization has cleaner spacing and smoother reorder handles.
+- Completed list items now move behind a Show Completed toggle instead of staying mixed into the active list.
+- Practice controls sit closer to the bottom navigation while preserving the image fade.
+- About now uses proper Discord, Telegram, and GitHub icons, and the support dialog has cleaner donation address previews.
 - Removed the Vanilla style and the startup style-selection screen.
 Fixed
 ---
 - Restored profile pictures in Settings and Profile. The picture picker now displays its full grid and uses standard scrolling and selection.
 - Settings row labels and icons now share the same vertical alignment.
+- Settings now uses one consistent modern screen instead of switching between duplicate layouts.
+- Sidebar switching is stable at responsive breakpoints instead of jittering between navigation modes.
 - Guide and modal panels remain visible with Material styling instead of showing text over the underlying screen.
+- Guide screens and practice previews are placed correctly across phone and desktop sizes.
 - Settings navigation opens the Settings overview, with improved bottom navigation and click handling.
+- Lightfield buttons and glow settings now update with the selected style, and glow is scoped to styles that support it.
+- Material sliders keep labels and values readable instead of floating too high or drawing white text on pale slider fills.
+- Android masked app icons use a gentle blue background instead of black.
+- Emptying a list no longer restores the initial sample data.
 - Improved text selection, keyboard focus, and composition handling when editing text.
 - Connecting to sync runs in the background so network requests do not block the interface.
 - Sync retries temporary connection failures automatically without losing queued changes.
