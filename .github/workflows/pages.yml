@@ -71,6 +71,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$RELEASED_WEB" = "true" ]; then
+            make package-unpackaged-assets
             sh site/build.sh
           else
             make site
