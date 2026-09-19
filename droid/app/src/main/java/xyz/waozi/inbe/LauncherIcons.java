@@ -49,6 +49,7 @@ final class LauncherIcons {
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
             manager.setComponentEnabledSetting(component(context, other),
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+            Log.i("LauncherIcons", "Selected " + ALIASES[icon]);
             return true;
         } catch (RuntimeException error) {
             Log.e("LauncherIcons", "Could not change launcher icon", error);

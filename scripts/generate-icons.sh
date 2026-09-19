@@ -2,11 +2,11 @@
 set -euo pipefail
 
 # Icon Generation Script for Inner Breeze
-# Generates transparent artwork, including padded maskable/adaptive layers.
+# Generates transparent artwork plus pale blue adaptive/maskable backgrounds.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ICON_BACKGROUND="#00000000"
+ICON_BACKGROUND="#E6F1FA"
 AIR_SOURCE="$PROJECT_ROOT/assets/app/source-icon-air.png"
 SOURCE_IMAGE="${1:-$PROJECT_ROOT/assets/app/source-icon.png}"
 
@@ -34,7 +34,7 @@ if [ ! -f "$SOURCE_IMAGE" ]; then
 fi
 
 echo "✅ Using source image: $SOURCE_IMAGE"
-echo "🎨 Maskable/adaptive background color: $ICON_BACKGROUND (Transparent)"
+echo "🎨 Maskable/adaptive background color: $ICON_BACKGROUND (Pale Blue)"
 echo
 
 # Create output directories
@@ -79,7 +79,10 @@ generate_transparent() {
 generate_maskable() {
     local size=$1 output=$2
     local logo_size=$((size * 4 / 5))
-    generate_transparent "$size" "$output" "$logo_size"
+    generate_transparent "$size" "$WORK_DIR/maskable.png" "$logo_size"
+    magick "$WORK_DIR/maskable.png" -background "$ICON_BACKGROUND" \
+        -alpha remove -alpha off -strip \
+        -define png:exclude-chunk=time "$output"
 }
 
 write_android_background() {
