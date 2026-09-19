@@ -289,62 +289,26 @@ draw_theme_settings :: (app: InnerBreeze*, x: int, w: int, y: int*) -> int #priv
 
 draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     scale_value := scale_drag_active ? scale_drag_value : app->ui_scale_tenths
-    multiplier := scale_value / 10.0f
-    effective: float = multiplier * GetDPIScale()
-    scale_text: [16] char
-    step_w := Scale(28)
-    step_gap := Scale(8)
-    step_y := *y + Scale(28) - Scale(14)
-    slider_x := x + step_w + step_gap
-    slider_w := w - (step_w + step_gap) * 2
-
-
-    step_changed := 0
-    slider_changed := 0
-    snprintf(scale_text, sizeof(scale_text), "%.1fx", effective)
-    if Button((ButtonProps){
-        .id = 141, .label = "-",
-        .bounds = {(x + step_w / 2) - fmaxf(AppTextWidth("-", AppFontSize()) + Scale(16), Scale(34)) / 2.0f,
-                   (float)(step_y), fmaxf(AppTextWidth("-", AppFontSize()) + Scale(16), Scale(34)), fmaxf(AppTextLineHeight(AppFontSize()) + Scale(8), Scale(34))},
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-    }) {
-        if scale_value > 5 {
-            scale_value = scale_value - 1
-            step_changed = 1
-        }
-    }
-    if slider_w < Scale(100) {
-        slider_x = x
-        slider_w = w
-    }
-    unused scale_text
-    slider_changed = Slider((SliderProps){.id = 140,
-        .bounds = {slider_x, *y, slider_w, Scale(56)},
+    slider_height: float = 0.0f
+    changed := Slider((SliderProps){
+        .id = 140,
+        .bounds = {x, *y, w, 0},
         .label = GetLocaleText("appearance_scale_label"),
         .kind = NumericInt, .int_values = &scale_value,
-        .value_count = 1, .min = 5, .max = 25, .format = "%d"})
-    if slider_changed {
-        if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+        .value_count = 1, .min = 5, .max = 25,
+        .value_scale = 0.1, .value_format = "%.1f×",
+        .step_buttons = true, .show_limits = true,
+        .measured_height = &slider_height
+    })
+    if changed {
+        if IsMouseButtonDown(MOUSE_BUTTON_LEFT) {
+            scale_drag_active = 1
+            scale_drag_value = scale_value
+        } else {
             scale_drag_active = 0
             app->ui_scale_tenths = scale_value
             app->settings_dirty = 1
             save_settings(app)
-        } else {
-            scale_drag_active = 1
-            scale_drag_value = scale_value
-        }
-    }
-    if slider_w < w {
-        if Button((ButtonProps){
-        .id = 142, .label = "+",
-        .bounds = {(x + w - step_w / 2) - fmaxf(AppTextWidth("+", AppFontSize()) + Scale(16), Scale(34)) / 2.0f,
-                   (float)(step_y), fmaxf(AppTextWidth("+", AppFontSize()) + Scale(16), Scale(34)), fmaxf(AppTextLineHeight(AppFontSize()) + Scale(8), Scale(34))},
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-    }) {
-            if scale_value < 25 {
-                scale_value = scale_value + 1
-                step_changed = 1
-            }
         }
     }
     if scale_drag_active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
@@ -352,13 +316,8 @@ draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         app->ui_scale_tenths = scale_drag_value
         app->settings_dirty = 1
         save_settings(app)
-    } else if step_changed && scale_value != app->ui_scale_tenths {
-        scale_drag_active = 0
-        app->ui_scale_tenths = scale_value
-        app->settings_dirty = 1
-        save_settings(app)
     }
-    *y += Scale(66)
+    *y += (int)slider_height + Scale(20)
 }
 
 settings_screen_draw_theme_picker_modal :: (app: InnerBreeze*) #export {

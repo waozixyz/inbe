@@ -982,7 +982,7 @@ storage_encrypted_record_id :: (entity_type: const char*, entity_id: const char*
     return written > 0 && (size_t)written < out_size
 }
 
-storage_private_record_key_for_context :: (context: const char*, out: [32] uint8_t) -> int #private {
+storage_private_record_key_for_context :: (context: const char*, out: uint8_t*) -> int #private {
     private_key_hex: const char* = storage_get_setting_text(STORAGE_SYNC_PRIVATE_KEY_KEY)
     private_key: [(SYNC_PRIVATE_KEY_HEX_SIZE - 1) / 2] uint8_t
     ok: int
@@ -998,12 +998,12 @@ storage_private_record_key_for_context :: (context: const char*, out: [32] uint8
     return ok
 }
 
-storage_private_record_key :: (out: [32] uint8_t) -> int #private {
+storage_private_record_key :: (out: uint8_t*) -> int #private {
     return storage_private_record_key_for_context(STORAGE_SYNC_RECORD_KEY_CONTEXT,
     out)
 }
 
-storage_append_encrypted_record_json :: (json: StorageJsonBuilder*, key: [32] const uint8_t, collection: const char*, record_id: const char*, entity_type: const char*, entity_id: const char*, local_date: int, queued_at: long long, deleted: int) -> int #private {
+storage_append_encrypted_record_json :: (json: StorageJsonBuilder*, key: const uint8_t*, collection: const char*, record_id: const char*, entity_type: const char*, entity_id: const char*, local_date: int, queued_at: long long, deleted: int) -> int #private {
     plain: StorageJsonBuilder = {0}
     aad: StorageJsonBuilder = {0}
     nonce: [12] uint8_t
