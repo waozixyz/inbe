@@ -305,7 +305,7 @@ draw_elist_screen :: (app: InnerBreeze*) {
     row_h := Scale(58)
     now := GetTime()
     footer_h := Scale(44)
-    footer_y := view_height - app_content_bottom_reserved(app) - Scale(12) - footer_h
+    footer_y := view_height - app_content_bottom_reserved(app) - Scale(28) - footer_h
     if footer_y < y + Scale(58) {
         footer_y = y + Scale(58)
     }
