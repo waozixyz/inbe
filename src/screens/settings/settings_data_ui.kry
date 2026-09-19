@@ -405,8 +405,6 @@ draw_actions :: (app: InnerBreeze*, x: int, w: int, y: int*) {
 draw_sync_status :: (x: int, w: int, y: int*) {
     status: StorageSyncStatus
     line: [160] char = {0}
-    row_y: int
-    left_w: int
 
     if !storage_sync_status(&status) || !status.has_account {
         return
@@ -419,71 +417,14 @@ draw_sync_status :: (x: int, w: int, y: int*) {
     })
     *y += Scale(24)
 
-    left_w = w / 2
-    row_y = *y
-
-    FormatLocaleText(line, sizeof(line), "sync_status_account",
-                        GetLocaleText(status.has_account && status.server_connected
-                                      ? "sync_status_connected"
-                                      : "sync_status_disconnected"))
+    FormatLocaleText(line, sizeof(line), "sync_status_queued", status.queued_changes)
+    Text((TextProps){.bounds = {x, *y, w, Scale(24)}, .text = line})
+    *y += Scale(28)
     Text((TextProps){
-        .bounds={(x), (row_y), 0, 0},
-        .text=(line),
-        .wrap=TextWrapNone
+        .bounds = {x, *y, w, Scale(48)},
+        .text = GetLocaleText(app_sync_status_key())
     })
-
-    FormatLocaleText(line, sizeof(line), "sync_status_queued",
-                        status.queued_changes)
-    Text((TextProps){
-        .bounds={(x + left_w), (row_y), 0, 0},
-        .text=(line),
-        .wrap=TextWrapNone
-    })
-
-    row_y += Scale(22)
-    FormatLocaleText(line, sizeof(line), "sync_status_server",
-                        status.server_version)
-    Text((TextProps){
-        .bounds={(x), (row_y), 0, 0},
-        .text=(line),
-        .wrap=TextWrapNone
-    })
-
-    FormatLocaleText(line, sizeof(line), "sync_status_clock",
-                        status.server_clock)
-    Text((TextProps){
-        .bounds={(x + left_w), (row_y), 0, 0},
-        .text=(line),
-        .wrap=TextWrapNone
-    })
-
-    row_y += Scale(22)
-    if status.review_pending {
-        snprintf(line, sizeof(line), "%s",
-                    GetLocaleText("sync_status_review_pending"))
-    } else if status.repair_pending {
-        snprintf(line, sizeof(line), "%s",
-                    GetLocaleText("sync_status_repair_pending"))
-    } else if status.secure_migration_pending {
-        snprintf(line, sizeof(line), "%s",
-                    GetLocaleText("sync_status_secure_migration_pending"))
-    } else if status.queued_changes > 0 {
-        snprintf(line, sizeof(line), "%s",
-                    GetLocaleText("sync_status_local_queued"))
-    } else if !status.full_upload_done {
-        snprintf(line, sizeof(line), "%s",
-                    GetLocaleText("sync_status_initial_upload_pending"))
-    } else {
-        snprintf(line, sizeof(line), "%s",
-                    GetLocaleText("sync_status_ready"))
-    }
-    Text((TextProps){
-        .bounds={(x), (row_y), 0, 0},
-        .text=(line),
-        .wrap=TextWrapNone
-    })
-
-    *y += Scale(74)
+    *y += Scale(52)
 }
 
 handle_android_import :: (app: InnerBreeze*) {

@@ -1,6 +1,8 @@
 #module "platform.app_host"
 
 #import "app.h"
+#import "platform/app_desktop_tray.h"
+#import <string.h>
 
 WindowSize :: struct {
     width: int
@@ -12,10 +14,8 @@ native_window_size :: (window_width: int*, window_height: int*) #extern #private
 native_configure_window :: () #extern #private
 native_before_window :: () #extern #private
 native_after_window :: () -> int #extern #private
-native_after_app_init :: (app: InnerBreeze*, argc: int, argv: char**) #extern #private
 native_screenshot_active :: () -> int #extern #private
 native_run_screenshot :: (app: InnerBreeze*) -> int #extern #private
-native_should_start_hidden :: (app: InnerBreeze*) -> int #extern #private
 native_platform_shutdown :: () #extern #private
 native_update_apply_at_exit :: () -> int #extern #private
 app_frame :: (app: InnerBreeze*) #extern #private
@@ -85,5 +85,44 @@ ApplyPendingUpdate :: () -> int {
 
     ShutdownRequested :: () -> int {
         return native_shutdown_requested()
+    }
+}
+
+native_after_app_init :: (app: InnerBreeze*, argc: int, argv: char**) #export {
+    if app == nil {
+        return
+    }
+    set_global_app(app)
+    TraceLog(LOG_INFO, "APP: Global app pointer set")
+    for int argi = 1; argi < argc; argi++ {
+        if strcmp(argv[argi], "--break-now") == 0 {
+            app->breaks_enabled = 1
+            break_engine_force_break(&app->breaks, BREAK_MICRO)
+            TraceLog(LOG_INFO, "APP: forced micro break from --break-now")
+        }
+    }
+    KryonMemReport("after-app-init")
+    TextFontMemoryReport("after-app-init")
+    #if ANDROID_BUILD {
+        app->fullscreen_enabled = 0
+    }
+    #if ANDROID_BUILD {
+        ConfigureFramePacing(15, 30)
+    } #else {
+        ConfigureFramePacing(30, 60)
+    }
+    SetFramePacingActive(1)
+    UpdateFramePacing()
+}
+
+native_should_start_hidden :: (app: InnerBreeze*) -> int #export {
+    #if #defined(DESKTOP_TRAY_ENABLED) {
+        return app != nil &&
+        app->desktop_startup_mode == STARTUP_HIDDEN &&
+        !native_screenshot_active() &&
+        desktop_tray_ready()
+    } #else {
+        unused app
+        return 0
     }
 }

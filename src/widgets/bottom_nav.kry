@@ -101,28 +101,8 @@ bottom_nav_should_draw :: (app: InnerBreeze*) -> int #private {
     return app_current_nav_route(app) != APP_NAV_ROUTE_NONE || bottom_nav_blank_home(app)
 }
 
-bottom_nav_draw_sidebar_toggle_icon :: (x: int, y: int, size: int,
-                                        collapsed: int) #private {
-    outer := (Rectangle){(float)x, (float)y, (float)size, (float)size}
-    inset := Scale(3)
-    rail_w := Scale(6)
-    line_x := x + inset + rail_w + Scale(4)
-    line_y := y + inset + Scale(4)
-    line_w := size - inset * 2 - rail_w - Scale(7)
-    icon := GetThemeIcon()
-    muted := Fade(icon, 0.52f)
-    rail := (Rectangle){(float)(x + inset), (float)(y + inset),
-                        (float)rail_w, (float)(size - inset * 2)}
-
-    DrawRectangleRoundedLinesEx(outer, 0.18f, 6, 1.4f, Fade(icon, 0.82f))
-    DrawRectangleRounded(rail, 0.22f, 6, collapsed ? muted : icon)
-    DrawLine(line_x, line_y, line_x + line_w, line_y, muted)
-    DrawLine(line_x, line_y + Scale(5), line_x + line_w, line_y + Scale(5), muted)
-    DrawLine(line_x, line_y + Scale(10), line_x + line_w, line_y + Scale(10), muted)
-}
-
 desktop_rail_layout :: (app: InnerBreeze*, layout: DesktopRailLayout*) -> int #private {
-    route_y := Scale(180)
+    route_y := Scale(120)
     gap := Scale(12)
     item_h := Scale(52)
     footer_y := view_height - Scale(24) - item_h
@@ -220,6 +200,8 @@ rail_w: int) -> int #private {
     content_y: int
     label_y: int
     sub_y: int
+    text_class := active ? StyleClassId("selected-navigation") : 0
+    subtitle_class := active ? text_class : StyleClassId("muted")
 
     app_nav_profile_identity(app, label, sizeof(label), subtitle, sizeof(subtitle))
     label_w = AppTextWidth(label, label_font)
@@ -242,7 +224,6 @@ rail_w: int) -> int #private {
     avatar_y = y + (item_h - avatar_size) / 2
     label_y = content_y
     sub_y = label_y + label_h + sub_gap
-
     clicked := Button((ButtonProps){
         .bounds = bounds, .id = 6690,
         .tone = active ? ButtonToneAccent : ButtonToneNeutral,
@@ -257,18 +238,22 @@ rail_w: int) -> int #private {
          app->profile_picture_icon, WHITE)
     if !app->nav_rail_collapsed {
         Text((TextProps){
-            .bounds = {(float)text_x,
-                (float)AppControlTextY(label, label_y, label_h, label_font),
-                (float)text_w, (float)label_h},
             .text = label,
+            .bounds = {(float)text_x,
+                       (float)AppControlTextY(label, label_y, label_h, label_font),
+                       (float)text_w, (float)label_h},
+            .font = label_font,
+            .class_name = text_class,
             .wrap = TextWrapNone
         })
         if subtitle[0] != '\0' {
             Text((TextProps){
-                .bounds = {(float)text_x,
-                    (float)AppControlTextY(subtitle, sub_y, sub_h, sub_font),
-                    (float)text_w, (float)sub_h},
                 .text = subtitle,
+                .bounds = {(float)text_x,
+                           (float)AppControlTextY(subtitle, sub_y, sub_h, sub_font),
+                           (float)text_w, (float)sub_h},
+                .font = sub_font,
+                .class_name = subtitle_class,
                 .wrap = TextWrapNone
             })
         }
@@ -292,31 +277,7 @@ app_draw_desktop_nav_rail :: (app: InnerBreeze*) #private {
     desktop_rail_collect_routes(app, routes, &route_count)
     desktop_rail_draw_background(layout)
 
-    collapse_x := layout.rail_x + layout.rail_w - Scale(64)
-    if app->nav_rail_collapsed {
-        collapse_x = layout.rail_x + (layout.rail_w - Scale(40)) / 2
-    }
-    collapse_bounds := (Rectangle){(float)collapse_x, (float)Scale(16),
-        (float)Scale(40), (float)Scale(40)}
-    if Button((ButtonProps){
-        .bounds = collapse_bounds,
-        .id = 6691,
-        .icon_only = true,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
-        .disabled = app->modal.active ||
-                    app->blocked_input_frame == app->breathing.frame
-    }) {
-        app->nav_rail_collapsed = !app->nav_rail_collapsed
-        save_settings(app)
-        app_block_current_click(app)
-        return
-    }
-    bottom_nav_draw_sidebar_toggle_icon(
-        (int)collapse_bounds.x + Scale(10),
-        (int)collapse_bounds.y + Scale(10),
-        Scale(20),
-        app->nav_rail_collapsed)
-    if desktop_rail_profile_button(app, layout.rail_x, Scale(76), layout.rail_w) {
+    if desktop_rail_profile_button(app, layout.rail_x, Scale(16), layout.rail_w) {
         return
     }
 

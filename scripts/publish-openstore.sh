@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$ROOT_DIR/build/dist/click"
+app_version=$(python3 "$ROOT_DIR/scripts/check-version.py" --print-version)
 
 if [ -f "$ROOT_DIR/.env" ]; then
     set -a
@@ -43,8 +44,7 @@ if [ -z "$CLICK_FILE" ] || [ ! -f "$CLICK_FILE" ]; then
 fi
 
 if [ -z "$CHANGELOG" ]; then
-    app_version="$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' "$ROOT_DIR/src/core/version.h" 2>/dev/null || true)"
-    CHANGELOG="Release ${app_version:-latest}"
+    CHANGELOG="Release $app_version"
 fi
 
 response_file="$(mktemp)"

@@ -1,6 +1,5 @@
 #import "app.h"
 #import "app_nav.h"
-#import "text_utils.h"
 #import "src/screens/profile_social.h"
 #import "screens/practice_screen.h"
 #import "screens/settings/settings_data_ui.h"
@@ -130,7 +129,7 @@ profile_draw_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     if Button((ButtonProps){
         .bounds = {(float)x, (float)(*y + Scale(18)),
                    (float)icon_size, (float)icon_size},
-        .icon = app->icons[app->profile_picture_icon],
+        .icon_type = app->profile_picture_icon,
         .icon_only = 1, .circle = 1,
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
@@ -357,7 +356,7 @@ profile_draw_hub_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
     if Button((ButtonProps){
         .bounds = {(float)avatar_x, (float)avatar_y,
                    (float)avatar, (float)avatar},
-        .icon = app->icons[app->profile_picture_icon],
+        .icon_type = app->profile_picture_icon,
         .icon_only = 1, .circle = 1,
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
@@ -563,16 +562,15 @@ profile_draw_tabs :: (app: InnerBreeze*, y: int, h: int) -> int #private {
 
 profile_draw_fitted_text :: (text: const char*, x: int, y: int, max_w: int,
                             font: int) #private {
-    fitted: [HABIT_NAME_SIZE + 4] char = {0}
 
     if text == nil || max_w <= 0 {
         return
     }
 
-    text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
     Text((TextProps){
-        .bounds={(x), (y), 0, 0},
-        .text=(fitted),
+        .bounds={(x), (y), (max_w), 0},
+        .font = font,
+        .text = text,
         .wrap=TextWrapNone
     })
 }

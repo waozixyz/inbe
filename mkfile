@@ -12,26 +12,14 @@ TARG=inbe
 ROOT=/sys/src/inbe
 
 list=$ROOT/build/plan9/generated-c-files.txt
-gensrc=`{cat $list | grep -v -e 'storage/import.c' -e 'meditation/meditation_music.c'}
-appsrc=src/platform/plan9/inbe_plan9_main.c \
+gensrc=`{cat $list | grep -v -e 'storage/import.c' -e 'meditation/meditation_music.c' -e '/src/main.c' -e '/platform/app_host.c'}
+appsrc=src/platform/plan9/main.c \
 	src/platform/plan9/sqlite3_stub.c \
 	src/platform/plan9/storage_import_stub.c \
 	src/platform/plan9/meditation_music_stub.c \
-	src/app/app.c \
-	src/app/app_audio.c \
-	src/app/app_fonts.c \
-	src/app/audio_library.c \
-	src/app/app_update_check.c \
-	src/app/app_update_zip.c \
 	src/app/app_web_bridge.c \
-	src/platform/inbe_activity_monitor.c \
-	src/storage/storage.c \
-	src/storage/storage_habits.c \
-	src/storage/storage_habit_materialize.c \
-	src/storage/storage_habit_sync.c \
-	src/storage/storage_json_builder.c \
-	src/storage/sync_client.c
-hostsrc=build/plan9/inbe_embedded_assets.c
+	src/storage/storage_json_builder.c
+hostsrc=build/plan9/app_embedded_assets.c
 APPCPPFLAGS=-I$ROOT/src -I$ROOT/src/app -I$ROOT/src/core -I$ROOT/src/screens \
 	-I$ROOT/src/screens/settings -I$ROOT/src/practices -I$ROOT/src/practices/whm \
 	-I$ROOT/src/practices/meditation -I$ROOT/src/practices/sun_salutation \

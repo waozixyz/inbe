@@ -16,18 +16,6 @@ Inner Breeze
 [profile_progress_title]
 이번 주
 ---
-[profile_today_habits]
-오늘의 습관
----
-[profile_active_days]
-활동한 날
----
-[profile_days_value]
-%d일
----
-[profile_week_practices]
-연습 세션
----
 [profile_weekly_insight]
 이번 주에는 %d일 동안 실천했어요.
 ---
@@ -631,9 +619,6 @@ Inner Breeze를 계속 실행할까요?
 [sync_account_title]
 계정
 ---
-[sync_configure_account_button]
-계정 설정
----
 [sync_create_account_button]
 계정 만들기
 ---
@@ -648,9 +633,6 @@ Inner Breeze를 계속 실행할까요?
 ---
 [sync_import_key_dialog_title]
 계정 키 가져오기
----
-[sync_private_key_imported]
-계정 키를 가져왔습니다
 ---
 [sync_private_key_import_failed]
 계정 키를 가져올 수 없음
@@ -675,9 +657,6 @@ ID 복사
 ---
 [sync_connect_button]
 연결
----
-[sync_connected_button]
-연결됨
 ---
 [sync_server_url_invalid]
 https:// 또는 localhost:8080 같은 루프백을 사용하세요
@@ -778,7 +757,6 @@ Sync review failed
 [habit_focus_calendar]
 달력
 ---
----
 [habit_complete_today_button]
 오늘 완료
 ---
@@ -848,7 +826,6 @@ Sync review failed
 [habit_stats_best_streak]
 최고 연속 기록
 ---
----
 
 [theme_picker_title]
 테마 선택
@@ -894,6 +871,9 @@ Alias saved
 ---
 [appearance_scale_label]
 배율
+---
+[appearance_glow_effects_label]
+빛 효과
 ---
 [audio_music_none_option]
 없음
@@ -997,6 +977,30 @@ Yoga
 [meditation_music_downloading_progress]
 오디오 다운로드 중... %d%%
 ---
+[practice_home_title_patterns]
+안정된 박스 호흡
+---
+[practice_home_subtitle_patterns]
+차분한 집중을 위한 5분
+---
+[practice_home_title_wim_hof]
+빔 호프 호흡
+---
+[practice_home_subtitle_wim_hof]
+에너지를 위한 안내 라운드
+---
+[practice_home_title_meditation]
+명상
+---
+[practice_home_subtitle_meditation]
+조용한 타이머와 함께 가라앉기
+---
+[practice_home_title_sun_salutation]
+태양 경배
+---
+[practice_home_subtitle_sun_salutation]
+호흡에 맞춰 각 자세로 이동
+---
 [meditation_music_downloading]
 오디오 다운로드 중...
 ---
@@ -1030,9 +1034,6 @@ Yoga
 [sync_status_title]
 동기화 상태
 ---
-[sync_status_account]
-계정: %s
----
 [sync_status_connected]
 연결됨
 ---
@@ -1042,23 +1043,8 @@ Yoga
 [sync_status_queued]
 대기: %lld
 ---
-[sync_status_server]
-서버: %lld
----
-[sync_status_clock]
-시계: %lld
----
-[sync_status_upgrade]
-Inner Breeze 업데이트
----
 [sync_status_review_pending]
 검토 대기 중
----
-[sync_status_repair_pending]
-동기화 복구 대기 중
----
-[sync_status_secure_migration_pending]
-보안 데이터 마이그레이션 대기 중
 ---
 [sync_secure_migration_title]
 보안 동기화 업데이트
@@ -1080,9 +1066,6 @@ v4 전용 동기화 사용 전, 이 기기의 이전 동기화 데이터 보호 
 ---
 [sync_status_local_queued]
 로컬 변경 대기 중
----
-[sync_status_initial_upload_pending]
-초기 업로드 대기 중
 ---
 [sync_status_ready]
 준비됨
@@ -1781,8 +1764,17 @@ Dismiss forever
 [tab_elist]
 목록
 ---
-[elist_title]
-목록
+[elist_default_list]
+받은 편지함
+---
+[elist_default_item_breathe]
+마음을 담아 숨 쉬기
+---
+[elist_default_item_walk]
+잠깐 밖에서 걷기
+---
+[elist_default_item_water]
+물 한 잔 마시기
 ---
 [elist_new_list]
 새 목록
@@ -1798,6 +1790,15 @@ Dismiss forever
 ---
 [elist_empty_detail]
 목록을 만들고 작업과 메모를 한곳에 추가하세요.
+---
+[navigation_sidebar]
+사이드바
+---
+[navigation_sidebar_expanded]
+펼침
+---
+[navigation_sidebar_compact]
+간략히
 ---
 [navigation_placement]
 탐색 메뉴 위치
@@ -1817,6 +1818,83 @@ Dismiss forever
 [navigation_top]
 위쪽
 ---
+[sync_connected]
+연결되었습니다.
+---
+[sync_auth_failed]
+인증에 실패했습니다. 계정 키를 확인하세요.
+---
+[sync_failed]
+동기화에 실패했습니다. 로컬 데이터는 보존됩니다. 다시 시도하세요.
+---
+[sync_server_unavailable]
+동기화 서버에 연결할 수 없습니다. 나중에 다시 시도하세요.
+---
+[sync_sign_failed]
+동기화 요청에 서명할 수 없습니다. 계정 키를 확인하세요.
+---
+[profile_today_short]
+오늘
+---
+[profile_active_days_short]
+활동 일수
+---
+[profile_sessions_short]
+세션
+---
+[profile_sync_prompt_body]
+계정을 만들어 진행 상황을 동기화하고 보호하세요.
+---
+[profile_sync_ready_body]
+이 프로필의 동기화가 준비되었습니다.
+---
+[profile_account_sync_title]
+계정 및 동기화
+---
+[profile_account_sync_body]
+계정 만들기 또는 키 가져오기
+---
+[profile_data_management_title]
+데이터
+---
+[profile_data_management_body]
+가져오기, 내보내기 및 저장 공간
+---
+[profile_leaderboard_preview_body]
+순위와 현재 연속 기록 보기
+---
+[profile_no_rank_short]
+아직 순위 없음
+---
 [appearance_style_label]
 스타일
 ---
+[sync_connection_required]
+변경 사항을 업로드하려면 프로필 / 동기화에서 연결하세요.
+
+---
+[sync_in_progress]
+동기화 중…
+
+---
+[sync_retry_waiting]
+연결에 실패했습니다. 자동으로 다시 시도합니다.
+
+---
+[sync_retry_button]
+다시 시도
+---
+[app_icon_label]
+앱 아이콘
+---
+[app_icon_sky_cradle]
+하늘 요람
+---
+[app_icon_ink_and_air]
+먹과 바람
+---
+[app_icon_hint]
+홈 화면의 아이콘이 바뀌기까지 잠시 걸릴 수 있습니다.
+---
+[app_icon_error]
+앱 아이콘을 변경하지 못했습니다. 다시 시도해 주세요.

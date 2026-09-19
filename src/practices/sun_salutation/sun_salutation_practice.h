@@ -24,7 +24,8 @@
 int sun_salutation_step_pose_index(int step);
 const char *sun_salutation_step_label(int step);
 void sun_salutation_practice_init(InnerBreeze*app);
-void sun_salutation_practice_destroy(InnerBreeze*app);
+const char *sun_salutation_pose_asset(int figure);
+const char *sun_salutation_transition_asset(int figure, int transition);
 void sun_salutation_practice_start(InnerBreeze*app);
 void sun_manual_draw(InnerBreeze*app);
 void sun_manual_close(InnerBreeze*app, int mark_seen);

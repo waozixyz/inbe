@@ -1,7 +1,7 @@
 #import "kryon.h"
 #import "app.h"
 host :: #import "platform/app_host"
-tray :: #import "platform/app_desktop_tray"
+tray :: #import "platform/tray"
 
 WEB_BUILD :: #defined(PLATFORM_WEB)
 DESKTOP_TRAY_BUILD :: #defined(DESKTOP_TRAY_ENABLED)
@@ -10,7 +10,7 @@ app :: InnerBreeze #global
 
 destroy_app_window :: () {
     #if DESKTOP_TRAY_BUILD {
-        tray.TrayShutdown()
+        tray.desktop_tray_shutdown()
     }
     app_destroy(&app)
     set_global_app(nil)
@@ -44,7 +44,7 @@ run_screenshot_if_requested :: () -> int {
         quit := 0
 
         while !quit {
-            tray_action: tray.DesktopTrayAction = tray.TrayPollAction()
+            tray_action: tray.DesktopTrayAction = tray.desktop_tray_poll_action()
             close_result: AppClosePromptResult = AppClosePromptNone
             close_requested := StealCoreWindowClose()
 
@@ -53,21 +53,21 @@ run_screenshot_if_requested :: () -> int {
                 quit = 1
             }
             if tray_action != tray.DESKTOP_TRAY_ACTION_NONE {
-                tray.TrayApplyAction(&app, tray_action, &quit)
+                tray.desktop_tray_apply_action(&app, tray_action, &quit)
             }
             if close_requested != 0 && !app.close_prompt_open {
-                tray.TrayApplyAction(&app,
+                tray.desktop_tray_apply_action(&app,
                                       tray.DESKTOP_TRAY_ACTION_CLOSE_REQUEST,
                                       &quit)
             }
             if !quit {
                 host.DrawFrame(&app)
-                tray.TrayUpdateStatus(&app)
+                tray.desktop_tray_update_status(&app)
             }
 
             close_result = app_consume_close_prompt_result(&app)
             if close_result == AppClosePromptKeepRunning {
-                tray.TrayKeepRunning()
+                tray.desktop_tray_keep_running()
             } else if close_result == AppClosePromptQuit {
                 TraceLog(LOG_INFO, "APP: quit requested by close prompt")
                 quit = 1
@@ -78,19 +78,21 @@ run_screenshot_if_requested :: () -> int {
                 quit = 1
             }
 
-            tray_action = tray.TrayPollAction()
+            tray_action = tray.desktop_tray_poll_action()
             if tray_action != tray.DESKTOP_TRAY_ACTION_NONE {
-                tray.TrayApplyAction(&app, tray_action, &quit)
+                tray.desktop_tray_apply_action(&app, tray_action, &quit)
             }
             close_requested = StealCoreWindowClose()
             if close_requested != 0 && !app.close_prompt_open {
-                tray.TrayApplyAction(&app,
+                tray.desktop_tray_apply_action(&app,
                                       tray.DESKTOP_TRAY_ACTION_CLOSE_REQUEST,
                                       &quit)
             }
         }
     }
-} #else {
+}
+
+#if !WEB_BUILD && !DESKTOP_TRAY_BUILD {
     run_desktop_window_loop :: () {
         quit := 0
 
@@ -126,10 +128,10 @@ main :: (argc: int, argv: char**) -> int {
         host.InstallShutdownHandlers()
 
         #if DESKTOP_TRAY_BUILD {
-            tray.TrayInit()
+            tray.desktop_tray_init()
             if host.ShouldStartHidden(&app) {
                 TraceLog(LOG_INFO, "APP: starting hidden in the tray (startup mode)")
-                tray.TrayKeepRunning()
+                tray.desktop_tray_keep_running()
             }
             KryonMemReport("after-tray-init")
         }

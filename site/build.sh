@@ -8,21 +8,6 @@ out_dir="$root_dir/build/site"
 web_dir="$root_dir/build/dist/web"
 kryon_dir=${KRYON_DIR:-"$root_dir/vendor/kryon"}
 
-read_version() {
-	awk '
-		/^#define APP_VERSION_STRING "/ {
-			gsub(/^#define APP_VERSION_STRING "/, "")
-			gsub(/"$/, "")
-			print
-			found = 1
-			exit
-		}
-		END {
-			if (!found) exit 1
-		}
-	' "$root_dir/src/core/version.h"
-}
-
 require_path() {
 	if [ ! -e "$1" ]; then
 		printf 'Error: required path missing: %s\n' "$1" >&2
@@ -184,7 +169,7 @@ require_output() {
 	fi
 }
 
-version=$(read_version) || {
+version=$(python3 "$root_dir/scripts/check-version.py" --print-version) || {
 	printf 'Error: could not read app version from %s\n' "$root_dir/src/core/version.h" >&2
 	exit 1
 }

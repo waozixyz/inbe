@@ -52,7 +52,7 @@ typedef struct StorageImportInfo {
 
 typedef struct StorageSyncStatus {
     int has_account;
-    int server_connected;
+    int enabled;
     int review_pending;
     int repair_pending;
     int secure_migration_pending;
@@ -128,8 +128,8 @@ void storage_free_sync_payload_json(char *payload);
 int storage_apply_sync_response_json(const char *response_json);
 int storage_last_sync_changed(void);
 int storage_sync_status(StorageSyncStatus *status);
-int storage_sync_server_connected(void);
-void storage_set_sync_server_connected(int connected);
+int storage_sync_enabled(void);
+void storage_set_sync_enabled(int connected);
 int storage_sync_review_pending(void);
 int storage_sync_review_details(char **local_out, char **remote_out);
 int storage_sync_review_diff(char **diff_out);

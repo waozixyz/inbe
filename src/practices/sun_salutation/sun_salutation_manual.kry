@@ -47,37 +47,38 @@ sun_manual_start :: (app: InnerBreeze*) #private {
 
 sun_manual_paragraph :: (step: int, content_w: int) -> ParagraphSpec #private {
     return manual_screen_tutorial_paragraph(
-        GetLocaleText(sun_manual_body_keys[step]), content_w)
+    GetLocaleText(sun_manual_body_keys[step]), content_w)
 }
 
 sun_manual_content_height :: (step: int, content_w: int) -> int #private {
     paragraph := sun_manual_paragraph(step, content_w)
 
     return Scale(178 + 18 + 68) +
-           AppParagraphHeight(paragraph.text, paragraph.width,
-                              paragraph.font, paragraph.line_gap)
+    AppParagraphHeight(paragraph.text, paragraph.width,
+    paragraph.font, paragraph.line_gap)
 }
 
-sun_manual_draw_pose :: (Texture2D sheet, int pose, Rectangle bounds) #private {
+sun_manual_draw_pose :: (figure: int, pose: int, bounds: Rectangle) #private {
     src := (Rectangle){
         (float)((pose % SUN_SALUTATION_POSE_SHEET_COLS) *
-                SUN_SALUTATION_POSE_FRAME_W),
+        SUN_SALUTATION_POSE_FRAME_W),
         (float)((pose / SUN_SALUTATION_POSE_SHEET_COLS) *
-                SUN_SALUTATION_POSE_FRAME_H),
+        SUN_SALUTATION_POSE_FRAME_H),
         (float)SUN_SALUTATION_POSE_FRAME_W,
         (float)SUN_SALUTATION_POSE_FRAME_H
     }
 
-    if sheet.id != 0 {
-        DrawTexturePro(sheet, src, bounds, (Vector2){0}, 0.0f, WHITE)
-    }
+    Image((ImageProps){
+        .asset_path = sun_salutation_pose_asset(figure),
+        .source = src, .bounds = bounds, .fit = ImageFitContain
+    })
 }
 
 sun_manual_draw_visual :: (app: InnerBreeze*, content_x: int,
-                           content_w: int, step: int, y: int*) #private {
+content_w: int, step: int, y: int*) #private {
     visual_h := Scale(178)
     visual := (Rectangle){(float)content_x, (float)*y,
-                          (float)content_w, (float)visual_h}
+        (float)content_w, (float)visual_h}
 
     DrawRectangleRounded(visual, 0.12f, 10, GetThemeSurface())
     if step < 2 {
@@ -87,17 +88,17 @@ sun_manual_draw_visual :: (app: InnerBreeze*, content_x: int,
         for int i = 0; i < 3; i++ {
             pose_bounds := (Rectangle){
                 (float)(content_x + Scale(10) +
-                        i * (pose_w + Scale(8))),
+                i * (pose_w + Scale(8))),
                 (float)(*y + Scale(24)),
                 (float)pose_w,
                 (float)Scale(112)
             }
             sun_manual_draw_pose(
-                app->sun_salutation.pose_sheets[app->sun_salutation.figure],
-                poses[i], pose_bounds)
+            app->sun_salutation.figure,
+            poses[i], pose_bounds)
             DrawCircle((int)(pose_bounds.x + pose_bounds.width / 2),
-                       *y + Scale(151), Scale(4),
-                       i == 1 ? GetThemeButton() : GetThemeBorder())
+            *y + Scale(151), Scale(4),
+            i == 1 ? GetThemeButton() : GetThemeBorder())
         }
     } else {
         value: [32] char = {0}
@@ -105,38 +106,38 @@ sun_manual_draw_visual :: (app: InnerBreeze*, content_x: int,
 
         snprintf(value, sizeof(value), "%dx", app->sun_salutation.repetitions)
         Text((TextProps){
-            .bounds={(content_x + Scale(18)), (line_y), 0, 0},
-            .text=(GetLocaleText("sun_salutation_repetitions_label")),
-            .wrap=TextWrapNone
+            .bounds = {(content_x + Scale(18)), (line_y), 0, 0},
+            .text = (GetLocaleText("sun_salutation_repetitions_label")),
+            .wrap = TextWrapNone
         })
         Text((TextProps){
-            .bounds={(content_x + content_w - Scale(54)), (line_y), 0, 0},
-            .text=(value),
-            .wrap=TextWrapNone
+            .bounds = {(content_x + content_w - Scale(54)), (line_y), 0, 0},
+            .text = (value),
+            .wrap = TextWrapNone
         })
         line_y += Scale(45)
         snprintf(value, sizeof(value), "%d s", app->sun_salutation.start_seconds)
         Text((TextProps){
-            .bounds={(content_x + Scale(18)), (line_y), 0, 0},
-            .text=(GetLocaleText("sun_salutation_start_speed_label")),
-            .wrap=TextWrapNone
+            .bounds = {(content_x + Scale(18)), (line_y), 0, 0},
+            .text = (GetLocaleText("sun_salutation_start_speed_label")),
+            .wrap = TextWrapNone
         })
         Text((TextProps){
-            .bounds={(content_x + content_w - Scale(54)), (line_y), 0, 0},
-            .text=(value),
-            .wrap=TextWrapNone
+            .bounds = {(content_x + content_w - Scale(54)), (line_y), 0, 0},
+            .text = (value),
+            .wrap = TextWrapNone
         })
         line_y += Scale(45)
         snprintf(value, sizeof(value), "%d s", app->sun_salutation.end_seconds)
         Text((TextProps){
-            .bounds={(content_x + Scale(18)), (line_y), 0, 0},
-            .text=(GetLocaleText("sun_salutation_end_speed_label")),
-            .wrap=TextWrapNone
+            .bounds = {(content_x + Scale(18)), (line_y), 0, 0},
+            .text = (GetLocaleText("sun_salutation_end_speed_label")),
+            .wrap = TextWrapNone
         })
         Text((TextProps){
-            .bounds={(content_x + content_w - Scale(54)), (line_y), 0, 0},
-            .text=(value),
-            .wrap=TextWrapNone
+            .bounds = {(content_x + content_w - Scale(54)), (line_y), 0, 0},
+            .text = (value),
+            .wrap = TextWrapNone
         })
     }
     *y += visual_h + Scale(18)
@@ -159,30 +160,30 @@ sun_manual_draw :: (app: InnerBreeze*) {
         responsive_max_w = Scale(200)
     }
     practice_screen_manual_layout(app, UIModalPracticeManual,
-                                  SUN_MANUAL_PAGES,
-                                  manual_screen_tutorial_top_gap(), 0,
-                                  Scale(120), &layout)
+    SUN_MANUAL_PAGES,
+    manual_screen_tutorial_top_gap(), 0,
+    Scale(120), &layout)
     manual_screen_draw_title_bar(app, GetLocaleText("exercise_sun_salutation"),
-                                 layout.title_h, sun_manual_close)
+    layout.title_h, sun_manual_close)
     GetCenteredColumn(responsive_max_w, side_padding, &content_x, &content_w)
     content_h := sun_manual_content_height(step, content_w)
 
     Scroll page: {
         bounds = (Rectangle){(float)0, (float)layout.content_y,
-                             (float)view_width, (float)layout.content_h}
+            (float)view_width, (float)layout.content_h}
         content_height = content_h
         scroll_offset = &app->manual_scroll
 
         y := (int)page.y
 
         hero := manual_screen_hero_bounds(content_x, content_w,
-                                          y, Scale(178))
+        y, Scale(178))
         sun_manual_draw_visual(app, (int)hero.x, (int)hero.width, step, &y)
         manual_screen_draw_hero_progress(
-            hero, step, SUN_MANUAL_PAGES)
+        hero, step, SUN_MANUAL_PAGES)
         manual_screen_draw_guide_header(GetLocaleText(sun_manual_title_keys[step]),
-                                        step, SUN_MANUAL_PAGES,
-                                        content_x, &y, content_w)
+        step, SUN_MANUAL_PAGES,
+        content_x, &y, content_w)
         Paragraph(sun_manual_paragraph(step, content_w), content_x, &y)
     }
 

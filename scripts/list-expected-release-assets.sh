@@ -7,11 +7,17 @@ if [ $# -gt 0 ]; then
 else
 	script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 	root_dir=$(dirname -- "$script_dir")
-	version=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' "$root_dir/src/core/version.h")
+	version=$(python3 "$root_dir/scripts/check-version.py" --print-version)
 fi
 
-if [ -z "$version" ]; then
-	printf 'Error: version is empty\n' >&2
+case "$version" in
+	''|*[!0-9.]*)
+		printf 'Error: version must be numeric X.Y.Z\n' >&2
+		exit 1
+		;;
+esac
+if ! printf '%s\n' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+	printf 'Error: version must be numeric X.Y.Z\n' >&2
 	exit 1
 fi
 

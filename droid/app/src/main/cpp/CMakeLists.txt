@@ -78,7 +78,8 @@ file(GLOB KRYON_K2C_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/k2c/*.c")
 file(GLOB KRYON_KIR_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/kir/*.c")
 file(GLOB KRYON_K2C_HEADERS CONFIGURE_DEPENDS
     "${KRYON_DIR}/cmd/k2c/*.h" "${KRYON_DIR}/cmd/kir/*.h")
-list(APPEND KRYON_K2C_SOURCES ${KRYON_KIR_SOURCES})
+list(APPEND KRYON_K2C_SOURCES ${KRYON_KIR_SOURCES}
+    "${KRYON_DIR}/src/kry_std/kry_json.c")
 list(SORT KRYON_K2C_SOURCES)
 find_program(HOST_CC NAMES cc clang gcc REQUIRED)
 find_program(HOST_PYTHON NAMES python3 REQUIRED)
@@ -119,7 +120,7 @@ add_custom_command(
     OUTPUT "${KRYON_K2C}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/host-tools"
     # VERBATIM escapes embedded quotes, so unquoted -I paths (no spaces here)
-    COMMAND "${HOST_CC}" -Wall -Wextra -O2 -I${KRYON_DIR}/cmd/kir -I${KRYON_DIR}/cmd/k2c -o "${KRYON_K2C}" ${KRYON_K2C_SOURCES}
+    COMMAND "${HOST_CC}" -Wall -Wextra -O2 -I${KRYON_DIR}/include -I${KRYON_DIR}/cmd/kir -I${KRYON_DIR}/cmd/k2c -o "${KRYON_K2C}" ${KRYON_K2C_SOURCES}
     DEPENDS ${KRYON_K2C_SOURCES} ${KRYON_K2C_HEADERS}
     VERBATIM
 )
@@ -193,10 +194,12 @@ file(GLOB APP_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_RO
 file(GLOB APP_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 file(GLOB APP_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner*.png")
 file(GLOB APP_STYLE_ASSETS RELATIVE "${REPO_ROOT}"
-    "${KRYON_DIR}/styles/kryon/*.kss")
+    "${KRYON_DIR}/styles/kryon/*.kss" "${REPO_ROOT}/assets/styles/*.kss")
 set(APP_EMBEDDED_INPUTS
     ${APP_STYLE_ASSETS}
     ${APP_LOCALE_ASSETS}
+    assets/app/icon-sky-cradle.png
+    assets/app/icon-ink-and-air.png
     assets/easteregg/art.png
     assets/easteregg/waozi.png
     assets/practices/whm/1.png
@@ -278,12 +281,7 @@ target_include_directories(raylib PUBLIC
 add_library(main SHARED
     "${SRC_DIR}/platform/main_host.c"
     ${APP_C_SOURCES}
-    "${SRC_DIR}/storage/storage.c"
     "${SRC_DIR}/storage/storage_json_builder.c"
-    "${SRC_DIR}/storage/storage_habits.c"
-    "${SRC_DIR}/storage/storage_habit_materialize.c"
-    "${SRC_DIR}/storage/storage_habit_sync.c"
-    "${SRC_DIR}/storage/sync_client.c"
     "${SQLITE_AMALGAMATION_C}"
     "${SRC_DIR}/platform/android/android_device.c"
     "${SRC_DIR}/platform/android/android_share.c"

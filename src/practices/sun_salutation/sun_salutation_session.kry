@@ -36,8 +36,8 @@ finish :: (app: InnerBreeze*) #private {
         repetitions = 1
     }
     if data_save_session_path_for_activity(&repetitions, 1, 0,
-                                           EXERCISE_SUN_SALUTATION,
-                                           result_path, sizeof(result_path)) {
+    EXERCISE_SUN_SALUTATION,
+    result_path, sizeof(result_path)) {
         sync_habits_for_activity(app, EXERCISE_SUN_SALUTATION)
         app_auto_sync(app)
     }
@@ -48,7 +48,7 @@ finish :: (app: InnerBreeze*) #private {
     meditation_music_stop(app)
     app_close_modal(app)
     app_prepare_session_results(app, EXERCISE_SUN_SALUTATION, repetitions, 0,
-                                nil, nil, 0, result_path)
+    nil, nil, 0, result_path)
     app_switch_screen(app, ScreenResults)
 }
 
@@ -64,11 +64,11 @@ sun_salutation_practice_start :: (app: InnerBreeze*) {
         app->sun_salutation.repetitions = SUN_SALUTATION_DEFAULT_REPETITIONS
     }
     if app->sun_salutation.start_seconds < SUN_SALUTATION_SECONDS_MIN ||
-       app->sun_salutation.start_seconds > SUN_SALUTATION_SECONDS_MAX {
+    app->sun_salutation.start_seconds > SUN_SALUTATION_SECONDS_MAX {
         app->sun_salutation.start_seconds = SUN_SALUTATION_DEFAULT_START_SECONDS
     }
     if app->sun_salutation.end_seconds < SUN_SALUTATION_SECONDS_MIN ||
-       app->sun_salutation.end_seconds > SUN_SALUTATION_SECONDS_MAX {
+    app->sun_salutation.end_seconds > SUN_SALUTATION_SECONDS_MAX {
         app->sun_salutation.end_seconds = SUN_SALUTATION_DEFAULT_END_SECONDS
     }
     if app->sun_salutation.start_seconds < app->sun_salutation.end_seconds {
@@ -104,11 +104,11 @@ step_seconds :: (app: InnerBreeze*) -> int #private {
     repetition = app->sun_salutation.repetition
 
     if start_seconds < SUN_SALUTATION_SECONDS_MIN ||
-       start_seconds > SUN_SALUTATION_SECONDS_MAX {
+    start_seconds > SUN_SALUTATION_SECONDS_MAX {
         start_seconds = SUN_SALUTATION_DEFAULT_START_SECONDS
     }
     if end_seconds < SUN_SALUTATION_SECONDS_MIN ||
-       end_seconds > SUN_SALUTATION_SECONDS_MAX {
+    end_seconds > SUN_SALUTATION_SECONDS_MAX {
         end_seconds = SUN_SALUTATION_DEFAULT_END_SECONDS
     }
     if start_seconds < end_seconds {
@@ -124,7 +124,7 @@ step_seconds :: (app: InnerBreeze*) -> int #private {
         repetition = repetitions - 1
     }
     return start_seconds + ((end_seconds - start_seconds) * repetition) /
-                               (repetitions - 1)
+    (repetitions - 1)
 }
 
 step_forward :: (app: InnerBreeze*) #private {
@@ -163,7 +163,7 @@ update_timer :: (app: InnerBreeze*) #private {
     ticks_per_step := 0
 
     if app == nil || app->breathing.screen != ScreenSunSalutation ||
-       app->session_paused {
+    app->session_paused {
         return
     }
 
@@ -177,101 +177,21 @@ update_timer :: (app: InnerBreeze*) #private {
     }
 }
 
-draw_pose_image :: (texture: Texture2D, pose_index: int, top_y: int, bottom_y: int) #private {
-    src: Rectangle
-    dst: Rectangle
-    max_w: float
-    max_h: float
-    scale: float
-    w: float
-    h: float
-
-    if texture.id == 0 || bottom_y <= top_y {
+draw_pose_frame :: (asset_path: const char*, frame_index: int, columns: int,
+top_y: int, bottom_y: int) #private {
+    if asset_path == nil || bottom_y <= top_y {
         return
     }
-    if pose_index < 0 {
-        pose_index = 0
-    }
-    if pose_index >= SUN_SALUTATION_POSE_COUNT {
-        pose_index = SUN_SALUTATION_POSE_COUNT - 1
-    }
-
-    max_w = (float)(view_width - Scale(48))
-    max_h = (float)(bottom_y - top_y)
-    scale = max_w / (float)SUN_SALUTATION_POSE_FRAME_W
-    if (float)SUN_SALUTATION_POSE_FRAME_H * scale > max_h {
-        scale = max_h / (float)SUN_SALUTATION_POSE_FRAME_H
-    }
-    if scale <= 0.0f {
-        return
-    }
-
-    w = (float)SUN_SALUTATION_POSE_FRAME_W * scale
-    h = (float)SUN_SALUTATION_POSE_FRAME_H * scale
-    src = (Rectangle){
-        (float)((pose_index % SUN_SALUTATION_POSE_SHEET_COLS) *
-                SUN_SALUTATION_POSE_FRAME_W),
-        (float)((pose_index / SUN_SALUTATION_POSE_SHEET_COLS) *
-                SUN_SALUTATION_POSE_FRAME_H),
-        (float)SUN_SALUTATION_POSE_FRAME_W,
-        (float)SUN_SALUTATION_POSE_FRAME_H
-    }
-    dst = (Rectangle){
-        ((float)view_width - w) * 0.5f,
-        (float)top_y + (max_h - h) * 0.5f,
-        w,
-        h
-    }
-    DrawTexturePro(texture, src, dst, (Vector2){0}, 0.0f, WHITE)
-}
-
-draw_transition_image :: (texture: Texture2D, frame_index: int,
-                          top_y: int, bottom_y: int) #private {
-    src: Rectangle
-    dst: Rectangle
-    max_w: float
-    max_h: float
-    scale: float
-    w: float
-    h: float
-
-    if texture.id == 0 || bottom_y <= top_y {
-        return
-    }
-    if frame_index < 0 {
-        frame_index = 0
-    }
-    if frame_index >= SUN_SALUTATION_TRANSITION_FRAME_COUNT {
-        frame_index = SUN_SALUTATION_TRANSITION_FRAME_COUNT - 1
-    }
-
-    max_w = (float)(view_width - Scale(48))
-    max_h = (float)(bottom_y - top_y)
-    scale = max_w / (float)SUN_SALUTATION_POSE_FRAME_W
-    if (float)SUN_SALUTATION_POSE_FRAME_H * scale > max_h {
-        scale = max_h / (float)SUN_SALUTATION_POSE_FRAME_H
-    }
-    if scale <= 0.0f {
-        return
-    }
-
-    w = (float)SUN_SALUTATION_POSE_FRAME_W * scale
-    h = (float)SUN_SALUTATION_POSE_FRAME_H * scale
-    src = (Rectangle){
-        (float)((frame_index % SUN_SALUTATION_TRANSITION_SHEET_COLS) *
-                SUN_SALUTATION_POSE_FRAME_W),
-        (float)((frame_index / SUN_SALUTATION_TRANSITION_SHEET_COLS) *
-                SUN_SALUTATION_POSE_FRAME_H),
-        (float)SUN_SALUTATION_POSE_FRAME_W,
-        (float)SUN_SALUTATION_POSE_FRAME_H
-    }
-    dst = (Rectangle){
-        ((float)view_width - w) * 0.5f,
-        (float)top_y + (max_h - h) * 0.5f,
-        w,
-        h
-    }
-    DrawTexturePro(texture, src, dst, (Vector2){0}, 0.0f, WHITE)
+    Image((ImageProps){
+        .asset_path = asset_path,
+        .source = {
+            (float)((frame_index % columns) * SUN_SALUTATION_POSE_FRAME_W),
+            (float)((frame_index / columns) * SUN_SALUTATION_POSE_FRAME_H),
+            (float)SUN_SALUTATION_POSE_FRAME_W, (float)SUN_SALUTATION_POSE_FRAME_H},
+        .bounds = {(float)Scale(24), (float)top_y,
+            (float)(view_width - Scale(48)), (float)(bottom_y - top_y)},
+        .fit = ImageFitContain
+    })
 }
 
 sun_salutation_transition_index_for_step :: (step: int) -> int #private {
@@ -285,7 +205,7 @@ sun_salutation_transition_index_for_step :: (step: int) -> int #private {
 }
 
 sun_salutation_transition_frame_for_tick :: (step_ticks: int,
-                                            ticks_per_step: int) -> int #private {
+ticks_per_step: int) -> int #private {
     frame_index: int
 
     if ticks_per_step <= 0 {
@@ -295,7 +215,7 @@ sun_salutation_transition_frame_for_tick :: (step_ticks: int,
         step_ticks = 0
     }
     frame_index = (step_ticks * SUN_SALUTATION_TRANSITION_FRAME_COUNT) /
-                  ticks_per_step
+    ticks_per_step
     if frame_index >= SUN_SALUTATION_TRANSITION_FRAME_COUNT {
         frame_index = SUN_SALUTATION_TRANSITION_FRAME_COUNT - 1
     }
@@ -327,9 +247,9 @@ draw_pose_timer :: (app: InnerBreeze*, seconds: int, top_y: int, bottom_y: int) 
     x = (view_width - text_w) / 2
     y = top_y + Scale(4)
     Text((TextProps){
-        .bounds={(x), (y), 0, 0},
-        .text=(timer_text),
-        .wrap=TextWrapNone
+        .bounds = {(x), (y), 0, 0},
+        .text = (timer_text),
+        .wrap = TextWrapNone
     })
 
     w = view_width / 3
@@ -400,11 +320,11 @@ sun_salutation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) 
         repetitions = SUN_SALUTATION_DEFAULT_REPETITIONS
     }
     if app->sun_salutation.start_seconds < SUN_SALUTATION_SECONDS_MIN ||
-       app->sun_salutation.start_seconds > SUN_SALUTATION_SECONDS_MAX {
+    app->sun_salutation.start_seconds > SUN_SALUTATION_SECONDS_MAX {
         app->sun_salutation.start_seconds = SUN_SALUTATION_DEFAULT_START_SECONDS
     }
     if app->sun_salutation.end_seconds < SUN_SALUTATION_SECONDS_MIN ||
-       app->sun_salutation.end_seconds > SUN_SALUTATION_SECONDS_MAX {
+    app->sun_salutation.end_seconds > SUN_SALUTATION_SECONDS_MAX {
         app->sun_salutation.end_seconds = SUN_SALUTATION_DEFAULT_END_SECONDS
     }
     if app->sun_salutation.start_seconds < app->sun_salutation.end_seconds {
@@ -473,18 +393,18 @@ sun_salutation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) 
     image_bottom = row.y - Scale(18)
     draw_pose_timer(app, current_step_seconds, content_top, image_bottom)
     transition_index = sun_salutation_transition_index_for_step(step)
-    if transition_index >= 0 &&
-       transition_index < SUN_SALUTATION_TRANSITION_COUNT &&
-       app->sun_salutation.transition_sheets[figure][transition_index].id != 0 {
+    transition_asset := sun_salutation_transition_asset(figure, transition_index)
+    if transition_asset != nil {
         transition_frame =
-            sun_salutation_transition_frame_for_tick(app->sun_salutation.step_ticks,
-                                                     ticks_per_step)
-        draw_transition_image(app->sun_salutation.transition_sheets[figure][transition_index],
-                              transition_frame,
-                              content_top + Scale(28), image_bottom)
+        sun_salutation_transition_frame_for_tick(app->sun_salutation.step_ticks,
+        ticks_per_step)
+        draw_pose_frame(transition_asset, transition_frame,
+        SUN_SALUTATION_TRANSITION_SHEET_COLS,
+        content_top + Scale(28), image_bottom)
     } else {
-        draw_pose_image(app->sun_salutation.pose_sheets[figure], pose_index,
-                           content_top + Scale(28), image_bottom)
+        draw_pose_frame(sun_salutation_pose_asset(figure), pose_index,
+        SUN_SALUTATION_POSE_SHEET_COLS,
+        content_top + Scale(28), image_bottom)
     }
 
     if row.clicked_index == 0 {
@@ -507,6 +427,6 @@ route sun_salutation {
 
 sun_salutation :: (app: InnerBreeze*) #ui {
     Screen root: {
-    sun_salutation_draw_screen(app, view_width / 2, view_height / 2)
+        sun_salutation_draw_screen(app, view_width / 2, view_height / 2)
     }
 }

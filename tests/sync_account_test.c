@@ -400,13 +400,13 @@ test_legacy_synced_account_migrates_connected_server(void)
                 "VALUES('sync_last_server_version','6638');"
                 "INSERT OR REPLACE INTO meta(key,value) "
                 "VALUES('sync_full_upload_done','1');"
-                "DELETE FROM settings WHERE key='sync_server_connected';");
+                "DELETE FROM settings WHERE key IN ('sync_server_connected','sync_enabled');");
     storage_close();
 
     check_true("reopen legacy connected storage", storage_init(root));
     check_true("legacy connected flag migrated",
-               storage_get_setting_int("sync_server_connected", 0) == 1);
-    check_true("legacy connected helper", storage_sync_server_connected());
+               storage_get_setting_int("sync_enabled", 0) == 1);
+    check_true("legacy connected helper", storage_sync_enabled());
 
     storage_close();
     remove_tree(root);
@@ -432,14 +432,14 @@ test_unsynced_account_does_not_migrate_connected_server(void)
                import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     storage_set_setting_text("sync_server_url", "https://api.waozi.xyz");
     exec_db_sql("remove unsynced connected flag",
-                "DELETE FROM settings WHERE key='sync_server_connected';");
+                "DELETE FROM settings WHERE key IN ('sync_server_connected','sync_enabled');");
     storage_close();
 
     check_true("reopen unsynced connected storage", storage_init(root));
     check_true("unsynced account remains disconnected",
-               storage_get_setting_int("sync_server_connected", 0) == 0);
+               storage_get_setting_int("sync_enabled", 0) == 0);
     check_false("unsynced account helper disconnected",
-                storage_sync_server_connected());
+                storage_sync_enabled());
 
     storage_close();
     remove_tree(root);
@@ -465,21 +465,49 @@ test_disconnected_account_reports_queue_without_connection(void)
     check_true("save disconnected queued account",
                import_key_and_save(&account, key_path, 0) == SYNC_ACCOUNT_SAVE_OK);
     storage_set_setting_text("sync_server_url", "https://api.waozi.xyz");
-    storage_set_sync_server_connected(0);
+    storage_set_sync_enabled(0);
     exec_db_sql("insert disconnected queued sync row",
                 "INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
                 "VALUES('session','queued-local-session',0,strftime('%s','now'));");
 
     check_false("disconnected queued server helper",
-                storage_sync_server_connected());
+                storage_sync_enabled());
     check_true("disconnected queued status loads",
                storage_sync_status(&status));
     check_true("disconnected queued has account", status.has_account);
-    check_false("disconnected queued not connected", status.server_connected);
+    check_false("disconnected queued not connected", status.enabled);
     check_true("disconnected queued count visible", status.queued_changes == 1);
     check_true("disconnected queued row preserved",
                read_db_count("SELECT COUNT(*) FROM sync_outbox") == 1);
 
+    storage_set_sync_enabled(1);
+    storage_set_setting_int("sync_last_result", 6);
+    storage_set_setting_int("sync_retry_attempt", 3);
+    exec_db_sql("finish migration", "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_encrypted_shadow_v4_complete_v2','1');");
+    check_true("same key save succeeds", sync_account_save(&account, 0) == SYNC_ACCOUNT_SAVE_OK);
+    check_true("same key preserves retry", storage_get_setting_int("sync_retry_attempt", 0) == 3);
+    check_true("same key preserves enabled sync", storage_sync_enabled());
+    check_true("same key status", storage_sync_status(&status));
+    check_false("same key preserves migration completion", status.secure_migration_pending);
+    storage_close();
+    check_true("reopen retry state", storage_init(root));
+    check_true("retry survives restart", storage_get_setting_int("sync_retry_attempt", 0) == 3);
+    check_true("queue survives restart", storage_sync_status(&status) && status.queued_changes == 1);
+    storage_set_sync_enabled(0);
+    check_true("disconnect clears retry", storage_get_setting_int("sync_retry_attempt", -1) == 0);
+    exec_db_sql("simulate explicit 1.9.19 disconnect",
+                "DELETE FROM settings WHERE key='sync_enabled';"
+                "INSERT OR REPLACE INTO settings(user_id,key,value,updated_at) "
+                "SELECT id,'sync_server_connected','0',strftime('%s','now') FROM users LIMIT 1;");
+    storage_close();
+    check_true("open 1.9.19 disconnected account", storage_init(root));
+    check_false("migration preserves explicit disconnect", storage_sync_enabled());
+    exec_db_sql("simulate explicit 1.9.19 connection",
+                "DELETE FROM settings WHERE key='sync_enabled';"
+                "UPDATE settings SET value='1' WHERE key='sync_server_connected';");
+    storage_close();
+    check_true("open 1.9.19 connected account", storage_init(root));
+    check_true("migration preserves enabled account", storage_sync_enabled());
     storage_close();
     remove_tree(root);
 }

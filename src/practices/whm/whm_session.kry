@@ -625,7 +625,10 @@ session_step_forward :: (app: InnerBreeze*) #private {
 draw_session_counter :: (app: InnerBreeze*, center_x: int, center_y: int) #private {
     text: [16] char
     count: int
-    display_text: const char* = app->breathing.count
+    display_text: const char* = text
+    font: int
+    text_w: int
+    max_w: int
 
     if app->breathing.phase == BreathPhaseStarting {
         total_seconds: int = effective_pause_seconds(&app->breathing)
@@ -641,31 +644,31 @@ draw_session_counter :: (app: InnerBreeze*, center_x: int, center_y: int) #priva
             }
         }
         snprintf(text, sizeof(text), "%d", remaining)
-        display_text = text
     } else if app->breathing.phase == BreathPhaseRecover {
         if app->breathing.r < app->breathing.rmax {
-            display_text = "000"
+            snprintf(text, sizeof(text), "0")
         } else {
             count = int_from_count(app->breathing.count)
             if count < 15 {
-                count_from_int(text, 15 - count)
-                display_text = text
+                snprintf(text, sizeof(text), "%d", 15 - count)
             } else {
-                display_text = "000"
+                snprintf(text, sizeof(text), "0")
             }
         }
     } else if app->breathing.phase == BreathPhaseNext {
-        display_text = "000"
+        snprintf(text, sizeof(text), "0")
+    } else {
+        snprintf(text, sizeof(text), "%d", int_from_count(app->breathing.count))
     }
 
+    max_w = (int)(draw_radius(&app->breathing) * 1.12f)
+    font = AppFitFontSize(display_text, max_w, Text48, Text24)
+    text_w = AppTextWidth(display_text, font)
     Text((TextProps){
-        .bounds = {(float)(center_x - Scale(60)),
-                   (float)(center_y - Scale(30)),
-                   (float)Scale(120), (float)Scale(60)},
         .text = display_text,
-        .wrap = TextWrapNone,
-        .align = TextAlignCenter,
-        .vertical_align = TextAlignCenter
+        .bounds = {(float)(center_x - text_w / 2), (float)(center_y - AppTextLineHeight(font) / 2), 0, 0},
+        .font = font,
+        .wrap = TextWrapNone
     })
 }
 

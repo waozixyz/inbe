@@ -16,18 +16,6 @@ Meine Absicht
 [profile_progress_title]
 Diese Woche
 ---
-[profile_today_habits]
-Heutige Gewohnheiten
----
-[profile_active_days]
-Aktive Tage
----
-[profile_days_value]
-%d Tage
----
-[profile_week_practices]
-Übungseinheiten
----
 [profile_weekly_insight]
 Du warst diese Woche an %d Tagen aktiv.
 ---
@@ -631,9 +619,6 @@ Beenden
 [sync_account_title]
 Konto
 ---
-[sync_configure_account_button]
-Konto einrichten
----
 [sync_create_account_button]
 Konto erstellen
 ---
@@ -648,9 +633,6 @@ Konto konnte nicht erstellt werden
 ---
 [sync_import_key_dialog_title]
 Kontoschlüssel importieren
----
-[sync_private_key_imported]
-Kontoschlüssel importiert
 ---
 [sync_private_key_import_failed]
 Kontoschlüssel konnte nicht importiert werden
@@ -675,9 +657,6 @@ Server
 ---
 [sync_connect_button]
 Verbinden
----
-[sync_connected_button]
-Verbunden
 ---
 [sync_server_url_invalid]
 Nutze https:// oder Loopback wie localhost:8080
@@ -778,7 +757,6 @@ Woche
 [habit_focus_calendar]
 Kalender
 ---
----
 [habit_complete_today_button]
 Heute abschließen
 ---
@@ -848,7 +826,6 @@ Gesamte Atemhaltezeit
 [habit_stats_best_streak]
 Beste Serie
 ---
----
 
 [theme_picker_title]
 Thema wählen
@@ -894,6 +871,9 @@ Hintergrundmusik
 ---
 [appearance_scale_label]
 Skalierung
+---
+[appearance_glow_effects_label]
+Leuchteffekte
 ---
 [audio_music_none_option]
 Keine
@@ -997,6 +977,30 @@ Sitzungsdaten kommen aus abgeschlossenen Übungen.
 [meditation_music_downloading_progress]
 Audio wird geladen... %d%%
 ---
+[practice_home_title_patterns]
+Ruhiger Boxatem
+---
+[practice_home_subtitle_patterns]
+5 Minuten für ruhigen Fokus
+---
+[practice_home_title_wim_hof]
+Wim-Hof-Atmung
+---
+[practice_home_subtitle_wim_hof]
+Geführte Runden für Energie
+---
+[practice_home_title_meditation]
+Meditation
+---
+[practice_home_subtitle_meditation]
+Mit einem ruhigen Timer ankommen
+---
+[practice_home_title_sun_salutation]
+Sonnengruß
+---
+[practice_home_subtitle_sun_salutation]
+Bewege dich mit dem Atem durch jede Haltung
+---
 [meditation_music_downloading]
 Audio wird geladen...
 ---
@@ -1030,9 +1034,6 @@ Remote verwenden
 [sync_status_title]
 Sync-Status
 ---
-[sync_status_account]
-Konto: %s
----
 [sync_status_connected]
 verbunden
 ---
@@ -1042,23 +1043,8 @@ nicht verbunden
 [sync_status_queued]
 Wartend: %lld
 ---
-[sync_status_server]
-Server: %lld
----
-[sync_status_clock]
-Uhr: %lld
----
-[sync_status_upgrade]
-Inner Breeze aktualisieren
----
 [sync_status_review_pending]
 Prüfung ausstehend
----
-[sync_status_repair_pending]
-Sync-Reparatur ausstehend
----
-[sync_status_secure_migration_pending]
-Sichere Datenmigration ausstehend
 ---
 [sync_secure_migration_title]
 Aktualisierung der sicheren Synchronisierung
@@ -1080,9 +1066,6 @@ Jetzt aktualisieren
 ---
 [sync_status_local_queued]
 Lokale Änderungen warten
----
-[sync_status_initial_upload_pending]
-Erst-Upload ausstehend
 ---
 [sync_status_ready]
 Bereit
@@ -1781,8 +1764,17 @@ Zeitplan & Erinnerung
 [tab_elist]
 Listen
 ---
-[elist_title]
-Listen
+[elist_default_list]
+Eingang
+---
+[elist_default_item_breathe]
+Atme achtsam durch
+---
+[elist_default_item_walk]
+Geh kurz nach draussen
+---
+[elist_default_item_water]
+Trink ein Glas Wasser
 ---
 [elist_new_list]
 Neue Liste
@@ -1798,6 +1790,15 @@ Noch keine Listen
 ---
 [elist_empty_detail]
 Erstelle eine Liste und fuge Aufgaben und Notizen an einem Ort hinzu.
+---
+[navigation_sidebar]
+Seitenleiste
+---
+[navigation_sidebar_expanded]
+Erweitert
+---
+[navigation_sidebar_compact]
+Kompakt
 ---
 [navigation_placement]
 Position der Navigation
@@ -1817,6 +1818,83 @@ Rechts
 [navigation_top]
 Oben
 ---
+[sync_connected]
+Verbunden.
+---
+[sync_auth_failed]
+Authentifizierung fehlgeschlagen. Prüfe deinen Kontoschlüssel.
+---
+[sync_failed]
+Synchronisierung fehlgeschlagen. Deine lokalen Daten bleiben erhalten. Versuche es erneut.
+---
+[sync_server_unavailable]
+Der Synchronisierungsserver ist nicht erreichbar. Versuche es später erneut.
+---
+[sync_sign_failed]
+Die Synchronisierungsanfrage konnte nicht signiert werden. Prüfe deinen Kontoschlüssel.
+---
+[profile_today_short]
+Heute
+---
+[profile_active_days_short]
+Aktive Tage
+---
+[profile_sessions_short]
+Sitzungen
+---
+[profile_sync_prompt_body]
+Erstelle ein Konto, um deinen Fortschritt zu synchronisieren und zu sichern.
+---
+[profile_sync_ready_body]
+Die Synchronisierung für dieses Profil ist bereit.
+---
+[profile_account_sync_title]
+Konto und Synchronisierung
+---
+[profile_account_sync_body]
+Konto erstellen oder Schlüssel importieren
+---
+[profile_data_management_title]
+Daten
+---
+[profile_data_management_body]
+Import, Export und Speicher
+---
+[profile_leaderboard_preview_body]
+Rangliste und aktuelle Serie ansehen
+---
+[profile_no_rank_short]
+Noch keine Platzierung
+---
 [appearance_style_label]
 Stil
 ---
+[sync_connection_required]
+Zum Hochladen der Änderungen unter Profil / Synchronisierung verbinden.
+
+---
+[sync_in_progress]
+Synchronisierung läuft…
+
+---
+[sync_retry_waiting]
+Verbindung fehlgeschlagen. Automatischer neuer Versuch.
+
+---
+[sync_retry_button]
+Erneut versuchen
+---
+[app_icon_label]
+App-Symbol
+---
+[app_icon_sky_cradle]
+Himmelswiege
+---
+[app_icon_ink_and_air]
+Tusche und Luft
+---
+[app_icon_hint]
+Die Aktualisierung auf dem Startbildschirm kann kurz dauern.
+---
+[app_icon_error]
+Das App-Symbol konnte nicht geändert werden. Bitte erneut versuchen.

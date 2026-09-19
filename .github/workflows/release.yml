@@ -23,6 +23,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check Version Consistency
+        run: |
+          python3 scripts/check-version.py
+          python3 tests/version_test.py
+
       - name: Scan Tracked Files and History
         run: |
           set -euo pipefail
@@ -735,9 +740,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/release/android
-          VERSION=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' src/core/version.h)
+          VERSION=$(python3 scripts/check-version.py --print-version)
           if [ -z "$VERSION" ]; then
-            echo "Could not read INBE_VERSION_STRING"
+            echo "Could not read APP_VERSION_STRING"
             exit 1
           fi
           for apk in "build/android/inbe-$VERSION.apk" "build/android/inbe-$VERSION-gplay.apk"; do
@@ -801,9 +806,9 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$(find build/release -type f -print -quit)"
-          VERSION=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' src/core/version.h)
+          VERSION=$(python3 scripts/check-version.py --print-version)
           if [ -z "$VERSION" ]; then
-            echo "Could not read INBE_VERSION_STRING"
+            echo "Could not read APP_VERSION_STRING"
             exit 1
           fi
           missing=0
@@ -821,9 +826,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          VERSION=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' src/core/version.h)
+          VERSION=$(python3 scripts/check-version.py --print-version)
           if [ -z "$VERSION" ]; then
-            echo "Could not read INBE_VERSION_STRING"
+            echo "Could not read APP_VERSION_STRING"
             exit 1
           fi
           TAG="v$VERSION"

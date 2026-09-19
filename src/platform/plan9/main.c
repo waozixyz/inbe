@@ -15,7 +15,7 @@ main(void)
         exits("window");
 
     SetExitKey(0);
-    InitUIDPI();
+    InitDPI();
     SetTargetFPS(60);
 
     app = CreateApp("/sys/src/breathing");

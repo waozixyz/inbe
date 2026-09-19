@@ -6,7 +6,6 @@
 #import "practices/practice_registry.h"
 #import "screens/settings/settings_screen.h"
 #import "src/screens/settings/settings_ui.h"
-#import "text_utils.h"
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
@@ -95,9 +94,9 @@ settings_audio_draw_status :: (x: int, y: int*, action: int) #private {
         return
     }
     Text((TextProps){
-        .bounds={(x), (*y), 0, 0},
-        .text=(audio_status),
-        .wrap=TextWrapNone
+        .bounds = {(x), (*y), 0, 0},
+        .text = (audio_status),
+        .wrap = TextWrapNone
     })
     *y += Scale(24)
 }
@@ -230,8 +229,8 @@ settings_audio_preview_cue_playing :: (app: InnerBreeze*, cue: int) -> int #priv
 
 settings_audio_preview_custom_sound_playing :: (index: int) -> int #private {
     if audio_preview_kind != SETTINGS_AUDIO_PREVIEW_CUSTOM_SOUND ||
-       audio_preview_index != index ||
-       audio_preview_sound.frameCount == 0 {
+    audio_preview_index != index ||
+    audio_preview_sound.frameCount == 0 {
         return 0
     }
     return IsSoundPlaying(audio_preview_sound) ? 1 : 0
@@ -239,8 +238,8 @@ settings_audio_preview_custom_sound_playing :: (index: int) -> int #private {
 
 settings_audio_preview_music_playing :: (index: int) -> int #private {
     if audio_preview_kind != SETTINGS_AUDIO_PREVIEW_MUSIC ||
-       audio_preview_index != index ||
-       !audio_preview_music_loaded {
+    audio_preview_index != index ||
+    !audio_preview_music_loaded {
         return 0
     }
     return IsMusicStreamPlaying(audio_preview_music) ? 1 : 0
@@ -265,7 +264,7 @@ settings_audio_toggle_cue_preview :: (app: InnerBreeze*, cue: int) #private {
 
 settings_audio_toggle_custom_sound_preview :: (app: InnerBreeze*, index: int) #private {
     if app == nil || !app->audio_ready ||
-       index < 0 || index >= app->audio_custom_sound_count {
+    index < 0 || index >= app->audio_custom_sound_count {
         settings_screen_set_status_error(GetLocaleText("audio_preview_failed"))
         return
     }
@@ -297,8 +296,8 @@ settings_audio_toggle_music_preview :: (app: InnerBreeze*, index: int) #private 
         return
     }
     if audio_preview_kind == SETTINGS_AUDIO_PREVIEW_MUSIC &&
-       audio_preview_index == index &&
-       audio_preview_music_loaded {
+    audio_preview_index == index &&
+    audio_preview_music_loaded {
         ResumeMusicStream(audio_preview_music)
         return
     }
@@ -335,8 +334,8 @@ audio_action_to_cue :: (action: int) -> int #private {
 
 audio_android_kind :: (action: int) -> int #private {
     return action == SETTINGS_AUDIO_ACTION_MUSIC
-        ? ANDROID_IMPORT_KIND_AUDIO_MUSIC
-        : ANDROID_IMPORT_KIND_AUDIO_SOUND
+    ? ANDROID_IMPORT_KIND_AUDIO_MUSIC
+    : ANDROID_IMPORT_KIND_AUDIO_SOUND
 }
 
 audio_import_path :: (app: InnerBreeze*, action: int, path: const char*) -> int #private {
@@ -377,9 +376,9 @@ audio_import_path :: (app: InnerBreeze*, action: int, path: const char*) -> int 
 }
 
 settings_audio_select_imported_music :: (app: InnerBreeze*, action: int,
-                                         practice: int) #private {
+practice: int) #private {
     if app == nil || action != SETTINGS_AUDIO_ACTION_MUSIC ||
-       app->audio_custom_music_count <= 0 {
+    app->audio_custom_music_count <= 0 {
         return
     }
     track := AUDIO_BUILTIN_MUSIC_COUNT + app->audio_custom_music_count - 1
@@ -397,10 +396,10 @@ settings_audio_select_imported_music :: (app: InnerBreeze*, action: int,
     app_audio_music_sanitize_selection(app)
     save_settings(app)
     settings_audio_set_status_success(action,
-        GetLocaleText("audio_imported_and_selected"))
+    GetLocaleText("audio_imported_and_selected"))
     TraceLog(LOG_INFO,
-        "AUDIO: Imported custom music and selected track %d for practice %d",
-        track, practice)
+    "AUDIO: Imported custom music and selected track %d for practice %d",
+    track, practice)
 }
 
 settings_audio_start_import :: (app: InnerBreeze*, action: int, practice: int) #private {
@@ -409,7 +408,7 @@ settings_audio_start_import :: (app: InnerBreeze*, action: int, practice: int) #
     #if ANDROID {
         settings_audio_dialog_begin(app, action, practice)
         if android_import_open_picker_for(audio_android_kind(action),
-                                          android_audio_mime_types) {
+        android_audio_mime_types) {
             settings_audio_set_status_success(action, GetLocaleText("audio_import_title"))
         } else {
             settings_audio_dialog_finish(app)
@@ -423,8 +422,8 @@ settings_audio_start_import :: (app: InnerBreeze*, action: int, practice: int) #
         audio_web_dialog_ready = 1
         settings_audio_dialog_begin(app, action, practice)
         BeginLoadFilteredFileDialog(&audio_web_dialog,
-                                    GetLocaleText("audio_import_title"),
-                                    settings_audio_import_filter(action))
+        GetLocaleText("audio_import_title"),
+        settings_audio_import_filter(action))
         settings_audio_set_status_success(action, GetLocaleText("audio_import_title"))
     } #else_if NATIVE_FILE_DIALOG {
         dlg: FileDialog = {0}
@@ -460,7 +459,7 @@ settings_audio_handle_import :: (app: InnerBreeze*) {
             return
         }
         result = android_import_poll_result_for(audio_android_kind(action),
-                                                path, sizeof(path))
+        path, sizeof(path))
         if result == ANDROID_IMPORT_RESULT_NONE {
             return
         }
@@ -503,22 +502,22 @@ settings_audio_handle_import :: (app: InnerBreeze*) {
 
 settings_audio_draw_output :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     status_label := app->audio_ready ?
-        GetLocaleText("audio_status_ready") :
-        GetLocaleText("audio_status_unavailable")
+    GetLocaleText("audio_status_ready") :
+    GetLocaleText("audio_status_unavailable")
     Text((TextProps){
-        .bounds={(x), (*y), 0, 0},
-        .text=(GetLocaleText("audio_output_label")),
-        .wrap=TextWrapNone
+        .bounds = {(x), (*y), 0, 0},
+        .text = (GetLocaleText("audio_output_label")),
+        .wrap = TextWrapNone
     })
     Text((TextProps){
-        .bounds={(x), (*y + Scale(26)), 0, 0},
-        .text=(GetLocaleText("audio_system_default_label")),
-        .wrap=TextWrapNone
+        .bounds = {(x), (*y + Scale(26)), 0, 0},
+        .text = (GetLocaleText("audio_system_default_label")),
+        .wrap = TextWrapNone
     })
     Text((TextProps){
-        .bounds={(x), (*y + Scale(46)), 0, 0},
-        .text=(status_label),
-        .wrap=TextWrapNone
+        .bounds = {(x), (*y + Scale(46)), 0, 0},
+        .text = (status_label),
+        .wrap = TextWrapNone
     })
     *y += Scale(70)
 
@@ -538,7 +537,7 @@ settings_audio_draw_output :: (app: InnerBreeze*, x: int, w: int, y: int*) #priv
     if Button((ButtonProps){
         .id = 3402,
         .bounds = {(float)(x + button_w + button_gap), (float)*y,
-                   (float)(w - button_w - button_gap), (float)Scale(36)},
+            (float)(w - button_w - button_gap), (float)Scale(36)},
         .label = GetLocaleText("audio_reinitialize_button"),
         .tone = ButtonToneNeutral,
         .emphasis = ButtonEmphasisSoft
@@ -554,7 +553,7 @@ settings_audio_draw_output :: (app: InnerBreeze*, x: int, w: int, y: int*) #priv
         app_audio_reinitialize(app)
     }
     *y += settings_ui_draw_audio_meter(app, x, *y, w,
-                                       GetLocaleText("audio_output_level_label"))
+    GetLocaleText("audio_output_level_label"))
     *y += Scale(18)
 }
 
@@ -571,7 +570,7 @@ settings_audio_output_height :: (content_w: int) -> int #private {
     unused content_w
 
     return Scale(70) + Scale(36) +
-        settings_ui_audio_meter_height() + Scale(18)
+    settings_ui_audio_meter_height() + Scale(18)
 }
 
 settings_audio_music_assignment_count :: (app: InnerBreeze*) -> int #private {
@@ -596,11 +595,11 @@ settings_audio_content_height :: (app: InnerBreeze*, content_w: int) -> int {
 
     height += Scale(66) * 2
     height += Scale(76) +
-        settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_SOUND_IN)
+    settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_SOUND_IN)
     height += Scale(76) +
-        settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_SOUND_OUT)
+    settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_SOUND_OUT)
     height += Scale(76) +
-        settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_SOUND_BELL)
+    settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_SOUND_BELL)
 
     if app != nil {
         custom_sound_count = app->audio_custom_sound_count
@@ -621,7 +620,7 @@ settings_audio_content_height :: (app: InnerBreeze*, content_w: int) -> int {
 
     if custom_sound_count > 0 {
         height += Scale(30) + Scale(42) * custom_sound_count +
-            Scale(8)
+        Scale(8)
     }
 
     height += Scale(30)
@@ -640,8 +639,8 @@ settings_audio_content_height :: (app: InnerBreeze*, content_w: int) -> int {
     }
     height += Scale(30)
     height += music_assignment_count > 0
-        ? Scale(42) * music_assignment_count
-        : Scale(24)
+    ? Scale(42) * music_assignment_count
+    : Scale(24)
     height += Scale(12)
 
     if custom_music_count > 0 {
@@ -671,7 +670,7 @@ draw_import_button :: (app: InnerBreeze*, x: int, w: int, y: int*, label: const 
 }
 
 draw_cue_selector :: (app: InnerBreeze*, x: int, w: int, y: int*, cue: int,
-                     label: const char*, action: int) #private {
+label: const char*, action: int) #private {
     options: [AUDIO_CUSTOM_SOUND_MAX + 1] const char*
     count := app->audio_custom_sound_count + 1
     preview_w := Scale(82)
@@ -692,14 +691,14 @@ draw_cue_selector :: (app: InnerBreeze*, x: int, w: int, y: int*, cue: int,
     }
 
     Text((TextProps){
-        .bounds={(x), (*y), 0, 0},
-        .text=(label),
-        .wrap=TextWrapNone
+        .bounds = {(x), (*y), 0, 0},
+        .text = (label),
+        .wrap = TextWrapNone
     })
     if Dropdown((DropdownProps){.id = 820 + cue,
-                      .bounds = {x, *y + Scale(26), dropdown_w, Scale(36)},
-                      .options = options, .option_count = count,
-                      .selected_index = &app->audio_cue_selected[cue]}) {
+        .bounds = {x, *y + Scale(26), dropdown_w, Scale(36)},
+        .options = options, .option_count = count,
+        .selected_index = &app->audio_cue_selected[cue]}) {
         settings_audio_stop_preview(app)
         app_audio_reload_cue_sounds(app)
         app->settings_dirty = 1
@@ -709,7 +708,7 @@ draw_cue_selector :: (app: InnerBreeze*, x: int, w: int, y: int*, cue: int,
         if Button((ButtonProps){
             .bounds = {(float)((x + dropdown_w + control_gap)), (float)((*y + Scale(28))), (float)(preview_w), (float)(Scale(32))},
             .label = (settings_audio_preview_cue_playing(app, cue)) ? GetLocaleText("pause_button")
-                                           : GetLocaleText("play_button"),
+            : GetLocaleText("play_button"),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = (app == nil || !app->audio_ready)
@@ -719,7 +718,7 @@ draw_cue_selector :: (app: InnerBreeze*, x: int, w: int, y: int*, cue: int,
     }
     *y += Scale(76)
     draw_import_button(app, x, w, y, GetLocaleText("audio_import_sound_button"),
-                       action, -1)
+    action, -1)
 }
 
 draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
@@ -732,9 +731,9 @@ draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private 
         return
     }
     Text((TextProps){
-        .bounds={(x), (*y), 0, 0},
-        .text=(GetLocaleText("audio_custom_sounds_title")),
-        .wrap=TextWrapNone
+        .bounds = {(x), (*y), 0, 0},
+        .text = (GetLocaleText("audio_custom_sounds_title")),
+        .wrap = TextWrapNone
     })
     *y += Scale(30)
     for int i = 0; i < app->audio_custom_sound_count; i++ {
@@ -744,14 +743,14 @@ draw_custom_sound_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private 
             label_w = w - button_w - gap
         }
         Text((TextProps){
-            .bounds={(x), (*y + Scale(8)), 0, 0},
-            .text=(app->audio_custom_sounds[i].title),
-            .wrap=TextWrapNone
+            .bounds = {(x), (*y + Scale(8)), 0, 0},
+            .text = (app->audio_custom_sounds[i].title),
+            .wrap = TextWrapNone
         })
         if Button((ButtonProps){
             .bounds = {(float)((x + w - button_w - preview_w - gap)), (float)((*y)), (float)(preview_w), (float)(Scale(32))},
             .label = (settings_audio_preview_custom_sound_playing(i)) ? GetLocaleText("pause_button")
-                                           : GetLocaleText("play_button"),
+            : GetLocaleText("play_button"),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = (app == nil || !app->audio_ready)
@@ -788,20 +787,20 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     }
 
     Text((TextProps){
-        .bounds={(x), (*y), 0, 0},
-        .text=(GetLocaleText("audio_music_title")),
-        .wrap=TextWrapNone
+        .bounds = {(x), (*y), 0, 0},
+        .text = (GetLocaleText("audio_music_title")),
+        .wrap = TextWrapNone
     })
     *y += Scale(30)
 
     draw_music_download(app, x, w, y)
     draw_import_button(app, x, w, y, GetLocaleText("audio_import_music_button"),
-                       SETTINGS_AUDIO_ACTION_MUSIC, -1)
+    SETTINGS_AUDIO_ACTION_MUSIC, -1)
 
     Text((TextProps){
-        .bounds={(x), (*y), 0, 0},
-        .text=(GetLocaleText("audio_music_applied_title")),
-        .wrap=TextWrapNone
+        .bounds = {(x), (*y), 0, 0},
+        .text = (GetLocaleText("audio_music_applied_title")),
+        .wrap = TextWrapNone
     })
     *y += Scale(30)
     practice_total := practice_count()
@@ -824,24 +823,22 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
             label_w = Scale(40)
         }
         practice_text: [96] char = {0}
-        track_text: [AUDIO_LABEL_SIZE + 4] char = {0}
         snprintf(practice_text, sizeof(practice_text), "%s", practice_label(p))
-        text_fit_ellipsis(app_audio_music_label(app, current), track_text,
-                                   sizeof(track_text), label_w, Text12)
         Text((TextProps){
-            .bounds={(x), (*y + Scale(2)), 0, 0},
-            .text=(practice_text),
-            .wrap=TextWrapNone
+            .bounds = {(x), (*y + Scale(2)), 0, 0},
+            .text = (practice_text),
+            .wrap = TextWrapNone
         })
         Text((TextProps){
-            .bounds={(x), (*y + Scale(20)), 0, 0},
-            .text=(track_text),
-            .wrap=TextWrapNone
+            .bounds = {(x), (*y + Scale(20)), (label_w), 0},
+            .font = Text12,
+            .text = app_audio_music_label(app, current),
+            .wrap = TextWrapNone
         })
         if Button((ButtonProps){
             .bounds = {(float)((x + w - button_w - preview_w - gap)), (float)((*y)), (float)(preview_w), (float)(Scale(32))},
             .label = (settings_audio_preview_music_playing(current)) ? GetLocaleText("pause_button")
-                                           : GetLocaleText("play_button"),
+            : GetLocaleText("play_button"),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = (app == nil || !app->audio_ready)
@@ -867,9 +864,9 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     }
     if assigned == 0 {
         Text((TextProps){
-            .bounds={(x), (*y), 0, 0},
-            .text=(GetLocaleText("audio_music_no_practices")),
-            .wrap=TextWrapNone
+            .bounds = {(x), (*y), 0, 0},
+            .text = (GetLocaleText("audio_music_no_practices")),
+            .wrap = TextWrapNone
         })
         *y += Scale(24)
     }
@@ -879,9 +876,9 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         return
     }
     Text((TextProps){
-        .bounds={(x), (*y), 0, 0},
-        .text=(GetLocaleText("audio_custom_music_title")),
-        .wrap=TextWrapNone
+        .bounds = {(x), (*y), 0, 0},
+        .text = (GetLocaleText("audio_custom_music_title")),
+        .wrap = TextWrapNone
     })
     *y += Scale(30)
     for int i = 0; i < app->audio_custom_music_count; i++ {
@@ -893,18 +890,16 @@ draw_music_list :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         if label_w < Scale(40) {
             label_w = Scale(40)
         }
-        fitted: [AUDIO_LABEL_SIZE + 4] char = {0}
-        text_fit_ellipsis(app->audio_custom_music[i].title, fitted,
-                                   sizeof(fitted), label_w, Text12)
         Text((TextProps){
-            .bounds={(x), (*y + Scale(8)), 0, 0},
-            .text=(fitted),
-            .wrap=TextWrapNone
+            .bounds = {(x), (*y + Scale(8)), (label_w), 0},
+            .font = Text12,
+            .text = app->audio_custom_music[i].title,
+            .wrap = TextWrapNone
         })
         if Button((ButtonProps){
             .bounds = {(float)((x + w - button_w - preview_w - gap)), (float)((*y)), (float)(preview_w), (float)(Scale(32))},
             .label = (settings_audio_preview_music_playing(track_index)) ? GetLocaleText("pause_button")
-                                           : GetLocaleText("play_button"),
+            : GetLocaleText("play_button"),
             .tone = ButtonToneNeutral,
             .emphasis = ButtonEmphasisSoft,
             .disabled = (app == nil || !app->audio_ready)
@@ -958,25 +953,25 @@ draw_music_download :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     *y += button_h + Scale(12)
 
     if !installed ||
-       app->meditation.music_download.status != RUNTIME_ASSET_IDLE {
+    app->meditation.music_download.status != RUNTIME_ASSET_IDLE {
         if app->meditation.music_download.status == RUNTIME_ASSET_DOWNLOADING {
             download_status: [96] char
             meditation_music_format_download_status(download_status,
-                                                      sizeof(download_status),
-                                                      &app->meditation.music_download)
+            sizeof(download_status),
+            &app->meditation.music_download)
             Text((TextProps){
-                .bounds={(x), (*y), 0, 0},
-                .text=(download_status),
-                .wrap=TextWrapNone
+                .bounds = {(x), (*y), 0, 0},
+                .text = (download_status),
+                .wrap = TextWrapNone
             })
             *y += Scale(28)
             meditation_music_draw_download_progress(app, x, *y, w)
             *y += Scale(22)
         } else if app->meditation.music_download.status == RUNTIME_ASSET_ERROR {
             Text((TextProps){
-                .bounds={(x), (*y), 0, 0},
-                .text=(app->meditation.music_status),
-                .wrap=TextWrapNone
+                .bounds = {(x), (*y), 0, 0},
+                .text = (app->meditation.music_status),
+                .wrap = TextWrapNone
             })
             *y += Scale(34)
         }
@@ -1009,18 +1004,18 @@ settings_audio_draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     settings_audio_draw_output(app, x, w, y)
 
     if settings_ui_commit_slider_row(app, 871, x, w, y, Scale(66),
-                                     GetLocaleText("cue_volume_label"),
-                                     SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
-                                     &sound_volume, "", 0) {
+    GetLocaleText("cue_volume_label"),
+    SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
+    &sound_volume, "", 0) {
         app->sound_volume = sound_volume
         if audio_preview_sound.frameCount != 0 {
             SetSoundVolume(audio_preview_sound, settings_audio_sound_volume(app))
         }
     }
     if settings_ui_commit_slider_row(app, 872, x, w, y, Scale(66),
-                                     GetLocaleText("music_volume_label"),
-                                     SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
-                                     &music_volume, "", 0) {
+    GetLocaleText("music_volume_label"),
+    SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
+    &music_volume, "", 0) {
         app->music_volume = music_volume
         if audio_preview_music_loaded {
             SetMusicVolume(audio_preview_music, settings_audio_music_volume(app))
@@ -1028,14 +1023,14 @@ settings_audio_draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     }
 
     draw_cue_selector(app, x, w, y, AUDIO_CUE_BREATH_IN,
-                      GetLocaleText("audio_breath_in_label"),
-                      SETTINGS_AUDIO_ACTION_SOUND_IN)
+    GetLocaleText("audio_breath_in_label"),
+    SETTINGS_AUDIO_ACTION_SOUND_IN)
     draw_cue_selector(app, x, w, y, AUDIO_CUE_BREATH_OUT,
-                      GetLocaleText("audio_breath_out_label"),
-                      SETTINGS_AUDIO_ACTION_SOUND_OUT)
+    GetLocaleText("audio_breath_out_label"),
+    SETTINGS_AUDIO_ACTION_SOUND_OUT)
     draw_cue_selector(app, x, w, y, AUDIO_CUE_BELL,
-                      GetLocaleText("audio_bell_label"),
-                      SETTINGS_AUDIO_ACTION_SOUND_BELL)
+    GetLocaleText("audio_bell_label"),
+    SETTINGS_AUDIO_ACTION_SOUND_BELL)
     draw_custom_sound_list(app, x, w, y)
     draw_music_list(app, x, w, y)
     settings_screen_draw_status_reserved(x, y, Scale(42))

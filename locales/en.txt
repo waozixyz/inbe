@@ -16,18 +16,6 @@ My intention
 [profile_progress_title]
 This week
 ---
-[profile_today_habits]
-Today's habits
----
-[profile_active_days]
-Active days
----
-[profile_days_value]
-%d days
----
-[profile_week_practices]
-Practice sessions
----
 [profile_weekly_insight]
 You showed up on %d days this week.
 ---
@@ -414,6 +402,9 @@ Appearance
 ---
 [appearance_scale_label]
 Scale factor
+---
+[appearance_glow_effects_label]
+Glow effects
 ---
 [settings_tab_about]
 About
@@ -868,9 +859,6 @@ Break Settings...
 [sync_account_title]
 Account
 ---
-[sync_configure_account_button]
-Configure profile
----
 [sync_create_account_button]
 Create Account
 ---
@@ -885,9 +873,6 @@ Import .key File
 ---
 [sync_import_key_dialog_title]
 Import Account Key
----
-[sync_private_key_imported]
-Account key imported
 ---
 [sync_private_key_import_failed]
 Could not import account key
@@ -948,9 +933,6 @@ Remote
 ---
 [sync_connect_button]
 Connect
----
-[sync_connected_button]
-Connected
 ---
 [sync_server_url_invalid]
 Use https:// or loopback like localhost:8080
@@ -1051,7 +1033,6 @@ Week
 [habit_focus_calendar]
 Calendar
 ---
----
 [habit_complete_today_button]
 Complete today
 ---
@@ -1120,7 +1101,6 @@ Total hold
 ---
 [habit_stats_best_streak]
 Best streak
----
 ---
 [theme_picker_title]
 Choose Theme
@@ -1236,6 +1216,30 @@ How did you feel?
 [meditation_music_downloading_progress]
 Downloading audio... %d%%
 ---
+[practice_home_title_patterns]
+Steady Box Breath
+---
+[practice_home_subtitle_patterns]
+5 minutes for calm focus
+---
+[practice_home_title_wim_hof]
+Wim Hof Breathing
+---
+[practice_home_subtitle_wim_hof]
+Guided rounds for energy
+---
+[practice_home_title_meditation]
+Meditation
+---
+[practice_home_subtitle_meditation]
+Settle in with a quiet timer
+---
+[practice_home_title_sun_salutation]
+Sun Salutation
+---
+[practice_home_subtitle_sun_salutation]
+Move with breath through each pose
+---
 [meditation_music_downloading]
 Downloading audio...
 ---
@@ -1269,9 +1273,6 @@ Use remote
 [sync_status_title]
 Sync status
 ---
-[sync_status_account]
-Account: %s
----
 [sync_status_connected]
 connected
 ---
@@ -1281,23 +1282,8 @@ disconnected
 [sync_status_queued]
 Queued: %lld
 ---
-[sync_status_server]
-Server: %lld
----
-[sync_status_clock]
-Clock: %lld
----
-[sync_status_upgrade]
-Upgrade Inner Breeze
----
 [sync_status_review_pending]
 Review pending
----
-[sync_status_repair_pending]
-Repair sync pending
----
-[sync_status_secure_migration_pending]
-Secure data migration pending
 ---
 [sync_secure_migration_title]
 Secure sync update
@@ -1319,9 +1305,6 @@ Update now
 ---
 [sync_status_local_queued]
 Local changes queued
----
-[sync_status_initial_upload_pending]
-Initial upload pending
 ---
 [sync_status_ready]
 Ready
@@ -1813,8 +1796,17 @@ Schedule & reminder
 [tab_elist]
 Lists
 ---
-[elist_title]
-Lists
+[elist_default_list]
+Inbox
+---
+[elist_default_item_breathe]
+Take a mindful breath
+---
+[elist_default_item_walk]
+Step outside for a short walk
+---
+[elist_default_item_water]
+Drink a glass of water
 ---
 [elist_new_list]
 New list
@@ -1830,6 +1822,15 @@ No lists yet
 ---
 [elist_empty_detail]
 Create a list, then add tasks and notes in one place.
+---
+[navigation_sidebar]
+Sidebar
+---
+[navigation_sidebar_expanded]
+Expanded
+---
+[navigation_sidebar_compact]
+Compact
 ---
 [navigation_placement]
 Navigation position
@@ -1849,6 +1850,50 @@ Right
 [navigation_top]
 Top
 ---
+[sync_connected]
+Connected.
+---
+[sync_auth_failed]
+Authentication failed. Check your account key.
+---
+[sync_failed]
+Sync failed. Your local data is preserved. Try again.
+---
+[sync_server_unavailable]
+Could not contact the sync server. Try again later.
+---
+[sync_sign_failed]
+Could not sign the sync request. Check your account key.
+---
 [appearance_style_label]
 Style
 ---
+[sync_connection_required]
+Connect in Profile / Sync to upload your changes.
+
+---
+[sync_in_progress]
+Syncing…
+
+---
+[sync_retry_waiting]
+Connection failed. Retrying automatically.
+
+---
+[sync_retry_button]
+Retry
+---
+[app_icon_label]
+App icon
+---
+[app_icon_sky_cradle]
+Sky cradle
+---
+[app_icon_ink_and_air]
+Ink and air
+---
+[app_icon_hint]
+Your launcher may take a moment to update.
+---
+[app_icon_error]
+Could not change the app icon. Try again.

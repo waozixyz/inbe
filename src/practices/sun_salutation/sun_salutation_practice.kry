@@ -51,22 +51,22 @@ normalize_settings :: (app: InnerBreeze*) #private {
     }
 
     app->sun_salutation.repetitions =
-        sun_salutation_clampi(app->sun_salutation.repetitions, 2, 12)
+    sun_salutation_clampi(app->sun_salutation.repetitions, 2, 12)
     app->sun_salutation.start_seconds =
-        sun_salutation_clampi(app->sun_salutation.start_seconds,
-                              SUN_SALUTATION_SECONDS_MIN,
-                              SUN_SALUTATION_SECONDS_MAX)
+    sun_salutation_clampi(app->sun_salutation.start_seconds,
+    SUN_SALUTATION_SECONDS_MIN,
+    SUN_SALUTATION_SECONDS_MAX)
     app->sun_salutation.end_seconds =
-        sun_salutation_clampi(app->sun_salutation.end_seconds,
-                              SUN_SALUTATION_SECONDS_MIN,
-                              SUN_SALUTATION_SECONDS_MAX)
+    sun_salutation_clampi(app->sun_salutation.end_seconds,
+    SUN_SALUTATION_SECONDS_MIN,
+    SUN_SALUTATION_SECONDS_MAX)
     if app->sun_salutation.start_seconds < app->sun_salutation.end_seconds {
         app->sun_salutation.end_seconds = app->sun_salutation.start_seconds
     }
     app->sun_salutation.figure =
-        sun_salutation_clampi(app->sun_salutation.figure,
-                              0,
-                              SUN_SALUTATION_ACTIVE_FIGURE_COUNT - 1)
+    sun_salutation_clampi(app->sun_salutation.figure,
+    0,
+    SUN_SALUTATION_ACTIVE_FIGURE_COUNT - 1)
 }
 
 sun_salutation_practice_init :: (app: InnerBreeze*) {
@@ -74,92 +74,53 @@ sun_salutation_practice_init :: (app: InnerBreeze*) {
         return
     }
 
-    if app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_MAN].id == 0 {
-        app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_MAN] =
-            app_load_asset_texture("practices/sunsalutation/poses_man_sheet.png")
-    }
-    if app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_WOMAN].id == 0 {
-        app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_WOMAN] =
-            app_load_asset_texture("practices/sunsalutation/poses_woman_sheet.png")
-    }
-    if app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][0].id == 0 {
-        app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][0] =
-            app_load_asset_texture("practices/sunsalutation/transition_01_01_to_02_man_sheet.png")
-    }
-    if app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][1].id == 0 {
-        app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][1] =
-            app_load_asset_texture("practices/sunsalutation/transition_02_02_to_03_man_sheet.png")
-    }
     if app->sun_salutation.repetitions < 2 ||
-       app->sun_salutation.repetitions > 12 {
+    app->sun_salutation.repetitions > 12 {
         app->sun_salutation.repetitions = SUN_SALUTATION_DEFAULT_REPETITIONS
     }
     if app->sun_salutation.start_seconds < SUN_SALUTATION_SECONDS_MIN ||
-       app->sun_salutation.start_seconds > SUN_SALUTATION_SECONDS_MAX {
+    app->sun_salutation.start_seconds > SUN_SALUTATION_SECONDS_MAX {
         app->sun_salutation.start_seconds = SUN_SALUTATION_DEFAULT_START_SECONDS
     }
     if app->sun_salutation.end_seconds < SUN_SALUTATION_SECONDS_MIN ||
-       app->sun_salutation.end_seconds > SUN_SALUTATION_SECONDS_MAX {
+    app->sun_salutation.end_seconds > SUN_SALUTATION_SECONDS_MAX {
         app->sun_salutation.end_seconds = SUN_SALUTATION_DEFAULT_END_SECONDS
     }
     normalize_settings(app)
 }
 
-sun_salutation_practice_destroy :: (app: InnerBreeze*) {
-    if app == nil {
-        return
-    }
-
-    for int i = 0; i < SUN_SALUTATION_FIGURE_COUNT; i++ {
-        app_unload_texture(app->sun_salutation.pose_sheets[i])
-        app->sun_salutation.pose_sheets[i] = (Texture2D){0}
-        for int j = 0; j < SUN_SALUTATION_TRANSITION_COUNT; j++ {
-            app_unload_texture(app->sun_salutation.transition_sheets[i][j])
-            app->sun_salutation.transition_sheets[i][j] = (Texture2D){0}
-        }
-    }
+sun_salutation_pose_asset :: (figure: int) -> const char* {
+    return figure == SUN_SALUTATION_FIGURE_WOMAN
+    ? "assets/practices/sunsalutation/poses_woman_sheet.png"
+    : "assets/practices/sunsalutation/poses_man_sheet.png"
 }
 
-draw_preview_pose :: (texture: Texture2D, pose_index: int,
-                     x: int, y: int, w: int, h: int,
-                     tint: Color) #private {
-    src: Rectangle
-    dst: Rectangle
-    scale: float
-    draw_w: float
-    draw_h: float
+sun_salutation_transition_asset :: (figure: int, transition: int) -> const char* {
+    if figure != SUN_SALUTATION_FIGURE_MAN {
+        return nil
+    }
+    if transition == 0 {
+        return "assets/practices/sunsalutation/transition_01_01_to_02_man_sheet.png"
+    }
+    if transition == 1 {
+        return "assets/practices/sunsalutation/transition_02_02_to_03_man_sheet.png"
+    }
+    return nil
+}
 
-    if texture.id == 0 || w <= 0 || h <= 0 {
-        return
-    }
-    if pose_index < 0 {
-        pose_index = 0
-    }
-    if pose_index >= SUN_SALUTATION_POSE_COUNT {
-        pose_index = SUN_SALUTATION_POSE_COUNT - 1
-    }
-
-    scale = (float)w / (float)SUN_SALUTATION_POSE_FRAME_W
-    if (float)SUN_SALUTATION_POSE_FRAME_H * scale > (float)h {
-        scale = (float)h / (float)SUN_SALUTATION_POSE_FRAME_H
-    }
-    draw_w = (float)SUN_SALUTATION_POSE_FRAME_W * scale
-    draw_h = (float)SUN_SALUTATION_POSE_FRAME_H * scale
-    src = (Rectangle){
-        (float)((pose_index % SUN_SALUTATION_POSE_SHEET_COLS) *
-                SUN_SALUTATION_POSE_FRAME_W),
-        (float)((pose_index / SUN_SALUTATION_POSE_SHEET_COLS) *
-                SUN_SALUTATION_POSE_FRAME_H),
-        (float)SUN_SALUTATION_POSE_FRAME_W,
-        (float)SUN_SALUTATION_POSE_FRAME_H
-    }
-    dst = (Rectangle){
-        (float)x + ((float)w - draw_w) * 0.5f,
-        (float)y + ((float)h - draw_h) * 0.5f,
-        draw_w,
-        draw_h
-    }
-    DrawTexturePro(texture, src, dst, (Vector2){0}, 0.0f, tint)
+draw_preview_pose :: (figure: int, pose_index: int,
+x: int, y: int, w: int, h: int, active: bool) #private {
+    pose_index = sun_salutation_clampi(pose_index, 0, SUN_SALUTATION_POSE_COUNT - 1)
+    Image((ImageProps){
+        .asset_path = sun_salutation_pose_asset(figure),
+        .source = {
+            (float)((pose_index % SUN_SALUTATION_POSE_SHEET_COLS) * SUN_SALUTATION_POSE_FRAME_W),
+            (float)((pose_index / SUN_SALUTATION_POSE_SHEET_COLS) * SUN_SALUTATION_POSE_FRAME_H),
+            (float)SUN_SALUTATION_POSE_FRAME_W, (float)SUN_SALUTATION_POSE_FRAME_H},
+        .bounds = {(float)x, (float)y, (float)w, (float)h},
+        .fit = ImageFitContain,
+        .class_name = active ? 0 : StyleClassId("pose-muted")
+    })
 }
 
 preview_height :: (content_w: int) -> int #private {
@@ -195,11 +156,11 @@ draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
     thumb_h = thumb_w
 
     label_w = AppTextWidth(GetLocaleText("sun_salutation_tempo_preview_label"),
-                            label_font)
+    label_font)
     Text((TextProps){
-        .bounds={(x + (w - label_w) / 2), (y), 0, 0},
-        .text=(GetLocaleText("sun_salutation_tempo_preview_label")),
-        .wrap=TextWrapNone
+        .bounds = {(x + (w - label_w) / 2), (y), 0, 0},
+        .text = (GetLocaleText("sun_salutation_tempo_preview_label")),
+        .wrap = TextWrapNone
     })
     y += Scale(28)
 
@@ -208,53 +169,48 @@ draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
         preview_step_ticks = SUN_SALUTATION_DEFAULT_START_SECONDS * 60
     }
     active_step = (app->breathing.frame / preview_step_ticks) %
-                  SUN_SALUTATION_STEP_COUNT
+    SUN_SALUTATION_STEP_COUNT
 
     for int i = 0; i < SUN_SALUTATION_STEP_COUNT; i++ {
         col := i % 6
         row := i / 6
         px := x + col * (thumb_w + gap) +
-              (w - (thumb_w * 6 + gap * 5)) / 2
+        (w - (thumb_w * 6 + gap * 5)) / 2
         py := y + row * (thumb_h + Scale(18))
         pose_index := sun_salutation_step_pose_index(i)
-        tint := Fade(WHITE, 0.62f)
-
-        if i == active_step {
-            tint = WHITE
-        }
 
         DrawRectangle(px, py, thumb_w, thumb_h,
-                         DarkenColor(GetThemeBackground(), 6))
+        DarkenColor(GetThemeBackground(), 6))
         if i == active_step {
             DrawRectangleLines(px, py, thumb_w, thumb_h, GetThemeButtonHover())
         }
-        draw_preview_pose(app->sun_salutation.pose_sheets[app->sun_salutation.figure],
-                             pose_index,
-                             px,
-                             py,
-                             thumb_w,
-                             thumb_h,
-                             tint)
+        draw_preview_pose(app->sun_salutation.figure,
+        pose_index,
+        px,
+        py,
+        thumb_w,
+        thumb_h,
+        i == active_step)
         if i < SUN_SALUTATION_STEP_COUNT - 1 {
             next_col := (i + 1) % 6
 
             if next_col != 0 {
                 DrawLine(px + thumb_w + Scale(1),
-                            py + thumb_h / 2,
-                            px + thumb_w + gap - Scale(1),
-                            py + thumb_h / 2,
-                            muted)
+                py + thumb_h / 2,
+                px + thumb_w + gap - Scale(1),
+                py + thumb_h / 2,
+                muted)
             }
         }
     }
 
     row_y = y + thumb_h * 2 + Scale(26)
     if AppTextWidth(GetLocaleText("sun_salutation_tempo_preview_hint"),
-                     small_font) <= w {
+    small_font) <= w {
         Text((TextProps){
-            .bounds={(x), (row_y), 0, 0},
-            .text=(GetLocaleText("sun_salutation_tempo_preview_hint")),
-            .wrap=TextWrapNone
+            .bounds = {(x), (row_y), 0, 0},
+            .text = (GetLocaleText("sun_salutation_tempo_preview_hint")),
+            .wrap = TextWrapNone
         })
     }
 }
@@ -275,11 +231,11 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
     }
 
     label_w = AppTextWidth(GetLocaleText("sun_salutation_figure_label"),
-                            label_font)
+    label_font)
     Text((TextProps){
-        .bounds={(x + (w - label_w) / 2), (y), 0, 0},
-        .text=(GetLocaleText("sun_salutation_figure_label")),
-        .wrap=TextWrapNone
+        .bounds = {(x + (w - label_w) / 2), (y), 0, 0},
+        .text = (GetLocaleText("sun_salutation_figure_label")),
+        .wrap = TextWrapNone
     })
     row_y = y + Scale(30)
 
@@ -315,17 +271,17 @@ draw_figure_selector :: (app: InnerBreeze*, x: int, y: int, w: int) -> int #priv
             .emphasis = ButtonEmphasisSoft, .selected = selected,
             .disabled = app->modal.active
         })
-        draw_preview_pose(app->sun_salutation.pose_sheets[i],
-                             pose_index,
-                             (int)image_bounds.x,
-                             (int)image_bounds.y,
-                             (int)image_bounds.width,
-                             (int)image_bounds.height,
-                             WHITE)
+        draw_preview_pose(i,
+        pose_index,
+        (int)image_bounds.x,
+        (int)image_bounds.y,
+        (int)image_bounds.width,
+        (int)image_bounds.height,
+        true)
         Text((TextProps){
-            .bounds={((int)(bounds.x + (bounds.width - text_w) * 0.5f)), ((int)(bounds.y + bounds.height - Scale(28))), 0, 0},
-            .text=(label),
-            .wrap=TextWrapNone
+            .bounds = {((int)(bounds.x + (bounds.width - text_w) * 0.5f)), ((int)(bounds.y + bounds.height - Scale(28))), 0, 0},
+            .text = (label),
+            .wrap = TextWrapNone
         })
 
         if clicked && !selected {
@@ -347,12 +303,12 @@ config_content_height :: (app: InnerBreeze*, content_w: int) -> int #private {
     bottom_padding = app_content_bottom_reserved(app) + Scale(24)
     app->practice_config_tab = 0
     return (SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 ? Scale(148) + Scale(16) : 0) +
-           preview_height(content_w) + Scale(16) +
-           Scale(74) * 3 +
-           meditation_music_measure_practice_settings(app,
-                                                      EXERCISE_SUN_SALUTATION,
-                                                      content_w, 0, 1) +
-           bottom_padding
+    preview_height(content_w) + Scale(16) +
+    Scale(74) * 3 +
+    meditation_music_measure_practice_settings(app,
+    EXERCISE_SUN_SALUTATION,
+    content_w, 0, 1) +
+    bottom_padding
 }
 
 sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
@@ -374,10 +330,10 @@ sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
     app->practice_config_tab = 0
 
     practice_screen_config_layout(app, UIModalPracticeConfig, Scale(14),
-                                  &layout)
+    &layout)
     if practice_screen_handle_config_title(app,
-                                           GetLocaleText("practice_configure_button"),
-                                           UIModalPracticeConfig, nil) {
+    GetLocaleText("practice_configure_button"),
+    UIModalPracticeConfig, nil) {
         return
     }
 
@@ -392,7 +348,7 @@ sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
 
     Scroll page: {
         bounds = (Rectangle){(float)0, (float)layout.scroll_y,
-                             (float)view_width, (float)layout.scroll_h}
+            (float)view_width, (float)layout.scroll_h}
         content_height = content_h
         scroll_offset = &app->settings_scroll
 
@@ -410,10 +366,10 @@ sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
 
         repetitions = app->sun_salutation.repetitions
         if Slider((SliderProps){.id = 610,
-                        .bounds = {content_x, y, content_w, Scale(56)},
-                        .label = GetLocaleText("sun_salutation_repetitions_label"),
-                        .kind = NumericInt, .int_values = &repetitions,
-                        .value_count = 1, .min = 2, .max = 12, .format = "%dx"}) {
+            .bounds = {content_x, y, content_w, Scale(56)},
+            .label = GetLocaleText("sun_salutation_repetitions_label"),
+            .kind = NumericInt, .int_values = &repetitions,
+            .value_count = 1, .min = 2, .max = 12, .format = "%dx"}) {
             app->sun_salutation.repetitions = repetitions
             save_settings(app)
         }
@@ -421,11 +377,11 @@ sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
 
         start_seconds = app->sun_salutation.start_seconds
         if Slider((SliderProps){.id = 611,
-                        .bounds = {content_x, y, content_w, Scale(56)},
-                        .label = GetLocaleText("sun_salutation_start_speed_label"),
-                        .kind = NumericInt, .int_values = &start_seconds,
-                        .value_count = 1, .min = SUN_SALUTATION_SECONDS_MIN,
-                        .max = SUN_SALUTATION_SECONDS_MAX, .format = "%ds"}) {
+            .bounds = {content_x, y, content_w, Scale(56)},
+            .label = GetLocaleText("sun_salutation_start_speed_label"),
+            .kind = NumericInt, .int_values = &start_seconds,
+            .value_count = 1, .min = SUN_SALUTATION_SECONDS_MIN,
+            .max = SUN_SALUTATION_SECONDS_MAX, .format = "%ds"}) {
             app->sun_salutation.start_seconds = start_seconds
             normalize_settings(app)
             save_settings(app)
@@ -434,11 +390,11 @@ sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
 
         end_seconds = app->sun_salutation.end_seconds
         if Slider((SliderProps){.id = 612,
-                        .bounds = {content_x, y, content_w, Scale(56)},
-                        .label = GetLocaleText("sun_salutation_end_speed_label"),
-                        .kind = NumericInt, .int_values = &end_seconds,
-                        .value_count = 1, .min = SUN_SALUTATION_SECONDS_MIN,
-                        .max = app->sun_salutation.start_seconds, .format = "%ds"}) {
+            .bounds = {content_x, y, content_w, Scale(56)},
+            .label = GetLocaleText("sun_salutation_end_speed_label"),
+            .kind = NumericInt, .int_values = &end_seconds,
+            .value_count = 1, .min = SUN_SALUTATION_SECONDS_MIN,
+            .max = app->sun_salutation.start_seconds, .format = "%ds"}) {
             app->sun_salutation.end_seconds = end_seconds
             normalize_settings(app)
             save_settings(app)
@@ -446,7 +402,7 @@ sun_salutation_config_screen_draw :: (app: InnerBreeze*) {
         y += Scale(74)
 
         meditation_music_draw_practice_settings(app, EXERCISE_SUN_SALUTATION,
-                                                content_x, content_w,
-                                                &y, 0, 1)
+        content_x, content_w,
+        &y, 0, 1)
     }
 }

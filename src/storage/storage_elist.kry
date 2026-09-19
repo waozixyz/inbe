@@ -39,6 +39,15 @@ storage_elist_load :: (value: void*) -> int #export {
         list->updated_at = sqlite3_column_int64(statement, 4)
     }
     sqlite3_finalize(statement)
+    if state->list_count == 0 {
+        created_id: [37]char = {0}
+        if storage_elist_create_list(GetLocaleText("elist_default_list"), created_id) {
+            storage_elist_create_item(created_id, GetLocaleText("elist_default_item_breathe"), "", nil)
+            storage_elist_create_item(created_id, GetLocaleText("elist_default_item_walk"), "", nil)
+            storage_elist_create_item(created_id, GetLocaleText("elist_default_item_water"), "", nil)
+            return storage_elist_load(value)
+        }
+    }
 
     if sqlite3_prepare_v2(g_storage.db,
                           "SELECT i.id,i.list_id,i.title,i.comment,i.done,"
@@ -69,6 +78,13 @@ storage_elist_load :: (value: void*) -> int #export {
         item->updated_at = sqlite3_column_int64(statement, 7)
     }
     sqlite3_finalize(statement)
+    if state->item_count == 0 && state->list_count == 1 &&
+       strcmp(state->lists[0].title, GetLocaleText("elist_default_list")) == 0 {
+        storage_elist_create_item(state->lists[0].id, GetLocaleText("elist_default_item_breathe"), "", nil)
+        storage_elist_create_item(state->lists[0].id, GetLocaleText("elist_default_item_walk"), "", nil)
+        storage_elist_create_item(state->lists[0].id, GetLocaleText("elist_default_item_water"), "", nil)
+        return storage_elist_load(value)
+    }
     if state->selected_list >= state->list_count {
         state->selected_list = state->list_count - 1
     }

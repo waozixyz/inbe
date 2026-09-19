@@ -16,18 +16,6 @@ Niat saya
 [profile_progress_title]
 Minggu ini
 ---
-[profile_today_habits]
-Kebiasaan hari ini
----
-[profile_active_days]
-Hari aktif
----
-[profile_days_value]
-%d hari
----
-[profile_week_practices]
-Sesi latihan
----
 [profile_weekly_insight]
 Anda hadir selama %d hari minggu ini.
 ---
@@ -631,9 +619,6 @@ Keluar
 [sync_account_title]
 Akun
 ---
-[sync_configure_account_button]
-Konfigurasi akun
----
 [sync_create_account_button]
 Buat akun
 ---
@@ -648,9 +633,6 @@ Impor file .key
 ---
 [sync_import_key_dialog_title]
 Impor kunci akun
----
-[sync_private_key_imported]
-Kunci akun diimpor
 ---
 [sync_private_key_import_failed]
 Tidak dapat mengimpor kunci akun
@@ -675,9 +657,6 @@ Jarak jauh
 ---
 [sync_connect_button]
 Hubungkan
----
-[sync_connected_button]
-Terhubung
 ---
 [sync_server_url_invalid]
 Gunakan https:// atau loopback seperti localhost:8080
@@ -778,7 +757,6 @@ Minggu
 [habit_focus_calendar]
 Kalender
 ---
----
 [habit_complete_today_button]
 Selesaikan hari ini
 ---
@@ -848,7 +826,6 @@ Total tahan
 [habit_stats_best_streak]
 Rangkaian terbaik
 ---
----
 
 [theme_picker_title]
 Pilih Tema
@@ -894,6 +871,9 @@ Musik latar
 ---
 [appearance_scale_label]
 Skala
+---
+[appearance_glow_effects_label]
+Efek cahaya
 ---
 [audio_music_none_option]
 Tidak ada
@@ -997,6 +977,30 @@ Data sesi berasal dari latihan selesai.
 [meditation_music_downloading_progress]
 Mengunduh audio... %d%%
 ---
+[practice_home_title_patterns]
+Napas Kotak Tenang
+---
+[practice_home_subtitle_patterns]
+5 menit untuk fokus tenang
+---
+[practice_home_title_wim_hof]
+Pernapasan Wim Hof
+---
+[practice_home_subtitle_wim_hof]
+Putaran terpandu untuk energi
+---
+[practice_home_title_meditation]
+Meditasi
+---
+[practice_home_subtitle_meditation]
+Tenangkan diri dengan timer hening
+---
+[practice_home_title_sun_salutation]
+Salam Matahari
+---
+[practice_home_subtitle_sun_salutation]
+Bergerak mengikuti napas di tiap pose
+---
 [meditation_music_downloading]
 Mengunduh audio...
 ---
@@ -1030,9 +1034,6 @@ Pakai remote
 [sync_status_title]
 Status sinkronisasi
 ---
-[sync_status_account]
-Akun: %s
----
 [sync_status_connected]
 terhubung
 ---
@@ -1042,23 +1043,8 @@ terputus
 [sync_status_queued]
 Antrean: %lld
 ---
-[sync_status_server]
-Server: %lld
----
-[sync_status_clock]
-Jam: %lld
----
-[sync_status_upgrade]
-Perbarui Inner Breeze
----
 [sync_status_review_pending]
 Tinjauan tertunda
----
-[sync_status_repair_pending]
-Perbaikan sinkronisasi tertunda
----
-[sync_status_secure_migration_pending]
-Migrasi data aman tertunda
 ---
 [sync_secure_migration_title]
 Pembaruan sinkronisasi aman
@@ -1080,9 +1066,6 @@ Perbarui sekarang
 ---
 [sync_status_local_queued]
 Perubahan lokal dalam antrean
----
-[sync_status_initial_upload_pending]
-Unggahan awal tertunda
 ---
 [sync_status_ready]
 Siap
@@ -1781,8 +1764,17 @@ Jadwal & pengingat
 [tab_elist]
 Daftar
 ---
-[elist_title]
-Daftar
+[elist_default_list]
+Kotak masuk
+---
+[elist_default_item_breathe]
+Tarik napas dengan sadar
+---
+[elist_default_item_walk]
+Berjalan sebentar di luar
+---
+[elist_default_item_water]
+Minum segelas air
 ---
 [elist_new_list]
 Daftar baru
@@ -1798,6 +1790,15 @@ Belum ada daftar
 ---
 [elist_empty_detail]
 Buat daftar, lalu tambahkan tugas dan catatan di satu tempat.
+---
+[navigation_sidebar]
+Bilah samping
+---
+[navigation_sidebar_expanded]
+Diperluas
+---
+[navigation_sidebar_compact]
+Ringkas
 ---
 [navigation_placement]
 Posisi navigasi
@@ -1817,6 +1818,83 @@ Kanan
 [navigation_top]
 Atas
 ---
+[sync_connected]
+Terhubung.
+---
+[sync_auth_failed]
+Autentikasi gagal. Periksa kunci akun Anda.
+---
+[sync_failed]
+Sinkronisasi gagal. Data lokal Anda tetap tersimpan. Coba lagi.
+---
+[sync_server_unavailable]
+Tidak dapat menghubungi server sinkronisasi. Coba lagi nanti.
+---
+[sync_sign_failed]
+Tidak dapat menandatangani permintaan sinkronisasi. Periksa kunci akun Anda.
+---
+[profile_today_short]
+Hari ini
+---
+[profile_active_days_short]
+Hari aktif
+---
+[profile_sessions_short]
+Sesi
+---
+[profile_sync_prompt_body]
+Buat akun untuk menyinkronkan dan melindungi kemajuan Anda.
+---
+[profile_sync_ready_body]
+Sinkronisasi siap untuk profil ini.
+---
+[profile_account_sync_title]
+Akun dan sinkronisasi
+---
+[profile_account_sync_body]
+Buat akun atau impor kunci
+---
+[profile_data_management_title]
+Data
+---
+[profile_data_management_body]
+Impor, ekspor, dan penyimpanan
+---
+[profile_leaderboard_preview_body]
+Lihat peringkat dan rangkaian hari aktif Anda
+---
+[profile_no_rank_short]
+Belum ada peringkat
+---
 [appearance_style_label]
 Gaya
 ---
+[sync_connection_required]
+Hubungkan di Profil / Sinkronisasi untuk mengunggah perubahan.
+
+---
+[sync_in_progress]
+Menyinkronkan…
+
+---
+[sync_retry_waiting]
+Koneksi gagal. Mencoba lagi secara otomatis.
+
+---
+[sync_retry_button]
+Coba lagi
+---
+[app_icon_label]
+Ikon aplikasi
+---
+[app_icon_sky_cradle]
+Buaian langit
+---
+[app_icon_ink_and_air]
+Tinta dan udara
+---
+[app_icon_hint]
+Ikon di layar utama mungkin perlu waktu untuk diperbarui.
+---
+[app_icon_error]
+Ikon aplikasi tidak dapat diubah. Coba lagi.

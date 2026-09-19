@@ -36,7 +36,7 @@ sync_account_write_and_reset :: (account: const SyncAccount*) #private {
     storage_set_setting_text(sync_private_key_key,
                              account != nil ? account->private_key_hex : "")
     storage_set_setting_text(sync_account_alias_key, "")
-    storage_set_sync_server_connected(0)
+    storage_set_sync_enabled(0)
     sync_client_clear_auth_token()
     storage_reset_sync_state()
     storage_settings_end_write()
@@ -110,6 +110,14 @@ sync_account_save :: (account: SyncAccount*,
     data_init()
     if !account_has_values(account) {
         return SYNC_ACCOUNT_SAVE_FAILED
+    }
+
+    current: SyncAccount
+    if sync_account_load(&current) &&
+       strcmp(current.public_id, account->public_id) == 0 &&
+       strcmp(current.public_key_hex, account->public_key_hex) == 0 &&
+       strcmp(current.private_key_hex, account->private_key_hex) == 0 {
+        return SYNC_ACCOUNT_SAVE_OK
     }
 
     owner = storage_sync_data_owner_public_id()

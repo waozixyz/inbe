@@ -89,21 +89,22 @@ patterns_manual_phase_card :: (label: const char*, count: int, x: int,
     badge_x := x + Scale(12)
     badge_y := y + (h - badge_size) / 2
     count_text: [24] char = {0}
+    badge_fill: Color
+    badge_text: Color
+    badge_font := AppSmallFontSize()
 
     DrawRectangleRounded(bounds, 0.2f, 8, fill)
     DrawRectangleRoundedLinesEx(bounds, 0.2f, 8, 1.0f, GetThemeBorder())
+    badge_fill = active ? GetThemeButtonText() : Fade(GetThemeCircle(), 0.32f)
+    badge_text = active ? BLACK : WHITE
     DrawCircle(badge_x + badge_size / 2, badge_y + badge_size / 2,
-               badge_size / 2, active ? GetThemeButtonText()
-                                      : Fade(GetThemeCircle(), 0.32f))
+               badge_size / 2, badge_fill)
     snprintf(count_text, sizeof(count_text), "%d", index + 1)
     Text((TextProps){
-        .bounds={
-            (badge_x + (badge_size - AppTextWidth(count_text, AppSmallFontSize())) / 2),
-            (AppControlTextY(count_text, badge_y, badge_size, AppSmallFontSize())),
-            0, 0
-        },
-        .text=(count_text),
-        .wrap=TextWrapNone
+        .text = count_text,
+        .bounds = {(float)(badge_x + (badge_size - AppTextWidth(count_text, badge_font)) / 2), (float)(badge_y + (badge_size - AppTextLineHeight(badge_font)) / 2), 0, 0},
+        .font = badge_font,
+        .wrap = TextWrapNone
     })
     Text((TextProps){
         .bounds={(x + Scale(54)), (AppControlTextY(label, y, h, AppFontSize())), 0, 0},

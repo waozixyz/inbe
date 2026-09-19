@@ -1,0 +1,240 @@
+#import "app.h"
+#import "runtime/modal.h"
+#import "runtime/guide.h"
+#import "runtime/reorder.h"
+#import "runtime/toolbar.h"
+#import <stdio.h>
+
+guide_layout :: GuideLayout #global #export
+
+# Inbe supplies content and actions; shared Kryon policies own geometry.
+widget_frame :: (kind: int, role: int) -> StyleFrame #private {
+    facts := StyleDefaultFacts(kind)
+    facts.role = role
+    frame: StyleFrame = {0}
+    frame.value = ResolveActiveStyle((StyleData){0}, facts, ButtonStateNormal)
+    return frame
+}
+
+widget_panel :: (bounds: Rectangle, frame: StyleFrame) #private {
+    style := (Style){
+        .fields = frame.value.fields,
+        .background = GetColor(frame.value.background),
+        .border = GetColor(frame.value.border),
+        .radius = frame.value.radius,
+        .border_width = frame.value.border_width,
+        .opacity = frame.value.opacity,
+        .background_end = GetColor(frame.value.background_end),
+        .material = frame.value.material
+    }
+    Surface(bounds, style)
+}
+
+AppModalFrame :: (width: int, height: int, title: const char*, left_icon_type: int, right_icon_type: int) -> UIPanelFrame #export {
+    panel := widget_frame(StyleKindModal(), ModalPanelRole())
+    metrics := ModalMetricsFor(GetScale(), panel,
+    widget_frame(StyleKindModal(), ModalTitleRole()),
+    widget_frame(StyleKindModal(), ModalMessageRole()),
+    widget_frame(StyleKindModal(), ModalActionRole()),
+    widget_frame(StyleKindModal(), ModalCloseRole()))
+    layout := ModalFrameLayoutFor(ModalFramePanelFor(view_width, view_height,
+    width, height, metrics), metrics)
+    frame := (UIPanelFrame){
+        .x = (int)layout.panel.x, .y = (int)layout.panel.y,
+        .w = (int)layout.panel.width, .h = (int)layout.panel.height,
+        .content_x = (int)layout.content.x, .content_y = (int)layout.content.y,
+        .content_w = (int)layout.content.width, .content_h = (int)layout.content.height
+    }
+    SetModalCapture(layout.panel)
+    dismissal := ModalOutsideDismissalFor(IsMouseButtonReleased(MOUSE_BUTTON_LEFT),
+    ReleaseConsumed(), CheckCollisionPointRec(GetMousePosition(), layout.panel))
+    if dismissal.dismissed {
+        ConsumeRelease()
+        frame.right_clicked = 1
+    }
+    scrim := widget_frame(StyleKindModal(), ModalScrimRole())
+    Background(GetColor(Opacity(scrim.value.background, scrim.value.opacity)))
+    widget_panel(layout.panel, panel)
+    Text((TextProps){
+        .text = title,
+        .bounds = {layout.panel.x + (float)metrics.frame_title_side_padding,
+            (float)layout.title_y,
+            layout.panel.width - (float)(metrics.frame_title_side_padding * 2), 0},
+        .font = AppTitleFontSize(title, layout.title_max_width),
+        .align = TextAlignCenter, .wrap = TextWrapNone
+    })
+    if left_icon_type > 0 {
+        frame.left_clicked = Button((ButtonProps){.bounds = layout.left_button,
+            .icon_type = left_icon_type, .icon_only = 1,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft})
+    }
+    if !frame.right_clicked && right_icon_type > 0 {
+        frame.right_clicked = Button((ButtonProps){.bounds = layout.right_button,
+            .icon_type = right_icon_type, .icon_only = 1,
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft})
+    }
+    return frame
+}
+
+AppGuideOverlay :: (guide: GuideOverlayProps) -> UIGuideResult #export {
+    result: UIGuideResult = {0}
+    if guide.steps == nil || guide.count <= 0 || guide.step == nil {
+        return result
+    }
+    width := guide.view_width > 0 ? guide.view_width : view_width
+    height := guide.view_height > 0 ? guide.view_height : view_height
+    panel := widget_frame(StyleKindGuide(), 2)
+    metrics := GuideMetricsFor(GetScale(), panel,
+    widget_frame(StyleKindGuide(), 24), widget_frame(StyleKindGuide(), 6),
+    widget_frame(StyleKindGuide(), 17), widget_frame(StyleKindGuide(), 15))
+    step := GuideStepFor(*guide.step, guide.count)
+    anchor := guide.steps[step].anchor
+    tip_width := GuideTipWidth(width, guide.max_width, metrics)
+    maximum_height := GuideMaxTipHeight(height, guide.reserved_top, guide.reserved_bottom, metrics)
+    font := GuideParagraphFontFor(guide.paragraph_font, 0, AppFontSize())
+    gap := GuideLineGapFor(guide.line_gap, metrics)
+    text_width := tip_width - metrics.pad * 2
+    text_height := AppParagraphHeight(guide.steps[step].text, text_width, font, gap)
+    while GuideShouldShrinkParagraphFont(text_height,
+    GuideParagraphHeightLimit(maximum_height, metrics), font, AppSmallFontSize()) {
+        font--
+        text_height = AppParagraphHeight(guide.steps[step].text, text_width, font, gap)
+    }
+    tip := GuideTipBounds(anchor, tip_width, GuideTipHeight(text_height, maximum_height, metrics),
+    width, height, guide.reserved_top, guide.reserved_bottom, metrics)
+    layout := GuideLayoutFor(tip, text_width, text_height, step, guide.count, metrics)
+    guide_layout = layout
+    SetModalCapture(tip)
+    scrim := GuideScrimFor(width, height, anchor, metrics)
+    scrim_style := widget_frame(StyleKindGuide(), 19)
+    scrim_color := GetColor(Opacity(scrim_style.value.background, scrim_style.value.opacity))
+    Box(scrim.top, scrim_color, BLANK)
+    Box(scrim.bottom, scrim_color, BLANK)
+    Box(scrim.left, scrim_color, BLANK)
+    Box(scrim.right, scrim_color, BLANK)
+    Box(anchor, BLANK, GetThemeText())
+    widget_panel(tip, panel)
+    Text((TextProps){.text = guide.steps[step].text, .bounds = layout.text,
+        .font = font, .wrap = TextWrapAuto})
+    page: [32] char
+    snprintf(page, sizeof(page), "%d/%d", step + 1, guide.count)
+    Text((TextProps){.text = page, .font = AppSmallFontSize(),
+        .bounds = {tip.x + metrics.pad, (float)layout.controls_y, 0, 0},
+        .wrap = TextWrapNone})
+    previous := IsKeyPressed(KEY_LEFT)
+    next := IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_ENTER)
+    close := IsKeyPressed(KEY_BACK) || IsKeyPressed(KEY_ESCAPE)
+    if Button((ButtonProps){.bounds = layout.close_button, .icon_type = guide.close_icon_type,
+        .icon_only = 1, .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft}) {
+        close = 1
+    }
+    if step > 0 && Button((ButtonProps){.bounds = layout.back_button,
+        .icon_type = guide.back_icon_type, .icon_only = 1,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft}) {
+        previous = 1
+    }
+    if Button((ButtonProps){.bounds = layout.next_button,
+        .icon_type = layout.finish ? guide.done_icon_type : guide.next_icon_type,
+        .icon_only = 1, .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft}) {
+        next = 1
+    }
+    policy := GuidePolicyFor(step, guide.count, previous, next, close)
+    *guide.step = policy.step
+    result.step = policy.step
+    result.changed = policy.changed
+    result.closed = policy.closed
+    result.finished = policy.finished
+    return result
+}
+
+AppIconSliderPopup :: (popup: IconSliderPopupProps) -> int #export {
+    if popup.open == nil || popup.value == nil {
+        return 0
+    }
+    button_width := popup.icon_size + popup.icon_padding * 2
+    trigger := (Rectangle){(float)popup.x, (float)popup.y,
+        (float)button_width, (float)button_width}
+    open: bool = *popup.open != 0
+    changed := 0
+    if Button((ButtonProps){.bounds = trigger, .icon_type = popup.icon_type,
+        .icon_only = 1, .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft}) {
+        open = !open
+        ConsumeRelease()
+    }
+    width := popup.popup_width > button_width ? popup.popup_width : button_width
+    height := popup.popup_height > 0 ? popup.popup_height : Scale(200)
+    bounds := (Rectangle){trigger.x + (button_width - width) / 2,
+        trigger.y + button_width + Scale(4), (float)width, (float)height}
+    Popup {
+        id = popup.id
+        bounds = bounds
+        trigger = trigger
+        open = &open
+        flags = PopupFlagsNone
+        if Slider((SliderProps){
+            .bounds = {bounds.x + bounds.width / 2 - Scale(10), bounds.y + Scale(14),
+                (float)Scale(20), bounds.height - Scale(28)},
+            .id = popup.id + 1, .kind = NumericInt, .int_values = popup.value,
+            .value_count = 1, .min = popup.min, .max = popup.max, .vertical = 1
+        }) {
+            changed = 1
+        }
+    }
+    *popup.open = open
+    return changed
+}
+
+AppBottomIconRow :: (row: IconRowRequest) -> IconRowResult #export {
+    result: IconRowResult = {0}
+    result.clicked_index = -1
+    if row.items == nil || row.count <= 0 {
+        return result
+    }
+    layout := BottomIconRowLayoutFor((BottomIconRowProps){
+        .center_x = row.center_x, .view_width = row.view_width,
+        .view_height = row.view_height, .count = row.count
+    }, GetScale())
+    result.y = layout.y
+    result.button_width = layout.button_width
+    for int i = 0; i < row.count; i++ {
+        if Button((ButtonProps){
+            .bounds = BottomIconRowButtonBoundsFor(layout, i),
+            .id = 83000 + i, .icon_type = row.items[i].icon_type,
+            .icon_only = 1, .tone = ButtonToneNeutral,
+            .emphasis = ButtonEmphasisSoft, .disabled = row.items[i].disabled
+        }) {
+            result.clicked_index = i
+        }
+    }
+    return result
+}
+
+AppReorderHandle :: (x: int, y: int, w: int, h: int, active: int) #export {
+    paint := ReorderHandlePaintFor((Rectangle){(float)x, (float)y, (float)w, (float)h},
+    GetScale(), widget_frame(StyleKindReorder(), 12))
+    if paint.dot_count <= 0 {
+        return
+    }
+    MarkClickable()
+    color := active ? GetThemeText() : GetThemeMutedText()
+    Box(paint.dot0, color, BLANK)
+    Box(paint.dot1, color, BLANK)
+    Box(paint.dot2, color, BLANK)
+    Box(paint.dot3, color, BLANK)
+    Box(paint.dot4, color, BLANK)
+    Box(paint.dot5, color, BLANK)
+}
+
+AppReorderPlaceholder :: (bounds: Rectangle) #export {
+    paint := ReorderPlaceholderPaintFor(bounds, GetScale(), widget_frame(StyleKindReorder(), 25))
+    if paint.use_slot {
+        Surface(paint.slot_bounds, (Style){
+            .fields = StyleBackground | StyleBorder | StyleRadius | StyleBorderWidth,
+            .background = Fade(GetThemeButtonHover(), paint.fill_alpha),
+            .border = GetThemeButtonHover(), .radius = paint.radius,
+            .border_width = paint.stroke_width
+        })
+    } else {
+        Box(paint.line_bounds, GetThemeButtonHover(), BLANK)
+    }
+}

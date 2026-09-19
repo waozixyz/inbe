@@ -14,6 +14,8 @@ int view_height = 560;
 static int failures = 0;
 static int desktop_mode = 0;
 static int elist_label_count = 0;
+static int profile_label_class = -1;
+static int profile_subtitle_class = -1;
 static int mouse_released = 0;
 static int bottom_nav_draw_count = 0;
 static int bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
@@ -49,6 +51,8 @@ reset_state(void)
 {
     desktop_mode = 0;
     elist_label_count = 0;
+    profile_label_class = -1;
+    profile_subtitle_class = -1;
     mouse_released = 0;
     bottom_nav_draw_count = 0;
     bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
@@ -282,11 +286,29 @@ UIText(const char *text, int x, int y, int fontSize, Color color)
 
 void TestText(TextProps props) __asm__("Text");
 
+int32_t
+StyleClassId(const char *name)
+{
+    if(strcmp(name, "selected-navigation") == 0) {
+        return 1;
+    }
+    if(strcmp(name, "muted") == 0) {
+        return 2;
+    }
+    return 0;
+}
+
 void
 TestText(TextProps props)
 {
     if(props.text != NULL && strcmp(props.text, "tab_elist") == 0) {
         elist_label_count++;
+    }
+    if(props.text != NULL && strcmp(props.text, "app_title") == 0) {
+        profile_label_class = props.class_name;
+    }
+    if(props.text != NULL && strcmp(props.text, "profile_no_account") == 0) {
+        profile_subtitle_class = props.class_name;
     }
 }
 
@@ -1296,7 +1318,7 @@ test_elist_navigation_sanitizer_and_desktop_route(void)
     desktop_mode = 1;
     app_draw_bottom_nav(&app);
     expect(elist_label_count == 1, "desktop rail should display EList");
-    mouse_position = (Vector2){-100, 206};
+    mouse_position = (Vector2){-100, 146};
     mouse_released = 1;
     app_draw_bottom_nav(&app);
     expect(app.main_tab == APP_MAIN_TAB_ELIST && app.breathing.screen == ScreenEList,
@@ -1313,7 +1335,7 @@ test_desktop_rail_clicks_route_once_per_release(void)
     desktop_mode = 1;
     view_width = 812;
     view_height = 720;
-    mouse_position = (Vector2){-100, 206};
+    mouse_position = (Vector2){-100, 146};
     mouse_released = 1;
 
     app_draw_bottom_nav(&app);
@@ -1340,7 +1362,7 @@ test_desktop_rail_clicks_route_once_per_release(void)
     view_width = 812;
     view_height = 720;
     app.blocked_input_frame = app.breathing.frame;
-    mouse_position = (Vector2){-100, 206};
+    mouse_position = (Vector2){-100, 146};
     mouse_released = 1;
 
     app_draw_bottom_nav(&app);
@@ -1357,7 +1379,7 @@ test_desktop_rail_clicks_route_once_per_release(void)
     view_width = 812;
     view_height = 720;
     app.nav_rail_collapsed = 1;
-    mouse_position = (Vector2){-44, 206};
+    mouse_position = (Vector2){-44, 146};
     mouse_released = 1;
 
     app_draw_bottom_nav(&app);
@@ -1374,7 +1396,7 @@ test_desktop_rail_clicks_route_once_per_release(void)
     view_width = 812;
     view_height = 720;
     app.navigation_placement = NAVIGATION_RIGHT;
-    mouse_position = (Vector2){856, 206};
+    mouse_position = (Vector2){856, 146};
     mouse_released = 1;
 
     app_draw_bottom_nav(&app);
@@ -1384,6 +1406,29 @@ test_desktop_rail_clicks_route_once_per_release(void)
     expect(app.main_tab == APP_MAIN_TAB_ELIST &&
            app.breathing.screen == ScreenEList,
            "right desktop rail click should route immediately");
+    reset_state();
+}
+
+static void
+test_desktop_profile_text_contrast(void)
+{
+    for(int active = 0; active <= 1; active++) {
+        reset_state();
+        InnerBreeze app = test_app();
+        desktop_mode = 1;
+        if(active) {
+            app.breathing.screen = ScreenProfile;
+        }
+
+        app_draw_bottom_nav(&app);
+
+        expect(profile_label_class ==
+                   (active ? StyleClassId("selected-navigation") : 0),
+               "selected profile name must use accent ink");
+        expect(profile_subtitle_class == StyleClassId(
+                   active ? "selected-navigation" : "muted"),
+               "profile subtitle must be muted only when unselected");
+    }
     reset_state();
 }
 
@@ -1435,16 +1480,16 @@ test_navigation_placement_and_collapse(void)
     app_draw_bottom_nav(&app);
     expect(rail_bounds[0].x == view_width + 16,
            "right rail must be outside the content on its right edge");
-    invisible_button_clicked_id = 6691;
+    app.nav_rail_collapsed = 1;
+    expect(app.nav_rail_collapsed && app_nav_desktop_rail_width(&app) == 88,
+           "compact sidebar preference must narrow the rail");
+    view_width = 1000;
     app_draw_bottom_nav(&app);
     expect(app.nav_rail_collapsed && app_nav_desktop_rail_width(&app) == 88,
-           "collapse control must narrow the rail");
-    expect(save_settings_count == 1, "collapsed state must be saved");
-    app.breathing.frame++;
-    invisible_button_clicked_id = 6691;
-    app_draw_bottom_nav(&app);
+           "resizing must preserve the compact sidebar preference");
+    app.nav_rail_collapsed = 0;
     expect(!app.nav_rail_collapsed && app_nav_desktop_rail_width(&app) == 224,
-           "expand control must restore the full rail");
+           "expanded sidebar preference must restore the full rail");
     app.navigation_placement = NAVIGATION_TOP;
     expect(!app_nav_desktop_rail_enabled(&app), "top placement must not reserve a side rail");
     expect(app_content_bottom_reserved(&app) == 0,
@@ -1482,6 +1527,7 @@ int
 main(void)
 {
     test_settings_navigation_opens_overview();
+    test_desktop_profile_text_contrast();
     test_desktop_rail_spacing();
     test_navigation_placement_and_collapse();
     test_default_bottom_nav_routes_include_elist();

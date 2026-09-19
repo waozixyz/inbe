@@ -1,0 +1,20 @@
+#module "app.sync_retry"
+#import "sync.h"
+
+app_sync_failure_needs_action :: (result: int) -> int #export {
+    return result != SYNC_OK && result != SYNC_CHALLENGE_FAILED &&
+           result != SYNC_REQUEST_FAILED
+}
+
+app_sync_retry_delay :: (attempt: int) -> double #export {
+    if attempt <= 1 {
+        return 5.0
+    }
+    if attempt == 2 {
+        return 15.0
+    }
+    if attempt == 3 {
+        return 30.0
+    }
+    return 60.0
+}

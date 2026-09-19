@@ -494,6 +494,7 @@ patterns_draw_session_title_bar :: (app: InnerBreeze*, title: const char*, heigh
 
 patterns_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     ratio: [4] int
+    cycle_text: [32] char
     time_text: [32] char
 
     title_h := app_active_practice_title_height()
@@ -552,21 +553,14 @@ patterns_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     }
     label_w := AppTextWidth(label, instruction_font)
     Text((TextProps){
-        .bounds={(center_x - label_w / 2), (AppControlTextY(label, center_y - instruction_font, instruction_font * 2, instruction_font)), 0, 0},
-        .text=(label),
-        .wrap=TextWrapNone
+        .text = label,
+        .bounds = {(float)(center_x - label_w / 2), (float)(center_y - AppTextLineHeight(instruction_font) / 2), 0, 0},
+        .font = instruction_font,
+        .wrap = TextWrapNone
     })
 
-    snprintf(time_text, sizeof(time_text), "%s %d",
+    snprintf(cycle_text, sizeof(cycle_text), "%s %d",
              GetLocaleText("patterns_cycle_label"), app->patterns.cycle + 1)
-    cycle_font := Text20
-    cycle_w := AppTextWidth(time_text, cycle_font)
-    Text((TextProps){
-        .bounds={(center_x - cycle_w / 2), (title_h + Scale(24)), 0, 0},
-        .text=(time_text),
-        .wrap=TextWrapNone
-    })
-
     if app->patterns.duration_minutes > 0 {
         remain: int = app->patterns.duration_minutes * 60 -
                   app->patterns.elapsed_seconds
@@ -580,12 +574,22 @@ patterns_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
                  app->patterns.elapsed_seconds / 60,
                  app->patterns.elapsed_seconds % 60)
     }
-    timer_font := Text24
-    total_w := AppTextWidth(time_text, timer_font)
+    status_text: [72] char
+    snprintf(status_text, sizeof(status_text), "%s  ·  %s",
+             cycle_text, time_text)
+    status_font := Text20
+    status_y := title_h + Scale(26)
+    max_status_w := view_width - Scale(96)
+    if AppTextWidth(status_text, status_font) > max_status_w {
+        status_font = AppSmallFontSize()
+    }
+    status_w := AppTextWidth(status_text, status_font)
+    text_y := status_y - AppTextLineHeight(status_font) / 2
     Text((TextProps){
-        .bounds={(center_x - total_w / 2), (title_h + Scale(56)), 0, 0},
-        .text=(time_text),
-        .wrap=TextWrapNone
+        .text = status_text,
+        .bounds = {(float)(center_x - status_w / 2), (float)(text_y), 0, 0},
+        .font = status_font,
+        .wrap = TextWrapNone
     })
 
     button_y = center_y + pattern_circle_max_radius() + Scale(42)

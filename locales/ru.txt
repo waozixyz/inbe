@@ -16,18 +16,6 @@ Inner Breeze
 [profile_progress_title]
 На этой неделе
 ---
-[profile_today_habits]
-Привычки на сегодня
----
-[profile_active_days]
-Активные дни
----
-[profile_days_value]
-%d дн.
----
-[profile_week_practices]
-Сеансы практики
----
 [profile_weekly_insight]
 На этой неделе вы уделили себе %d дн.
 ---
@@ -631,9 +619,6 @@ Trocador
 [sync_account_title]
 Аккаунт
 ---
-[sync_configure_account_button]
-Настроить аккаунт
----
 [sync_create_account_button]
 Создать аккаунт
 ---
@@ -648,9 +633,6 @@ Trocador
 ---
 [sync_import_key_dialog_title]
 Импорт ключа аккаунта
----
-[sync_private_key_imported]
-Ключ аккаунта импортирован
 ---
 [sync_private_key_import_failed]
 Не удалось импортировать ключ аккаунта
@@ -675,9 +657,6 @@ Trocador
 ---
 [sync_connect_button]
 Подключить
----
-[sync_connected_button]
-Подключено
 ---
 [sync_server_url_invalid]
 Используйте https:// или loopback, например localhost:8080
@@ -778,7 +757,6 @@ Sync review failed
 [habit_focus_calendar]
 Календарь
 ---
----
 [habit_complete_today_button]
 Выполнить сегодня
 ---
@@ -848,7 +826,6 @@ Sync review failed
 [habit_stats_best_streak]
 Лучшая серия
 ---
----
 
 [theme_picker_title]
 Выбор темы
@@ -894,6 +871,9 @@ Alias saved
 ---
 [appearance_scale_label]
 Масштаб
+---
+[appearance_glow_effects_label]
+Эффекты свечения
 ---
 [audio_music_none_option]
 Нет
@@ -997,6 +977,30 @@ Yoga
 [meditation_music_downloading_progress]
 Загрузка аудио... %d%%
 ---
+[practice_home_title_patterns]
+Ровное дыхание по квадрату
+---
+[practice_home_subtitle_patterns]
+5 минут для спокойной сосредоточенности
+---
+[practice_home_title_wim_hof]
+Дыхание Вима Хофа
+---
+[practice_home_subtitle_wim_hof]
+Ведомые раунды для энергии
+---
+[practice_home_title_meditation]
+Медитация
+---
+[practice_home_subtitle_meditation]
+Настройтесь с тихим таймером
+---
+[practice_home_title_sun_salutation]
+Приветствие солнцу
+---
+[practice_home_subtitle_sun_salutation]
+Двигайтесь с дыханием в каждой позе
+---
 [meditation_music_downloading]
 Загрузка аудио...
 ---
@@ -1030,9 +1034,6 @@ Yoga
 [sync_status_title]
 Статус синхронизации
 ---
-[sync_status_account]
-Аккаунт: %s
----
 [sync_status_connected]
 подключён
 ---
@@ -1042,23 +1043,8 @@ Yoga
 [sync_status_queued]
 В очереди: %lld
 ---
-[sync_status_server]
-Сервер: %lld
----
-[sync_status_clock]
-Часы: %lld
----
-[sync_status_upgrade]
-Обновите Inner Breeze
----
 [sync_status_review_pending]
 Ожидает проверки
----
-[sync_status_repair_pending]
-Ожидает восстановления синхронизации
----
-[sync_status_secure_migration_pending]
-Ожидает безопасная миграция данных
 ---
 [sync_secure_migration_title]
 Обновление безопасной синхронизации
@@ -1080,9 +1066,6 @@ Inbe должен заново зашифровать старые синхро�
 ---
 [sync_status_local_queued]
 Локальные изменения в очереди
----
-[sync_status_initial_upload_pending]
-Ожидает первая загрузка
 ---
 [sync_status_ready]
 Готово
@@ -1781,8 +1764,17 @@ Dismiss forever
 [tab_elist]
 Списки
 ---
-[elist_title]
-Списки
+[elist_default_list]
+Входящие
+---
+[elist_default_item_breathe]
+Сделай осознанный вдох
+---
+[elist_default_item_walk]
+Выйди на короткую прогулку
+---
+[elist_default_item_water]
+Выпей стакан воды
 ---
 [elist_new_list]
 Новый список
@@ -1798,6 +1790,15 @@ Dismiss forever
 ---
 [elist_empty_detail]
 Создайте список и добавляйте задачи и заметки в одном месте.
+---
+[navigation_sidebar]
+Боковая панель
+---
+[navigation_sidebar_expanded]
+Развёрнутая
+---
+[navigation_sidebar_compact]
+Компактная
 ---
 [navigation_placement]
 Расположение навигации
@@ -1817,6 +1818,83 @@ Dismiss forever
 [navigation_top]
 Сверху
 ---
+[sync_connected]
+Подключено.
+---
+[sync_auth_failed]
+Ошибка аутентификации. Проверьте ключ учётной записи.
+---
+[sync_failed]
+Синхронизация не удалась. Локальные данные сохранены. Повторите попытку.
+---
+[sync_server_unavailable]
+Не удалось связаться с сервером синхронизации. Повторите попытку позже.
+---
+[sync_sign_failed]
+Не удалось подписать запрос синхронизации. Проверьте ключ учётной записи.
+---
+[profile_today_short]
+Сегодня
+---
+[profile_active_days_short]
+Активные дни
+---
+[profile_sessions_short]
+Сеансы
+---
+[profile_sync_prompt_body]
+Создайте учётную запись для синхронизации и защиты своего прогресса.
+---
+[profile_sync_ready_body]
+Синхронизация для этого профиля готова.
+---
+[profile_account_sync_title]
+Учётная запись и синхронизация
+---
+[profile_account_sync_body]
+Создать учётную запись или импортировать ключ
+---
+[profile_data_management_title]
+Данные
+---
+[profile_data_management_body]
+Импорт, экспорт и хранение
+---
+[profile_leaderboard_preview_body]
+Посмотреть рейтинг и текущую серию
+---
+[profile_no_rank_short]
+Пока нет места в рейтинге
+---
 [appearance_style_label]
 Стиль
 ---
+[sync_connection_required]
+Подключитесь в разделе Профиль / Синхронизация, чтобы отправить изменения.
+
+---
+[sync_in_progress]
+Синхронизация…
+
+---
+[sync_retry_waiting]
+Ошибка подключения. Повторная попытка выполняется автоматически.
+
+---
+[sync_retry_button]
+Повторить
+---
+[app_icon_label]
+Значок приложения
+---
+[app_icon_sky_cradle]
+Небесная колыбель
+---
+[app_icon_ink_and_air]
+Тушь и воздух
+---
+[app_icon_hint]
+Обновление значка на главном экране может занять немного времени.
+---
+[app_icon_error]
+Не удалось изменить значок. Попробуйте ещё раз.

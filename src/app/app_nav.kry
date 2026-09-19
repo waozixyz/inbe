@@ -52,6 +52,9 @@ app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, he
     close_x := view_width - button_total - Scale(12)
     close_y := (height - button_total) / 2
     side_reserved := view_width - close_x + Scale(8)
+    left_reserved := Scale(112)
+    title_area_x: int
+    title_area_w: int
     font := Text32
     max_w := content_w - side_reserved * 2
     title_w: int
@@ -72,6 +75,15 @@ app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, he
     if max_w < Scale(80) {
         max_w = content_w - Scale(24)
     }
+    title_area_x = content_x + left_reserved
+    title_area_w = view_width - title_area_x - side_reserved
+    if title_area_w < Scale(160) {
+        title_area_x = content_x
+        title_area_w = content_w
+    }
+    if max_w > title_area_w - Scale(24) {
+        max_w = title_area_w - Scale(24)
+    }
 
     title_w = AppTextWidth(title, font)
     while font > AppFontSize() && title_w > max_w {
@@ -81,13 +93,9 @@ app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, he
 
     TitleBar((TitleBarProps){.title = "", .height = height})
     Text((TextProps){
-        .bounds = {
-            (float)(content_x + (content_w - title_w) / 2),
-            (float)AppControlTextY(title, 0, height, font),
-            0.0f,
-            0.0f
-        },
         .text = title,
+        .bounds = {(float)(title_area_x + (title_area_w - title_w) / 2), (float)((height - AppTextLineHeight(font)) / 2), 0, 0},
+        .font = font,
         .wrap = TextWrapNone
     })
     if app != NULL && !app->modal.active &&
@@ -727,7 +735,7 @@ app_nav_profile_identity :: (app: InnerBreeze*, out: char*, out_size: size_t,
         return
     }
     if !sync_account_load(&account) {
-        snprintf(out, out_size, "%s", GetLocaleText("tab_profile"))
+        snprintf(out, out_size, "%s", GetLocaleText("app_title"))
         if subtitle != NULL && subtitle_size > 0 {
             snprintf(subtitle, subtitle_size, "%s", GetLocaleText("profile_no_account"))
         }

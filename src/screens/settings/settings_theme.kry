@@ -1,6 +1,7 @@
 #module "settings.theme"
 
 #import "app.h"
+#import "app/app_nav.h"
 #import "app/app_settings.h"
 #import "app/app_style.h"
 #import "app/device_preferences.h"
@@ -10,22 +11,62 @@
 ui :: #import "src/screens/settings/settings_ui"
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
+#if ANDROID {
+    #import "android_device.h" #private
+}
 static scale_drag_active: int = 0
 static scale_drag_value: int = 0
 
-content_height :: (content_w: int) -> int {
-    unused content_w
+content_height :: (app: InnerBreeze*, content_w: int) -> int {
+    sidebar_h := 0
+    if app_nav_desktop_rail_enabled(app) {
+        options: [2] SegmentOption = {
+            {GetLocaleText("navigation_sidebar_expanded"), false},
+            {GetLocaleText("navigation_sidebar_compact"), false}
+        }
+        sidebar_h = Scale(44) + GetSegmentedControlHeight((SegmentedControlProps){
+            .bounds = {0, 0, content_w, Scale(40)},
+            .options = options, .option_count = 2,
+            .height = Scale(40), .wrap = true
+        })
+    }
 
-    #if WEB {
-        return Scale(366) + Scale(292)
+    #if ANDROID {
+        return Scale(350) + Scale(292) + sidebar_h + Scale(80)
+    } #else_if WEB {
+        return Scale(366) + Scale(292) + sidebar_h
     } #else {
-        return Scale(350) + Scale(292)
+        return Scale(350) + Scale(292) + sidebar_h
     }
 }
 
 draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*) {
     if app == NULL || y == NULL || state == NULL {
         return
+    }
+
+    #if ANDROID {
+        if !state->app_icon_loaded {
+            state->app_icon = android_device_app_icon()
+            state->app_icon_loaded = 1
+        }
+        if Button((ButtonProps){
+            .id = 152, .bounds = {x, *y, w, Scale(64)},
+            .label = GetLocaleText("app_icon_label"),
+            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft,
+            .disabled = app->modal.active
+        }) {
+            state->app_icon = android_device_app_icon()
+            state->app_icon_error = 0
+            app_open_modal(app, UIModalAppIconPicker)
+        }
+        Image((ImageProps){
+            .asset_path = state->app_icon == 1 ? "assets/app/icon-ink-and-air.png"
+                                               : "assets/app/icon-sky-cradle.png",
+            .bounds = {x + Scale(8), *y + Scale(4), Scale(56), Scale(56)},
+            .fit = ImageFitContain
+        })
+        *y += Scale(80)
     }
 
     styles: [3] const char* = {
@@ -72,6 +113,29 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
     }
     *y += Scale(56)
 
+    if app_nav_desktop_rail_enabled(app) {
+        sidebar_options: [2] SegmentOption = {
+            {GetLocaleText("navigation_sidebar_expanded"), false},
+            {GetLocaleText("navigation_sidebar_compact"), false}
+        }
+        Text((TextProps){
+            .bounds = {x, *y, w, Scale(24)},
+            .text = GetLocaleText("navigation_sidebar")
+        })
+        *y += Scale(28)
+        sidebar := SegmentedControl((SegmentedControlProps){
+            .id = 151, .bounds = {x, *y, w, Scale(40)},
+            .options = sidebar_options, .option_count = 2,
+            .selected_index = &app->nav_rail_collapsed,
+            .height = Scale(40), .wrap = true
+        })
+        if sidebar.changed {
+            app_block_current_click(app)
+            save_settings(app)
+        }
+        *y += sidebar.height + Scale(16)
+    }
+
     if draw_theme_settings(app, x, w, y) {
         app_refresh_theme(app)
         app->settings_dirty = 1
@@ -98,6 +162,58 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*)
         app_open_customize_nav(app)
     }
     *y += Scale(58)
+}
+
+settings_screen_draw_app_icon_modal :: (app: InnerBreeze*) #export {
+    #if ANDROID {
+        state := &app->theme_state
+        frame := AppModalFrame(Scale(360), Scale(300),
+                               GetLocaleText("app_icon_label"), 0, ICON_X)
+        if frame.right_clicked {
+            app_close_modal(app)
+            return
+        }
+        names: [2] const char* = {
+            GetLocaleText("app_icon_sky_cradle"),
+            GetLocaleText("app_icon_ink_and_air")
+        }
+        previews: [2] const char* = {
+            "assets/app/icon-sky-cradle.png",
+            "assets/app/icon-ink-and-air.png"
+        }
+        gap := Scale(12)
+        choice_w := (frame.content_w - gap) / 2
+        for int i = 0; i < 2; i++ {
+            choice_x := frame.content_x + i * (choice_w + gap)
+            selected := state->app_icon == i
+            Image((ImageProps){
+                .asset_path = previews[i], .alt_text = names[i],
+                .bounds = {choice_x, frame.content_y, choice_w, Scale(120)},
+                .fit = ImageFitContain
+            })
+            if Button((ButtonProps){
+                .id = 153 + i,
+                .bounds = {choice_x, frame.content_y + Scale(128), choice_w, Scale(44)},
+                .label = names[i], .selected = selected,
+                .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
+                .emphasis = ButtonEmphasisSoft
+            }) {
+                state->app_icon_error = !android_device_set_app_icon(i)
+                state->app_icon = android_device_app_icon()
+                app_block_current_click(app)
+                if !state->app_icon_error {
+                    app_close_modal(app)
+                    return
+                }
+            }
+        }
+        Text((TextProps){
+            .bounds = {frame.content_x, frame.content_y + Scale(184), frame.content_w, 0},
+            .text = GetLocaleText(state->app_icon_error ? "app_icon_error" : "app_icon_hint")
+        })
+    } #else {
+        unused app
+    }
 }
 
 draw_theme_settings :: (app: InnerBreeze*, x: int, w: int, y: int*) -> int #private {

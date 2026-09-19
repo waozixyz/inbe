@@ -497,11 +497,10 @@ meditation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     }
     text_w = AppTextWidth(time_text, font)
     Text((TextProps){
-        .bounds={(center_x - text_w / 2), (AppControlTextY(time_text, center_y - font, font * 2, font)), 0, 0},
-        .text=(time_text),
-        .font=font,
-        .color=GetThemeReadableText(circle),
-        .wrap=TextWrapNone
+        .text = time_text,
+        .bounds = {(float)(center_x - text_w / 2), (float)(center_y - AppTextLineHeight(font) / 2), 0, 0},
+        .font = font,
+        .wrap = TextWrapNone
     })
 
     draw_extend_controls(app, center_x, center_y + circle_radius + Scale(24))

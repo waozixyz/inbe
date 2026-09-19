@@ -141,17 +141,17 @@ whm_config_draw_card :: (x: int, y: int, w: int, h: int) #private {
 }
 
 whm_config_breath_card_height :: (app: InnerBreeze*) -> int #private {
-    h := Scale(70) + Scale(152) + Scale(68) +
-         Scale(72)
+    h := Scale(82) + Scale(118) + Scale(60) +
+         Scale(70)
 
     if app != nil && app->breathing.progressive_speed {
-        h += Scale(62)
+        h += Scale(56)
     }
     return h
 }
 
 whm_config_session_card_height :: () -> int #private {
-    return Scale(70) * 3
+    return Scale(62) * 3 + Scale(18)
 }
 
 whm_config_options_card_height :: () -> int #private {
@@ -167,7 +167,7 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
     inner_x := content_x + card_pad
     inner_w := content_w - card_pad * 2
     inner_y := y + card_pad
-    preview_h := Scale(132)
+    preview_h := Scale(104)
     preview_radius := 0
     speed := app->breathing.speed_level
     max_rounds := app->breathing.max_rounds
@@ -175,7 +175,7 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
     pause_seconds := app->breathing.pause_seconds
     progressive_start_speed := app->breathing.progressive_start_speed
     progressive_speed := app->breathing.progressive_speed
-    toggle_w := Scale(56)
+    toggle_w := Scale(92)
     toggle_h := Scale(30)
 
     animation_options[BreathAnimationLinear] = GetLocaleText("breath_animation_linear")
@@ -206,7 +206,7 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
     if draw_breath_animation_menu != nil {
         *draw_breath_animation_menu = 1
     }
-    inner_y += Scale(70)
+    inner_y += Scale(82)
 
     update_preview_bounds(&app->settings_preview, inner_w, preview_h)
     apply_settings(&app->settings_preview, speed, max_rounds,
@@ -223,8 +223,8 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
 
     preview_radius = (int)((float)app->settings_preview.rmax * 0.52f + 1.0f)
     draw_breath_preview(&app->settings_preview, inner_x + inner_w / 2,
-                         inner_y + Scale(10) + preview_radius)
-    inner_y += preview_radius * 2 + Scale(34)
+                         inner_y + Scale(4) + preview_radius)
+    inner_y += preview_radius * 2 + Scale(18)
 
     if Slider((SliderProps){.id = 1,
                     .bounds = {inner_x, inner_y, inner_w, Scale(56)},
@@ -238,7 +238,7 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
         app->settings_preview.progressive_speed = 0
         app->settings_dirty = 1
     }
-    inner_y += Scale(68)
+    inner_y += Scale(60)
 
     Text((TextProps){
         .bounds={(inner_x), (inner_y), 0, 0},
@@ -256,7 +256,7 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
         app->settings_preview.progressive_speed = 0
         app->settings_dirty = 1
     }
-    inner_y += Scale(72)
+    inner_y += Scale(52)
 
     if app->breathing.progressive_speed {
         modify_w := AppTextWidth(GetLocaleText("modify_start_speed_button"),
@@ -313,7 +313,7 @@ whm_config_draw_session_card :: (app: InnerBreeze*, content_x: int, content_w: i
                           max_breaths, pause_seconds)
         app->settings_dirty = 1
     }
-    inner_y += Scale(70)
+    inner_y += Scale(62)
 
     if Slider((SliderProps){.id = 3,
                     .bounds = {inner_x, inner_y, inner_w, Scale(56)},
@@ -326,7 +326,7 @@ whm_config_draw_session_card :: (app: InnerBreeze*, content_x: int, content_w: i
                           max_breaths, pause_seconds)
         app->settings_dirty = 1
     }
-    inner_y += Scale(70)
+    inner_y += Scale(62)
 
     if Slider((SliderProps){.id = 4,
                     .bounds = {inner_x, inner_y, inner_w, Scale(56)},
@@ -353,7 +353,7 @@ whm_config_draw_options_card :: (app: InnerBreeze*, content_x: int, content_w: i
     inner_x := content_x + card_pad
     inner_w := content_w - card_pad * 2
     inner_y := y + card_pad
-    toggle_w := Scale(56)
+    toggle_w := Scale(92)
     toggle_h := Scale(30)
 
     whm_config_draw_card(content_x, y, content_w, card_h)

@@ -7,7 +7,6 @@
 #import "data.h"
 #import "storage.h"
 #import "sync_account.h"
-#import "text_utils.h"
 #import "runtime_assets.h"
 #import "core/breath_engine.h"
 #import "stdio.h"
@@ -16,6 +15,8 @@
 #import "time.h"
 
 WEB :: #defined(PLATFORM_WEB)
+
+habits_first_day_bounds :: Rectangle #global #export
 
 #if WEB {
     #import <emscripten.h>
@@ -236,18 +237,15 @@ habits_begin_new_detail :: (app: InnerBreeze*) {
     habit_edit_begin_new(app)
 }
 
-habits_card_description :: (description: const char*, width: int, font: int,
-                            out: char*, out_size: size_t) {
+habits_card_description :: (description: const char*, out: char*, out_size: size_t) {
     line: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
-    shortened: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
     snprintf(line, sizeof(line), "%s", description != nil ? description : "")
     for int i = 0; line[i] != '\0'; i++ {
         if line[i] == '\n' || line[i] == '\r' || line[i] == '\t' {
             line[i] = ' '
         }
     }
-    text_short_label(line, 80, 1, shortened, sizeof(shortened))
-    text_fit_ellipsis(shortened, out, out_size, width, font)
+    snprintf(out, out_size, "%s", line)
 }
 
 habits_day_index :: (days_ago: int) -> int {
@@ -377,17 +375,16 @@ habits_expanded_card_week_anchor :: (app: InnerBreeze*) -> Rectangle #private {
 habits_draw_fitted_text :: (text: const char*, x: int, y: int,
                            max_w: int, preferred: int, minimum: int,
                            color: Color) #private {
-    fitted: [HABIT_NAME_SIZE + 4] char = {0}
     font: int
 
     if text == nil || max_w <= 0 {
         return
     }
     font = AppFitFontSize(text, max_w, preferred, minimum)
-    text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
     Text((TextProps){
-        .bounds={(x), (y), 0, 0},
-        .text=(fitted),
+        .bounds={(x), (y), (max_w), 0},
+        .font = font,
+        .text = text,
         .wrap=TextWrapNone
     })
 }
@@ -717,8 +714,6 @@ habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
                                w: int, h: int, text_size: int,
                                color: Color) #private {
     font_size: int
-    draw_text: const char* = text
-    fitted: [128] char = {0}
 
     if text == nil || text[0] == '\0' || w <= 0 || h <= 0 {
         return
@@ -730,14 +725,13 @@ habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
         font_size -= 1
     }
 
-    if AppTextWidth(text, font_size) > w {
-        text_fit_ellipsis(text, fitted, sizeof(fitted), w, font_size)
-        draw_text = fitted
-    }
 
     Text((TextProps){
-        .bounds={(x + (w - AppTextWidth(draw_text, font_size)) / 2), (AppControlTextY(draw_text, y, h, font_size)), 0, 0},
-        .text=(draw_text),
+        .bounds={(x), (y), (w), (h)},
+        .font = font_size,
+        .align = TextAlignCenter,
+        .vertical_align = TextAlignCenter,
+        .text = text,
         .wrap=TextWrapNone
     })
 }
@@ -1027,6 +1021,8 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
                 habit_toggle_day(&app->habits, selected, day_index)
                 active = &app->habits.items[selected]
                 app_auto_sync(app)
+                app_block_current_click(app)
+                ConsumeRelease()
             }
         }
 
@@ -1037,6 +1033,8 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
             count = habit_effective_day_count(active, day_index, linked_ctx)
             completed = count >= habit_counter_target(active)
             app_auto_sync(app)
+            app_block_current_click(app)
+            ConsumeRelease()
         }
 
         if completed && !future_day {
@@ -1279,6 +1277,9 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
         cell_w := cell_right - cell_x
         cell := (Rectangle){(float)cell_x, (float)row_y,
                             (float)cell_w, (float)row_h}
+        if selected == 0 && col == 0 {
+            habits_first_day_bounds = cell
+        }
         complete := habit_focus_day_complete(habit, day, linked_ctx)
         off := !habit_scheduled_day(habit, day)
         linked := habit_linked_session_count_for_day(linked_ctx, day)
@@ -1418,10 +1419,13 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
     header_h := Scale(144)
     section_y := y + header_h
     body_y := section_y + AppTextLineHeight(AppSmallFontSize()) + Scale(12)
-    action_x := x + Scale(14)
-    action_y := y + Scale(78)
-    action_gap := Scale(8)
-    action_w := (w - Scale(28) - action_gap * 2) / 3
+    action_size := (float)Scale(52)
+    actions := BeginFlexCursor((FlexProps){
+        .bounds = {(float)(x + Scale(14)), (float)(y + Scale(78)),
+                   (float)(w - Scale(28)), action_size},
+        .justify_content = JustifySpaceAround,
+        .align_items = AlignCenter
+    }, 3, action_size * 3.0f)
 
     card_bounds := (Rectangle){(float)x, (float)y, (float)w, (float)card_h}
     chevron_cx := x + w - Scale(34)
@@ -1451,18 +1455,18 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
                             foreground)
     if habit->description[0] != '\0' {
         description: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
-        habits_card_description(habit->description, w - Scale(54),
-                                AppSmallFontSize(), description,
+        habits_card_description(habit->description, description,
                                 sizeof(description))
         Text((TextProps){
-            .bounds={(x + Scale(38)), (y + Scale(46)), 0, 0},
+            .bounds={(x + Scale(38)), (y + Scale(46)), (w - Scale(54)), 0},
+            .font = AppSmallFontSize(),
             .text=(description),
             .wrap=TextWrapNone
         })
     }
+    actions = FlexStep(actions, action_size, action_size)
     if Button((ButtonProps){
-        .bounds = {(float)action_x, (float)action_y,
-                   (float)action_w, (float)Scale(52)},
+        .bounds = actions.item,
         .icon_type = ICON_CALENDAR,
         .icon_only = 1, .circle = 0,
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
@@ -1470,10 +1474,9 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
         habits_open_history(app)
         return
     }
+    actions = FlexStep(actions, action_size, action_size)
     if Button((ButtonProps){
-        .bounds = {(float)(action_x + action_w + action_gap),
-                   (float)action_y,
-                   (float)action_w, (float)Scale(52)},
+        .bounds = actions.item,
         .icon_type = ICON_STAT,
         .icon_only = 1, .circle = 0,
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
@@ -1481,10 +1484,9 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
         habits_open_statistics(app)
         return
     }
+    actions = FlexStep(actions, action_size, action_size)
     if Button((ButtonProps){
-        .bounds = {(float)(action_x + (action_w + action_gap) * 2),
-                   (float)action_y,
-                   (float)action_w, (float)Scale(52)},
+        .bounds = actions.item,
         .icon_type = ICON_EDIT,
         .icon_only = 1, .circle = 0,
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
@@ -1537,11 +1539,11 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     habits_draw_fitted_text(habit->name, x + Scale(36), y + Scale(10),
                             w - Scale(76), AppFontSize(), Text12,
                             foreground)
-    habits_card_description(habit->description, w - Scale(76),
-                            AppSmallFontSize(), description,
+    habits_card_description(habit->description, description,
                             sizeof(description))
     Text((TextProps){
-        .bounds={(x + Scale(36)), (y + Scale(39)), 0, 0},
+        .bounds={(x + Scale(36)), (y + Scale(39)), (w - Scale(76)), 0},
+        .font = AppSmallFontSize(),
         .text=(description),
         .wrap=TextWrapNone
     })
@@ -1554,6 +1556,9 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
         cell_w := cell_right - cell_x
         cell := (Rectangle){(float)cell_x, (float)row_y,
                             (float)cell_w, (float)Scale(62)}
+        if index == 0 && col == 0 {
+            habits_first_day_bounds = cell
+        }
         label := col == 0 ? GetLocaleText("habits_today")
                           : GetLocaleText(weekdays[habit_weekday_bit(day)])
         label_font := AppFitFontSize(label, cell_w - Scale(4),
@@ -1746,6 +1751,7 @@ habits_draw_subpage_header :: (app: InnerBreeze*, statistics: int) -> int #priva
 }
 
 draw_habits_screen :: (app: InnerBreeze*) {
+    habits_first_day_bounds = (Rectangle){0}
     content_top: int
     content_bottom: int
     content_x: int
@@ -2052,6 +2058,8 @@ draw_habits_screen :: (app: InnerBreeze*) {
                             habit_toggle_day(&app->habits, selected, day_index)
                             active = &app->habits.items[selected]
                             app_auto_sync(app)
+                            app_block_current_click(app)
+                            ConsumeRelease()
                         }
                     }
 
@@ -2063,6 +2071,8 @@ draw_habits_screen :: (app: InnerBreeze*) {
                                                           linked_ctx)
                         completed = count >= habit_counter_target(active)
                         app_auto_sync(app)
+                        app_block_current_click(app)
+                        ConsumeRelease()
                     }
                     habit_calendar_day_metadata(app, cell_x, cell_y,
                                                 cell_w, cell_h,

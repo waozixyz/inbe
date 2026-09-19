@@ -207,6 +207,64 @@ done:
     return ok;
 }
 
+static int
+call_app_icon_method(int icon, int change)
+{
+    struct android_app *app = GetAndroidApp();
+    JNIEnv *env = NULL;
+    JavaVM *jvm;
+    jclass activity_class = NULL;
+    jmethodID method;
+    int attached = 0;
+    int result = change ? 0 : -1;
+
+    if(app == NULL || app->activity == NULL || app->activity->vm == NULL ||
+       app->activity->clazz == NULL)
+        return result;
+    jvm = app->activity->vm;
+    if((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_6) != JNI_OK) {
+        if((*jvm)->AttachCurrentThread(jvm, &env, NULL) != JNI_OK || env == NULL)
+            return result;
+        attached = 1;
+    }
+    activity_class = (*env)->GetObjectClass(env, app->activity->clazz);
+    if(activity_class == NULL)
+        goto done;
+    method = (*env)->GetMethodID(env, activity_class,
+                                change ? "setAppIcon" : "getAppIcon",
+                                change ? "(I)Z" : "()I");
+    if(method == NULL)
+        goto done;
+    if(change)
+        result = (*env)->CallBooleanMethod(env, app->activity->clazz, method, (jint)icon);
+    else
+        result = (*env)->CallIntMethod(env, app->activity->clazz, method);
+
+done:
+    if((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+        result = change ? 0 : -1;
+    }
+    if(activity_class != NULL)
+        (*env)->DeleteLocalRef(env, activity_class);
+    if(attached)
+        (*jvm)->DetachCurrentThread(jvm);
+    return result;
+}
+
+int
+android_device_app_icon(void)
+{
+    return call_app_icon_method(0, 0);
+}
+
+int
+android_device_set_app_icon(int icon)
+{
+    return call_app_icon_method(icon, 1);
+}
+
 void
 android_device_native_text_input_commit(JNIEnv *env, jobject thiz, jint codepoint)
 {
@@ -244,5 +302,17 @@ int android_device_orientation(void) { return APP_DEVICE_ORIENTATION_UNKNOWN; }
 void android_device_set_orientation_mode(int mode) { (void)mode; }
 void android_device_set_soft_keyboard_visible(int visible) { (void)visible; }
 int android_device_copy_text_and_toast(const char *text, const char *toast) { (void)text; (void)toast; return 0; }
+int
+android_device_app_icon(void)
+{
+    return 0;
+}
+
+int
+android_device_set_app_icon(int icon)
+{
+    (void)icon;
+    return 0;
+}
 
 #endif

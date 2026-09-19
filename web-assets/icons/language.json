@@ -16,7 +16,8 @@
       "x": 0,
       "y": 0,
       "width": 64,
-      "height": 64
+      "height": 64,
+      "id": 16
     },
     {
       "index": 1,
@@ -24,7 +25,8 @@
       "x": 64,
       "y": 0,
       "width": 64,
-      "height": 64
+      "height": 64,
+      "id": 17
     },
     {
       "index": 2,
@@ -32,7 +34,8 @@
       "x": 128,
       "y": 0,
       "width": 64,
-      "height": 64
+      "height": 64,
+      "id": 18
     },
     {
       "index": 3,
@@ -40,7 +43,8 @@
       "x": 192,
       "y": 0,
       "width": 64,
-      "height": 64
+      "height": 64,
+      "id": 19
     },
     {
       "index": 4,
@@ -48,7 +52,8 @@
       "x": 256,
       "y": 0,
       "width": 64,
-      "height": 64
+      "height": 64,
+      "id": 20
     }
   ],
   "style": "full-color",

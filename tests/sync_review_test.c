@@ -815,7 +815,7 @@ test_normal_response_records_server_hash(void)
 }
 
 static void
-test_latest_protocol_warning_targets_current_client_only(void)
+test_latest_protocol_does_not_advertise_app_release(void)
 {
     char root[1024];
     StorageSyncStatus status;
@@ -832,7 +832,13 @@ test_latest_protocol_warning_targets_current_client_only(void)
     check_true("apply newer protocol response", storage_apply_sync_response_json(response));
     check_true("newer protocol loads status", storage_sync_status(&status));
     check_int("newer protocol recorded", status.latest_protocol, 7);
-    check_true("newer protocol warns current client", status.protocol_upgrade_available);
+    check_false("protocol changes are not app releases", status.protocol_upgrade_available);
+
+    storage_close();
+    check_true("reopen cached newer protocol", storage_init(root));
+    check_true("cached newer protocol loads status", storage_sync_status(&status));
+    check_int("cached protocol retained for diagnostics", status.latest_protocol, 7);
+    check_false("cached protocol cannot advertise an update", status.protocol_upgrade_available);
 
     storage_close();
     remove_tree(root);
@@ -897,7 +903,7 @@ main(void)
     test_remote_snapshot_keeps_review_for_pending_yoga_delete();
     test_sync_payload_includes_v2_ops();
     test_normal_response_records_server_hash();
-    test_latest_protocol_warning_targets_current_client_only();
+    test_latest_protocol_does_not_advertise_app_release();
     test_social_cache_is_server_authored_sync_state();
 
     if(g_failures != 0) {

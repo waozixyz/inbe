@@ -7,6 +7,21 @@
 - When adding or changing localized strings, translate the content for every locale file being touched. Do not copy English placeholder text into non-English locales.
 - Run `make no-vendor-edits` or `make test` before handing work back when a task touches Kryon or other vendored code.
 
+## Version Consistency Rule
+
+- `CHANGELOG.md` is the sole release-version source of truth. Add or update its
+  numeric release entry, then run `./update_version.sh`; never edit generated
+  version values individually or use `Unreleased` as an application version.
+- `APP_VERSION_STRING`, `APP_VERSION_MAJOR`, `APP_VERSION_MINOR`, and
+  `APP_VERSION_PATCH` in `src/core/version.h` are the permanent canonical macro
+  names. Do not rename them or add alternate version macros or aliases.
+- Application, packaging, website, and release readers must use that canonical
+  version. Shell release readers use `scripts/check-version.py --print-version`,
+  which rejects missing, malformed, or inconsistent metadata.
+- Keep `make version-check` and `make version-test` passing. Never bypass these
+  checks to package or publish a release. Only the GitHub Actions release
+  workflow may create or push release tags.
+
 ## Clean Sync API Rule
 
 - New Inbe releases use sync protocol v6 and the clean Kryon sync API. Do not

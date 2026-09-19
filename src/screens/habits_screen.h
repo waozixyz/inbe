@@ -178,6 +178,7 @@ void habit_edit_cancel(InnerBreeze*app);
 
 /* UI functions (moved to habits_screen.c) */
 void draw_habits_screen(InnerBreeze*app);
+extern Rectangle habits_first_day_bounds;
 void habit_edit_draw(InnerBreeze*app);
 void habit_session_draw_edit_screen(InnerBreeze*app);
 int habits_screen_selector_height(InnerBreeze*app);
@@ -192,7 +193,7 @@ int habit_counter_day_action(InnerBreeze*app, int habit_index, int day_index,
                              int allow_left_increment);
 int habit_weekly_visible_days(Habits *habits);
 int habits_scroll_page_content_height(int content_w, void *user_data);
-void habits_card_description(const char *description, int width, int font,
+void habits_card_description(const char *description,
                              char *out, size_t out_size);
 void draw_habits_weekly_view(InnerBreeze*app, Habit *active, int selected,
                              HabitLinkedContext *linked_ctx,

@@ -1,0 +1,20 @@
+Changed
+---
+- Added cat, sea turtle, and crescent moon profile pictures in place of three similar tree choices.
+- Updated Kryon controls, navigation, styling, and text editing throughout the app.
+- Material is now the default style. Choose Material, TK, or Lightfield in Appearance, with color themes available within each style.
+- Removed the Vanilla style and the startup style-selection screen.
+Fixed
+---
+- Restored profile pictures in Settings and Profile. The picture picker now displays its full grid and uses standard scrolling and selection.
+- Settings row labels and icons now share the same vertical alignment.
+- Guide and modal panels remain visible with Material styling instead of showing text over the underlying screen.
+- Settings navigation opens the Settings overview, with improved bottom navigation and click handling.
+- Improved text selection, keyboard focus, and composition handling when editing text.
+- Connecting to sync runs in the background so network requests do not block the interface.
+- Sync retries temporary connection failures automatically without losing queued changes.
+- Profile shows actionable sync status instead of internal repair messages.
+- Restoring an account key now starts synchronization and retrieves the account alias and existing friendships. Friend lists remain available when leaderboard loading fails.
+- Sync no longer asks you to upgrade just because the server supports a newer sync protocol.
+- Sync connection and account errors now display readable, translated messages.
+- Desktop update links now use the current Inner Breeze release location.

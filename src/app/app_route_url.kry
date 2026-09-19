@@ -103,11 +103,11 @@ app_router_props :: (app: InnerBreeze*) -> RouterProps #private {
 app_sync_route_from_url :: (app: InnerBreeze*) #export {
     if app == nil { return }
     result := Router(app_router_props(app))
+    if result.route == ScreenLanguage && app->language_selected {
+        RouterSetRoute(app_router_props(app), app->breathing.screen, 0)
+        return
+    }
     if result.changed {
-        if result.route == ScreenLanguage && app->language_selected {
-            RouterSetRoute(app_router_props(app), app->breathing.screen, 0)
-            return
-        }
         route := app_current_route(app)
         route.screen = result.route
         app_switch_route(app, route)

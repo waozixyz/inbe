@@ -21,10 +21,13 @@ static sync_ui_quiet_seconds: const double = 1.50
 }
 
 SyncCoordinator :: struct {
+    retry_at: double
     dirty_sync_at: double
     last_input_at: double
     sync_running: int
     data_refresh_pending: int
+    social_retry_at: double
+    social_retry_attempt: int
     social_refresh_pending: int
     social_refresh_running: int
     remote_sync_due: int
@@ -89,12 +92,70 @@ sync_unlock :: () #private {
     }
 }
 
+app_sync_record_result :: (result: int) {
+    storage_set_setting_int("sync_last_result", result)
+    if result == SYNC_OK {
+        storage_set_setting_int("sync_retry_attempt", 0)
+        g_sync.retry_at = 0.0
+        return
+    }
+    if app_sync_failure_needs_action(result) {
+        g_sync.retry_at = 0.0
+        return
+    }
+    attempt := storage_get_setting_int("sync_retry_attempt", 0) + 1
+    if attempt > 4 {
+        attempt = 4
+    }
+    storage_set_setting_int("sync_retry_attempt", attempt)
+    g_sync.retry_at = GetTime() + app_sync_retry_delay(attempt)
+}
+
+app_sync_status_key :: () -> const char* {
+    if !storage_sync_enabled() {
+        return "sync_connection_required"
+    }
+    if app_sync_loading() {
+        return "sync_in_progress"
+    }
+    result := storage_get_setting_int("sync_last_result", SYNC_OK)
+    if result == SYNC_AUTH_FAILED {
+        return "sync_auth_failed"
+    }
+    if result == SYNC_NO_ACCOUNT {
+        return "sync_no_account"
+    }
+    if result == SYNC_INVALID_URL {
+        return "sync_server_url_invalid"
+    }
+    if result == SYNC_SIGN_FAILED {
+        return "sync_sign_failed"
+    }
+    if result == SYNC_PAYLOAD_FAILED {
+        return "sync_failed"
+    }
+    if result != SYNC_OK {
+        return "sync_retry_waiting"
+    }
+    if storage_sync_review_pending() {
+        return "sync_status_review_pending"
+    }
+    status: StorageSyncStatus
+    if storage_sync_status(&status) && (status.queued_changes > 0 || !status.full_upload_done) {
+        return "sync_status_local_queued"
+    }
+    return "sync_status_ready"
+}
+
 app_clear_disconnected_sync_work :: () #private {
     #if !WEB {
         sync_lock()
     }
+    g_sync.retry_at = 0.0
     g_sync.dirty_sync_at = 0.0
     g_sync.remote_sync_due = 0
+    g_sync.social_retry_at = 0.0
+    g_sync.social_retry_attempt = 0
     g_sync.social_refresh_pending = 0
     g_sync.social_action_head = 0
     g_sync.social_action_count = 0
@@ -241,7 +302,10 @@ app_social_fetch :: (url: const char*, practice: const char*, metric: const char
     leaderboard_result = sync_client_get_friend_stats(url, "breathing", practice,
                                                       metric, leaderboard_json,
                                                       leaderboard_size)
-    return leaderboard_result
+    if leaderboard_result != SYNC_OK && leaderboard_json != nil && leaderboard_size > 0 {
+        leaderboard_json[0] = '\0'
+    }
+    return SYNC_OK
 }
 
 app_social_practice_id :: (practice: int) -> const char* #private {
@@ -282,10 +346,12 @@ app_social_apply_result :: (app: InnerBreeze*, requests_json: const char*,
                            leaderboard_avg_key: const char*) #private {
     storage_set_social_cache_json("friends.requests", requests_json)
     storage_set_social_cache_json("friends.list", friends_json)
-    if leaderboard_key != nil && leaderboard_key[0] != '\0' {
+    if leaderboard_key != nil && leaderboard_key[0] != '\0' &&
+       leaderboard_json != nil && leaderboard_json[0] != '\0' {
         storage_set_social_cache_json(leaderboard_key, leaderboard_json)
     }
-    if leaderboard_avg_key != nil && leaderboard_avg_key[0] != '\0' {
+    if leaderboard_avg_key != nil && leaderboard_avg_key[0] != '\0' &&
+       leaderboard_avg_json != nil && leaderboard_avg_json[0] != '\0' {
         storage_set_social_cache_json(leaderboard_avg_key, leaderboard_avg_json)
     }
     if app != nil {
@@ -294,7 +360,8 @@ app_social_apply_result :: (app: InnerBreeze*, requests_json: const char*,
                     requests_json != nil ? requests_json : "{\"incoming\":[],\"outgoing\":[]}")
         snprintf(app->profile_friends_json, sizeof(app->profile_friends_json),
                     "%s", friends_json != nil ? friends_json : "{\"friends\":[]}")
-        if leaderboard_key != nil && leaderboard_key[0] != '\0' {
+        if leaderboard_key != nil && leaderboard_key[0] != '\0' &&
+       leaderboard_json != nil && leaderboard_json[0] != '\0' {
             current_key: [96] char
             app_social_leaderboard_key(current_key, sizeof(current_key),
                                           app->profile_leaderboard_practice,
@@ -305,7 +372,8 @@ app_social_apply_result :: (app: InnerBreeze*, requests_json: const char*,
                             leaderboard_json != nil ? leaderboard_json : "{\"rows\":[]}")
             }
         }
-        if leaderboard_avg_key != nil && leaderboard_avg_key[0] != '\0' {
+        if leaderboard_avg_key != nil && leaderboard_avg_key[0] != '\0' &&
+       leaderboard_avg_json != nil && leaderboard_avg_json[0] != '\0' {
             current_avg_key: [96] char
             app_social_leaderboard_key(current_avg_key, sizeof(current_avg_key),
                                           app->profile_leaderboard_practice, 1)
@@ -364,7 +432,7 @@ app_social_apply_result :: (app: InnerBreeze*, requests_json: const char*,
                     args->url, "breathing", args->practice, avg_metric,
                     leaderboard_avg_json, sizeof(leaderboard_avg_json))
                 if leaderboard_avg_result != SYNC_OK {
-                    result = leaderboard_avg_result
+                    leaderboard_avg_json[0] = '\0'
                 }
             }
         } else {
@@ -463,6 +531,7 @@ app_collect_finished_sync :: () #private {
         g_sync.sync_running = 0
     }
 
+    app_sync_record_result(result)
     if result == SYNC_OK {
         TraceLog(LOG_INFO, "SYNC: background sync complete changed=%d", changed)
         app_queue_social_refresh()
@@ -584,22 +653,6 @@ app_background_secure_migration_safe :: (app: const InnerBreeze*) -> int #privat
     return 1
 }
 
-app_secure_migration_prompt_safe :: (app: const InnerBreeze*) -> int #private {
-    if app == nil || app->modal.active {
-        return 0
-    }
-    if !app_background_secure_migration_safe(app) {
-        return 0
-    }
-    if app->secure_migration_prompt_seen ||
-       app->file_dialog_active ||
-       app->backgrounded ||
-       app->close_prompt_open ||
-       app->nav_sidebar_open {
-        return 0
-    }
-    return 1
-}
 
 app_modal_type_name :: (type: UIModalType) -> const char* #private {
     switch type {
@@ -629,6 +682,8 @@ app_modal_type_name :: (type: UIModalType) -> const char* #private {
         return "practice_manual"
     case UIModalPracticeConfig:
         return "practice_config"
+    case UIModalAppIconPicker:
+        return "app_icon_picker"
     case UIModalThemePicker:
         return "theme_picker"
     case UIModalSyncReview:
@@ -703,7 +758,7 @@ app_sync_url :: (url: char*, url_size: size_t) -> int #private {
         return 0
     }
     url[0] = '\0'
-    if !storage_sync_server_connected() {
+    if !storage_sync_enabled() {
         return 0
     }
     saved_url = storage_get_setting_text(sync_server_url_key)
@@ -723,6 +778,9 @@ app_apply_pending_social_refresh :: (app: InnerBreeze*) #private {
 
     now := GetTime()
 
+    if GetTime() < g_sync.social_retry_at {
+        return
+    }
     if !g_sync.social_refresh_pending || !app_background_sync_safe(app) ||
        !app_sync_user_idle(now) {
         return
@@ -818,11 +876,14 @@ app_apply_pending_social_refresh :: (app: InnerBreeze*) #private {
         snprintf(leaderboard_avg_json, sizeof(leaderboard_avg_json), "{\"rows\":[]}")
         if result == SYNC_OK &&
            app->profile_leaderboard_practice == EXERCISE_WIM_HOF {
-            result = sync_client_get_friend_stats(
+            stats_result := sync_client_get_friend_stats(
                 url, "breathing", app_social_practice_id(app->profile_leaderboard_practice),
                 app_social_metric_id(app->profile_leaderboard_practice,
                                      PROFILE_LEADERBOARD_AVG_HOLD),
                 leaderboard_avg_json, sizeof(leaderboard_avg_json))
+            if stats_result != SYNC_OK {
+                leaderboard_avg_json[0] = '\0'
+            }
         }
         if result == SYNC_OK {
             app_social_apply_result(app, requests_json, friends_json,
@@ -837,6 +898,17 @@ app_apply_pending_social_refresh :: (app: InnerBreeze*) #private {
                                      sizeof(action_value))
         }
         g_sync.social_refresh_pending = g_sync.social_action_count > 0
+        if result != SYNC_OK && !app_sync_failure_needs_action(result) {
+            g_sync.social_retry_attempt++
+            if g_sync.social_retry_attempt > 4 {
+                g_sync.social_retry_attempt = 4
+            }
+            g_sync.social_retry_at = GetTime() + app_sync_retry_delay(g_sync.social_retry_attempt)
+            g_sync.social_refresh_pending = 1
+        } else if result == SYNC_OK {
+            g_sync.social_retry_attempt = 0
+            g_sync.social_retry_at = 0.0
+        }
     }
 }
 
@@ -875,10 +947,20 @@ app_collect_finished_social_refresh :: (app: InnerBreeze*) #private {
             return
         }
         if result != SYNC_OK {
+            if !app_sync_failure_needs_action(result) {
+                g_sync.social_retry_attempt++
+                if g_sync.social_retry_attempt > 4 {
+                    g_sync.social_retry_attempt = 4
+                }
+                g_sync.social_retry_at = GetTime() + app_sync_retry_delay(g_sync.social_retry_attempt)
+                g_sync.social_refresh_pending = 1
+            }
             TraceLog(LOG_WARNING, "SYNC: social refresh failed result=%d name=%s",
                         result, GetSyncResultName(result))
             return
         }
+        g_sync.social_retry_attempt = 0
+        g_sync.social_retry_at = 0.0
         app_social_apply_result(app, requests_json, friends_json,
                                    leaderboard_json, leaderboard_key,
                                    leaderboard_avg_json, leaderboard_avg_key)
@@ -1063,6 +1145,20 @@ app_sync_pump :: (app: InnerBreeze*) {
         app_clear_disconnected_sync_work()
         return
     }
+    last_result := storage_get_setting_int("sync_last_result", SYNC_OK)
+    if app_sync_failure_needs_action(last_result) {
+        return
+    }
+    if last_result != SYNC_OK {
+        if g_sync.retry_at <= 0.0 {
+            g_sync.retry_at = now + app_sync_retry_delay(
+                storage_get_setting_int("sync_retry_attempt", 1))
+        }
+        if now < g_sync.retry_at {
+            return
+        }
+        should_sync = 1
+    }
     app_ensure_sync_events(url)
     if g_sync.dirty_sync_at > 0.0 && now >= g_sync.dirty_sync_at {
         should_sync = 1
@@ -1070,17 +1166,12 @@ app_sync_pump :: (app: InnerBreeze*) {
     }
     if storage_sync_status(&sync_status) &&
        sync_status.has_account &&
-       sync_status.server_connected &&
-       (sync_status.repair_pending ||
+       sync_status.enabled &&
+       (sync_status.queued_changes > 0 || !sync_status.full_upload_done ||
+        sync_status.repair_pending ||
         (sync_status.secure_migration_pending &&
          !app->secure_migration_deferred)) &&
        (g_sync.dirty_sync_at <= 0.0 || now >= g_sync.dirty_sync_at) {
-        if sync_status.secure_migration_pending &&
-           !storage_sync_review_pending() &&
-           app_secure_migration_prompt_safe(app) {
-            app_open_modal(app, UIModalSecureMigration)
-            return
-        }
         should_sync = 1
         if sync_status.repair_pending {
             repair_due = 1

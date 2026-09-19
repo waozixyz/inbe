@@ -135,7 +135,7 @@ habit_session_cancel_edit :: (app: InnerBreeze*) {
         return
     }
     app->habit_session_edit = (HabitSessionEditState){.round = -1}
-    SetUIFocusTextInputActive(0)
+    SetFocusTextInputActive(0)
 }
 
 habit_linked_has_day :: (ctx: const HabitLinkedContext*, day_index: int) -> int {

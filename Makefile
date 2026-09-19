@@ -333,13 +333,12 @@ TESTS += $(TEST_BIN_DIR)/session_results_test
 TESTS += $(TEST_BIN_DIR)/habit_form_test
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
-STORAGE_CORE_SRCS := src/storage/storage.c src/storage/storage_json_builder.c src/storage/storage_habits.c src/storage/storage_habit_materialize.c src/storage/storage_habit_sync.c
+STORAGE_CORE_SRCS = $(KRY_GEN_DIR)/src/storage/json.c $(KRY_GEN_DIR)/src/storage/storage_core.c src/storage/storage_json_builder.c $(KRY_GEN_DIR)/src/storage/storage_habits.c $(KRY_GEN_DIR)/src/storage/storage_habit_materialize.c $(KRY_GEN_DIR)/src/storage/storage_habit_sync.c
 
 APP_SRCS := \
 	src/platform/main_host.c \
 	$(sort $(wildcard src/app/*.c)) \
-	$(STORAGE_CORE_SRCS) \
-	src/storage/sync_client.c \
+	src/storage/storage_json_builder.c \
 	src/platform/android/android_device.c
 
 ifeq ($(NATIVE_PLATFORM),linux)
@@ -364,7 +363,7 @@ DESKTOP_TRAY_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gt
 DESKTOP_TRAY_DEFINE := -DDESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_TRAY_GTK_DL
 endif
 ifneq ($(strip $(DESKTOP_TRAY_PKG)),)
-APP_SRCS += src/platform/desktop_tray.c
+
 DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DDESKTOP_TRAY_ENABLED -DKRYON_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
 ifeq ($(filter ayatana-appindicator3-0.1 appindicator3-0.1,$(DESKTOP_TRAY_PKG)),)
 # Headers only for the GTK-only tray; the gtk_dl shim owns the symbols.
@@ -392,7 +391,8 @@ FONT_FILES := \
 	$(FONT_SUBSET_DIR)/NotoSansKR-App-Regular.otf \
 	$(FONT_SUBSET_DIR)/NotoSansTC-App-Regular.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
-STYLE_FILES := $(wildcard $(KRYON_DIR)/styles/kryon/*.kss)
+STYLE_FILES := $(wildcard $(KRYON_DIR)/styles/kryon/*.kss) $(wildcard assets/styles/*.kss)
+IMAGE_FILES += assets/app/icon-sky-cradle.png assets/app/icon-ink-and-air.png
 EMBEDDED_ASSET_FILES := $(STYLE_FILES) $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
 KRY_GEN_DIR := $(BUILD_DIR)/kryon/generated
 KRY_SRCS := $(shell find src -type f -name '*.kry' 2>/dev/null | LC_ALL=C sort)
@@ -402,11 +402,11 @@ KRY_PROJECT_HDR := $(KRY_GEN_DIR)/kryon_project.h
 KRY_PROJECT_C := $(KRY_GEN_DIR)/kryon_project.c
 KRY_GEN_STAMP := $(KRY_GEN_DIR)/.fresh
 SRC := $(APP_SRCS) $(KRY_GEN_SRCS) $(EMBEDDED_ASSETS_C)
-WINDOWS_SRC := $(filter-out src/platform/desktop_tray.c,$(SRC)) src/platform/desktop_tray.c
-KRYON_HOST_APP_SRCS := $(filter-out src/platform/main_host.c src/platform/desktop_tray.c,$(APP_SRCS)) $(KRY_GEN_SRCS) $(KRY_PROJECT_C)
+WINDOWS_SRC := $(SRC)
+KRYON_HOST_APP_SRCS := $(filter-out src/platform/main_host.c,$(APP_SRCS)) $(KRY_GEN_SRCS) $(KRY_PROJECT_C)
 KRYON_HOST_RUNTIME_SRCS := $(KRYON_DIR)/src/core/embedded_assets.c
 KRYON_HOST_SRC := $(KRYON_HOST_APP_SRCS) $(KRYON_HOST_RUNTIME_SRCS) $(EMBEDDED_ASSETS_C)
-WEB_APP_SRCS := $(filter-out src/platform/desktop_tray.c,$(APP_SRCS))
+WEB_APP_SRCS := $(APP_SRCS)
 WEB_SRC := $(WEB_APP_SRCS) $(KRY_GEN_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform -Isrc/platform/android -Isrc/third_party
@@ -753,6 +753,15 @@ button-api-check:
 
 test: button-api-check
 
+.PHONY: version-check version-test
+version-check:
+	python3 scripts/check-version.py
+
+version-test:
+	python3 tests/version_test.py
+
+test: version-check version-test
+
 secret-check:
 	python3 ./scripts/check-secrets.py --working-tree
 
@@ -835,10 +844,10 @@ $(SETTINGS_KEYS_TEST): tests/settings_keys_test.c src/app/app_settings.kry src/a
 		-o $@ \
 		tests/settings_keys_test.c
 
-$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(CURL_PROTOCOL_CHECK) $(LIBOQS_A) | $(TEST_BIN_DIR)
+$(SYNC_URL_TEST): tests/sync_url_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_transport.c src/storage/sync_client.h $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(CURL_PROTOCOL_CHECK) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DSYNC_CLIENT_TESTS -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
-		-Isrc/storage -Isrc -Isrc/core $(KRYON_INCLUDE) $(KRYON_CURL_CFLAGS) $(LIBOQS_INCLUDE) -o $@ \
-		tests/sync_url_test.c src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) \
+		-Isrc/storage -Isrc -Isrc/core -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(KRYON_INCLUDE) $(KRYON_CURL_CFLAGS) $(LIBOQS_INCLUDE) -o $@ \
+		tests/sync_url_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_transport.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) \
 		$(LIBOQS_A) -Wl,--gc-sections $(KRYON_CURL_LDLIBS) $(NATIVE_SYSTEM_LDLIBS)
 
 $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c src/storage/sync_account.h $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(KRYON_SYNC_ACCOUNT_H) $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
@@ -852,10 +861,10 @@ $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c $(KRY_G
 sync-server-test: $(TEST_BIN_DIR)/sync_server_test
 	node scripts/sync-server-test.mjs
 
-$(TEST_BIN_DIR)/sync_server_test: tests/sync_server_test.c tests/test_locale_stub.c $(KRY_GEN_STAMP) $(STORAGE_CORE_SRCS) src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(LIBOQS_A) $(SQLITE_SRC) | $(TEST_BIN_DIR)
+$(TEST_BIN_DIR)/sync_server_test: tests/sync_server_test.c tests/test_locale_stub.c $(KRY_GEN_STAMP) $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/sync_transport.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(LIBOQS_A) $(SQLITE_SRC) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) $(KRYON_CURL_CFLAGS) \
-		-o $@ tests/sync_server_test.c tests/test_locale_stub.c src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(SQLITE_SRC) \
+		-o $@ tests/sync_server_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_transport.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(KRYON_CURL_LDLIBS) $(NATIVE_SYSTEM_LDLIBS)
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c src/screens/habits_screen.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
@@ -865,11 +874,11 @@ $(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c $(STORAGE
 		tests/sync_review_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/screens/habits_screen.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
-$(FONT_LOCALE_TEST): tests/font_locale_test.c src/app/app_font_assets.h $(FONT_FILES) | $(TEST_BIN_DIR)
+$(FONT_LOCALE_TEST): $(KRY_GEN_DIR)/src/app/font_assets.c tests/font_locale_test.c src/app/app_font_assets.h $(FONT_FILES) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-DKRYON_DIR=\"$(KRYON_DIR)\" \
 		-o $@ \
-		tests/font_locale_test.c
+		$(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src tests/font_locale_test.c $(KRY_GEN_DIR)/src/app/font_assets.c
 
 $(FONT_GLYPH_COVERAGE_TEST): tests/font_glyph_coverage_test.c $(FONT_FILES) $(LOCALE_FILES) assets/fonts/input_common.txt | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
@@ -880,7 +889,7 @@ $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/ap
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/app_bottom_nav_test.c \
+		tests/app_bottom_nav_test.c $(KRY_GEN_DIR)/src/app/metrics.c \
 		$(KRYON_DIR)/src/core/app_shell.c \
 		$(KRY_GEN_DIR)/src/app/customize_nav.c \
 		$(KRY_GEN_DIR)/src/widgets/bottom_nav.c
@@ -893,12 +902,12 @@ elist-screen-test: $(TEST_BIN_DIR)/elist_screen_test
 $(TEST_BIN_DIR)/elist_screen_test: tests/elist_screen_test.c $(KRY_GEN_DIR)/src/screens/elist_screen.c src/app/app.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
-		-Wl,--gc-sections -o $@ tests/elist_screen_test.c
+		-Wl,--gc-sections -o $@ tests/elist_screen_test.c $(KRY_GEN_DIR)/src/app/metrics.c
 
 $(TEST_BIN_DIR)/habit_form_test: tests/habit_form_test.c $(KRY_GEN_DIR)/src/screens/habits/edit.c src/app/app.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
-		-Wl,--gc-sections -o $@ tests/habit_form_test.c $(KRY_GEN_DIR)/src/screens/habits/edit.c
+		-Wl,--gc-sections -o $@ tests/habit_form_test.c $(KRY_GEN_DIR)/src/app/metrics.c $(KRY_GEN_DIR)/src/screens/habits/edit.c
 
 $(HABIT_MODEL_TEST): tests/habit_model_test.c $(KRY_GEN_DIR)/src/habits/habit_model.c src/screens/habits_screen.h src/screens/habits/habits.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
@@ -1485,10 +1494,10 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_A
 		$(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) \
 		$(WEB_LIBOQS_A) \
 		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
-		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
+		-sFORCE_FILESYSTEM=1 -sFETCH=1 -sUSE_ZLIB=1 -lidbfs.js \
 		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \
 		-sEXPORTED_RUNTIME_METHODS=Asyncify \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_show_practice_home,_app_web_test_screen,_app_web_test_practice_start_click_x,_app_web_test_practice_start_click_y,_app_web_test_enable_extension_breaks \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_show_practice_home,_app_web_test_practice_selected,_app_web_test_complete_practice,_app_web_test_completion_stage,_app_web_test_completed_practice_persisted,_app_web_test_screen,_app_web_test_practice_start_click_x,_app_web_test_practice_start_click_y,_app_web_test_enable_extension_breaks \
 		--preload-file locales --preload-file assets
 
 $(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) | $(WEB_DIST_DIR)
@@ -1523,10 +1532,10 @@ $(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) $(S
 		$(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) \
 		$(WEB_LIBOQS_A) \
 		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
-		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
+		-sFORCE_FILESYSTEM=1 -sFETCH=1 -sUSE_ZLIB=1 -lidbfs.js \
 		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \
 		-sEXPORTED_RUNTIME_METHODS=Asyncify \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_show_practice_home,_app_web_test_screen,_app_web_test_practice_start_click_x,_app_web_test_practice_start_click_y,_app_web_test_enable_extension_breaks \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_show_practice_home,_app_web_test_practice_selected,_app_web_test_complete_practice,_app_web_test_completion_stage,_app_web_test_completed_practice_persisted,_app_web_test_screen,_app_web_test_practice_start_click_x,_app_web_test_practice_start_click_y,_app_web_test_enable_extension_breaks \
 		--preload-file locales --preload-file assets
 	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_CANVAS_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_CANVAS_DIR)/index_boot.js
@@ -1789,6 +1798,7 @@ web:
 	cd $(WEB_DIST_DIR) && zip -9 -r $(abspath $(WEB_DIST_ZIP)) .
 
 web-smoke-test: $(WEB_SMOKE_TEST)
+	node tests/web_storage_test.mjs
 	WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 web-canvas-smoke-test: $(WEB_SMOKE_TEST)
@@ -1942,3 +1952,17 @@ $(error AARCH64_KRYON_CURL_LDLIBS is not set. Set AARCH64_KRYON_CURL_LDLIBS for 
 endif
 endif
 endif
+
+.PHONY: sync-recovery-test
+test: sync-recovery-test
+sync-recovery-test: $(TEST_BIN_DIR)/sync_recovery_test
+	$<
+
+$(TEST_BIN_DIR)/sync_recovery_test: tests/sync_recovery_test.c $(KRY_GEN_STAMP) | $(TEST_BIN_DIR)
+	$(CC) -std=gnu99 -ffunction-sections -fdata-sections -D_DEFAULT_SOURCE \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
+		tests/sync_recovery_test.c $(KRY_GEN_DIR)/src/app/sync_retry.c -Wl,--gc-sections -o $@
+
+# Validate before producing release packages, including direct artifact targets.
+$(APPIMAGE_TARGET) $(DEB_TARGET) $(RPM_TARGET) $(SNAP_TARGET) $(FLATPAK_TARGET) $(CLICK_TARGET) $(CHROME_WEB_STORE_ZIP) $(FIREFOX_ADDONS_ZIP): | version-check
+android-release android-bundle android-copy-release-apks android-copy-bundle windows-setup site: version-check

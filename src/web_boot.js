@@ -169,6 +169,7 @@ function runStorageSync(retryDelay) {
       Module.__kryonStorageSyncResolve = resolve;
     });
   }
+  var promise = Module.__kryonStorageSyncPromise;
 
   function finishStorageSync(ok) {
     var resolve = Module.__kryonStorageSyncResolve;
@@ -213,7 +214,7 @@ function runStorageSync(retryDelay) {
     finishStorageSync(false);
   }
 
-  return Module.__kryonStorageSyncPromise || Promise.resolve(false);
+  return promise;
 }
 
 function scheduleStorageSync(delay, logSuccess) {

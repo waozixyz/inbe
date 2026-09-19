@@ -2,18 +2,24 @@
 # update_version.sh - Update version from CHANGELOG.md (master truth)
 # Usage: ./update_version.sh
 
-set -e
+set -euo pipefail
+
+cd "$(dirname "$0")"
 
 CHANGELOG_FILE="CHANGELOG.md"
 GRADLE_FILE="droid/app/build.gradle"
-WINDOWS_RC_FILE="windows/breathing.rc"
+WINDOWS_RC_FILE="windows/inbe.rc"
 CHANGELOG_DIR="fastlane/metadata/android/en-US/changelogs"
 CLICK_MANIFEST_FILE="packaging/click/manifest.json"
 CLICK_CONTROL_FILE="packaging/click/control"
-CLICK_METAINFO_FILE="packaging/click/breathing.metainfo.xml"
-LINUX_APPDATA_FILE="packaging/linux/appimage/breathing.appdata.xml"
-SNAP_METAINFO_FILE="packaging/snap/snap/gui/breathing.metainfo.xml"
+CLICK_METAINFO_FILE="packaging/click/inbe.metainfo.xml"
+LINUX_APPDATA_FILE="packaging/linux/appimage/inbe.appdata.xml"
+SNAP_METAINFO_FILE="packaging/snap/snap/gui/inbe.metainfo.xml"
+SNAPCRAFT_FILE="packaging/snap/snap/snapcraft.yaml"
 FIREFOX_ADDONS_MANIFEST_FILE="packaging/firefox-addons/manifest.json"
+
+# Check required fields before changing anything; old values may differ.
+python3 scripts/check-version.py --check-structure
 
 replace_in_file() {
     local expr="$1"
@@ -22,6 +28,7 @@ replace_in_file() {
 
     tmp=$(mktemp "${file}.XXXXXX")
     sed "$expr" "$file" > "$tmp"
+    chmod 644 "$tmp"
     mv "$tmp" "$file"
 }
 
@@ -95,28 +102,28 @@ if [ -f "$WINDOWS_RC_FILE" ]; then
     replace_in_file "s/^\([[:space:]]*VALUE \"ProductVersion\", \).*/\1\"$LATEST_VERSION\"/" "$WINDOWS_RC_FILE"
     echo "✓ Updated $WINDOWS_RC_FILE"
 else
-    echo "Warning: $WINDOWS_RC_FILE not found"
+    exit 1
 fi
 
 if [ -f "$CLICK_MANIFEST_FILE" ]; then
     replace_in_file "s/^\([[:space:]]*\"version\": \)\"[^\"]*\"/\1\"$LATEST_VERSION\"/" "$CLICK_MANIFEST_FILE"
     echo "✓ Updated $CLICK_MANIFEST_FILE"
 else
-    echo "Warning: $CLICK_MANIFEST_FILE not found"
+    exit 1
 fi
 
 if [ -f "$CLICK_CONTROL_FILE" ]; then
     replace_in_file "s/^Version: .*/Version: $LATEST_VERSION/" "$CLICK_CONTROL_FILE"
     echo "✓ Updated $CLICK_CONTROL_FILE"
 else
-    echo "Warning: $CLICK_CONTROL_FILE not found"
+    exit 1
 fi
 
 if [ -f "$CLICK_METAINFO_FILE" ]; then
     replace_in_file "s/<release version=\"[^\"]*\" date=\"[^\"]*\"/<release version=\"$LATEST_VERSION\" date=\"$LATEST_DATE\"/" "$CLICK_METAINFO_FILE"
     echo "✓ Updated $CLICK_METAINFO_FILE"
 else
-    echo "Warning: $CLICK_METAINFO_FILE not found"
+    exit 1
 fi
 
 for METAINFO_FILE in "$LINUX_APPDATA_FILE" "$SNAP_METAINFO_FILE"; do
@@ -124,7 +131,7 @@ for METAINFO_FILE in "$LINUX_APPDATA_FILE" "$SNAP_METAINFO_FILE"; do
         replace_in_file "s/<release version=\"[^\"]*\" date=\"[^\"]*\"/<release version=\"$LATEST_VERSION\" date=\"$LATEST_DATE\"/" "$METAINFO_FILE"
         echo "✓ Updated $METAINFO_FILE"
     else
-        echo "Warning: $METAINFO_FILE not found"
+        exit 1
     fi
 done
 
@@ -132,8 +139,10 @@ if [ -f "$FIREFOX_ADDONS_MANIFEST_FILE" ]; then
     replace_in_file "s/^\([[:space:]]*\"version\": \)\"[^\"]*\"/\1\"$LATEST_VERSION\"/" "$FIREFOX_ADDONS_MANIFEST_FILE"
     echo "✓ Updated $FIREFOX_ADDONS_MANIFEST_FILE"
 else
-    echo "Warning: $FIREFOX_ADDONS_MANIFEST_FILE not found"
+    exit 1
 fi
+
+replace_in_file "s/^version: .*/version: '$LATEST_VERSION'/" "$SNAPCRAFT_FILE"
 
 # Create changelog directory
 mkdir -p "$CHANGELOG_DIR"
@@ -163,6 +172,8 @@ CHANGELOG_CONTENT=$(awk -v ver="$LATEST_VERSION" '
 
 echo "$CHANGELOG_CONTENT" > "$OUTPUT_FILE"
 echo "✓ Updated $OUTPUT_FILE"
+
+python3 scripts/check-version.py
 
 echo ""
 echo "Done! Build and test the app before committing."

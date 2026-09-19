@@ -16,18 +16,6 @@ La mia intenzione
 [profile_progress_title]
 Questa settimana
 ---
-[profile_today_habits]
-Abitudini di oggi
----
-[profile_active_days]
-Giorni attivi
----
-[profile_days_value]
-%d giorni
----
-[profile_week_practices]
-Sessioni di pratica
----
 [profile_weekly_insight]
 Ti sei dedicato a te per %d giorni questa settimana.
 ---
@@ -631,9 +619,6 @@ Esci
 [sync_account_title]
 Profilo
 ---
-[sync_configure_account_button]
-Configura account
----
 [sync_create_account_button]
 Crea account
 ---
@@ -648,9 +633,6 @@ Importa file .key
 ---
 [sync_import_key_dialog_title]
 Importa chiave account
----
-[sync_private_key_imported]
-Chiave account importata
 ---
 [sync_private_key_import_failed]
 Impossibile importare la chiave account
@@ -675,9 +657,6 @@ Remoto
 ---
 [sync_connect_button]
 Connetti
----
-[sync_connected_button]
-Connesso
 ---
 [sync_server_url_invalid]
 Usa https:// o loopback come localhost:8080
@@ -778,7 +757,6 @@ Settimana
 [habit_focus_calendar]
 Calendario
 ---
----
 [habit_complete_today_button]
 Completa oggi
 ---
@@ -848,7 +826,6 @@ Apnea totale
 [habit_stats_best_streak]
 Migliore serie
 ---
----
 
 [theme_picker_title]
 Scegli tema
@@ -894,6 +871,9 @@ Musica di sottofondo
 ---
 [appearance_scale_label]
 Scala
+---
+[appearance_glow_effects_label]
+Effetti luminosi
 ---
 [audio_music_none_option]
 Nessuno
@@ -997,6 +977,30 @@ I dati arrivano dalle pratiche completate.
 [meditation_music_downloading_progress]
 Download audio... %d%%
 ---
+[practice_home_title_patterns]
+Respirazione quadrata stabile
+---
+[practice_home_subtitle_patterns]
+5 minuti per una calma concentrazione
+---
+[practice_home_title_wim_hof]
+Respirazione Wim Hof
+---
+[practice_home_subtitle_wim_hof]
+Round guidati per energia
+---
+[practice_home_title_meditation]
+Meditazione
+---
+[practice_home_subtitle_meditation]
+Accomodati con un timer tranquillo
+---
+[practice_home_title_sun_salutation]
+Saluto al sole
+---
+[practice_home_subtitle_sun_salutation]
+Muoviti con il respiro in ogni posizione
+---
 [meditation_music_downloading]
 Download audio...
 ---
@@ -1030,9 +1034,6 @@ Usa remoto
 [sync_status_title]
 Stato sync
 ---
-[sync_status_account]
-Account: %s
----
 [sync_status_connected]
 connesso
 ---
@@ -1042,23 +1043,8 @@ disconnesso
 [sync_status_queued]
 In coda: %lld
 ---
-[sync_status_server]
-Server: %lld
----
-[sync_status_clock]
-Orologio: %lld
----
-[sync_status_upgrade]
-Aggiorna Inner Breeze
----
 [sync_status_review_pending]
 Revisione in sospeso
----
-[sync_status_repair_pending]
-Riparazione sync in sospeso
----
-[sync_status_secure_migration_pending]
-Migrazione sicura dei dati in sospeso
 ---
 [sync_secure_migration_title]
 Aggiornamento sincronizzazione sicura
@@ -1080,9 +1066,6 @@ Aggiorna ora
 ---
 [sync_status_local_queued]
 Modifiche locali in coda
----
-[sync_status_initial_upload_pending]
-Caricamento iniziale in sospeso
 ---
 [sync_status_ready]
 Pronto
@@ -1781,8 +1764,17 @@ Pianificazione e promemoria
 [tab_elist]
 Liste
 ---
-[elist_title]
-Liste
+[elist_default_list]
+Posta in arrivo
+---
+[elist_default_item_breathe]
+Fai un respiro consapevole
+---
+[elist_default_item_walk]
+Esci per una breve passeggiata
+---
+[elist_default_item_water]
+Bevi un bicchiere d'acqua
 ---
 [elist_new_list]
 Nuova lista
@@ -1798,6 +1790,15 @@ Nessuna lista
 ---
 [elist_empty_detail]
 Crea una lista, poi aggiungi attivita e note in un unico posto.
+---
+[navigation_sidebar]
+Barra laterale
+---
+[navigation_sidebar_expanded]
+Estesa
+---
+[navigation_sidebar_compact]
+Compatta
 ---
 [navigation_placement]
 Posizione della navigazione
@@ -1817,6 +1818,83 @@ Destra
 [navigation_top]
 In alto
 ---
+[sync_connected]
+Connesso.
+---
+[sync_auth_failed]
+Autenticazione non riuscita. Controlla la chiave del tuo account.
+---
+[sync_failed]
+Sincronizzazione non riuscita. I dati locali sono conservati. Riprova.
+---
+[sync_server_unavailable]
+Impossibile contattare il server di sincronizzazione. Riprova più tardi.
+---
+[sync_sign_failed]
+Impossibile firmare la richiesta di sincronizzazione. Controlla la chiave del tuo account.
+---
+[profile_today_short]
+Oggi
+---
+[profile_active_days_short]
+Giorni attivi
+---
+[profile_sessions_short]
+Sessioni
+---
+[profile_sync_prompt_body]
+Crea un account per sincronizzare e proteggere i tuoi progressi.
+---
+[profile_sync_ready_body]
+La sincronizzazione è pronta per questo profilo.
+---
+[profile_account_sync_title]
+Account e sincronizzazione
+---
+[profile_account_sync_body]
+Crea account o importa chiave
+---
+[profile_data_management_title]
+Dati
+---
+[profile_data_management_body]
+Importazione, esportazione e archiviazione
+---
+[profile_leaderboard_preview_body]
+Visualizza la classifica e la tua serie attuale
+---
+[profile_no_rank_short]
+Ancora nessuna posizione
+---
 [appearance_style_label]
 Stile
 ---
+[sync_connection_required]
+Connettiti in Profilo / Sincronizzazione per caricare le modifiche.
+
+---
+[sync_in_progress]
+Sincronizzazione…
+
+---
+[sync_retry_waiting]
+Connessione non riuscita. Nuovo tentativo automatico.
+
+---
+[sync_retry_button]
+Riprova
+---
+[app_icon_label]
+Icona dell’app
+---
+[app_icon_sky_cradle]
+Culla celeste
+---
+[app_icon_ink_and_air]
+Inchiostro e aria
+---
+[app_icon_hint]
+L’icona nella schermata iniziale potrebbe aggiornarsi dopo qualche istante.
+---
+[app_icon_error]
+Impossibile cambiare l’icona. Riprova.

@@ -1,0 +1,22 @@
+Text.practice-heading {
+    foreground: #f6f1ff;
+}
+Text.muted {
+    foreground: muted;
+}
+Text.selected-navigation {
+    foreground: accent-ink;
+}
+
+Image {
+    background: #00000000;
+    border: #00000000;
+    radius: 0;
+    border-width: 0;
+    material: flat;
+    opacity: 1;
+}
+
+Image.pose-muted {
+    opacity: 0.62;
+}

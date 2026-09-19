@@ -26,6 +26,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check Version Consistency
+        run: |
+          python3 scripts/check-version.py
+          python3 tests/version_test.py
+
       - name: Scan Tracked Files and History
         run: |
           set -euo pipefail

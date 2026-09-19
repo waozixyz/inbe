@@ -16,18 +16,6 @@ Minha intenção
 [profile_progress_title]
 Esta semana
 ---
-[profile_today_habits]
-Hábitos de hoje
----
-[profile_active_days]
-Dias ativos
----
-[profile_days_value]
-%d dias
----
-[profile_week_practices]
-Sessões de prática
----
 [profile_weekly_insight]
 Você esteve presente em %d dias esta semana.
 ---
@@ -631,9 +619,6 @@ Sair
 [sync_account_title]
 Conta
 ---
-[sync_configure_account_button]
-Configurar conta
----
 [sync_create_account_button]
 Criar conta
 ---
@@ -648,9 +633,6 @@ Importar arquivo .key
 ---
 [sync_import_key_dialog_title]
 Importar chave da conta
----
-[sync_private_key_imported]
-Chave da conta importada
 ---
 [sync_private_key_import_failed]
 Não foi possível importar a chave da conta
@@ -675,9 +657,6 @@ Remoto
 ---
 [sync_connect_button]
 Conectar
----
-[sync_connected_button]
-Conectado
 ---
 [sync_server_url_invalid]
 Use https:// ou loopback como localhost:8080
@@ -778,7 +757,6 @@ Semana
 [habit_focus_calendar]
 Calendário
 ---
----
 [habit_complete_today_button]
 Concluir hoje
 ---
@@ -848,7 +826,6 @@ Retenção total
 [habit_stats_best_streak]
 Melhor sequência
 ---
----
 
 [theme_picker_title]
 Escolher tema
@@ -894,6 +871,9 @@ Música de fundo
 ---
 [appearance_scale_label]
 Escala
+---
+[appearance_glow_effects_label]
+Efeitos de brilho
 ---
 [audio_music_none_option]
 Nenhum
@@ -997,6 +977,30 @@ Os dados vêm de práticas concluídas.
 [meditation_music_downloading_progress]
 Baixando áudio... %d%%
 ---
+[practice_home_title_patterns]
+Respiração quadrada tranquila
+---
+[practice_home_subtitle_patterns]
+5 min para foco calmo
+---
+[practice_home_title_wim_hof]
+Respiração Wim Hof
+---
+[practice_home_subtitle_wim_hof]
+Rodadas guiadas para energia
+---
+[practice_home_title_meditation]
+Meditação
+---
+[practice_home_subtitle_meditation]
+Acomode-se com um temporizador tranquilo
+---
+[practice_home_title_sun_salutation]
+Saudação ao sol
+---
+[practice_home_subtitle_sun_salutation]
+Mova-se com a respiração em cada postura
+---
 [meditation_music_downloading]
 Baixando áudio...
 ---
@@ -1030,9 +1034,6 @@ Usar remoto
 [sync_status_title]
 Status da sincronização
 ---
-[sync_status_account]
-Conta: %s
----
 [sync_status_connected]
 conectada
 ---
@@ -1042,23 +1043,8 @@ desconectada
 [sync_status_queued]
 Na fila: %lld
 ---
-[sync_status_server]
-Servidor: %lld
----
-[sync_status_clock]
-Relógio: %lld
----
-[sync_status_upgrade]
-Atualize o Inner Breeze
----
 [sync_status_review_pending]
 Revisão pendente
----
-[sync_status_repair_pending]
-Reparo de sincronização pendente
----
-[sync_status_secure_migration_pending]
-Migração segura de dados pendente
 ---
 [sync_secure_migration_title]
 Atualização da sincronização segura
@@ -1080,9 +1066,6 @@ Atualizar agora
 ---
 [sync_status_local_queued]
 Alterações locais na fila
----
-[sync_status_initial_upload_pending]
-Envio inicial pendente
 ---
 [sync_status_ready]
 Pronto
@@ -1781,8 +1764,17 @@ Programação e lembrete
 [tab_elist]
 Listas
 ---
-[elist_title]
-Listas
+[elist_default_list]
+Caixa de entrada
+---
+[elist_default_item_breathe]
+Respire com atencao
+---
+[elist_default_item_walk]
+Saia para uma caminhada curta
+---
+[elist_default_item_water]
+Beba um copo de agua
 ---
 [elist_new_list]
 Nova lista
@@ -1798,6 +1790,15 @@ Ainda nao ha listas
 ---
 [elist_empty_detail]
 Crie uma lista e adicione tarefas e notas em um so lugar.
+---
+[navigation_sidebar]
+Barra lateral
+---
+[navigation_sidebar_expanded]
+Expandida
+---
+[navigation_sidebar_compact]
+Compacta
 ---
 [navigation_placement]
 Posição da navegação
@@ -1817,6 +1818,83 @@ Direita
 [navigation_top]
 Em cima
 ---
+[sync_connected]
+Conectado.
+---
+[sync_auth_failed]
+Falha na autenticação. Verifique a chave da sua conta.
+---
+[sync_failed]
+Falha na sincronização. Seus dados locais foram preservados. Tente novamente.
+---
+[sync_server_unavailable]
+Não foi possível contactar o servidor de sincronização. Tente mais tarde.
+---
+[sync_sign_failed]
+Não foi possível assinar a solicitação de sincronização. Verifique a chave da sua conta.
+---
+[profile_today_short]
+Hoje
+---
+[profile_active_days_short]
+Dias ativos
+---
+[profile_sessions_short]
+Sessões
+---
+[profile_sync_prompt_body]
+Crie uma conta para sincronizar e proteger seu progresso.
+---
+[profile_sync_ready_body]
+A sincronização está pronta para este perfil.
+---
+[profile_account_sync_title]
+Conta e sincronização
+---
+[profile_account_sync_body]
+Criar conta ou importar chave
+---
+[profile_data_management_title]
+Dados
+---
+[profile_data_management_body]
+Importação, exportação e armazenamento
+---
+[profile_leaderboard_preview_body]
+Ver a classificação e sua sequência atual
+---
+[profile_no_rank_short]
+Ainda sem classificação
+---
 [appearance_style_label]
 Estilo
 ---
+[sync_connection_required]
+Conecte-se em Perfil / Sincronização para enviar suas alterações.
+
+---
+[sync_in_progress]
+Sincronizando…
+
+---
+[sync_retry_waiting]
+Falha na conexão. Tentando novamente automaticamente.
+
+---
+[sync_retry_button]
+Tentar novamente
+---
+[app_icon_label]
+Ícone do aplicativo
+---
+[app_icon_sky_cradle]
+Berço celeste
+---
+[app_icon_ink_and_air]
+Tinta e ar
+---
+[app_icon_hint]
+O ícone na tela inicial pode levar um momento para atualizar.
+---
+[app_icon_error]
+Não foi possível mudar o ícone. Tente novamente.

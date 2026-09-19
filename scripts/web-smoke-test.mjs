@@ -644,27 +644,25 @@ function wasmHookEvalHelper() {
       const fn = M && M['_' + name];
       async function waitForAsyncifyIdle(phase) {
         const idleDeadline = Date.now() + 5000;
-        let stableFrames = 0;
-        while (stableFrames < 2) {
+        while (true) {
           const state = M.Asyncify ? M.Asyncify.state : 0;
-          if (state === 0)
-            stableFrames++;
-          else
-            stableFrames = 0;
+          // A suspended call can have normal state while its saved stack remains live.
+          if (state === 0 && !M.Asyncify?.currData)
+            return;
           if (Date.now() > idleDeadline)
             throw new Error(name + ' Asyncify ' + phase + ' wait timed out; state=' + state);
-          await new Promise(resolve => requestAnimationFrame(resolve));
+          await new Promise(resolve => setTimeout(resolve, 5));
         }
       }
       if (typeof fn !== 'function')
         throw new Error('missing ' + name + ' hook');
       await waitForAsyncifyIdle('idle');
-      const result = fn.apply(M, args);
-      if (M.Asyncify && M.Asyncify.state !== 0 && typeof M.Asyncify.whenDone === 'function') {
+      let result = fn.apply(M, args);
+      if (M.Asyncify?.currData && typeof M.Asyncify.whenDone === 'function') {
         const done = M.Asyncify.whenDone();
         const timeout = new Promise((_, reject) =>
           setTimeout(() => reject(new Error(name + ' Asyncify wait timed out')), 5000));
-        await Promise.race([done, timeout]);
+        result = await Promise.race([done, timeout]);
       }
       await waitForAsyncifyIdle('settle');
       return result;
@@ -1226,7 +1224,7 @@ async function verifyPracticeCarouselSwipe(client) {
   const target = await practiceStartClickTarget(client);
   const selected = () => pageJson(client, 'Module._app_web_test_practice_selected()');
   const initial = await selected();
-  const x = target.x;
+  const x = target.rect.left + target.rect.width / 2;
   const y = target.rect.top + (target.y - target.rect.top) * 0.4;
   const distance = target.rect.width * 0.4;
   async function drag(dx, dy) {
@@ -1279,16 +1277,16 @@ async function verifyPracticeStartClick(client) {
 
 async function verifyPracticeCompletionPersistence(client) {
   await waitForStorageIdle(client);
-  const ok = await pageJson(client, `(async () => {
+  const result = await pageJson(client, `(async () => {
     ${wasmHookEvalHelper()}
     await callWasmHook('app_web_test_complete_practice');
-    if (!Module._app_web_test_completed_practice_persisted()) return false;
-    return await Module.__kryonFlushStorageSync(true);
+    const persisted = !!Module._app_web_test_completed_practice_persisted();
+    const flushed = await Module.__kryonFlushStorageSync(true);
+    return { persisted, flushed, stage: Module._app_web_test_completion_stage(),
+      storageError: Module.__kryonStorageSyncLastError };
   })()`, true);
-  if (!ok) {
-    const stage = await pageJson(client, 'Module._app_web_test_completion_stage()');
-    throw new Error('practice pause/resume/completion failed at stage ' + stage);
-  }
+  if (!result.persisted || !result.flushed)
+    throw new Error('practice pause/resume/completion failed: ' + JSON.stringify(result));
   await waitForStorageIdle(client);
   await client.send('Page.reload', { ignoreCache: true });
   await waitForHealthyPage(client);
@@ -1651,10 +1649,11 @@ try {
     await verifyLanguageRouteDoesNotOverrideSavedOnboarding(client, port);
     await verifyFirstRunGuideCanvasFlow(client);
     await verifySyncKeyImport(client);
+    // Check an empty habit day before completion links a session to it.
+    await verifyHabitsClickDoesNotReload(client);
     await verifyPracticeCarouselSwipe(client);
     await verifyPracticeStartClick(client);
     await verifyPracticeCompletionPersistence(client);
-    await verifyHabitsClickDoesNotReload(client);
   }
   console.log(`web smoke: PASS (${renderer})`);
 } catch (error) {

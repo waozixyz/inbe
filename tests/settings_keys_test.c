@@ -196,9 +196,9 @@ main(void)
     scan_first_literal_per_call(&loaded, settings_src, "settings_cache_get_int(");
     scan_first_literal_per_call(&loaded, settings_src, "settings_cache_get(");
     {
-        char *app_src = read_whole_file("src/app/app.c");
+        char *app_src = read_whole_file("src/app/application.kry");
         if(app_src == NULL) {
-            fprintf(stderr, "FAIL cannot read src/app/app.c\n");
+            fprintf(stderr, "FAIL cannot read src/app/application.kry\n");
             return 1;
         }
         scan_first_literal_per_call(&loaded, app_src, "storage_get_setting_text(");

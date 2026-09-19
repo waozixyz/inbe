@@ -16,18 +16,6 @@ Můj záměr
 [profile_progress_title]
 Tento týden
 ---
-[profile_today_habits]
-Dnešní návyky
----
-[profile_active_days]
-Aktivní dny
----
-[profile_days_value]
-%d dní
----
-[profile_week_practices]
-Cvičení
----
 [profile_weekly_insight]
 Tento týden jste se zapojili ve %d dnech.
 ---
@@ -631,9 +619,6 @@ Ukončit
 [sync_account_title]
 Účet
 ---
-[sync_configure_account_button]
-Nastavit účet
----
 [sync_create_account_button]
 Vytvořit účet
 ---
@@ -648,9 +633,6 @@ Importovat soubor .key
 ---
 [sync_import_key_dialog_title]
 Importovat klíč účtu
----
-[sync_private_key_imported]
-Klíč účtu importován
 ---
 [sync_private_key_import_failed]
 Klíč účtu se nepodařilo importovat
@@ -675,9 +657,6 @@ Vzdálený server
 ---
 [sync_connect_button]
 Připojit
----
-[sync_connected_button]
-Připojeno
 ---
 [sync_server_url_invalid]
 Použijte https:// nebo loopback jako localhost:8080
@@ -778,7 +757,6 @@ Týden
 [habit_focus_calendar]
 Kalendář
 ---
----
 [habit_complete_today_button]
 Splnit dnes
 ---
@@ -848,7 +826,6 @@ Celková zádrž
 [habit_stats_best_streak]
 Nejlepší série
 ---
----
 
 [theme_picker_title]
 Vybrat motiv
@@ -894,6 +871,9 @@ Hudba na pozadí
 ---
 [appearance_scale_label]
 Měřítko
+---
+[appearance_glow_effects_label]
+Světelné efekty
 ---
 [audio_music_none_option]
 Žádné
@@ -997,6 +977,30 @@ Data pocházejí z dokončených cvičení.
 [meditation_music_downloading_progress]
 Stahování zvuku... %d%%
 ---
+[practice_home_title_patterns]
+Klidné čtvercové dýchání
+---
+[practice_home_subtitle_patterns]
+5 minut pro klidné soustředění
+---
+[practice_home_title_wim_hof]
+Wim Hofovo dýchání
+---
+[practice_home_subtitle_wim_hof]
+Vedená kola pro energii
+---
+[practice_home_title_meditation]
+Meditace
+---
+[practice_home_subtitle_meditation]
+Zklidněte se s tichým časovačem
+---
+[practice_home_title_sun_salutation]
+Pozdrav slunci
+---
+[practice_home_subtitle_sun_salutation]
+Pohybujte se s dechem v každé pozici
+---
 [meditation_music_downloading]
 Stahování zvuku...
 ---
@@ -1030,9 +1034,6 @@ Použít vzdálené
 [sync_status_title]
 Stav synchronizace
 ---
-[sync_status_account]
-Účet: %s
----
 [sync_status_connected]
 připojen
 ---
@@ -1042,23 +1043,8 @@ odpojen
 [sync_status_queued]
 Ve frontě: %lld
 ---
-[sync_status_server]
-Server: %lld
----
-[sync_status_clock]
-Hodiny: %lld
----
-[sync_status_upgrade]
-Aktualizujte Inner Breeze
----
 [sync_status_review_pending]
 Čeká kontrola
----
-[sync_status_repair_pending]
-Čeká oprava synchronizace
----
-[sync_status_secure_migration_pending]
-Čeká migrace zabezpečených dat
 ---
 [sync_secure_migration_title]
 Aktualizace zabezpečené synchronizace
@@ -1080,9 +1066,6 @@ Aktualizovat teď
 ---
 [sync_status_local_queued]
 Místní změny ve frontě
----
-[sync_status_initial_upload_pending]
-Čeká počáteční nahrání
 ---
 [sync_status_ready]
 Připraveno
@@ -1781,8 +1764,17 @@ Rozvrh a připomenutí
 [tab_elist]
 Seznamy
 ---
-[elist_title]
-Seznamy
+[elist_default_list]
+Dorucene
+---
+[elist_default_item_breathe]
+Vedomě se nadechni
+---
+[elist_default_item_walk]
+Vyjdi si na kratkou prochazku
+---
+[elist_default_item_water]
+Vypij sklenici vody
 ---
 [elist_new_list]
 Novy seznam
@@ -1798,6 +1790,15 @@ Zatim zadne seznamy
 ---
 [elist_empty_detail]
 Vytvorte seznam a pridejte ukoly a poznamky na jednom miste.
+---
+[navigation_sidebar]
+Postranní panel
+---
+[navigation_sidebar_expanded]
+Rozbalený
+---
+[navigation_sidebar_compact]
+Kompaktní
 ---
 [navigation_placement]
 Umístění navigace
@@ -1817,6 +1818,83 @@ Vpravo
 [navigation_top]
 Nahoře
 ---
+[sync_connected]
+Připojeno.
+---
+[sync_auth_failed]
+Ověření selhalo. Zkontrolujte klíč účtu.
+---
+[sync_failed]
+Synchronizace selhala. Místní data jsou zachována. Zkuste to znovu.
+---
+[sync_server_unavailable]
+Server synchronizace není dostupný. Zkuste to později.
+---
+[sync_sign_failed]
+Požadavek na synchronizaci se nepodařilo podepsat. Zkontrolujte klíč účtu.
+---
+[profile_today_short]
+Dnes
+---
+[profile_active_days_short]
+Aktivní dny
+---
+[profile_sessions_short]
+Relace
+---
+[profile_sync_prompt_body]
+Vytvořte si účet pro synchronizaci a ochranu svého pokroku.
+---
+[profile_sync_ready_body]
+Synchronizace tohoto profilu je připravena.
+---
+[profile_account_sync_title]
+Účet a synchronizace
+---
+[profile_account_sync_body]
+Vytvořit účet nebo importovat klíč
+---
+[profile_data_management_title]
+Data
+---
+[profile_data_management_body]
+Import, export a úložiště
+---
+[profile_leaderboard_preview_body]
+Zobrazit žebříček a aktuální sérii
+---
+[profile_no_rank_short]
+Zatím bez umístění
+---
 [appearance_style_label]
 Styl
 ---
+[sync_connection_required]
+Pro nahrání změn se připojte v Profil / Synchronizace.
+
+---
+[sync_in_progress]
+Synchronizace…
+
+---
+[sync_retry_waiting]
+Připojení selhalo. Automaticky se opakuje.
+
+---
+[sync_retry_button]
+Zkusit znovu
+---
+[app_icon_label]
+Ikona aplikace
+---
+[app_icon_sky_cradle]
+Nebeská kolébka
+---
+[app_icon_ink_and_air]
+Inkoust a vzduch
+---
+[app_icon_hint]
+Aktualizace ikony na ploše může chvíli trvat.
+---
+[app_icon_error]
+Ikonu aplikace se nepodařilo změnit. Zkuste to znovu.

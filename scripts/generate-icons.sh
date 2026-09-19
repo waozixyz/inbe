@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 # Icon Generation Script for Inner Breeze
-# Generates transparent icons by default, plus maskable/adaptive variants where
-# platforms clip icons into a shape and need a full-bleed background.
+# Generates transparent artwork, including padded maskable/adaptive layers.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SKY_BLUE="#87CEEB"
+ICON_BACKGROUND="#00000000"
+AIR_SOURCE="$PROJECT_ROOT/assets/app/source-icon-air.png"
 SOURCE_IMAGE="${1:-$PROJECT_ROOT/assets/app/source-icon.png}"
 
 if [[ "$SOURCE_IMAGE" != /* ]]; then
@@ -34,7 +34,7 @@ if [ ! -f "$SOURCE_IMAGE" ]; then
 fi
 
 echo "✅ Using source image: $SOURCE_IMAGE"
-echo "🎨 Maskable/adaptive background color: $SKY_BLUE (Sky Blue)"
+echo "🎨 Maskable/adaptive background color: $ICON_BACKGROUND (Transparent)"
 echo
 
 # Create output directories
@@ -48,40 +48,38 @@ mkdir -p "$PROJECT_ROOT/droid/app/src/main/res/mipmap-anydpi-v26"
 mkdir -p "$PROJECT_ROOT/windows"
 mkdir -p "$PROJECT_ROOT/assets/app"
 mkdir -p "$PROJECT_ROOT/packaging/linux/appimage"
+mkdir -p "$PROJECT_ROOT/packaging/snap/snap/gui"
 mkdir -p "$PROJECT_ROOT/packaging/chrome-web-store/icons"
 mkdir -p "$PROJECT_ROOT/web-assets/icons"
 mkdir -p "$PROJECT_ROOT/site-icons"
 mkdir -p "$PROJECT_ROOT/fastlane/metadata/android/en-US/images"
 
+# Normalize from visible artwork rather than the source canvas. Thresholding is
+# used only to find bounds; the artwork keeps its original translucent edges.
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+normalize_source() {
+    local source=$1 output=$2 bounds
+    bounds=$(magick "$source" -alpha extract -threshold 50% -format '%@' info:)
+    magick "$source" -crop "$bounds" +repage "$output"
+}
+normalize_source "$SOURCE_IMAGE" "$WORK_DIR/sky.png"
+normalize_source "$AIR_SOURCE" "$WORK_DIR/air.png"
+ARTWORK="$WORK_DIR/sky.png"
+
 generate_transparent() {
-    local size=$1
-    local output=$2
-    magick "$SOURCE_IMAGE" \
-        -filter point \
-        -resize "${size}x${size}" \
-        -strip \
-        +set date:create +set date:modify +set date:timestamp \
-        -define png:exclude-chunk=time \
-        "$output"
+    local size=$1 output=$2
+    local logo_size=${3:-$((size * 9 / 10))}
+    magick "$ARTWORK" -filter Lanczos -resize "${logo_size}x${logo_size}" \
+        -background none -gravity center -extent "${size}x${size}" \
+        -strip +set date:create +set date:modify +set date:timestamp \
+        -define png:exclude-chunk=time "$output"
 }
 
 generate_maskable() {
-    local size=$1
-    local output=$2
+    local size=$1 output=$2
     local logo_size=$((size * 4 / 5))
-    magick "$SOURCE_IMAGE" \
-        -filter point \
-        -resize "${logo_size}x${logo_size}" \
-        -background none \
-        -gravity center \
-        -extent "${size}x${size}" \
-        \( -size "${size}x${size}" "xc:$SKY_BLUE" \) +swap \
-        -compose over \
-        -composite \
-        -strip \
-        +set date:create +set date:modify +set date:timestamp \
-        -define png:exclude-chunk=time \
-        "$output"
+    generate_transparent "$size" "$output" "$logo_size"
 }
 
 write_android_background() {
@@ -89,41 +87,57 @@ write_android_background() {
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="$SKY_BLUE" />
+    <solid android:color="$ICON_BACKGROUND" />
 </shape>
 EOF
 }
 
 echo "📱 Generating Android icons..."
 
-# Android legacy launcher icons support transparency.
-generate_transparent 48 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-mdpi/ic_launcher.png"
-generate_transparent 72 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-hdpi/ic_launcher.png"
-generate_transparent 96 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-xhdpi/ic_launcher.png"
-generate_transparent 144 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-xxhdpi/ic_launcher.png"
-generate_transparent 192 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
-
-generate_transparent 48 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-mdpi/ic_launcher_round.png"
-generate_transparent 72 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-hdpi/ic_launcher_round.png"
-generate_transparent 96 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png"
-generate_transparent 144 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png"
-generate_transparent 192 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png"
-
-# Android adaptive icons use a full-bleed background plus a transparent foreground.
+# Both choices have legacy assets plus adaptive layers with a 60dp drawing
+# inside the 108dp layer (240px in 432px). The launcher crops to its own mask.
 write_android_background
-generate_transparent 432 "$PROJECT_ROOT/droid/app/src/main/res/drawable/ic_launcher_foreground.png"
-generate_transparent 108 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-anydpi-v26/ic_launcher_foreground.png"
-generate_transparent 108 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round_foreground.png"
+for variant in sky air; do
+    ARTWORK="$WORK_DIR/$variant.png"
+    name=ic_launcher
+    preview=sky-cradle
+    if [[ "$variant" == air ]]; then
+        name=ic_launcher_air
+        preview=ink-and-air
+    fi
+    for density_size in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+        density=${density_size%:*}
+        size=${density_size#*:}
+        generate_transparent "$size" "$PROJECT_ROOT/droid/app/src/main/res/mipmap-$density/$name.png"
+        generate_transparent "$size" "$PROJECT_ROOT/droid/app/src/main/res/mipmap-$density/${name}_round.png"
+    done
+    generate_transparent 432 "$PROJECT_ROOT/droid/app/src/main/res/drawable/${name}_foreground.png" 240
+    generate_transparent 108 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-anydpi-v26/${name}_foreground.png" 60
+    generate_transparent 108 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-anydpi-v26/${name}_round_foreground.png" 60
+    for suffix in "" _round; do
+        cat > "$PROJECT_ROOT/droid/app/src/main/res/mipmap-anydpi-v26/${name}${suffix}.xml" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/${name}_foreground" />
+</adaptive-icon>
+EOF
+    done
+    # Settings previews contain only the person and cloud.
+    generate_transparent 192 "$PROJECT_ROOT/assets/app/icon-$preview.png"
+done
+ARTWORK="$WORK_DIR/sky.png"
 
 echo "✅ Android icons generated"
 
 echo "🪟 Generating Windows icon..."
 
-# ICO supports transparency; do not flatten.
-magick \
-    "$SOURCE_IMAGE" -resize 256x256 -strip \
-    "$SOURCE_IMAGE" -resize 192x192 -strip \
-    "$SOURCE_IMAGE" -resize 32x32 -strip \
+# ICO contains separate transparent sizes with the same centered artwork.
+for size in 256 192 48 32 16; do
+    generate_transparent "$size" "$WORK_DIR/windows-$size.png"
+done
+magick "$WORK_DIR/windows-256.png" "$WORK_DIR/windows-192.png" \
+    "$WORK_DIR/windows-48.png" "$WORK_DIR/windows-32.png" "$WORK_DIR/windows-16.png" \
     "$PROJECT_ROOT/windows/inbe.ico"
 
 echo "✅ Windows icon generated"
@@ -180,7 +194,7 @@ echo "🎉 Icon generation complete!"
 echo
 echo "Generated icons:"
 echo "  📱 Android: mipmap PNGs + adaptive drawable foreground/background"
-echo "  🪟 Windows: windows/inbe.ico (256, 192, 32 resolutions)"
+echo "  🪟 Windows: windows/inbe.ico (256, 192, 48, 32, 16 resolutions)"
 echo "  🖥️ App:     assets/app/icon.png (64x64 transparent runtime icon)"
 echo "  🐧 Linux:   packaging/linux/appimage/inbe.png + snap/gui/inbe.png (256x256)"
 echo "  🏪 Store:   fastlane/metadata/android/en-US/images/icon.png (512x512)"

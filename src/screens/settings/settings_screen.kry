@@ -51,15 +51,6 @@ state {
     unified_status_type: int = 0
 }
 
-settings_mobile_hub_active :: (app: InnerBreeze*) -> int #private {
-    #if DESKTOP {
-        unused app
-        return 0
-    } #else {
-        return app != NULL && app->settings_tab == SETTINGS_TAB_MOBILE_HUB
-    }
-}
-
 settings_screen_set_status_success :: (message: const char*, detail: const char*) {
     if message != NULL {
         strncpy(unified_status, message, sizeof(unified_status) - 1)
@@ -126,7 +117,7 @@ settings_tab_content_height :: (app: InnerBreeze*, tab: int, content_w: int) -> 
                Scale(42)
     }
     if tab == SETTINGS_TAB_THEME {
-        return theme_panel.content_height(content_w)
+        return theme_panel.content_height(app, content_w)
     }
     if tab == SETTINGS_TAB_DEVICE {
         return settings_device_content_height(content_w)
@@ -240,11 +231,6 @@ settings_desktop_tab_at :: (index: int) -> int #private {
         return SETTINGS_TAB_DEVICE
     }
     return tabs[index]
-}
-
-settings_tab_subtitle :: (tab: int) -> const char* #private {
-    unused tab
-    return ""
 }
 
 settings_screen_normalize :: (app: InnerBreeze*) #private {
@@ -364,13 +350,7 @@ settings_mobile_profile_strip :: (app: InnerBreeze*, x: int, y: int, w: int) -> 
     })
     DrawCircle(avatar_x + avatar / 2, avatar_y + avatar / 2, avatar / 2,
                LightenColor(GetThemeButton(), 30))
-    DrawTexturePro(app->icons[app->profile_picture_icon],
-                   (Rectangle){0.0f, 0.0f,
-                               (float)app->icons[app->profile_picture_icon].width,
-                               (float)app->icons[app->profile_picture_icon].height},
-                   (Rectangle){(float)avatar_x, (float)avatar_y,
-                               (float)avatar, (float)avatar},
-                   (Vector2){0.0f, 0.0f}, 0.0f, WHITE)
+    Icon(0, avatar_x, avatar_y, avatar, app->profile_picture_icon, WHITE)
     Text((TextProps){
         .bounds={(float)text_x, (float)(y + Scale(17)),
                  (float)(w - (text_x - x) - Scale(14)), (float)Scale(24)},
@@ -505,12 +485,10 @@ settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int
                                      w: int, h: int, id: int) -> int #private {
     active := app != NULL && app->settings_tab == tab
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    icon_color := active ? LightenColor(GetThemeButtonHover(), 64) : GetThemeText()
+    icon_color := active ? GetThemeButtonText() : GetThemeText()
     icon_size := Scale(24)
     icon_x := x + Scale(14)
     text_x := icon_x + icon_size + Scale(12)
-    title_y := y + Scale(16)
-    subtitle_y := y + Scale(40)
 
     clicked := Button((ButtonProps){
         .bounds = bounds, .id = id,
@@ -528,19 +506,13 @@ settings_desktop_category_button :: (app: InnerBreeze*, tab: int, x: int, y: int
          ICON_GEAR,
          icon_color)
     Text((TextProps){
-        .bounds={(float)text_x, (float)title_y,
-                 (float)(w - (text_x - x) - Scale(12)), (float)Scale(22)},
+        .bounds={(float)text_x, (float)y,
+                 (float)(w - (text_x - x) - Scale(12)), (float)h},
+        .vertical_align=TextAlignCenter,
         .text=(settings_screen_tab_label(tab)),
+        .class_name = active ? StyleClassId("selected-navigation") : 0,
         .wrap=TextWrapNone
     })
-    if settings_tab_subtitle(tab)[0] != '\0' {
-        Text((TextProps){
-            .bounds={(float)text_x, (float)subtitle_y,
-                     (float)(w - (text_x - x) - Scale(12)), (float)Scale(18)},
-            .text=(settings_tab_subtitle(tab)),
-            .wrap=TextWrapNone
-        })
-    }
     if clicked {
         if app != NULL && app->settings_tab != tab {
             app->settings_tab = tab
@@ -579,22 +551,12 @@ settings_desktop_layout :: (layout: SettingsDesktopLayout*) -> int #private {
     return layout->content_w >= Scale(640) && layout->panel_w >= Scale(320)
 }
 
-settings_desktop_draw_header :: (layout: SettingsDesktopLayout, tab: int) #private {
-    subtitle := settings_tab_subtitle(tab)
-
+settings_desktop_draw_header :: (layout: SettingsDesktopLayout) #private {
     Text((TextProps){
         .bounds={(float)layout.content_x, (float)layout.content_y, 0, 0},
         .text=(GetLocaleText("settings_title")),
         .wrap=TextWrapNone
     })
-    if subtitle[0] != '\0' {
-        Text((TextProps){
-            .bounds={(float)layout.content_x,
-                     (float)(layout.content_y + Scale(40)), 0, 0},
-            .text=(subtitle),
-            .wrap=TextWrapNone
-        })
-    }
 }
 
 settings_desktop_draw_nav :: (app: InnerBreeze*, layout: SettingsDesktopLayout) #private {
@@ -621,7 +583,6 @@ settings_desktop_draw_panel :: (app: InnerBreeze*, layout: SettingsDesktopLayout
     page_ctx := (SettingsScrollPageContext){app, app != NULL ? app->settings_tab : SETTINGS_TAB_DEVICE}
     y := layout.panel_y + layout.panel_pad
     title := settings_screen_tab_label(app->settings_tab)
-    subtitle := settings_tab_subtitle(app->settings_tab)
     content_h := 0
     drawn := 0
 
@@ -637,18 +598,7 @@ settings_desktop_draw_panel :: (app: InnerBreeze*, layout: SettingsDesktopLayout
         .text=(title),
         .wrap=TextWrapNone
     })
-    y += Scale(34)
-    if subtitle[0] != '\0' {
-        Text((TextProps){
-            .bounds={(float)(layout.panel_x + layout.panel_pad), (float)y,
-                     (float)(layout.panel_w - layout.panel_pad * 2), (float)Scale(22)},
-            .text=(subtitle),
-            .wrap=TextWrapNone
-        })
-        y += Scale(36)
-    } else {
-        y += Scale(18)
-    }
+    y += Scale(34) + Scale(18)
 
     page_ctx.tab = app->settings_tab
     content_h = settings_scroll_page_content_height(
@@ -679,7 +629,7 @@ settings_screen_draw_desktop :: (app: InnerBreeze*) -> int #private {
     if app == NULL || !settings_desktop_layout(&layout) {
         return 0
     }
-    settings_desktop_draw_header(layout, app->settings_tab)
+    settings_desktop_draw_header(layout)
     settings_desktop_draw_nav(app, layout)
     settings_desktop_draw_panel(app, layout)
     return 1

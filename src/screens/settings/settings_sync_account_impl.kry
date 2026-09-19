@@ -215,7 +215,7 @@ server_save :: (app: InnerBreeze*) #private {
         return
     }
     storage_set_setting_text(sync_server_url_key, url)
-    storage_set_sync_server_connected(0)
+    storage_set_sync_enabled(0)
     settings_screen_set_status_success(GetLocaleText("sync_server_saved"), url)
 }
 
@@ -261,8 +261,13 @@ save_prepared :: (app: InnerBreeze*, account: SyncAccount*,
     if action == PendingSyncAccountCreate {
         settings_screen_set_status_success(GetLocaleText("sync_account_created"), nil)
     } else {
-        settings_screen_set_status_success(GetLocaleText("sync_private_key_imported"), nil)
-        TraceLog(LOG_INFO, "SYNC: Private key imported")
+        if app->sync_server_url[0] == '\0' {
+            saved_url := storage_get_setting_text(sync_server_url_key)
+            snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s",
+                     saved_url != nil && saved_url[0] != '\0' ? saved_url : sync_server_url_default)
+        }
+        run_connect(app)
+        TraceLog(LOG_INFO, "SYNC: Private key restored; synchronization requested")
     }
 
     return 1
@@ -297,7 +302,7 @@ server_connected :: (app: InnerBreeze*) -> int #private {
     if app == nil || !sync_account_load(&account) {
         return 0
     }
-    if !storage_sync_server_connected() {
+    if !storage_sync_enabled() {
         return 0
     }
     if !sync_client_normalize_url(app->sync_server_url, url, sizeof(url)) {
@@ -313,27 +318,6 @@ server_connected :: (app: InnerBreeze*) -> int #private {
     return strcmp(saved_normalized, url) == 0
 }
 
-result_key :: (result: SyncResult) -> const char* #private {
-    if result == SYNC_OK {
-        return "sync_connected"
-    }
-    if result == SYNC_INVALID_URL {
-        return "sync_server_url_invalid"
-    }
-    if result == SYNC_NO_ACCOUNT {
-        return "sync_no_account"
-    }
-    if result == SYNC_AUTH_FAILED {
-        return "sync_auth_failed"
-    }
-    if result == SYNC_CHALLENGE_FAILED {
-        return "sync_server_unavailable"
-    }
-    if result == SYNC_SIGN_FAILED {
-        return "sync_sign_failed"
-    }
-    return "sync_failed"
-}
 
 create_account :: (app: InnerBreeze*, account: SyncAccount*) -> int #private {
     if account == nil {
@@ -357,7 +341,6 @@ create_account :: (app: InnerBreeze*, account: SyncAccount*) -> int #private {
 }
 
 run_connect :: (app: InnerBreeze*) #private {
-    result: SyncResult
     url: [sizeof(app->sync_server_url)] char
     account: SyncAccount
 
@@ -365,39 +348,20 @@ run_connect :: (app: InnerBreeze*) #private {
         return
     }
     if !sync_account_load(&account) {
-        storage_set_sync_server_connected(0)
+        storage_set_sync_enabled(0)
         settings_screen_set_status_error(GetLocaleText("sync_no_account"))
         return
     }
     if !server_normalize(app, url, sizeof(url)) {
-        storage_set_sync_server_connected(0)
+        storage_set_sync_enabled(0)
         settings_screen_set_status_error(GetLocaleText("sync_server_url_invalid"))
         return
     }
 
     storage_set_setting_text(sync_server_url_key, url)
-    storage_set_sync_server_connected(0)
-    result = sync_client_connect(url)
-    if result == SYNC_OK {
-        storage_set_sync_server_connected(1)
-        app_request_social_refresh(app)
-        if storage_sync_review_clear_if_no_visible_diff() {
-            app_reload_after_import(app, 0)
-            settings_screen_set_status_success(GetLocaleText(result_key(result)), nil)
-        } else if storage_sync_review_apply_remote_if_local_empty() {
-            app_reload_after_import(app, 0)
-            settings_screen_set_status_success(GetLocaleText(result_key(result)), nil)
-        } else if storage_sync_review_pending() {
-            app_open_modal(app, UIModalSyncReview)
-            settings_screen_set_status_error(GetLocaleText("sync_review_needed"))
-        } else {
-            app_reload_after_import(app, 0)
-            settings_screen_set_status_success(GetLocaleText(result_key(result)), nil)
-        }
-    } else {
-        storage_set_sync_server_connected(0)
-        settings_screen_set_status_error(GetLocaleText(result_key(result)))
-    }
+    storage_set_sync_enabled(1)
+    app_auto_sync(app)
+    settings_screen_set_status_success(GetLocaleText("sync_in_progress"), nil)
 }
 
 connect :: (app: InnerBreeze*) {
@@ -605,6 +569,8 @@ config_content_height :: (content_w: int) -> int {
     h += Scale(18) + btn_h + Scale(12)
     h += btn_h + Scale(12)
 
+    h += Scale(80)
+
     buttons_main: [3] SettingsSyncButton = {
         {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
@@ -781,15 +747,28 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     if Button((ButtonProps){
         .bounds = {(float)(x), (float)(*y), (float)(w), (float)(btn_h)},
         .label = server_connected(app)
-                               ? GetLocaleText("sync_connected_button")
+                               ? GetLocaleText("sync_retry_button")
                                : GetLocaleText("sync_connect_button"),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
-        .disabled = 0
+        .disabled = app_sync_loading()
     }) {
         run_connect(app)
     }
     *y += btn_h + Scale(12)
+
+    Text((TextProps){
+        .bounds = {x, *y, w, Scale(48)},
+        .text = GetLocaleText(app_sync_status_key())
+    })
+    *y += Scale(52)
+    sync_status: StorageSyncStatus
+    if storage_sync_status(&sync_status) {
+        queued: [96] char
+        FormatLocaleText(queued, sizeof(queued), "sync_status_queued", sync_status.queued_changes)
+        Text((TextProps){.bounds = {x, *y, w, Scale(24)}, .text = queued})
+        *y += Scale(28)
+    }
 
     buttons_main: [3] SettingsSyncButton = {
         {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},

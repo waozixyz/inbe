@@ -742,6 +742,14 @@ public class MainActivity extends NativeActivity {
         });
     }
 
+    public int getAppIcon() {
+        return LauncherIcons.selected(this);
+    }
+
+    public boolean setAppIcon(int icon) {
+        return LauncherIcons.select(this, icon);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         configureSystemBars();
