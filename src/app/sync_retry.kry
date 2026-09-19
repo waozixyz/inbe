@@ -1,20 +1,29 @@
 #module "app.sync_retry"
 #import "sync.h"
+#import "sync_retry_table.h"
+
+retry_attempt_index :: (attempt: int) -> int #private {
+    if attempt < 0 {
+        return 0
+    }
+    if attempt > 4 {
+        return 4
+    }
+    return attempt
+}
+
+sync_retry_decision :: (result: int, attempt: int) -> RetryDecision #export {
+    if result < SYNC_OK || result > SYNC_AUTH_FAILED {
+        result = 8
+    }
+    return retry_decisions[result][retry_attempt_index(attempt)]
+}
 
 app_sync_failure_needs_action :: (result: int) -> int #export {
-    return result != SYNC_OK && result != SYNC_CHALLENGE_FAILED &&
-           result != SYNC_REQUEST_FAILED
+    decision := sync_retry_decision(result, 0)
+    return decision.needs_action
 }
 
 app_sync_retry_delay :: (attempt: int) -> double #export {
-    if attempt <= 1 {
-        return 5.0
-    }
-    if attempt == 2 {
-        return 15.0
-    }
-    if attempt == 3 {
-        return 30.0
-    }
-    return 60.0
+    return retry_delays[retry_attempt_index(attempt)]
 }

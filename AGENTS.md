@@ -1,87 +1,51 @@
-# Inbe Agent Instructions
+# Inbe repository rules
 
-- Never edit files under `vendor/` from this repository.
-- Kryon changes must be made in the core Kryon repository, committed there, pushed there, and then brought into Inbe by updating the Kryon submodule pointer.
-- Do not add tests, policy checks, wrappers, compatibility aliases, or generated changes inside `vendor/` from Inbe.
-- If a task appears to require a vendor change, stop and switch to the upstream project workflow first.
-- When adding or changing localized strings, translate the content for every locale file being touched. Do not copy English placeholder text into non-English locales.
-- Run `make no-vendor-edits` or `make test` before handing work back when a task touches Kryon or other vendored code.
+## Ownership and releases
 
-## Version Consistency Rule
+- Never edit `vendor/`. Change Kryon in its upstream repository on `master`,
+  commit and push there, then update only Inbe's clean submodule pointer.
+  Run `make no-vendor-edits` after dependency changes.
+- Add the numeric release to `CHANGELOG.md`, then run `./update_version.sh`.
+  The canonical macros are `APP_VERSION_STRING`, `APP_VERSION_MAJOR`,
+  `APP_VERSION_MINOR`, and `APP_VERSION_PATCH`; do not create aliases.
+  Only the GitHub Actions release workflow creates or pushes release tags.
+- Translate changed strings in every affected locale; no English placeholders.
 
-- `CHANGELOG.md` is the sole release-version source of truth. Add or update its
-  numeric release entry, then run `./update_version.sh`; never edit generated
-  version values individually or use `Unreleased` as an application version.
-- `APP_VERSION_STRING`, `APP_VERSION_MAJOR`, `APP_VERSION_MINOR`, and
-  `APP_VERSION_PATCH` in `src/core/version.h` are the permanent canonical macro
-  names. Do not rename them or add alternate version macros or aliases.
-- Application, packaging, website, and release readers must use that canonical
-  version. Shell release readers use `scripts/check-version.py --print-version`,
-  which rejects missing, malformed, or inconsistent metadata.
-- Keep `make version-check` and `make version-test` passing. Never bypass these
-  checks to package or publish a release. Only the GitHub Actions release
-  workflow may create or push release tags.
+## Machine-checked contracts
 
-## Clean Sync API Rule
+- `make build-laws` is mandatory for native, web, and Windows artifacts;
+  Gradle and CMake enforce the same version and proof checks independently.
+  Never bypass a failed gate or hand-edit generated policy tables.
+- Retry behavior lives in `laws/sync_retry/main.bend`. Implement changes there
+  and prove `LAWS.bend` in `PROOF.bend`; the app consumes the checked table.
+  Do not weaken laws to make an implementation pass. Contract changes require
+  explicit product intent and separate review from implementation changes.
+- Run `make proof-test sync-recovery-test version-test` for these contracts.
+  Coverage, trust boundaries, and the next proof migrations are described in
+  [docs/build-laws-plan.md](docs/build-laws-plan.md).
 
-- New Inbe releases use sync protocol v6 and the clean Kryon sync API. Do not
-  add `Ksync`-prefixed types, functions, files, build variables, or compatibility
-  wrappers. Legacy wire strings may remain only where migration code must read
-  data produced by an already shipped release.
-- Migration must be automatic, resumable, and non-destructive. Do not purge
-  synced tombstones or legacy projections while a supported older installation
-  can still return.
+## Public UI and sync boundaries
 
-## Canonical Text Rule
+- Use `Text(TextProps)`, `Image(ImageProps)`, and `Button(ButtonProps)` directly.
+  Semantic images use the same `Image` surface. No positional Text, legacy
+  drawing calls, alternate widgets, or thin local forwarding wrappers.
+  Keep meaningful compositions and gestures; use standard Checkbox and Toggle.
+  Run `make clean-text-api-check button-api-check` for UI changes.
+- If a required widget capability is missing, implement the reusable primitive
+  upstream first. Do not work around it in Inbe or generated code.
+- Use sync protocol v6 and the clean Kryon API; no new `Ksync` names or wrappers.
+  Keep legacy wire strings only for migration. Migrations must be automatic,
+  resumable, and non-destructive, preserving tombstones and legacy projections
+  while supported older installations can return.
 
-- `Text` has exactly one supported form: `Text((TextProps){...})`. Put bounds,
-  wrapping, clipping, color, alignment, and disabled state in `TextProps`.
-- Do not add positional `Text` calls, parallel helpers such as `TextWrapped` or
-  `TextColored`, or local wrappers that conceal the old signature. Change the
-  maintained `.kry` or C source, never generated output or vendored Kryon code.
-- Keep `make clean-text-api-check` passing. A UI migration is incomplete until
-  the maintained source and freshly generated output build with upstream Kryon.
+## Product behavior and readability
 
-## Canonical Image Rule
-
-- App `.kry` UI uses Kryon's `Image(ImageProps)` for images, or
-  `PageImage(ImageProps, alt_text)` for semantic page images.
-- Do not replace legacy `Texture(...)` calls with `DrawTexture*`,
-  `DrawTexturePro`, `DrawTextureRec`, or other raylib draw calls in maintained
-  UI. Those are low-level backend primitives, not the clean Kryon public widget
-  surface.
-- If a screen currently only has a `Texture2D` handle, prefer moving the UI to
-  asset-backed `ImageProps`. If Kryon cannot express the needed case yet, make
-  the reusable primitive in upstream `~/Projects/kryon`, commit it there, and
-  then update Inbe's `vendor/kryon` pointer. Do not solve it with app-local
-  wrappers or edits under `vendor/`.
-
-## Session Animation and Controls
-
-- Desktop focus loss must never pause a practice, freeze its circle, suppress
-  normal session updates, or switch it into the mobile background-timer path.
-  Explicit user pause is separate from window focus. Preserve Android/web
-  lifecycle handling without applying it to an unfocused desktop window.
-- Keep Kryon's default hover, press, and focus transitions enabled. Do not
-  disable transition cues globally in the app frame loop.
-- Session audio controls use 44-unit targets (24-unit icons plus 10-unit
-  padding on each side), scaled through Kryon, with space between controls.
-
-## Readability Rule
-
-- Buttons use Kryon's `Button(ButtonProps)` directly, including icon buttons
-  and clickable cards. Do not restore app-local button wrappers or separately
-  painted hover/click surfaces. Keep custom card content and domain gestures,
-  but let the shared button own its surface and activation. Checkboxes and
-  toggles use their own standard widgets. Run `make button-api-check`.
-- Do not add thin forwarding helpers around `Button`, even with screen-specific
-  names. Put `ButtonProps` directly at the call site. Keep composed widgets only
-  when they own meaningful layout, content, or behavior beyond forwarding props.
-- The Lists screen starts with list tabs; do not restore a separate Lists
-  title bar or replace the tabs with a dropdown.
-
-- Write conventional, fully readable code. Never compress multiple statements,
-  branches, declarations, or error checks onto one line. Use descriptive names,
-  explicit control flow, and focused helpers.
-- Format changed source, run `git diff --check`, and inspect the final diff before
-  considering a change complete.
+- Desktop focus loss must not pause practices, freeze animation, suppress
+  updates, or enter the mobile background-timer path. Preserve mobile/web
+  lifecycle handling and explicit user pause as separate behavior.
+- Preserve hover, press, and focus transitions. Session audio controls have
+  44-unit targets (24-unit icons plus 10-unit padding), scaled and spaced.
+- Lists starts with list tabs, without a separate title bar or dropdown.
+- Use descriptive names, explicit control flow, and focused helpers. Never
+  compress multiple statements, branches, declarations, or checks onto one line.
+  Format changed source, inspect the final diff, and run `git diff --check`.

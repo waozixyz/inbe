@@ -62,6 +62,26 @@ class VersionTest(unittest.TestCase):
         self.assertEqual(self.check("--print-version").stdout, self.version + "\n")
         self.assertEqual(before, self.snapshot())
 
+    def test_build_gate_rejects_mismatch_after_success(self):
+        (self.root / "vendor").mkdir()
+        (self.root / "vendor/kryon").symlink_to(REPO / "vendor/kryon", target_is_directory=True)
+        shutil.copytree(REPO / "laws", self.root / "laws")
+        shutil.copy2(REPO / "scripts/generate-sync-retry.mjs", self.root / "scripts")
+
+        def build():
+            return subprocess.run(["make", "build-laws"], cwd=self.root,
+                                  capture_output=True, text=True, check=False)
+
+        valid = build()
+        self.assertEqual(valid.returncode, 0, valid.stdout + valid.stderr)
+        generated = self.root / "build/proofs/sync_retry_table.h"
+        self.assertTrue(generated.exists())
+        name = "droid/app/build.gradle"
+        self.write(name, self.read(name).replace(self.version, "9.8.7"))
+        invalid = build()
+        self.assertNotEqual(invalid.returncode, 0)
+        self.assertIn("expected", invalid.stdout + invalid.stderr)
+
     def test_each_package_mismatch_is_rejected(self):
         for name in ("droid/app/build.gradle", "packaging/click/manifest.json",
                      "packaging/click/control", "packaging/firefox-addons/manifest.json",

@@ -413,6 +413,10 @@ APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -
 APP_INCLUDE += $(KRYON_INCLUDE)
 APP_INCLUDE += -I$(KRY_GEN_DIR)
 APP_INCLUDE += -I$(KRY_GEN_DIR)/src
+PROOF_DIR := $(BUILD_DIR)/proofs
+SYNC_RETRY_HEADER := $(PROOF_DIR)/sync_retry_table.h
+APP_INCLUDE += -I$(PROOF_DIR)
+KRYON_INCLUDE += -I$(PROOF_DIR)
 RAY_PKGS ?= sdl2 libdrm gbm egl glesv2
 RAY_SDL_CFLAGS ?= $(shell pkg-config --cflags sdl2 2>/dev/null)
 RAY_SDL_LDLIBS ?= $(shell pkg-config --libs sdl2 2>/dev/null)
@@ -580,7 +584,7 @@ $(KRYON_RUNTIME_STAMP): Makefile $(K2C) $(KRYON_RUNTIME_KRY)
 $(KRYON_RUNTIME_C) $(KRYON_RUNTIME_H): $(KRYON_RUNTIME_STAMP)
 	@test -f $@
 
-$(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS)
+$(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS) $(SYNC_RETRY_HEADER) | build-laws
 	rm -rf $(KRY_GEN_DIR)
 	mkdir -p $(KRY_GEN_DIR)
 	$(K2C) --root $(abspath .) -o $(KRY_GEN_DIR) $(abspath $(KRY_SRCS))
@@ -603,6 +607,7 @@ kry-c-plan9: $(KRY_GEN_STAMP)
 		--include-dir vendor/kryon/include --include-dir src \
 		--include-dir $(KRY_GEN_DIR) --include-dir vendor-builds/sqlite \
 		-o $(PLAN9_GENERATED) $(KRY_SRCS)
+	cp $(SYNC_RETRY_HEADER) $(PLAN9_GENERATED)/sync_retry_table.h
 	find $(PLAN9_GENERATED) -type f -name '*.c' | LC_ALL=C sort > $(PLAN9_FILE_LIST)
 	sh vendor/kryon/scripts/embed-assets.sh $(PLAN9_EMBEDDED_ASSETS_C) \
 		$(STYLE_FILES) $(LOCALE_FILES) $(IMAGE_FILES) $(FONT_FILES)
@@ -761,6 +766,22 @@ version-test:
 	python3 tests/version_test.py
 
 test: version-check version-test
+
+# Proofs run on every invocation, even with an existing generated header.
+# The generator replaces the header only when its contents actually change.
+.PHONY: proofs proof-test build-laws
+proofs:
+	node scripts/generate-sync-retry.mjs $(SYNC_RETRY_HEADER)
+
+proof-test:
+	node --test tests/sync_retry_proof_test.mjs
+
+build-laws: version-check proofs
+
+$(SYNC_RETRY_HEADER): | proofs
+	@test -f $@
+
+test: proof-test
 
 secret-check:
 	python3 ./scripts/check-secrets.py --working-tree
@@ -1478,7 +1499,7 @@ $(FLATPAK_TARGET): Makefile $(FLATPAK_MANIFEST) | $(FLATPAK_BUILD_DIR) $(FLATPAK
 		-v "$(abspath .):/work" \
 		-w /work \
 		$(FLATPAK_IMAGE) \
-		sh -lc 'set -eu; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''inbe-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/inbe; install -D -m644 packaging/linux/appimage/inbe.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/inbe.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/inbe.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
+		sh -lc 'set -eu; sh scripts/install-build-node.sh /tmp/inbe-build-node; export PATH=/tmp/inbe-build-node/bin:$$PATH; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''inbe-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/inbe; install -D -m644 packaging/linux/appimage/inbe.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/inbe.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/inbe.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
 	test -f $@
 
 $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRY_GEN_STAMP) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
@@ -1966,3 +1987,6 @@ $(TEST_BIN_DIR)/sync_recovery_test: tests/sync_recovery_test.c $(KRY_GEN_STAMP) 
 # Validate before producing release packages, including direct artifact targets.
 $(APPIMAGE_TARGET) $(DEB_TARGET) $(RPM_TARGET) $(SNAP_TARGET) $(FLATPAK_TARGET) $(CLICK_TARGET) $(CHROME_WEB_STORE_ZIP) $(FIREFOX_ADDONS_ZIP): | version-check
 android-release android-bundle android-copy-release-apks android-copy-bundle windows-setup site: version-check
+
+# Actual artifacts are gated too, including direct and incremental builds.
+$(TARGET) $(KRYON_HOST_TARGET) $(WIN64_TARGET) $(WIN32_TARGET) $(WEB_JS_TARGET) $(WEB_CANVAS_TARGET): $(SYNC_RETRY_HEADER) | build-laws

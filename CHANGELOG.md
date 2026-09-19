@@ -14,6 +14,7 @@
 - Improved text selection, keyboard focus, and composition handling when editing text.
 - Connecting to sync runs in the background so network requests do not block the interface.
 - Sync retries temporary connection failures automatically without losing queued changes.
+- Automatic friend-list retries stop when account details need attention, and retry delays recover safely from invalid saved counts.
 - Profile shows actionable sync status instead of internal repair messages.
 - Restoring an account key now starts synchronization and retrieves the account alias and existing friendships. Friend lists remain available when leaderboard loading fails.
 - Sync no longer asks you to upgrade just because the server supports a newer sync protocol.

@@ -136,6 +136,24 @@ androidComponents {
     }
 }
 
+// Always run, including Java-only incremental builds. CMake independently
+// checks its own generated header so direct native builds have the same gate.
+tasks.register('checkBuildLaws') {
+    doLast {
+        exec {
+            workingDir rootProject.file('..')
+            commandLine 'python3', 'scripts/check-version.py'
+        }
+        exec {
+            workingDir rootProject.file('..')
+            commandLine 'node', 'scripts/generate-sync-retry.mjs'
+        }
+    }
+}
+tasks.named('preBuild').configure {
+    dependsOn 'checkBuildLaws'
+}
+
 gradle.taskGraph.whenReady { taskGraph ->
     def signedTasks = [":app:assembleRelease", ":app:bundleRelease", ":app:assembleGplay", ":app:bundleGplay"]
     if (signedTasks.any { taskGraph.hasTask(it) }

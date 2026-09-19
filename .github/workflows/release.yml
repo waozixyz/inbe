@@ -50,6 +50,11 @@ jobs:
           fetch-depth: 1
           lfs: true
 
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Cache Test apt packages
         uses: actions/cache@v4
         with:
@@ -81,6 +86,11 @@ jobs:
           fetch-depth: 1
           lfs: true
 
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Cache Web apt packages
         uses: actions/cache@v4
         with:
@@ -92,11 +102,6 @@ jobs:
       - name: Install Web Dependencies
         timeout-minutes: 15
         run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
 
       - name: Set up Emscripten
         run: |
@@ -139,6 +144,11 @@ jobs:
           submodules: recursive
           fetch-depth: 1
           lfs: true
+
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Cache Web apt packages
         uses: actions/cache@v4
@@ -194,6 +204,11 @@ jobs:
           fetch-depth: 1
           lfs: true
 
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Cache Web apt packages
         uses: actions/cache@v4
         with:
@@ -205,11 +220,6 @@ jobs:
       - name: Install Web Dependencies
         timeout-minutes: 15
         run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
 
       - name: Set up Emscripten
         run: |
@@ -262,6 +272,11 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
+
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Cache Linux apt packages
         uses: actions/cache@v4
@@ -364,6 +379,11 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Cache Linux apt packages
         uses: actions/cache@v4
         with:
@@ -416,6 +436,11 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
+
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Cache Linux apt packages
         uses: actions/cache@v4
@@ -470,6 +495,11 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Cache Linux apt packages
         uses: actions/cache@v4
         with:
@@ -520,6 +550,11 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Cache Linux apt packages
         uses: actions/cache@v4
         with:
@@ -560,6 +595,11 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Build FreeBSD .pkg
         uses: vmactions/freebsd-vm@v1
         with:
@@ -567,7 +607,7 @@ jobs:
           usesh: true
           prepare: |
             for attempt in 1 2 3; do
-              pkg install -y gmake cmake pkgconf sdl2 gtk3 curl sqlite3 mesa-libs libdrm hicolor-icon-theme desktop-file-utils && break
+              pkg install -y node22 python3 gmake cmake pkgconf sdl2 gtk3 curl sqlite3 mesa-libs libdrm hicolor-icon-theme desktop-file-utils && break
               if [ "$attempt" -eq 3 ]; then
                 exit 1
               fi
@@ -602,6 +642,11 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
+
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Cache Windows apt packages
         uses: actions/cache@v4
@@ -660,6 +705,11 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 1
+
+      - name: Set up Node.js for Bend proofs
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4

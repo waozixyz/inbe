@@ -83,6 +83,17 @@ list(APPEND KRYON_K2C_SOURCES ${KRYON_KIR_SOURCES}
 list(SORT KRYON_K2C_SOURCES)
 find_program(HOST_CC NAMES cc clang gcc REQUIRED)
 find_program(HOST_PYTHON NAMES python3 REQUIRED)
+find_program(HOST_NODE NAMES node REQUIRED)
+set(APP_PROOF_DIR "${CMAKE_BINARY_DIR}/proofs")
+add_custom_target(app_build_laws
+    COMMAND "${HOST_PYTHON}" "${REPO_ROOT}/scripts/check-version.py"
+    COMMAND "${HOST_NODE}" "${REPO_ROOT}/scripts/generate-sync-retry.mjs"
+        "${APP_PROOF_DIR}/sync_retry_table.h"
+    BYPRODUCTS "${APP_PROOF_DIR}/sync_retry_table.h"
+    WORKING_DIRECTORY "${REPO_ROOT}"
+    COMMENT "Checking release consistency and proving sync retry laws"
+    VERBATIM
+)
 set(KRYON_K2C "${CMAKE_BINARY_DIR}/host-tools/k2c")
 # needs the kir headers on the include path
 set(APP_KRY_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated")
@@ -165,7 +176,7 @@ add_custom_target(app_clean_runtime_api
     COMMENT "Rejecting stale or duplicate Kryon runtime API usage"
     VERBATIM
 )
-add_dependencies(app_kry_generated app_clean_runtime_api)
+add_dependencies(app_kry_generated app_clean_runtime_api app_build_laws)
 
 add_custom_command(
     OUTPUT
@@ -293,7 +304,7 @@ add_library(main SHARED
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
 add_dependencies(main app_kry_generated kryon_raylib_generated
-    kryon_runtime_generated)
+    kryon_runtime_generated app_build_laws)
 
 file(GLOB_RECURSE KRYON_ICON_FILES CONFIGURE_DEPENDS "${KRYON_DIR}/icons/*.png" "${KRYON_DIR}/icons/*.json")
 add_custom_command(
@@ -310,6 +321,7 @@ add_custom_target(kryon_icon_assets_generated DEPENDS "${KRYON_ICON_ASSETS_C}" "
 add_dependencies(main kryon_icon_assets_generated)
 
 target_include_directories(main PRIVATE
+    "${APP_PROOF_DIR}"
     "${KRYON_ICON_GENERATED_INCLUDE_DIR}"
     "${KRYON_DIR}/include"
     "${KRYON_DIR}/src"

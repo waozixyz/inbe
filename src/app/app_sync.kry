@@ -6,6 +6,7 @@
 #import "storage.h" #private
 #import "sync_account.h" #private
 #import "sync_client.h" #private
+#import "app/sync_retry.h" #private
 #import <stdio.h>
 #import <stdlib.h>
 #import <string.h>
@@ -94,21 +95,30 @@ sync_unlock :: () #private {
 
 app_sync_record_result :: (result: int) {
     storage_set_setting_int("sync_last_result", result)
-    if result == SYNC_OK {
-        storage_set_setting_int("sync_retry_attempt", 0)
-        g_sync.retry_at = 0.0
+    decision := sync_retry_decision(result,
+        storage_get_setting_int("sync_retry_attempt", 0))
+    g_sync.retry_at = 0.0
+    if decision.needs_action {
         return
     }
-    if app_sync_failure_needs_action(result) {
-        g_sync.retry_at = 0.0
+    storage_set_setting_int("sync_retry_attempt", decision.attempt)
+    if decision.delay > 0 {
+        g_sync.retry_at = GetTime() + decision.delay
+    }
+}
+
+app_social_record_result :: (result: int) #private {
+    decision := sync_retry_decision(result, g_sync.social_retry_attempt)
+    g_sync.social_retry_at = 0.0
+    if decision.needs_action {
+        g_sync.social_refresh_pending = 0
         return
     }
-    attempt := storage_get_setting_int("sync_retry_attempt", 0) + 1
-    if attempt > 4 {
-        attempt = 4
+    g_sync.social_retry_attempt = decision.attempt
+    if decision.delay > 0 {
+        g_sync.social_retry_at = GetTime() + decision.delay
+        g_sync.social_refresh_pending = 1
     }
-    storage_set_setting_int("sync_retry_attempt", attempt)
-    g_sync.retry_at = GetTime() + app_sync_retry_delay(attempt)
 }
 
 app_sync_status_key :: () -> const char* {
@@ -898,17 +908,7 @@ app_apply_pending_social_refresh :: (app: InnerBreeze*) #private {
                                      sizeof(action_value))
         }
         g_sync.social_refresh_pending = g_sync.social_action_count > 0
-        if result != SYNC_OK && !app_sync_failure_needs_action(result) {
-            g_sync.social_retry_attempt++
-            if g_sync.social_retry_attempt > 4 {
-                g_sync.social_retry_attempt = 4
-            }
-            g_sync.social_retry_at = GetTime() + app_sync_retry_delay(g_sync.social_retry_attempt)
-            g_sync.social_refresh_pending = 1
-        } else if result == SYNC_OK {
-            g_sync.social_retry_attempt = 0
-            g_sync.social_retry_at = 0.0
-        }
+        app_social_record_result(result)
     }
 }
 
@@ -946,21 +946,12 @@ app_collect_finished_social_refresh :: (app: InnerBreeze*) #private {
         if !finished {
             return
         }
+        app_social_record_result(result)
         if result != SYNC_OK {
-            if !app_sync_failure_needs_action(result) {
-                g_sync.social_retry_attempt++
-                if g_sync.social_retry_attempt > 4 {
-                    g_sync.social_retry_attempt = 4
-                }
-                g_sync.social_retry_at = GetTime() + app_sync_retry_delay(g_sync.social_retry_attempt)
-                g_sync.social_refresh_pending = 1
-            }
             TraceLog(LOG_WARNING, "SYNC: social refresh failed result=%d name=%s",
                         result, GetSyncResultName(result))
             return
         }
-        g_sync.social_retry_attempt = 0
-        g_sync.social_retry_at = 0.0
         app_social_apply_result(app, requests_json, friends_json,
                                    leaderboard_json, leaderboard_key,
                                    leaderboard_avg_json, leaderboard_avg_key)

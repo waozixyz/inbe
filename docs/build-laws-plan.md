@@ -1,119 +1,108 @@
-# Enforced build laws for Inbe 2.0.0
+# Build contracts and Bend proofs
 
-## Goal and current evidence
+## Implemented
 
-Turn objective rules into failing compiler or build checks, and keep
-`AGENTS.md` short. A green build guarantees only its specified invariants;
-it does not guarantee that every possible product behavior is correct.
+Inbe's release metadata uses the numeric changelog release and the permanent
+`APP_VERSION_*` macros. `update_version.sh` synchronizes the release fields;
+`check-version.py` rejects inconsistencies. The version check now runs in the
+native, web, and Windows artifact graphs and in both Gradle and CMake, including
+incremental builds. Version semantics remain a structural build check, not a
+formal theorem.
 
-Inbe remains the pending 2.0.0 release, Android versionCode 124. Version
-metadata is synchronized by `update_version.sh`; this work does not create
-a second release number or a release tag.
+The retry implementation is now **Bend 2 code that ships as evaluated data**:
 
-- Kryon commit `e89003b1` makes existing compiler laws mandatory in all six
-  frontends, including ordinary compilation and `--no-strict`. Its regression
-  tests reject 105 forbidden calls across compiler modes without emitting
-  output. Compiler specification and runtime parity checks pass.
-- Inbe now references that upstream commit. Its complete maintained `.kry`
-  source transpiles with the mandatory laws enabled.
-- A full strict-checking trial produced 25,409 diagnostics, predominantly
-  unresolved names and unsupported C expressions. Enabling `--strict`
-  everywhere is not an implementation of this plan.
-- Version checks currently gate tests, packaging, and release CI. Several
-  checks still do not gate native compilation or direct Gradle invocation.
+1. `laws/sync_retry/main.bend` defines the actual pure retry policy.
+2. `LAWS.bend` states 11 universally quantified contracts; `PROOF.bend` proves
+   them for the complete finite input types.
+3. Kryon's `tools/bend-laws.mjs` uses pinned upstream Bend 2.0.16, commit
+   `15ae0c86f3193b8f645b4bedbc438655b648d0da`. It verifies the checker and Base
+   hashes before loading, checks termination and types, and rejects holes,
+   unproved declarations, `@unsafe`, foreign implementations, remote imports,
+   and imports outside the proof package.
+4. The checked function is evaluated directly in Bend's kernel for all 45
+   combinations of result and retry state. `scripts/generate-sync-retry.mjs`
+   writes the C table consumed by `src/app/sync_retry.kry`. There is no separate
+   handwritten retry implementation or optimizing Bend code generator in this
+   path. No Bend runtime is installed on the phone.
+5. Account-data and social retries both use that table. The small adapter
+   clamps persisted integers before indexing, avoiding increment overflow.
+   Unknown results stop automatic retries.
 
-## 1. Close build-entrypoint gaps
+The proofs establish success resetting the retry state; temporary challenge
+and request failures following 5/15/30/60 seconds with a saturated fourth
+attempt; actionable failures stopping automatic retry; and the mapping of
+saved retry states and delays. Each error classification has its own law.
+They do not prove server availability, delivery, alias/friend restoration,
+or arbitrary `.kry` behavior. Existing integration tests cover those effects.
 
-Add `scripts/check-build-laws.py` as the single non-mutating build preflight.
-It invokes existing version and canonical-widget checks, checks submodule
-cleanliness and public HTTPS URLs, and validates locale keys and nonempty
-translations. Do not duplicate existing validators in the orchestrator.
-Every diagnostic names the violated invariant and the offending file.
+## Build behavior and verification
 
-Run it before source generation and final artifacts in the native, web,
-Windows, and Android build graphs. In Make, use order-only prerequisites on
-the actual generation and artifact targets, not only convenience targets.
-In Gradle, attach it to `preBuild` for debug, release, and gplay. Direct CMake
-builds must also depend on the check before app generation and compilation.
-The Plan 9 export runs the same checks on the host before emitting sources;
-the native Plan 9 build consumes that checked export.
+Install Node.js **22.18 or newer** on the build host and initialize recursive
+submodules. The checker runs offline once those dependencies are present.
+CI and package builders provide Node explicitly. The container setup script
+uses pinned, checksummed official Node archives; ordinary compilation never
+downloads a proof tool. Flatpak removes its Node build tool from the app.
 
-Run the preflight on incremental builds too. Do not accept a previously
-written success marker after source, metadata, or vendor state changes.
-Git-less source archives may validate content and version rules, but must
-explicitly report that repository ownership checks cannot be evaluated;
-release builds require a Git checkout for those checks.
+- `make build-laws`: release consistency and proofs.
+- `make proof-test`: deterministic generation, contract-breaking mutations,
+  enum mapping drift, and rejection with an old header already present.
+- `make sync-recovery-test`: the actual generated C and coordinator, including
+  all known result codes, extreme persisted integers, and social retry state.
+- `make version-test`: release synchronization and rejecting mismatches.
+- Upstream `make bend-laws-test`: checker/evaluator acceptance and rejection,
+  including missing proofs, holes, unsafe definitions, and escaped imports.
 
-## 2. Move reusable API rules into Kryon
+Make's actual generated-header and app artifact prerequisites run the checks
+on every invocation. Failed checking prevents compilation even if an old
+header exists. Successful generation preserves the header's timestamp when
+its contents are unchanged. Gradle `preBuild` always checks; direct CMake
+builds independently regenerate their checked table. `make kry-c-plan9`
+exports the checked table with the generated sources for native Plan 9,
+which consumes the host-verified export.
 
-Keep one declared, typed public signature for each widget. Extend the shared
-compiler checks to enforce the Text, Image, and Button contracts before
-lowering, independently of the full host-language type checker. Validate
-arguments against the canonical declarations; do not create a second list
-of signatures that can drift from them.
+Kryon's syntax law `image.surface.no_low_level_calls` remains mandatory in
+all six compiler frontends, including default and `--no-strict` builds. Its
+105 rejection cases are compiler regression tests, not behavioral proofs.
+The text/button scanners, migration tests, and sync integration suite remain
+separate checks with their own scope.
 
-Add rejecting fixtures for positional Text, obsolete image calls, removed
-widget aliases, and wrong props. Include accepting fixtures with named props,
-comments, strings, and legitimate composition. Exercise C, C++, Go, JS, KIR,
-and cartridge frontends. Backend implementation calls remain confined to
-their owning runtime sources and are not public app widget APIs.
+## Trust and use with smaller models
 
-Leave Inbe-specific rules such as its version format, Lists layout, and
-account recovery in Inbe. Make reusable Kryon changes on upstream `master`,
-commit and push them, then move only Inbe's clean submodule pointer.
+A model can change the implementation and provide proofs while the contracts
+stay fixed. Its output is accepted only when the checker verifies those
+contracts. This reduces dependence on model quality for **specified behavior**;
+it does not establish that a smaller model is equally good at designing the
+contracts or diagnosing missing requirements.
 
-## 3. Enforce behavior at the appropriate level
+The trusted boundary is the pinned checker/Base, the finite-table generator,
+the enum/integer adapter, build graph, and target compiler. Regression tests
+exercise the integration boundary. An agent able to rewrite the laws or gates
+can weaken the guarantee. Protected branches, required checks, and independent
+review ownership should protect those files on the hosting service; repository
+files alone cannot make themselves immutable. Hosting settings have not been
+changed by this implementation.
 
-| Invariant | Enforcement |
-|---|---|
-| Version fields agree; versionCode changes once | Build preflight and updater regression tests |
-| Canonical widget signatures and forbidden app API calls | Compiler diagnostics before lowering |
-| All locale keys have values | Build preflight; translation meaning still requires review |
-| Temporary sync failure retains queued data | Sync state and integration tests in required CI |
-| Same-key restoration recovers alias, friends, and data | Disposable-server integration test in release prerequisites |
-| Leaderboard failure preserves friends | Social recovery regression test |
-| Desktop focus loss does not pause a practice | Lifecycle regression test |
-| No downstream vendor edits; submodules use HTTPS | Repository preflight |
+`AGENTS.md` now states ownership, contract-change boundaries, and the remaining
+product/review obligations instead of treating prose as a proof system.
 
-Reuse existing tests where they already establish the invariant. Add tests
-only for missing coverage. Network-dependent integration checks gate release
-CI, while ordinary local compilation runs deterministic, offline checks.
+## Next migrations, in order
 
-## 4. Reduce instructions after enforcement exists
+1. Move practice lifecycle decisions into a pure finite policy: desktop focus
+   cannot pause a session, user pause remains explicit, and mobile background
+   transitions preserve the required timer behavior. Compile its proved table
+   through the same Kryon checker; retain platform integration tests.
+2. Specify sync recovery transitions: restoring an account cannot discard
+   queued local changes, partial social refresh cannot erase known friends,
+   and an account switch cannot apply responses belonging to the old account.
+   Model effects explicitly; proofs of scheduling do not prove network delivery.
+3. For unbounded algorithms such as collection merges, define a checked direct
+   compilation path and its semantics before expanding beyond finite tables.
+   Do not claim a proof of a model also proves a separately implemented C path.
+4. Add typed widget contracts in Kryon's parsed compiler representation and
+   negative fixtures before removing the remaining API instructions. Turning on
+   today's whole-project strict mode produces thousands of unsupported-host
+   diagnostics and is not a substitute for those contracts.
 
-Replace long implemented API and version instructions in `AGENTS.md` with
-short references to their canonical declarations, law IDs, and check command.
-Keep repository ownership, upstream workflow, release-tag ownership, product
-boundaries, and human review responsibilities. Do not delete an instruction
-until its replacement check and a negative regression test are present.
-
-Keep objective contracts and their tests separate from ordinary feature
-changes. Configure required CI and review ownership for changes to laws and
-release gates if repository administration is included in the rollout. A
-modifiable local check alone is not an immutable rule.
-
-## Acceptance and rollout
-
-In disposable checkouts, introduce one violation at a time: a mismatched
-version, duplicate version macro, missing locale value, forbidden widget
-call, dirty vendor file, or SSH submodule URL. Every applicable build entry
-point must fail before emitting a new app artifact, including an incremental
-build that had previously succeeded. Restore the file and verify the build
-can proceed. Leave unrelated changes and real account data untouched.
-
-Then rebuild native, web, and Android targets, run the sync release checks,
-and verify startup after an in-place Android update. Publish only through
-the normal release workflow; never create a tag manually.
-
-## Bend-style proof boundary
-
-[Bend 2's guide](https://github.com/bendlang/bend/blob/main/guide/GUIDE.md)
-describes laws discharged by proof terms. Kryon's current syntax checks and
-runtime tests are not that proof system. This rollout does not add dependent
-types, a new `law` syntax, or an external prover dependency.
-
-A later proof project must first define a pure, fully typed `.kry` subset,
-termination and integer semantics, and explicit foreign-function assumptions.
-Proofs must refer to the implementation actually emitted, not a separately
-maintained model. Until that design is complete, label behavior checks as
-tests and do not claim mathematical proof of arbitrary app or network code.
+[Bend's upstream guide](https://github.com/bendlang/bend/blob/main/guide/GUIDE.md)
+describes its law/proof convention. Inbe uses the actual checker rather than
+naming ordinary assertions or tests mathematical proofs.

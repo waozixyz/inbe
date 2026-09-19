@@ -1,5 +1,6 @@
 #include "src/app/app_sync.c"
 #include <assert.h>
+#include <limits.h>
 
 void PushInspectSource(const char *path, int line)
 {
@@ -104,6 +105,44 @@ SyncResult sync_client_get_friend_stats(const char *url, const char *app,
 }
 int main(void)
 {
+    /* Exercise the C boundary, including corrupted persisted attempt values. */
+    const int attempts[] = {INT_MIN, -1, 0, 1, 2, 3, 4, 5, INT_MAX};
+    const int expected_attempts[] = {1, 1, 1, 2, 3, 4, 4, 4, 4};
+    const int expected_delays[] = {5, 5, 5, 15, 30, 60, 60, 60, 60};
+    for(unsigned index = 0; index < sizeof(attempts) / sizeof(attempts[0]); index++) {
+        for(int result = SYNC_OK; result <= SYNC_AUTH_FAILED; result++) {
+            retry_attempt = attempts[index];
+            app_sync_record_result(result);
+            if(result == SYNC_OK) {
+                assert(retry_attempt == 0 && g_sync.retry_at == 0);
+            } else if(result == SYNC_CHALLENGE_FAILED || result == SYNC_REQUEST_FAILED) {
+                assert(retry_attempt == expected_attempts[index]);
+                assert(g_sync.retry_at == test_time + expected_delays[index]);
+            } else {
+                assert(retry_attempt == attempts[index]);
+                assert(g_sync.retry_at == 0);
+            }
+        }
+    }
+    app_sync_record_result(INT_MIN);
+    assert(g_sync.retry_at == 0 && app_sync_failure_needs_action(INT_MIN));
+    app_sync_record_result(INT_MAX);
+    assert(g_sync.retry_at == 0 && app_sync_failure_needs_action(INT_MAX));
+    assert(app_sync_retry_delay(INT_MIN) == 5);
+    assert(app_sync_retry_delay(INT_MAX) == 60);
+    g_sync.social_retry_attempt = INT_MAX;
+    app_social_record_result(SYNC_REQUEST_FAILED);
+    assert(g_sync.social_retry_attempt == 4);
+    assert(g_sync.social_retry_at == test_time + 60);
+    g_sync.social_action_count = 1;
+    app_social_record_result(SYNC_AUTH_FAILED);
+    assert(g_sync.social_retry_at == 0);
+    assert(g_sync.social_refresh_pending == 0);
+    assert(g_sync.social_action_count == 1);
+    app_social_record_result(SYNC_OK);
+    assert(g_sync.social_retry_attempt == 0);
+    g_sync.social_action_count = 0;
+    retry_attempt = 0;
     const double delays[] = {5, 15, 30, 60, 60};
     for(unsigned i = 0; i < sizeof(delays) / sizeof(delays[0]); i++) {
         app_sync_record_result(SYNC_REQUEST_FAILED);
