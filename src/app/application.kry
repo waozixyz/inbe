@@ -757,7 +757,9 @@ draw_profile_picture_picker_modal :: (app: InnerBreeze*) #private {
 
 app_donation_address_box_height :: (address: const char*, w: int, font: int) -> int #private {
     pad: int = Scale(10)
-    return AppParagraphHeight(address, w - pad * 2, font, Scale(2)) + pad * 2
+    unused address
+    unused w
+    return AppTextLineHeight(font) + pad * 2
 }
 
 app_donation_coin_section_height :: (address: const char*, w: int) -> int #private {
@@ -803,6 +805,27 @@ app_donation_button_stack :: (w: int) -> int #private {
     return w < Scale(330)
 }
 
+app_donation_address_preview :: (address: const char*, out: char*, out_size: size_t) #private {
+    len: size_t
+    head: int = 14
+    tail: int = 14
+
+    if out == nil || out_size == 0 {
+        return
+    }
+    out[0] = '\0'
+    if address == nil {
+        return
+    }
+    len = strlen(address)
+    if len <= (size_t)(head + tail + 3) || out_size <= (size_t)(head + tail + 4) {
+        snprintf(out, out_size, "%s", address)
+        return
+    }
+    snprintf(out, out_size, "%.*s...%s", head, address,
+             address + len - (size_t)tail)
+}
+
 app_draw_donation_coin_section :: (label: const char*, address: const char*, wallet_url: const char*, trocador_url: const char*, address_text: char*, address_text_size: size_t, cursor: int*, focused: int*, scroll: int*, focus_id: int, x: int, w: int, y: int*) #private {
     label_font: int = AppFontSize()
     address_font: int = AppSmallFontSize()
@@ -816,15 +839,19 @@ app_draw_donation_coin_section :: (label: const char*, address: const char*, wal
     card_y: int = y != nil ? *y : 0
     card_h: int
     box_h: int
-    text_area: TextAreaProps
+    address_y: int
+    address_preview: [80] char = {0}
     if y == nil {
         return
     }
-    if address_text == nil || address_text_size == 0 ||
-    cursor == nil || focused == nil || scroll == nil {
+    unused cursor
+    unused focused
+    unused scroll
+    if address_text == nil || address_text_size == 0 {
         return
     }
     snprintf(address_text, address_text_size, "%s", address)
+    app_donation_address_preview(address, address_preview, sizeof(address_preview))
     card_h = app_donation_coin_section_height(address, w)
     DrawRectangleRounded((Rectangle){(float)x, (float)card_y, (float)w,
         (float)card_h}, 0.08f, 8,
@@ -841,20 +868,23 @@ app_draw_donation_coin_section :: (label: const char*, address: const char*, wal
     })
     *y += AppTextLineHeight(label_font) + Scale(6)
     box_h = app_donation_address_box_height(address, content_w, address_font)
-    memset(&text_area, 0, sizeof(text_area))
-    text_area.bounds.x = (float)content_x
-    text_area.bounds.y = (float)*y
-    text_area.bounds.width = (float)content_w
-    text_area.bounds.height = (float)box_h
-    text_area.text = address_text
-    text_area.text_size = address_text_size
-    text_area.cursor_position = cursor
-    text_area.focused = focused
-    text_area.scroll_y = scroll
-    text_area.focus_id = focus_id
-    text_area.read_only = 1
-    text_area.wrap = 1
-    TextArea(text_area)
+    unused focus_id
+    DrawRectangleRounded((Rectangle){(float)content_x, (float)*y,
+                         (float)content_w, (float)box_h},
+                         0.06f, 8, GetThemeButton())
+    DrawRectangleRoundedLinesEx((Rectangle){(float)content_x, (float)*y,
+                                 (float)content_w, (float)box_h},
+                                 0.06f, 8, (float)Scale(1),
+                                 DarkenColor(GetThemeBackground(), 28))
+    address_y = *y + (box_h - AppTextLineHeight(address_font)) / 2
+    Text((TextProps){
+        .bounds = {(float)(content_x + Scale(10)), (float)address_y,
+                   (float)(content_w - Scale(20)),
+                   (float)AppTextLineHeight(address_font)},
+        .text = address_preview,
+        .wrap = TextWrapNone,
+        .vertical_align = TextAlignCenter
+    })
     *y += box_h + Scale(10)
     if stack_buttons {
         button_w = content_w

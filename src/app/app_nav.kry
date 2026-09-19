@@ -751,8 +751,8 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     y: int
     changed := 0
     button_h := Scale(36)
-    row_h := Scale(58)
-    handle_w := Scale(34)
+    row_h := Scale(64)
+    handle_w := Scale(40)
     draw_count: int
     action := APP_NAV_CONFIG_ACTION_NONE
     action_index := -1
@@ -765,7 +765,7 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     content_w := 0
     content_h: int
     title_h := AppTitleBarHeight()
-    top_gap := Scale(8)
+    top_gap := Scale(18)
 
     if app == NULL {
         return 0

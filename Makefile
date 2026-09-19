@@ -394,6 +394,7 @@ FONT_FILES := \
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 STYLE_FILES := $(wildcard $(KRYON_DIR)/styles/kryon/*.kss) $(wildcard assets/styles/*.kss)
 IMAGE_FILES += assets/app/icon-sky-cradle.png assets/app/icon-ink-and-air.png
+IMAGE_FILES += $(wildcard assets/social/*.png)
 EMBEDDED_ASSET_FILES := $(STYLE_FILES) $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
 KRY_GEN_DIR := $(BUILD_DIR)/kryon/generated
 KRY_SRCS := $(shell find src -type f -name '*.kry' 2>/dev/null | LC_ALL=C sort)

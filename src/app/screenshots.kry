@@ -382,6 +382,23 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->settings_tab = SETTINGS_TAB_NOTIFICATIONS
         app->breathing.screen = ScreenSettings
+    } else if strcmp(request->scene, "settings_about") == 0 {
+        app->main_tab = APP_MAIN_TAB_PRACTICE
+        app->settings_tab = SETTINGS_TAB_ABOUT
+        app->breathing.screen = ScreenSettings
+    } else if strcmp(request->scene, "about_donation") == 0 {
+        app->main_tab = APP_MAIN_TAB_PRACTICE
+        app->settings_tab = SETTINGS_TAB_ABOUT
+        app->breathing.screen = ScreenSettings
+        app_open_modal(app, UIModalAboutDonation)
+    } else if strcmp(request->scene, "customize_nav") == 0 {
+        app->main_tab = APP_MAIN_TAB_PRACTICE
+        app->breathing.screen = ScreenCustomizeNav
+        app->bottom_nav_config_route_count = 4
+        app->bottom_nav_config_routes[0] = APP_NAV_ROUTE_ELIST
+        app->bottom_nav_config_routes[1] = APP_NAV_ROUTE_HABITS
+        app->bottom_nav_config_routes[2] = APP_NAV_ROUTE_PRACTICE
+        app->bottom_nav_config_routes[3] = APP_NAV_ROUTE_SETTINGS
     } else if strcmp(request->scene, "close_prompt") == 0 {
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->breathing.screen = ScreenStart

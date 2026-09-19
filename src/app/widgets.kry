@@ -234,19 +234,28 @@ AppBottomIconRow :: (row: IconRowRequest) -> IconRowResult #export {
 }
 
 AppReorderHandle :: (x: int, y: int, w: int, h: int, active: int) #export {
-    paint := ReorderHandlePaintFor((Rectangle){(float)x, (float)y, (float)w, (float)h},
-    GetScale(), widget_frame(StyleKindReorder(), 12))
-    if paint.dot_count <= 0 {
+    if w <= 0 || h <= 0 {
         return
     }
     MarkClickable()
     color := active ? GetThemeText() : GetThemeMutedText()
-    Box(paint.dot0, color, BLANK)
-    Box(paint.dot1, color, BLANK)
-    Box(paint.dot2, color, BLANK)
-    Box(paint.dot3, color, BLANK)
-    Box(paint.dot4, color, BLANK)
-    Box(paint.dot5, color, BLANK)
+    r := Scale(2)
+    if r < 2 {
+        r = 2
+    }
+    col_gap := Scale(10)
+    row_gap := Scale(9)
+    center_x := x + w / 2
+    center_y := y + h / 2
+    left_x := center_x - col_gap / 2
+    right_x := center_x + col_gap / 2
+
+    Circle(left_x, center_y - row_gap, r, color)
+    Circle(right_x, center_y - row_gap, r, color)
+    Circle(left_x, center_y, r, color)
+    Circle(right_x, center_y, r, color)
+    Circle(left_x, center_y + row_gap, r, color)
+    Circle(right_x, center_y + row_gap, r, color)
 }
 
 AppReorderPlaceholder :: (bounds: Rectangle) #export {
