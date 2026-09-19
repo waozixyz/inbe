@@ -32,6 +32,9 @@ EListState :: struct {
     selected_list: int
     loaded: int
     scroll: int
+    show_completed: int
+    completing_item: [37]char
+    completing_until: double
     input_cursor: int
     input_focused: int
     editing_item: int

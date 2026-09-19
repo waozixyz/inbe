@@ -1898,3 +1898,9 @@ El icono de inicio puede tardar un momento en actualizarse.
 ---
 [app_icon_error]
 No se pudo cambiar el icono. Inténtalo de nuevo.
+---
+[elist_show_completed]
+Mostrar completados
+---
+[elist_hide_completed]
+Ocultar completados

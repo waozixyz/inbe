@@ -23,9 +23,6 @@ elist_reload :: (app: InnerBreeze*) #private {
         return
     }
     storage_elist_load(&app->elist)
-    for int i = 0; i < elist_types.ELIST_ITEM_MAX; i++ {
-        ResetSwipe(&app->elist_item_swipes[i])
-    }
     app->elist.loaded = 1
 }
 
@@ -96,6 +93,10 @@ elist_select_list :: (app: InnerBreeze*, index: int) #private {
         return
     }
     state->selected_list = index
+    state->scroll = 0
+    state->show_completed = 0
+    state->completing_item[0] = '\0'
+    state->completing_until = 0.0
     state->editing_item = -1
     state->input[0] = '\0'
     state->input_cursor = 0
@@ -103,6 +104,44 @@ elist_select_list :: (app: InnerBreeze*, index: int) #private {
     state->input_error = 0
     state->input_committed = 0
     SetFocus(0)
+}
+
+elist_item_visible :: (state: elist_types.EListState*, index: int, now: double) -> int #private {
+    if index < 0 || index >= state->item_count ||
+       state->selected_list < 0 || state->selected_list >= state->list_count {
+        return 0
+    }
+    item := &state->items[index]
+    if strcmp(item->list_id, state->lists[state->selected_list].id) != 0 {
+        return 0
+    }
+    return !item->done || state->show_completed ||
+           (now < state->completing_until &&
+            strcmp(item->id, state->completing_item) == 0)
+}
+
+elist_set_done :: (app: InnerBreeze*, index: int, done: int, now: double) -> int #private {
+    if index < 0 || index >= app->elist.item_count {
+        return 0
+    }
+    item := &app->elist.items[index]
+    if !storage_elist_update_item(item->id, item->title, item->comment,
+                                  done, item->sort_order) {
+        app->elist.input_error = 1
+        return 0
+    }
+    app->elist.input_error = 0
+    item->done = done
+    if done {
+        snprintf(app->elist.completing_item, sizeof(app->elist.completing_item),
+                 "%s", item->id)
+        app->elist.completing_until = now + 0.45
+    } else if strcmp(item->id, app->elist.completing_item) == 0 {
+        app->elist.completing_item[0] = '\0'
+    }
+    elist_reload(app)
+    app_auto_sync(app)
+    return 1
 }
 
 elist_draw_empty :: (x: int, y: int, w: int) #private {
@@ -263,89 +302,99 @@ draw_elist_screen :: (app: InnerBreeze*) {
     }
     y += Scale(52)
 
-    selected_id := state->lists[state->selected_list].id
     row_h := Scale(58)
+    now := GetTime()
+    footer_h := Scale(44)
+    footer_y := view_height - app_content_bottom_reserved(app) - Scale(12) - footer_h
+    if footer_y < y + Scale(58) {
+        footer_y = y + Scale(58)
+    }
+    if Button((ButtonProps){
+        .id = 6502,
+        .bounds = {(float)x, (float)footer_y, (float)content_w, (float)footer_h},
+        .label = state->show_completed ? GetLocaleText("elist_hide_completed") :
+                                        GetLocaleText("elist_show_completed"),
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+    }) {
+        state->show_completed = !state->show_completed
+        state->scroll = 0
+    }
+    visible_count := 0
     for int i = 0; i < state->item_count; i++ {
-        item := &state->items[i]
-        if strcmp(item->list_id, selected_id) != 0 {
-            continue
+        if elist_item_visible(state, i, now) {
+            visible_count++
         }
-        if y + row_h > view_height - app_content_bottom_reserved(app) - Scale(8) {
-            break
-        }
-        bounds := (Rectangle){(float)x, (float)y, (float)content_w, (float)row_h}
-        swipe := UpdateSwipe(&app->elist_item_swipes[i], (SwipeSpec){
-            .bounds = bounds,
-            .directions = SwipeHorizontal,
-            .min_distance = (float)Scale(44),
-            .axis_bias = 1.35f,
-            .max_duration = 0.6f
-        })
-        if swipe.direction == SwipeLeft {
-            elist_begin_input(app, i, item->title)
-            return
-        }
-        if swipe.direction == SwipeRight {
-            storage_elist_delete_item(item->id)
-            elist_reload(app)
-            app_auto_sync(app)
-            return
-        }
-        Card((CardProps){
-            .bounds = bounds
-        })
-        done := item->done
-        if Checkbox((CheckboxProps){.id = 6400 + i,
-                                    .bounds = {(float)(x + Scale(10)),
-                                               (float)(y + Scale(17)),
-                                               (float)Scale(28),
-                                               (float)Scale(28)},
-                                    .label = "",
-                                    .value = &done}) {
-            storage_elist_update_item(item->id, item->title, item->comment,
-                                      done, item->sort_order)
-            elist_reload(app)
-            app_auto_sync(app)
-            return
-        }
-        Text((TextProps){
-            .bounds = {(float)(x + Scale(46)), (float)(y + Scale(9)),
-                       (float)(content_w - Scale(132)), (float)Scale(24)},
-            .text = item->title,
-            .wrap = TextWrapNone
-        })
-        if item->comment[0] != '\0' {
-            Text((TextProps){
-                .bounds = {(float)(x + Scale(46)), (float)(y + Scale(32)),
-                           (float)(content_w - Scale(132)), (float)Scale(18)},
-                .text = item->comment,
-                .wrap = TextWrapNone
+    }
+    Scroll {
+        bounds = {(float)x, (float)y, (float)content_w, (float)(footer_y - y - Scale(12))}
+        content_height = visible_count * (row_h + Scale(8))
+        scroll_offset = &state->scroll
+        for int i = 0; i < state->item_count; i++ {
+            item := &state->items[i]
+            if !elist_item_visible(state, i, now) {
+                continue
+            }
+            bounds := (Rectangle){(float)x, (float)y, (float)content_w, (float)row_h}
+            Card((CardProps){
+                .bounds = bounds
             })
+            done := item->done
+            if Checkbox((CheckboxProps){.id = 6400 + i,
+                                        .bounds = {(float)(x + Scale(10)),
+                                                   (float)(y + Scale(17)),
+                                                   (float)Scale(28),
+                                                   (float)Scale(28)},
+                                        .label = "",
+                                        .value = &done}) {
+                elist_set_done(app, i, done, now)
+                return
+            }
+            title_h := item->comment[0] != '\0' ? Scale(24) : row_h
+            title_y := item->comment[0] != '\0' ? y + Scale(6) : y
+            Text((TextProps){
+                .bounds = {(float)(x + Scale(46)), (float)title_y,
+                           (float)(content_w - Scale(132)), (float)title_h},
+                .text = item->title,
+                .wrap = TextWrapNone,
+                .align = TextAlignCenter,
+                .vertical_align = TextAlignCenter,
+                .strikethrough = item->done != 0
+            })
+            if item->comment[0] != '\0' {
+                Text((TextProps){
+                    .bounds = {(float)(x + Scale(46)), (float)(y + Scale(32)),
+                               (float)(content_w - Scale(132)), (float)Scale(18)},
+                    .text = item->comment,
+                    .align = TextAlignCenter,
+                    .vertical_align = TextAlignCenter,
+                    .wrap = TextWrapNone
+                })
+            }
+            if Button((ButtonProps){
+                .id = 0,
+                .bounds = {(float)(x + content_w - Scale(78)), (float)(y + Scale(12)),
+                           (float)((Scale(20)) + (Scale(7)) * 2),
+                           (float)((Scale(20)) + (Scale(7)) * 2)},
+                .icon_type = ICON_EDIT, .icon_only = 1,
+                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+            }) {
+                elist_begin_input(app, i, item->title)
+            }
+            if Button((ButtonProps){
+                .id = 0,
+                .bounds = {(float)(x + content_w - Scale(40)), (float)(y + Scale(12)),
+                           (float)((Scale(20)) + (Scale(7)) * 2),
+                           (float)((Scale(20)) + (Scale(7)) * 2)},
+                .icon_type = ICON_TRASH, .icon_only = 1,
+                .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+            }) {
+                storage_elist_delete_item(item->id)
+                elist_reload(app)
+                app_auto_sync(app)
+                return
+            }
+            y += row_h + Scale(8)
         }
-        if Button((ButtonProps){
-            .id = 0,
-            .bounds = {(float)(x + content_w - Scale(78)), (float)(y + Scale(12)),
-                       (float)((Scale(20)) + (Scale(7)) * 2),
-                       (float)((Scale(20)) + (Scale(7)) * 2)},
-            .icon_type = ICON_EDIT, .icon_only = 1,
-            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-        }) {
-            elist_begin_input(app, i, item->title)
-        }
-        if Button((ButtonProps){
-            .id = 0,
-            .bounds = {(float)(x + content_w - Scale(40)), (float)(y + Scale(12)),
-                       (float)((Scale(20)) + (Scale(7)) * 2),
-                       (float)((Scale(20)) + (Scale(7)) * 2)},
-            .icon_type = ICON_TRASH, .icon_only = 1,
-            .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-        }) {
-            storage_elist_delete_item(item->id)
-            elist_reload(app)
-            app_auto_sync(app)
-            return
-        }
-        y += row_h + Scale(8)
     }
 }
 

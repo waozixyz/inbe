@@ -1898,3 +1898,9 @@ Aktualizace ikony na ploše může chvíli trvat.
 ---
 [app_icon_error]
 Ikonu aplikace se nepodařilo změnit. Zkuste to znovu.
+---
+[elist_show_completed]
+Zobrazit dokončené
+---
+[elist_hide_completed]
+Skrýt dokončené

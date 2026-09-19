@@ -1898,3 +1898,9 @@ Die Aktualisierung auf dem Startbildschirm kann kurz dauern.
 ---
 [app_icon_error]
 Das App-Symbol konnte nicht geändert werden. Bitte erneut versuchen.
+---
+[elist_show_completed]
+Erledigte anzeigen
+---
+[elist_hide_completed]
+Erledigte ausblenden

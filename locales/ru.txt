@@ -1898,3 +1898,9 @@ Dismiss forever
 ---
 [app_icon_error]
 Не удалось изменить значок. Попробуйте ещё раз.
+---
+[elist_show_completed]
+Показать выполненные
+---
+[elist_hide_completed]
+Скрыть выполненные

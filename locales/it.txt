@@ -1898,3 +1898,9 @@ L’icona nella schermata iniziale potrebbe aggiornarsi dopo qualche istante.
 ---
 [app_icon_error]
 Impossibile cambiare l’icona. Riprova.
+---
+[elist_show_completed]
+Mostra completati
+---
+[elist_hide_completed]
+Nascondi completati

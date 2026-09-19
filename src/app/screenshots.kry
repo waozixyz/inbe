@@ -223,16 +223,27 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
     app->tutorial_seen = 1
     screenshot_seed_habits(app)
     screenshot_apply_theme(app, request->theme_id, request->dark_mode)
-    if strcmp(request->scene, "lists") == 0 {
-        list_id: [37] char
+    if strcmp(request->scene, "lists") == 0 || strcmp(request->scene, "lists_completed") == 0 {
+        list_id: [37] char = {0}
+        completed_id: [37] char = {0}
         app->main_tab = APP_MAIN_TAB_ELIST
         app->breathing.screen = ScreenEList
         if storage_elist_create_list("Shopping", list_id) {
-            storage_elist_create_item(list_id, "Fresh fruit", "", nil)
+            storage_elist_create_item(list_id, "Fresh fruit", "For breakfast", nil)
+            if storage_elist_create_item(list_id, "Buy tea", "", completed_id) {
+                storage_elist_update_item(completed_id, "Buy tea", "", 1, 1)
+            }
         }
         storage_elist_create_list("Home", nil)
         storage_elist_create_list("Weekend", nil)
-        app->elist.loaded = 0
+        storage_elist_load(&app->elist)
+        for int i = 0; i < app->elist.list_count; i++ {
+            if strcmp(app->elist.lists[i].id, list_id) == 0 {
+                app->elist.selected_list = i
+            }
+        }
+        app->elist.loaded = 1
+        app->elist.show_completed = strcmp(request->scene, "lists_completed") == 0
     } else if strncmp(request->scene, "habits_guide_", 13) == 0 {
         app->main_tab = APP_MAIN_TAB_HABITS
         app->breathing.screen = ScreenHabits

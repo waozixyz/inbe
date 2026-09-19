@@ -1897,3 +1897,9 @@ Your launcher may take a moment to update.
 ---
 [app_icon_error]
 Could not change the app icon. Try again.
+---
+[elist_show_completed]
+Show completed
+---
+[elist_hide_completed]
+Hide completed

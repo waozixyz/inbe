@@ -1898,3 +1898,9 @@ L’icône d’accueil peut mettre un moment à se mettre à jour.
 ---
 [app_icon_error]
 Impossible de modifier l’icône. Réessayez.
+---
+[elist_show_completed]
+Afficher les éléments terminés
+---
+[elist_hide_completed]
+Masquer les éléments terminés

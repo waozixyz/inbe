@@ -1898,3 +1898,9 @@ Dismiss forever
 ---
 [app_icon_error]
 앱 아이콘을 변경하지 못했습니다. 다시 시도해 주세요.
+---
+[elist_show_completed]
+완료한 항목 표시
+---
+[elist_hide_completed]
+완료한 항목 숨기기

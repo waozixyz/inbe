@@ -1898,3 +1898,9 @@ Ikon di layar utama mungkin perlu waktu untuk diperbarui.
 ---
 [app_icon_error]
 Ikon aplikasi tidak dapat diubah. Coba lagi.
+---
+[elist_show_completed]
+Tampilkan yang selesai
+---
+[elist_hide_completed]
+Sembunyikan yang selesai

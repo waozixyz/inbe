@@ -26,11 +26,6 @@ int Scale(int value)
     return value;
 }
 
-void ResetSwipe(SwipeGesture *gesture)
-{
-    memset(gesture, 0, sizeof(*gesture));
-}
-
 void SetFocus(int id)
 {
     focused_id = id;
@@ -127,6 +122,28 @@ int main(void)
     elist_begin_input(&app, -1, "New task");
     elist_commit_input(&app);
     assert(saved_comment[0] == '\0');
-    puts("Lists layout, creation focus, save failure, and selection tests passed");
+    app.elist.item_count = 1;
+    app.elist.selected_list = 0;
+    snprintf(app.elist.items[0].id, sizeof(app.elist.items[0].id), "task");
+    snprintf(app.elist.items[0].list_id, sizeof(app.elist.items[0].list_id), "old-list");
+    assert(elist_item_visible(&app.elist, 0, 10.0));
+    int before_sync = sync_calls;
+    save_succeeds = 0;
+    assert(!elist_set_done(&app, 0, 1, 10.0));
+    assert(!app.elist.items[0].done && sync_calls == before_sync);
+    save_succeeds = 1;
+    assert(elist_set_done(&app, 0, 1, 10.0));
+    assert(app.elist.items[0].done && sync_calls == before_sync + 1);
+    assert(elist_item_visible(&app.elist, 0, 10.2));
+    assert(!elist_item_visible(&app.elist, 0, 10.5));
+    app.elist.show_completed = 1;
+    assert(elist_item_visible(&app.elist, 0, 11.0));
+    assert(elist_set_done(&app, 0, 0, 11.0));
+    app.elist.show_completed = 0;
+    assert(elist_item_visible(&app.elist, 0, 12.0));
+    app.elist.show_completed = 1;
+    elist_select_list(&app, 1);
+    assert(!app.elist.show_completed && !elist_item_visible(&app.elist, 0, 12.0));
+    puts("Lists layout, editing, completion, archive visibility and restore tests passed");
     return 0;
 }

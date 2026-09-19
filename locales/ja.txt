@@ -1900,3 +1900,9 @@ Dismiss forever
 ---
 [app_icon_error]
 アイコンを変更できませんでした。もう一度お試しください。
+---
+[elist_show_completed]
+完了した項目を表示
+---
+[elist_hide_completed]
+完了した項目を非表示

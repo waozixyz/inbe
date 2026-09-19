@@ -1898,3 +1898,9 @@ Dismiss forever
 ---
 [app_icon_error]
 无法更改应用图标，请重试。
+---
+[elist_show_completed]
+显示已完成项目
+---
+[elist_hide_completed]
+隐藏已完成项目

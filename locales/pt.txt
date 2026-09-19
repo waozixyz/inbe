@@ -1898,3 +1898,9 @@ O ícone na tela inicial pode levar um momento para atualizar.
 ---
 [app_icon_error]
 Não foi possível mudar o ícone. Tente novamente.
+---
+[elist_show_completed]
+Mostrar concluídos
+---
+[elist_hide_completed]
+Ocultar concluídos

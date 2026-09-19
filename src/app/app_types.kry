@@ -588,7 +588,6 @@ InnerBreeze :: struct {
     exercise_manual_seen_mask: int
     practice_home_scroll: int
     practice_home_swipe: SwipeGesture
-    elist_item_swipes: [ELIST_ITEM_MAX] SwipeGesture
     practice_home_bounds_card: Rectangle
     practice_home_bounds_start: Rectangle
     practice_home_bounds_manual: Rectangle
