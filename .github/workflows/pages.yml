@@ -10,6 +10,11 @@ on:
       - master
   pull_request:
   workflow_dispatch:
+    inputs:
+      released_web:
+        description: Use the published web app for a website-only update
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -33,10 +38,12 @@ jobs:
           lfs: true
 
       - name: Install Packages
+        if: ${{ !inputs.released_web }}
         timeout-minutes: 15
         run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
 
       - name: Set Up Emscripten
+        if: ${{ !inputs.released_web }}
         run: |
           set -euo pipefail
           git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
@@ -47,10 +54,27 @@ jobs:
           echo "$HOME/emsdk" >> "$GITHUB_PATH"
           echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
+      - name: Download Released Web App
+        if: ${{ inputs.released_web }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^#define APP_VERSION_STRING "\([^"]*\)"/\1/p' src/core/version.h)
+          test -n "$version"
+          mkdir -p build/released-web build/dist/web
+          gh release download "v$version" --pattern inbe-web.zip --dir build/released-web
+          unzip -q build/released-web/inbe-web.zip -d build/dist/web
+          test -s build/dist/web/index.wasm
+
       - name: Build Site
         run: |
           set -euo pipefail
-          make site
+          if [ "$RELEASED_WEB" = "true" ]; then
+            sh site/build.sh
+          else
+            make site
+          fi
           test -f build/site/index.html
           test -f build/site/build/web/index.html
           test -f build/site/build/web/index.js
@@ -62,6 +86,7 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASED_WEB: ${{ inputs.released_web }}
 
       - name: Upload Site Artifact
         uses: actions/upload-artifact@v4
