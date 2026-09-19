@@ -764,6 +764,7 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     content_x := 0
     content_w := 0
     content_h: int
+    viewport_h: int
     title_h := AppTitleBarHeight()
     top_gap := Scale(18)
 
@@ -806,15 +807,19 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     if draw_count < option_count {
         content_h += button_h + Scale(14)
     }
+    viewport_h = view_height - title_h - top_gap - app_content_bottom_reserved(app)
+    if viewport_h < 0 {
+        viewport_h = 0
+    }
 
     Scroll page: {
         bounds = (Rectangle){(float)0, (float)(title_h + top_gap),
-                             (float)view_width,
-                             (float)(view_height - title_h - top_gap)}
+                             (float)view_width, (float)viewport_h}
         content_height = content_h
         scroll_offset = &app->navigation_config_scroll
 
         list_y := (int)page.y
+        y = list_y
 
         for int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++ {
             selected[i] = app_nav_option_index(app, app->bottom_nav_config_routes[i])
@@ -839,11 +844,9 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
             .item_count = draw_count,
             .handle_width = handle_w,
             .scroll_offset = &app->navigation_config_scroll,
-            .max_scroll = content_h > view_height - title_h - top_gap
-                              ? content_h - (view_height - title_h - top_gap)
-                              : 0,
+            .max_scroll = content_h > viewport_h ? content_h - viewport_h : 0,
             .viewport_top = title_h + top_gap,
-            .viewport_bottom = view_height
+            .viewport_bottom = title_h + top_gap + viewport_h
         })
         if reorder.committed {
             action = APP_NAV_CONFIG_ACTION_MOVE

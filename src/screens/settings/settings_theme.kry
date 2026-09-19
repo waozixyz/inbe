@@ -17,9 +17,44 @@ WEB :: #defined(PLATFORM_WEB)
 static scale_drag_active: int = 0
 static scale_drag_value: int = 0
 
+theme_dropdown_section_height :: () -> int #private {
+    return Scale(28) + Scale(56)
+}
+
+theme_value_dropdown_rows_height :: () -> int #private {
+    font := AppFontSize()
+    row_label_gap := Scale(8)
+    row_gap := Scale(14)
+    row_h := Scale(40)
+    return (font + row_label_gap + row_h + row_gap) * 2
+}
+
+scale_slider_content_height :: (content_w: int) -> int #private {
+    font := AppFontSize()
+    line_h := AppTextLineHeight(font)
+    label_w := content_w - Scale(72)
+    label_h := 0
+    extra := 0
+    header := line_h
+
+    if label_w < Scale(80) {
+        label_w = content_w
+    }
+    label_h = AppParagraphHeight(GetLocaleText("appearance_scale_label"),
+                                 label_w, font, 0)
+    if label_h > header {
+        header = label_h
+    }
+    if content_w < Scale(168) {
+        extra = Scale(60)
+    }
+    return header + Scale(12) + Scale(48) + line_h + Scale(4) + extra + Scale(20)
+}
+
 content_height :: (app: InnerBreeze*, content_w: int) -> int {
     sidebar_h := 0
     glow_h := 0
+    total := 0
     if style_pack_has_glow(app->style_index) {
         glow_h = ui.toggle_row_height(GetLocaleText("appearance_glow_effects_label"),
         content_w) + Scale(6)
@@ -36,13 +71,18 @@ content_height :: (app: InnerBreeze*, content_w: int) -> int {
         })
     }
 
+    total += theme_dropdown_section_height()
+    total += glow_h
+    total += scale_slider_content_height(content_w)
+    total += theme_dropdown_section_height()
+    total += sidebar_h
+    total += theme_value_dropdown_rows_height()
+    total += Scale(24)
+    total += Scale(58)
     #if ANDROID {
-        return Scale(350) + Scale(234) + sidebar_h + glow_h + Scale(80)
-    } #else_if WEB {
-        return Scale(366) + Scale(234) + sidebar_h + glow_h
-    } #else {
-        return Scale(350) + Scale(234) + sidebar_h + glow_h
+        total += Scale(80)
     }
+    return total
 }
 
 draw :: (app: InnerBreeze*, x: int, w: int, y: int*, state: SettingsThemeState*) {

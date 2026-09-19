@@ -31,6 +31,7 @@ static int icon_button_click_index = -1;
 static int icon_button_draw_count = 0;
 static Rectangle rail_bounds[5];
 static int rail_bounds_count = 0;
+static Rectangle customize_add_button_bounds = {0};
 static int route_request_count = 0;
 static int scroll_page_content_w_override = 0;
 static int pointer_release_consumed = 0;
@@ -68,6 +69,7 @@ reset_state(void)
     icon_button_click_index = -1;
     icon_button_draw_count = 0;
     rail_bounds_count = 0;
+    customize_add_button_bounds = (Rectangle){0};
     route_request_count = 0;
     scroll_page_content_w_override = 0;
     pointer_release_consumed = 0;
@@ -437,6 +439,8 @@ Button(ButtonProps props)
         invisible_button_clicked_id = -1;
         return 1;
     }
+    if(props.label != NULL && strcmp(props.label, "customize_nav_add") == 0)
+        customize_add_button_bounds = props.bounds;
     if(generic_button_clicked_label != NULL && props.label != NULL &&
        strcmp(props.label, generic_button_clicked_label) == 0) {
         generic_button_clicked_label = NULL;
@@ -1035,6 +1039,31 @@ test_customize_nav_delete_last_does_not_add_same_frame(void)
 }
 
 
+
+static void
+test_customize_nav_add_button_sits_after_rows(void)
+{
+    InnerBreeze app = test_app();
+
+    reset_state();
+    desktop_mode = 1;
+    view_width = 812;
+    view_height = 720;
+    app.breathing.screen = ScreenCustomizeNav;
+    app.bottom_nav_config_route_count = 4;
+    app.bottom_nav_config_routes[0] = APP_NAV_ROUTE_ELIST;
+    app.bottom_nav_config_routes[1] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_config_routes[2] = APP_NAV_ROUTE_PRACTICE;
+    app.bottom_nav_config_routes[3] = APP_NAV_ROUTE_SETTINGS;
+
+    app_draw_customize_nav_page(&app);
+
+    expect(customize_add_button_bounds.height > 0,
+           "customize nav should draw add button when an extra route is available");
+    expect(customize_add_button_bounds.y >= AppTitleBarHeight() + Scale(18) + Scale(64) * 4,
+           "customize nav add button must sit after the configured rows");
+}
+
 static void
 test_customize_nav_delete_icon_draws_on_narrow_rows(void)
 {
@@ -1553,6 +1582,7 @@ main(void)
     test_empty_bottom_nav_recovers_settings_item();
     test_bottom_nav_config_save_stays_on_customize_screen();
     test_customize_nav_delete_last_does_not_add_same_frame();
+    test_customize_nav_add_button_sits_after_rows();
     test_customize_nav_delete_icon_draws_on_narrow_rows();
     test_open_main_tab_none_returns_blank_start();
     test_habit_editor_preserves_desktop_rail();
