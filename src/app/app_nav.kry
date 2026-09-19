@@ -108,13 +108,28 @@ app_nav_desktop_rail_width :: (app: const InnerBreeze*) -> int {
     return Scale(app != NULL && app->nav_rail_collapsed ? 88 : 224)
 }
 
+app_capture_navigation_viewport :: (app: InnerBreeze*) {
+    if app == NULL {
+        return
+    }
+    app->navigation_view_height = view_height
+    app->navigation_desktop_mode = IsDesktopMode()
+}
+
+app_navigation_desktop_mode :: (app: const InnerBreeze*) -> int #private {
+    if app != NULL && app->navigation_view_height > 0 {
+        return app->navigation_desktop_mode
+    }
+    return IsDesktopMode()
+}
+
 app_navigation_placement :: (app: const InnerBreeze*) -> int {
     if app != NULL && app->navigation_placement >= NAVIGATION_LEFT &&
        app->navigation_placement <= NAVIGATION_TOP {
         return app->navigation_placement
     }
     #if DESKTOP {
-        return IsDesktopMode() ? NAVIGATION_LEFT : NAVIGATION_BOTTOM
+        return app_navigation_desktop_mode(app) ? NAVIGATION_LEFT : NAVIGATION_BOTTOM
     } #else {
         return NAVIGATION_BOTTOM
     }
@@ -122,8 +137,9 @@ app_navigation_placement :: (app: const InnerBreeze*) -> int {
 
 app_nav_desktop_rail_enabled :: (app: const InnerBreeze*) -> int {
     placement := app_navigation_placement(app)
+    full_height := app != NULL && app->navigation_view_height > 0 ? app->navigation_view_height : view_height
     if app == NULL || (placement != NAVIGATION_LEFT && placement != NAVIGATION_RIGHT) ||
-       view_height < Scale(476) {
+       full_height < Scale(476) {
         return 0
     }
     if app->file_dialog_active {
@@ -156,9 +172,9 @@ app_bottom_nav_configurable_route :: (route: int) -> int #private {
            route == APP_NAV_ROUTE_SETTINGS
 }
 
-app_nav_bottom_profile_enabled :: () -> int #private {
+app_nav_bottom_profile_enabled :: (app: const InnerBreeze*) -> int #private {
     #if DESKTOP {
-        return IsDesktopMode()
+        return app_navigation_desktop_mode(app)
     } #else {
         return 0
     }
@@ -236,7 +252,7 @@ app_sanitize_bottom_nav_routes :: (app: InnerBreeze*) {
     allowed_count += 1
     allowed[allowed_count] = APP_NAV_ROUTE_PRACTICE
     allowed_count += 1
-    if app_nav_bottom_profile_enabled() {
+    if app_nav_bottom_profile_enabled(app) {
         allowed[allowed_count] = APP_NAV_ROUTE_PROFILE
         allowed_count += 1
     }
@@ -612,7 +628,7 @@ app_open_customize_nav :: (app: InnerBreeze*) {
     app_request_route(app, route)
 }
 
-app_nav_option_index :: (route: int) -> int #private {
+app_nav_option_index :: (app: const InnerBreeze*, route: int) -> int #private {
     if route == APP_NAV_ROUTE_HABITS {
         return 0
     }
@@ -623,32 +639,32 @@ app_nav_option_index :: (route: int) -> int #private {
         return 1
     }
     if route == APP_NAV_ROUTE_SETTINGS {
-        if app_nav_bottom_profile_enabled() {
+        if app_nav_bottom_profile_enabled(app) {
             return 4
         }
         return 3
     }
-    if app_nav_bottom_profile_enabled() && route == APP_NAV_ROUTE_PROFILE {
+    if app_nav_bottom_profile_enabled(app) && route == APP_NAV_ROUTE_PROFILE {
         return 3
     }
     return 0
 }
 
-app_nav_config_option_count :: () -> int #private {
-    if app_nav_bottom_profile_enabled() {
+app_nav_config_option_count :: (app: const InnerBreeze*) -> int #private {
+    if app_nav_bottom_profile_enabled(app) {
         return APP_BOTTOM_NAV_CONFIGURABLE_COUNT
     }
         return 4
 }
 
-app_nav_route_for_option :: (option: int) -> int #private {
+app_nav_route_for_option :: (app: const InnerBreeze*, option: int) -> int #private {
     routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] int
-    count := app_nav_config_option_count()
+    count := app_nav_config_option_count(app)
 
     routes[0] = APP_NAV_ROUTE_HABITS
     routes[1] = APP_NAV_ROUTE_ELIST
     routes[2] = APP_NAV_ROUTE_PRACTICE
-    if app_nav_bottom_profile_enabled() {
+    if app_nav_bottom_profile_enabled(app) {
         routes[3] = APP_NAV_ROUTE_PROFILE
         routes[4] = APP_NAV_ROUTE_SETTINGS
     } else {
@@ -690,12 +706,12 @@ app_move_bottom_nav_config_route :: (app: InnerBreeze*, from_index: int,
 
 app_first_unused_bottom_nav_route :: (app: const InnerBreeze*) -> int #private {
     routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] int
-    count := app_nav_config_option_count()
+    count := app_nav_config_option_count(app)
 
     routes[0] = APP_NAV_ROUTE_HABITS
     routes[1] = APP_NAV_ROUTE_ELIST
     routes[2] = APP_NAV_ROUTE_PRACTICE
-    if app_nav_bottom_profile_enabled() {
+    if app_nav_bottom_profile_enabled(app) {
         routes[3] = APP_NAV_ROUTE_PROFILE
         routes[4] = APP_NAV_ROUTE_SETTINGS
     } else {
@@ -741,7 +757,7 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     action_index := -1
     action_to_index := -1
     action_route := APP_NAV_ROUTE_NONE
-    option_count := app_nav_config_option_count()
+    option_count := app_nav_config_option_count(app)
     side_padding := GetPageSidePadding()
     max_content_w := Scale(CONTENT_MAX_W)
     content_x := 0
@@ -766,7 +782,7 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     options[0] = app_nav_route_label(APP_NAV_ROUTE_HABITS)
     options[1] = app_nav_route_label(APP_NAV_ROUTE_ELIST)
     options[2] = app_nav_route_label(APP_NAV_ROUTE_PRACTICE)
-    if app_nav_bottom_profile_enabled() {
+    if app_nav_bottom_profile_enabled(app) {
         options[3] = app_nav_route_label(APP_NAV_ROUTE_PROFILE)
         options[4] = app_nav_route_label(APP_NAV_ROUTE_SETTINGS)
     } else {
@@ -800,7 +816,7 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
         list_y := (int)page.y
 
         for int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++ {
-            selected[i] = app_nav_option_index(app->bottom_nav_config_routes[i])
+            selected[i] = app_nav_option_index(app, app->bottom_nav_config_routes[i])
         }
 
         for int i = 0; i < draw_count; i++ {
@@ -859,7 +875,7 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
                action == APP_NAV_CONFIG_ACTION_NONE {
                 action = APP_NAV_CONFIG_ACTION_SET
                 action_index = i
-                action_route = app_nav_route_for_option(selected[i])
+                action_route = app_nav_route_for_option(app, selected[i])
             }
             if Button((ButtonProps){
                 .id = 0,

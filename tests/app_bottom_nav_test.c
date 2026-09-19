@@ -1463,9 +1463,40 @@ test_signed_out_profile_identity(void)
     expect(subtitle[0] == '\0', "Signed out profile must not repeat No account");
 }
 
+static void
+test_sidebar_breakpoint_uses_full_viewport(void)
+{
+    const int widths[] = {499, 500, 501, 600, 723, 724, 900, 500, 499};
+    for(int collapsed = 0; collapsed <= 1; collapsed++) {
+        for(size_t i = 0; i < sizeof(widths) / sizeof(widths[0]); i++) {
+            reset_state();
+            InnerBreeze app = test_app();
+            app.nav_rail_collapsed = collapsed;
+            for(int frame = 0; frame < 100; frame++) {
+                view_width = widths[i];
+                view_height = 720;
+                desktop_mode = view_width >= 500;
+                app_capture_navigation_viewport(&app);
+                int expected = widths[i] >= 500;
+                expect(app_nav_desktop_rail_enabled(&app) == expected,
+                       "rail must follow the full viewport breakpoint");
+                if(expected) view_width -= app_nav_desktop_rail_width(&app);
+                desktop_mode = view_width >= 500;
+                expect(app_nav_desktop_rail_enabled(&app) == expected,
+                       "subtracting the rail must not change navigation mode");
+                expect(app_navigation_placement(&app) ==
+                           (expected ? NAVIGATION_LEFT : NAVIGATION_BOTTOM),
+                       "navigation placement must stay stable while drawing content");
+            }
+        }
+    }
+    reset_state();
+}
+
 int
 main(void)
 {
+    test_sidebar_breakpoint_uses_full_viewport();
     test_signed_out_profile_identity();
     test_settings_navigation_opens_overview();
     test_settings_back_returns_through_hub();

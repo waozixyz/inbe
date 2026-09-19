@@ -1628,22 +1628,11 @@ app_update_draw :: (vapp: void*, viewport: Rectangle) #export {
         InitDPI()
         UpdateDPI(view_width, view_height)
     }
-    rail_width = app_nav_desktop_rail_enabled(app) ? app_nav_desktop_rail_width(app) : 0
-    content_x = app_navigation_placement(app) == NAVIGATION_LEFT ? rail_width : 0
-    top_height = app_navigation_placement(app) == NAVIGATION_TOP ? app_navigation_height(app) : 0
-    if content_x >= full_width {
-        content_x = 0
-    }
     layout_width = GetLayoutWidth()
     layout_height = GetLayoutHeight()
     render_scale = GetRenderScale()
     if !(render_scale > 0.0f) {
         render_scale = 1.0f
-    }
-    layout_content_x = (int)((float)content_x / render_scale + 0.5f)
-    layout_content_w = layout_width - (int)((float)rail_width / render_scale + 0.5f)
-    if layout_content_w < 1 {
-        layout_content_w = 1
     }
     app_full_view_width = layout_width
     view_width = layout_width
@@ -1655,6 +1644,18 @@ app_update_draw :: (vapp: void*, viewport: Rectangle) #export {
         : 1.0f
         InitInterface(view_width, view_height, user_scale)
     }
+    # Freeze responsive navigation from the full viewport before narrowing content.
+    app_capture_navigation_viewport(app)
+    rail_width = app_nav_desktop_rail_enabled(app) ? app_nav_desktop_rail_width(app) : 0
+    layout_content_x = app_navigation_placement(app) == NAVIGATION_LEFT ? rail_width : 0
+    layout_content_w = layout_width - rail_width
+    if layout_content_w < 1 {
+        layout_content_w = 1
+    }
+    content_x = (int)((float)layout_content_x * render_scale + 0.5f)
+    rail_width = (int)((float)rail_width * render_scale + 0.5f)
+    top_height = app_navigation_placement(app) == NAVIGATION_TOP
+        ? (int)((float)app_navigation_height(app) * render_scale + 0.5f) : 0
     if app->modal.active {
         BeginModalLayer()
     }

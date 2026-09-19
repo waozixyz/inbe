@@ -33,3 +33,5 @@ void app_sanitize_bottom_nav_routes(InnerBreeze*app);
 #endif
 
 void app_settings_back(InnerBreeze *app);
+
+void app_capture_navigation_viewport(InnerBreeze *app);
