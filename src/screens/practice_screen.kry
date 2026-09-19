@@ -112,10 +112,6 @@ practice_screen_handle_config_title :: (app: InnerBreeze*, title: const char*, m
     return 1
 }
 
-practice_card_banner_bottom_padding :: () -> int #private {
-    return Scale(6)
-}
-
 practice_card_banner_asset_path :: (app: const InnerBreeze*, exercise: int) -> const char* #private {
     id := practice_clamp_id(exercise)
     dark := app != NULL && ((app->theme_mode == APP_THEME_DARK) ||
@@ -136,55 +132,47 @@ practice_card_banner_asset_path :: (app: const InnerBreeze*, exercise: int) -> c
     return NULL
 }
 
-practice_carousel_controls :: (bounds: Rectangle, indicators: Rectangle,
+practice_carousel_controls :: (bounds: Rectangle,
 count: int, selected: int, disabled: int,
 id: int) -> int #private {
-    button_size := Scale(40)
-    gap := Scale(8)
+    button_size := Scale(48)
+    inset := bounds.width * 0.08f
+    button_y := bounds.y + (bounds.height - button_size) / 2
     result := -1
 
-    if count <= 1 || disabled {
+    if count <= 1 || bounds.width <= 0 || bounds.height <= 0 {
         return result
     }
     if Button((ButtonProps){
-        .bounds = {bounds.x + gap, bounds.y + (bounds.height - button_size) / 2,
+        .bounds = {bounds.x + inset, button_y,
             (float)button_size, (float)button_size},
         .id = id + 1,
-        .icon_type = ICON_LEFT, .icon_only = 1,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+        .class_name = StyleClassId("practice-pager"),
+        .disabled = disabled,
+        .arrow = 1, .direction = ArrowLeft,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisGhost
     }) {
         result = selected > 0 ? selected - 1 : count - 1
     }
     if Button((ButtonProps){
-        .bounds = {bounds.x + bounds.width - button_size - gap,
-            bounds.y + (bounds.height - button_size) / 2,
+        .bounds = {bounds.x + bounds.width - button_size - inset, button_y,
             (float)button_size, (float)button_size},
         .id = id + 2,
-        .icon_type = ICON_RIGHT, .icon_only = 1,
-        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
+        .class_name = StyleClassId("practice-pager"),
+        .disabled = disabled,
+        .arrow = 1, .direction = ArrowRight,
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisGhost
     }) {
         result = selected < count - 1 ? selected + 1 : 0
     }
-    if indicators.width > 0 && indicators.height > 0 && count > 1 {
-        active_w := Scale(24)
-        segment_w := Scale(9)
-        segment_h := Scale(5)
-        segment_gap := Scale(7)
-        total_w := active_w + (count - 1) * segment_w + (count - 1) * segment_gap
-        indicator_x := (int)indicators.x + ((int)indicators.width - total_w) / 2
-        indicator_y := (int)indicators.y + ((int)indicators.height - segment_h) / 2
-        cursor_x := indicator_x
-        for int i = 0; i < count; i++ {
-            active := i == selected
-            w := active ? active_w : segment_w
-            fill := active ? GetThemeButton() : Fade(GetThemeText(), 0.32f)
-            DrawRectangleRounded(
-            (Rectangle){(float)cursor_x, (float)indicator_y,
-                (float)w, (float)segment_h},
-            1.0f, 8, fill)
-            cursor_x += w + segment_gap
-        }
-    }
+    Text((TextProps){
+        .text = TextFormat("%d / %d", selected + 1, count),
+        .bounds = bounds,
+        .font = Scale(18),
+        .align = TextAlignCenter,
+        .vertical_align = TextAlignCenter,
+        .wrap = TextWrapNone
+    })
     return result
 }
 
@@ -230,12 +218,8 @@ practice_ordered_index :: (app: const InnerBreeze*, exercise: int) -> int {
     return 0
 }
 
-practice_home_dots_height :: (app: const InnerBreeze*) -> int #private {
-    return practice_home_count(app) > 1 ? Scale(32) : 0
-}
-
 practice_home_carousel_controls_height :: (app: const InnerBreeze*) -> int #private {
-    return practice_home_dots_height(app)
+    return practice_home_count(app) > 1 ? Scale(48) : 0
 }
 
 practice_select_home_card :: (app: InnerBreeze*, exercise: int) #private {
@@ -257,48 +241,6 @@ practice_select_home_card :: (app: InnerBreeze*, exercise: int) #private {
     app->practice_home_scroll = 0
     app->tutorial_step = 0
     app_switch_route(app, route)
-}
-
-practice_home_below_card_height :: (app: const InnerBreeze*, content_w: int) -> int #private {
-    practice := practice_get(app != NULL ? app->exercise_type : 0)
-    tokens := GetThemeMetrics()
-    gap := Scale(12)
-    btn_h := Scale(tokens.touch_target_min + 8)
-    height: int = practice_card_banner_bottom_padding() +
-    practice_home_carousel_controls_height(app) +
-    Scale(10) + btn_h
-    if practice_home_actions_share_row(practice, content_w) {
-        height += gap + btn_h
-    } else {
-        if practice != NULL && practice->draw_manual != NULL {
-            height += gap + btn_h
-        }
-        if practice != NULL && practice->draw_config != NULL {
-            height += gap + btn_h
-        }
-    }
-    return height + Scale(14)
-}
-
-practice_home_card_height :: (app: const InnerBreeze*, y: int, bottom_reserved: int,
-content_w: int) -> int #private {
-    card_h: int = view_height - y - bottom_reserved -
-    practice_home_below_card_height(app, content_w)
-    tokens := GetThemeMetrics()
-    max_card_h := view_height >= Scale(640)
-    ? view_height * 52 / 100
-    : view_height * 58 / 100
-
-    if card_h < Scale(240) {
-        card_h = Scale(240)
-    }
-    if card_h < Scale(tokens.touch_target_min * 5) {
-        card_h = Scale(tokens.touch_target_min * 5)
-    }
-    if card_h > max_card_h {
-        card_h = max_card_h
-    }
-    return card_h
 }
 
 practice_home_action_gap :: (content_w: int) -> int #private {
@@ -384,11 +326,6 @@ practice_home_metadata :: (app: InnerBreeze*, out: char*, out_size: size_t) #pri
     } else {
         FormatLocaleText(out, out_size, "practice_home_wim_hof_metadata", app->breathing.max_rounds, int_from_count(app->breathing.maxbreaths))
     }
-}
-
-practice_home_title_height :: (app: const InnerBreeze*) -> int #private {
-    subtitle: const char* = app != NULL ? practice_home_subtitle(app->exercise_type) : NULL
-    return subtitle != NULL ? Scale(118) : Scale(88)
 }
 
 practice_draw_title_crescent :: (center_x: int, y: int, w: int,
@@ -514,16 +451,6 @@ preferred_title_font: int) #private {
     practice_draw_title_crescent(center_x, underline_y, underline_w, glow)
 }
 
-practice_draw_home_title :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
-    if app == NULL {
-        return
-    }
-
-    practice_draw_hero_title_text(practice_home_title(app->exercise_type),
-    practice_home_subtitle(app->exercise_type),
-    x, y, w, Scale(34))
-}
-
 practice_home_action_row_widths :: (content_w: int, manual_w: int*, config_w: int*) -> int #private {
     font := AppFontSize()
     pad := Scale(20)
@@ -558,18 +485,18 @@ practice_home_actions_share_row :: (practice: const PracticeDefinition*, content
     return practice != NULL && practice->draw_manual != NULL && practice->draw_config != NULL && practice_home_action_row_widths(content_w, &manual_w, &config_w)
 }
 
-practice_draw_desktop_home_title :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
+practice_draw_home_title :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
     if app == NULL {
         return
     }
 
     practice_draw_hero_title_text(practice_home_title(app->exercise_type),
     practice_home_subtitle(app->exercise_type),
-    x, y, w, Scale(50))
+    x, y, w, w >= Scale(600) ? Scale(42) : Scale(34))
 }
 
-practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
-    if app == NULL || !IsDesktopMode() {
+practice_screen_draw_home_hero :: (app: InnerBreeze*) -> int #private {
+    if app == NULL {
         return 0
     }
 
@@ -592,14 +519,11 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
     }
     x := content_view_x + (content_view_w - content_w) / 2
     hero_h := view_height - bottom_reserved
-    if hero_h < Scale(340) {
-        hero_h = Scale(340)
+    if hero_h <= 0 {
+        return 0
     }
-    hero := (Rectangle){(float)content_view_x, 0, (float)content_view_w, (float)hero_h}
-    title_y := hero_h - Scale(226)
-    dots_y := Scale(38)
-    button_y := hero_h - Scale(102)
-    button_h := Scale(tokens.touch_target_min + 14)
+    hero := (Rectangle){(float)content_view_x, 0, (float)content_view_w, (float)view_height}
+    button_h := Scale(tokens.touch_target_min + 8)
     action_gap := Scale(14)
     total_w := content_w
     if total_w > Scale(700) {
@@ -619,9 +543,22 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
         secondary_count += 1
     }
     button_count := 1 + secondary_count
-    primary_w := (total_w - action_gap * (button_count - 1)) / button_count
-    secondary_w := primary_w
+    wide_actions := total_w >= Scale(600)
+    secondary_row := secondary_count < 2 || practice_home_actions_share_row(practice, total_w)
+    rows := wide_actions ? 1 : 1 + (secondary_row ? (secondary_count > 0 ? 1 : 0) : secondary_count)
+    bottom_gap := bottom_reserved > 0 ? Scale(28) : Scale(20)
+    button_y := hero_h - bottom_gap - rows * button_h - (rows - 1) * action_gap
+    pager_h := practice_home_carousel_controls_height(app)
+    pager_y := button_y - Scale(10) - pager_h
+    title_y := pager_y - Scale(100)
+    if title_y < Scale(8) {
+        title_y = Scale(8)
+    }
+    primary_w := wide_actions ? (total_w - action_gap * (button_count - 1)) / button_count : total_w
+    secondary_w := wide_actions ? primary_w : (secondary_row && secondary_count > 0 ? (total_w - action_gap * (secondary_count - 1)) / secondary_count : total_w)
     action_x := content_view_x + (content_view_w - total_w) / 2
+    pager_w := total_w < Scale(480) ? total_w : Scale(480)
+    pager_x := content_view_x + (content_view_w - pager_w) / 2
 
     app->practice_home_bounds_valid = 1
     app->practice_home_bounds_card = hero
@@ -644,25 +581,23 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
 
     banner_path := practice_card_banner_asset_path(app, app->exercise_type)
     if banner_path != NULL {
-        practice_draw_card_banner(banner_path, hero)
+        practice_draw_card_banner(banner_path, (Rectangle){hero.x, hero.y, hero.width, (float)(title_y + Scale(8))})
     } else {
         DrawRectangleRec(hero, GetThemeSurface())
     }
 
-    overlay_h := Scale(260)
-    overlay_y := hero_h - overlay_h
-    DrawRectangleGradientV(content_view_x, overlay_y, content_view_w, overlay_h,
-    Fade(BLACK, 0.0f), Fade(BLACK, 0.62f))
-    DrawRectangleGradientV(content_view_x, hero_h - Scale(116), content_view_w,
-    Scale(116), Fade(BLACK, 0.10f),
-    Fade(GetThemeBackground(), 0.92f))
+    fade_h := Scale(120)
+    fade_y := title_y - fade_h
+    DrawRectangleGradientV(content_view_x, fade_y, content_view_w, fade_h,
+                           Fade(GetThemeBackground(), 0.0f), GetThemeBackground())
+    DrawRectangle(content_view_x, title_y, content_view_w,
+                  view_height - title_y, GetThemeBackground())
 
-    practice_draw_desktop_home_title(app, x, title_y, content_w)
+    practice_draw_home_title(app, x, title_y, content_w)
 
     current_index := practice_ordered_index(app, app->exercise_type)
     selected_index := practice_carousel_controls(
-    (Rectangle){(float)content_view_x, 0, (float)content_view_w, (float)(hero_h - Scale(112))},
-    (Rectangle){(float)x, (float)dots_y, (float)content_w, Scale(34)},
+    (Rectangle){(float)pager_x, (float)pager_y, (float)pager_w, (float)pager_h},
     practice_home_count(app), current_index, app->modal.active, 7090)
     if selected_index >= 0 && selected_index != current_index {
         practice_select_home_card(app, practice_ordered_id(selected_index))
@@ -681,7 +616,11 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
             practice->start(app)
         }
     }
-    action_x += primary_w + action_gap
+    if wide_actions {
+        action_x += primary_w + action_gap
+    } else {
+        button_y += button_h + action_gap
+    }
 
     if practice != NULL && practice->draw_manual != NULL {
         app->practice_home_bounds_manual = (Rectangle){(float)action_x, (float)button_y,
@@ -695,7 +634,11 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
         }) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
-        action_x += secondary_w + action_gap
+        if wide_actions || secondary_row {
+            action_x += secondary_w + action_gap
+        } else {
+            button_y += button_h + action_gap
+        }
     }
 
     if practice != NULL && practice->draw_config != NULL {
@@ -713,18 +656,6 @@ practice_screen_draw_desktop_home :: (app: InnerBreeze*) -> int #private {
     }
 
     return 1
-}
-
-practice_home_content_height :: (content_w: int, user_data: void*) -> int #private {
-    app := (InnerBreeze*)user_data
-    if app == NULL {
-        return 0
-    }
-    y := 0
-    y += practice_home_card_height(app, y, app_content_bottom_reserved(app),
-    content_w)
-    y += practice_home_below_card_height(app, content_w)
-    return y
 }
 
 practice_screen_draw_home :: (app: InnerBreeze*) {
@@ -1007,17 +938,15 @@ practice_home_action_guide_anchor :: (manual: Rectangle, config: Rectangle) -> R
 
 practice_home_carousel_guide_anchor :: (app: const InnerBreeze*) -> Rectangle #private {
     card := app->practice_home_bounds_card
-    anchor_w := Scale(140)
-    anchor_h := Scale(34)
-    anchor_x := (int)(card.x + (card.width - anchor_w) / 2)
-    anchor_y: int
+    anchor_w := (int)app->practice_home_bounds_start.width
+    anchor_h := practice_home_carousel_controls_height(app)
 
-    if IsDesktopMode() {
-        anchor_y = (int)(card.y + card.height) - Scale(140)
-    } else {
-        anchor_y = (int)(card.y + card.height) +
-        practice_card_banner_bottom_padding()
+    anchor_w = (int)card.width - Scale(32)
+    if anchor_w > Scale(480) {
+        anchor_w = Scale(480)
     }
+    anchor_x := (int)(card.x + (card.width - anchor_w) / 2)
+    anchor_y := (int)app->practice_home_bounds_start.y - Scale(10) - anchor_h
 
     return (Rectangle){
         (float)anchor_x,
@@ -1062,185 +991,9 @@ route start {
 start :: (app: InnerBreeze*) #ui {
     Screen root: {
         guard app == NULL
-
-        practice := (const PracticeDefinition*)NULL
-        scroll_y := 0
-        scroll_h := 0
-        bottom_reserved := 0
-        content_w := 0
-        x := 0
-        y := 0
-        layout_y := 0
-        card_w := 0
-        card_h := 0
-        tokens := GetThemeMetrics()
-        gap := Scale(12)
-        btn_h := Scale(tokens.touch_target_min + 8)
-        carousel_count := 0
-        row_gap := 0
-        manual_w := 0
-        config_w := 0
-
         practice_clamp_activity_to_tab(app)
         app->practice_home_bounds_valid = 0
-        app->practice_home_bounds_start = (Rectangle){0}
-        app->practice_home_bounds_manual = (Rectangle){0}
-        app->practice_home_bounds_config = (Rectangle){0}
-
-        if practice_screen_draw_desktop_home(app) {
-            return
-        }
-
-        bottom_reserved = app_content_bottom_reserved(app)
-        scroll_y = 0
-        scroll_h = view_height - scroll_y - bottom_reserved
-        if scroll_h < 0 {
-            scroll_h = 0
-        }
-
-        practice = practice_get(app->exercise_type)
-        content_w = view_width - Scale(40)
-        if content_w > Scale(480) {
-            content_w = Scale(480)
-        }
-        if content_w < Scale(260) {
-            content_w = view_width - Scale(16)
-        }
-        x = (view_width - content_w) / 2
-        y = scroll_y
-        layout_y = y
-
-        content_h := practice_home_content_height(content_w, app)
-        if content_h <= scroll_h {
-            app->practice_home_scroll = 0
-        }
-        Scroll page: {
-            bounds = (Rectangle){(float)0, (float)scroll_y, (float)view_width, (float)scroll_h}
-            content_height = content_h
-            scroll_offset = &app->practice_home_scroll
-
-            y := (int)page.y
-            layout_y := scroll_y
-
-            card_w := IsDesktopMode() ? content_w : view_width
-            card_h := practice_home_card_height(app, layout_y, bottom_reserved, content_w)
-            title_h := practice_home_title_height(app) + Scale(10)
-            card := (Rectangle){(float)((view_width - card_w) / 2), (float)y,
-                (float)card_w, (float)card_h}
-            app->practice_home_bounds_card = card
-            app->practice_home_bounds_valid = 1
-            swipe := UpdateSwipe(&app->practice_home_swipe, (SwipeSpec){
-                .bounds = card,
-                .directions = SwipeHorizontal,
-                .min_distance = (float)Scale(48),
-                .axis_bias = 1.4f,
-                .max_duration = 1.2f
-            })
-            if !app->modal.active && (swipe.direction == SwipeLeft || IsKeyPressed(KEY_RIGHT)) {
-                practice_select_home_card(app, practice_next_ordered(app, 1))
-            } else if !app->modal.active && (swipe.direction == SwipeRight || IsKeyPressed(KEY_LEFT)) {
-                practice_select_home_card(app, practice_next_ordered(app, -1))
-            }
-            practice = practice_get(app->exercise_type)
-            banner_path := practice_card_banner_asset_path(app, app->exercise_type)
-            if banner_path != NULL {
-                practice_draw_card_banner(banner_path, card)
-            } else {
-                DrawRectangleRec(card, GetThemeSurface())
-            }
-
-            fade_h := Scale(120)
-            fade_y := y + card_h - title_h - fade_h
-            DrawRectangleGradientV((int)card.x, fade_y, card_w, fade_h,
-            Fade(GetThemeBackground(), 0.0f), GetThemeBackground())
-            DrawRectangle((int)card.x, y + card_h - title_h, card_w, title_h,
-            GetThemeBackground())
-            practice_draw_home_title(app, x, y + card_h - title_h + Scale(4), content_w)
-            current_index := practice_ordered_index(app, app->exercise_type)
-            selected_index := practice_carousel_controls(
-            (Rectangle){card.x, card.y, card.width, card.height - title_h},
-            (Rectangle){(float)x, (float)(y + card_h + practice_card_banner_bottom_padding()),
-                (float)content_w, (float)practice_home_carousel_controls_height(app)},
-            practice_home_count(app), current_index, app->modal.active, 7090)
-            if selected_index >= 0 && selected_index != current_index {
-                practice_select_home_card(app, practice_ordered_id(selected_index))
-            }
-
-            carousel_count = practice_home_count(app)
-            y += card_h
-            y += practice_card_banner_bottom_padding()
-            if carousel_count > 1 {
-                y += practice_home_carousel_controls_height(app)
-            }
-            y += Scale(10)
-
-            app->practice_home_bounds_start = (Rectangle){(float)x, (float)y,
-                (float)content_w, (float)btn_h}
-            if Button((ButtonProps){
-                .bounds = app->practice_home_bounds_start,
-                .label = GetLocaleText("practice_start_button"),
-                .tone = ButtonToneAccent, .emphasis = ButtonEmphasisFilled,
-            }) {
-                if practice->start != NULL {
-                    practice->start(app)
-                }
-            }
-            y += btn_h + gap
-
-            if practice_home_actions_share_row(practice, content_w) {
-                row_gap = practice_home_action_gap(content_w)
-                practice_home_action_row_widths(content_w, &manual_w, &config_w)
-                app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
-                    (float)manual_w, (float)btn_h}
-                if Button((ButtonProps){
-                    .bounds = app->practice_home_bounds_manual,
-                    .label = GetLocaleText("practice_manual_button"),
-                    .id = 7100 + (int)app->practice_home_bounds_manual.x,
-                    .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-                }) {
-                    practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
-                }
-
-                app->practice_home_bounds_config = (Rectangle){(float)(x + manual_w + row_gap), (float)y,
-                    (float)config_w, (float)btn_h}
-                if Button((ButtonProps){
-                    .bounds = app->practice_home_bounds_config,
-                    .label = GetLocaleText("practice_configure_button"),
-                    .id = 7100 + (int)app->practice_home_bounds_config.x,
-                    .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-                }) {
-                    practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
-                }
-                y += btn_h + gap
-            } else {
-                if practice->draw_manual != NULL {
-                    app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
-                        (float)content_w, (float)btn_h}
-                    if Button((ButtonProps){
-                        .bounds = app->practice_home_bounds_manual,
-                        .label = GetLocaleText("practice_manual_button"),
-                        .id = 7100 + (int)app->practice_home_bounds_manual.x,
-                        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-                    }) {
-                        practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
-                    }
-                    y += btn_h + gap
-                }
-                if practice->draw_config != NULL {
-                    app->practice_home_bounds_config = (Rectangle){(float)x, (float)y,
-                        (float)content_w, (float)btn_h}
-                    if Button((ButtonProps){
-                        .bounds = app->practice_home_bounds_config,
-                        .label = GetLocaleText("practice_configure_button"),
-                        .id = 7100 + (int)app->practice_home_bounds_config.x,
-                        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
-                    }) {
-                        practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
-                    }
-                    y += btn_h + gap
-                }
-            }
-        }
+        unused practice_screen_draw_home_hero(app)
     }
 }
 }

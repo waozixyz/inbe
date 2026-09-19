@@ -331,6 +331,7 @@ SETTINGS_KEYS_TEST := $(TEST_BIN_DIR)/settings_keys_test
 TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(APP_BOTTOM_NAV_TEST) $(HABIT_MODEL_TEST) $(HABIT_SESSIONS_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST) $(FRAME_PACING_TEST) $(SETTINGS_KEYS_TEST)
 TESTS += $(TEST_BIN_DIR)/session_results_test
 TESTS += $(TEST_BIN_DIR)/habit_form_test
+TESTS += $(TEST_BIN_DIR)/practice_carousel_test
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
 STORAGE_CORE_SRCS = $(KRY_GEN_DIR)/src/storage/json.c $(KRY_GEN_DIR)/src/storage/storage_core.c src/storage/storage_json_builder.c $(KRY_GEN_DIR)/src/storage/storage_habits.c $(KRY_GEN_DIR)/src/storage/storage_habit_materialize.c $(KRY_GEN_DIR)/src/storage/storage_habit_sync.c
@@ -929,6 +930,11 @@ $(TEST_BIN_DIR)/habit_form_test: tests/habit_form_test.c $(KRY_GEN_DIR)/src/scre
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
 		-Wl,--gc-sections -o $@ tests/habit_form_test.c $(KRY_GEN_DIR)/src/app/metrics.c $(KRY_GEN_DIR)/src/screens/habits/edit.c
+
+$(TEST_BIN_DIR)/practice_carousel_test: tests/practice_carousel_test.c $(KRY_GEN_DIR)/src/screens/practice_screen.c src/app/app.h | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \
+		$(APP_INCLUDE) $(SQLITE_INCLUDE) \
+		-Wl,--gc-sections -o $@ tests/practice_carousel_test.c
 
 $(HABIT_MODEL_TEST): tests/habit_model_test.c $(KRY_GEN_DIR)/src/habits/habit_model.c src/screens/habits_screen.h src/screens/habits/habits.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
