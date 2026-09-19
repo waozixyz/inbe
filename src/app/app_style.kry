@@ -11,7 +11,7 @@ style_pack_id :: (index: int) -> const char* #export {
     case 1:
         return "material"
     case 2:
-        return "tk"
+        return "classic"
     case 3:
         return "lightfield"
     default:
@@ -24,7 +24,7 @@ style_pack_label :: (index: int) -> const char* #export {
     case 1:
         return "Material"
     case 2:
-        return "TK"
+        return "Classic"
     case 3:
         return "Lightfield"
     default:
