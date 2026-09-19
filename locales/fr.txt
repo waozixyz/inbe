@@ -900,7 +900,7 @@ Mode d’emploi
 Personnaliser
 ---
 [practice_guide_carousel]
-Balaye vers la gauche ou la droite, ou touche un point pour choisir une pratique.
+Balaye vers la gauche ou la droite, ou utilise les flèches pour choisir une pratique.
 ---
 [practice_guide_start]
 Lance la pratique sélectionnée.

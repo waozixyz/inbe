@@ -1118,7 +1118,7 @@ How to
 Customize
 ---
 [practice_guide_carousel]
-Swipe left or right, or tap a dot to choose a practice.
+Swipe left or right, or use the arrows to choose a practice.
 ---
 [practice_guide_start]
 Start the selected practice.

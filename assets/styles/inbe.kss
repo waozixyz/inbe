@@ -8,6 +8,10 @@ Text.selected-navigation {
     foreground: accent-ink;
 }
 
+Button.practice-pager {
+    font-size: 42;
+}
+
 Image {
     background: #00000000;
     border: #00000000;

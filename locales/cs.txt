@@ -900,7 +900,7 @@ Jak na to
 Přizpůsobit
 ---
 [practice_guide_carousel]
-Cvičení vyber přejetím doleva či doprava nebo klepnutím na tečku.
+Cvičení vyber přejetím doleva či doprava nebo pomocí šipek.
 ---
 [practice_guide_start]
 Spusť vybrané cvičení.

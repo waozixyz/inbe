@@ -902,7 +902,7 @@ Alias saved
 カスタマイズ
 ---
 [practice_guide_carousel]
-左右にスワイプするか、点をタップして練習を選びます。
+左右にスワイプするか、矢印を使って練習を選びます。
 ---
 [practice_guide_start]
 選んだ練習を開始します。

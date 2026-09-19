@@ -900,7 +900,7 @@ Cara pakai
 Sesuaikan
 ---
 [practice_guide_carousel]
-Geser ke kiri atau kanan, atau ketuk titik untuk memilih latihan.
+Geser ke kiri atau kanan, atau gunakan panah untuk memilih latihan.
 ---
 [practice_guide_start]
 Mulai latihan yang dipilih.

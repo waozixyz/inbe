@@ -900,7 +900,7 @@ Cómo hacerlo
 Personalizar
 ---
 [practice_guide_carousel]
-Desliza a la izquierda o a la derecha, o toca un punto para elegir una práctica.
+Desliza a la izquierda o a la derecha, o usa las flechas para elegir una práctica.
 ---
 [practice_guide_start]
 Inicia la práctica seleccionada.

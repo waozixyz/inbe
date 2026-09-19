@@ -900,7 +900,7 @@ Alias saved
 自定义
 ---
 [practice_guide_carousel]
-左右滑动或点按圆点来选择练习。
+左右滑动或使用箭头来选择练习。
 ---
 [practice_guide_start]
 开始所选练习。

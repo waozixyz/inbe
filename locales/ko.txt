@@ -900,7 +900,7 @@ Alias saved
 맞춤 설정
 ---
 [practice_guide_carousel]
-좌우로 스와이프하거나 점을 눌러 연습을 선택하세요.
+좌우로 스와이프하거나 화살표를 눌러 연습을 선택하세요.
 ---
 [practice_guide_start]
 선택한 연습을 시작합니다.

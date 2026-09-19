@@ -900,7 +900,7 @@ Anleitung
 Anpassen
 ---
 [practice_guide_carousel]
-Wische nach links oder rechts oder tippe auf einen Punkt, um eine Übung auszuwählen.
+Wische nach links oder rechts oder nutze die Pfeile, um eine Übung auszuwählen.
 ---
 [practice_guide_start]
 Starte die ausgewählte Übung.
