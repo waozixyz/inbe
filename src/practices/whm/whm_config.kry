@@ -504,6 +504,12 @@ whm_config_screen_draw :: (app: InnerBreeze*) {
     max_content_w := Scale(CONTENT_MAX_W)
     content_x := 0
     content_w := 0
+    start_speed_modal_open := app != nil && app->modal.active &&
+                              app->modal.type == UIModalEditProgressiveStartSpeed
+
+    if start_speed_modal_open {
+        BeginModalLayer()
+    }
 
     if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
         app->settings_drag_slider = 0
