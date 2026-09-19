@@ -178,7 +178,8 @@ static int
 trace_is_quiet_text(const char *text)
 {
     return trace_has_prefix(text, "IMAGE:") ||
-           trace_has_prefix(text, "TEXTURE:");
+           trace_has_prefix(text, "TEXTURE:") ||
+           trace_has_prefix(text, "TIMER: Target time per frame");
 }
 
 static void
