@@ -6,7 +6,7 @@
 	<link href="/css/landing.css?v=${asset_version}" rel="stylesheet" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="description" content="Convert inbe-legacy JSON exports into the current Inner Breeze import ZIP format.">
-	<meta name="theme-color" content="#07111f">
+	<meta name="theme-color" content="#f7f3eb">
 	<meta property="og:title" content="Inner Breeze Legacy Data Converter">
 	<meta property="og:description" content="Move your original Inner Breeze sessions into the current app—privately, in your browser.">
 	<meta property="og:image" content="https://inbe.waozi.xyz/og.png">
@@ -17,7 +17,7 @@
 
 <body class="converter-page">
 	<header class="topbar">
-		<a class="brand" href="/"><img src="/site-icons/icon-192.png" width="30" height="30" alt="">Inner Breeze</a>
+		<a class="brand" href="/"><img src="/assets/editorial/lotus.svg" width="30" height="30" alt="">Inner Breeze</a>
 		<nav aria-label="Converter navigation"><a href="/">Overview</a><a href="/#download">Downloads</a><a href="/privacy.html">Privacy</a></nav>
 	</header>
 	<main id="main-content" class="converter-main">
@@ -63,7 +63,7 @@
 		<div><a href="/">Home</a><a href="/privacy.html">Privacy</a><a href="/delete-account">Delete sync account</a></div>
 	</footer>
 
-	<script src="/assets/sqljs-1.12.0/sql-wasm.js"></script>
+	<script src="/assets-sqljs-1.12.0/sql-wasm.js"></script>
 	<script>
 	(function() {
 		"use strict";
@@ -73,7 +73,7 @@
 		var statusEl = document.getElementById("converter-status");
 		var sqlReady = initSqlJs({
 			locateFile: function(file) {
-				return "/assets/sqljs-1.12.0/" + file;
+				return "/assets-sqljs-1.12.0/" + file;
 			}
 		});
 

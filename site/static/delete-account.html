@@ -4,9 +4,9 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Delete Sync Account - Inner Breeze</title>
-	<link href="/style.css?v=${asset_version}" rel="stylesheet" />
+	<link href="/css/landing.css?v=${asset_version}" rel="stylesheet" />
 	<meta name="description" content="Delete an Inner Breeze remote sync account using the exported inbe-sync.key file.">
-	<meta name="theme-color" content="#5566aa">
+	<meta name="theme-color" content="#f7f3eb">
 	<style>
 		.account-delete-form {
 			display: grid;
@@ -22,9 +22,9 @@
 		.account-delete-form textarea {
 			box-sizing: border-box;
 			width: 100%;
-			border: 1px solid #aeb6d8;
-			background: #fff;
-			color: #18202a;
+			border: 1px solid var(--line);
+			background: var(--surface);
+			color: var(--ink);
 			font: inherit;
 			padding: 0.75rem;
 		}
@@ -36,7 +36,7 @@
 		.account-delete-form button {
 			width: fit-content;
 			border: 0;
-			background: #4b557f;
+			background: var(--rust);
 			color: #fff;
 			font: inherit;
 			font-weight: 700;
@@ -48,7 +48,7 @@
 			cursor: wait;
 		}
 		.status {
-			border: 1px solid #aeb6d8;
+			border: 1px solid var(--line);
 			padding: 0.85rem;
 			max-width: 760px;
 		}
@@ -66,7 +66,8 @@
 	</style>
 </head>
 <body>
-	<div class="content">
+<header class="topbar"><a class="brand" href="/"><img src="/assets/editorial/lotus.svg" width="36" height="30" alt="">Inner Breeze</a><nav aria-label="Account page navigation"><a href="/">Overview</a><a href="/privacy.html">Privacy</a></nav></header>
+	<div class="document-main">
 		<section>
 			<h1>Delete Sync Account</h1>
 			<p>Use this page to delete the remote Inner Breeze sync account on the default server. Offline app data on your device is not changed.</p>

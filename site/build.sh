@@ -10,8 +10,8 @@ kryon_dir=${KRYON_DIR:-"$root_dir/vendor/kryon"}
 
 read_version() {
 	awk '
-		/^#define INBE_VERSION_STRING "/ {
-			gsub(/^#define INBE_VERSION_STRING "/, "")
+		/^#define APP_VERSION_STRING "/ {
+			gsub(/^#define APP_VERSION_STRING "/, "")
 			gsub(/"$/, "")
 			print
 			found = 1
