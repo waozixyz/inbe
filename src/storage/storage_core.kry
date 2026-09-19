@@ -1429,7 +1429,7 @@ storage_json_array_has_items :: (json: const char*, path: const char*) -> int #p
     return storage_json_array_count(json, path) > 0
 }
 
-static storage_sync_response_has_legacy_records_paths: [] const char* const = {
+static storage_sync_response_has_legacy_records_paths: [12] const char* const = {
     "$.changes.habits",
     "$.changes.habit_days",
     "$.changes.sessions",
@@ -2036,7 +2036,7 @@ storage_apply_remote_full_snapshot :: (response_json: const char*) -> int #priva
     return ok
 }
 
-static storage_clear_local_sync_data_sqls: [] const char* const = {"DELETE FROM meditation_logs",
+static storage_clear_local_sync_data_sqls: [7] const char* const = {"DELETE FROM meditation_logs",
     "DELETE FROM session_rounds",
     "DELETE FROM sessions",
     "DELETE FROM habit_days",
@@ -2111,7 +2111,7 @@ storage_sync_status :: (status: StorageSyncStatus*) -> int #export {
     return 1
 }
 
-static storage_purge_synced_deleted_data_sqls: [] const char* const = {
+static storage_purge_synced_deleted_data_sqls: [4] const char* const = {
     "DELETE FROM session_rounds WHERE session_id IN "
     "(SELECT id FROM sessions WHERE deleted_at>0 AND id NOT IN "
     " (SELECT entity_id FROM sync_outbox WHERE entity_type='session'))",
@@ -2357,7 +2357,7 @@ static storage_export_sessions_csv_query: const char* = "SELECT s.local_date, s.
 "FROM sessions s WHERE s.deleted_at IS nil "
 "ORDER BY s.local_date, s.started_at"
 
-static storage_export_sessions_csv_topic_names: [] const char* = {"wim_hof", "meditation",
+static storage_export_sessions_csv_topic_names: [4] const char* = {"wim_hof", "meditation",
     "sun_salutation", "patterns"}
 
 storage_export_sessions_csv :: (path: const char*) -> int #export {

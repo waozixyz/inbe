@@ -51,7 +51,7 @@ storage_ascii_equal_ci :: (a: const char*, b: const char*) -> int #private {
     return *a == '\0' && *b == '\0'
 }
 
-static storage_merge_habit_into_sqls: [] const char* const = {
+static storage_merge_habit_into_sqls: [4] const char* const = {
     "UPDATE habit_days "
     "SET completed=MAX(completed,COALESCE((SELECT d.completed FROM "
     "habit_days d "
@@ -333,7 +333,7 @@ storage_migrate_habit_ids_to_uuid :: () -> int #export {
         return 0
     }
     for int i = 0; i < count; i++ {
-        sqls: [] const char* = {
+        sqls: [4] const char* = {
             "UPDATE habits SET id=?2,updated_at=?3 WHERE id=?1",
             "UPDATE habit_days SET habit_id=?2 WHERE habit_id=?1",
             "UPDATE OR IGNORE sync_outbox SET entity_id=?2 "

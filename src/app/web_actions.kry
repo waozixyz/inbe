@@ -68,7 +68,7 @@
         return path != nil && storage_load_session_checkin(path, &checkin) &&
         checkin.mood_after == 4
     }
-    static web_test_bytes_to_hex_hex: [] const char = "0123456789abcdef"
+    static web_test_bytes_to_hex_hex: const char* = "0123456789abcdef"
 
     web_test_bytes_to_hex :: (bytes: const uint8_t*, len: size_t, out: char*, out_size: size_t) #private {
         if bytes == nil || out == nil || out_size < len * 2 + 1 {
