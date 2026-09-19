@@ -5,30 +5,107 @@
 #import "screens/practice_screen.h"
 #import "src/screens/settings/settings_ui.h"
 
+static whm_config_preview_remainder: int = 0
+static whm_start_speed_preview_remainder: int = 0
+
+whm_preview_needs_reset :: (preview: BreathSession*, speed: int, max_rounds: int,
+                           max_breaths: int, pause_seconds: int,
+                           animation: int) -> int #private {
+    if preview == nil {
+        return 1
+    }
+    if preview->phase != BreathPhaseBreathe {
+        return 1
+    }
+    if preview->speed_level != speed || preview->max_rounds != max_rounds ||
+       int_from_count(preview->maxbreaths) != max_breaths ||
+       preview->pause_seconds != pause_seconds ||
+       preview->breath_animation != animation ||
+       preview->progressive_speed != 0 {
+        return 1
+    }
+    return 0
+}
+
+whm_preview_reset :: (preview: BreathSession*, speed: int, max_rounds: int,
+                     max_breaths: int, pause_seconds: int,
+                     animation: int, content_w: int, content_h: int,
+                     remainder: int*) #private {
+    if preview == nil {
+        return
+    }
+    breath_session_init(preview)
+    preview->breath_animation = clampi(animation, BreathAnimationLinear,
+                                       BreathAnimationCount - 1)
+    apply_settings(preview, speed, max_rounds, max_breaths, pause_seconds)
+    preview->progressive_speed = 0
+    update_preview_bounds(preview, content_w, content_h)
+    session_reset_round_breathe(preview)
+    if remainder != nil {
+        *remainder = 0
+    }
+}
+
+whm_preview_step_elapsed :: (preview: BreathSession*, remainder: int*) #private {
+    elapsed_ms := (int)(GetFrameTime() * 1000.0f + 0.5f)
+    total: int
+    frames: int
+
+    if preview == nil {
+        return
+    }
+    if elapsed_ms < 1 {
+        elapsed_ms = 17
+    }
+    if elapsed_ms > 120 {
+        elapsed_ms = 120
+    }
+
+    if remainder == nil {
+        breath_session_step(preview)
+        return
+    }
+
+    total = elapsed_ms * 60 + *remainder
+    frames = total / 1000
+    *remainder = total % 1000
+    if frames < 1 {
+        frames = 1
+    }
+    if frames > 8 {
+        frames = 8
+    }
+
+    for int i = 0; i < frames; i++ {
+        breath_session_step(preview)
+        if preview->phase != BreathPhaseBreathe {
+            return
+        }
+    }
+}
+
 whm_draw_exact_speed_preview :: (preview: BreathSession*, preview_speed: int*,
                                 speed: int, max_rounds: int, max_breaths: int,
-                                pause_seconds: int, content_w: int,
-                                content_h: int, center_x: int, center_y: int) #private {
+                                pause_seconds: int, animation: int,
+                                content_w: int, content_h: int,
+                                center_x: int, center_y: int,
+                                remainder: int*) #private {
     if preview == nil || preview_speed == nil {
         return
     }
 
-    if preview->phase != BreathPhaseBreathe {
-        breath_session_init(preview)
-        apply_settings(preview, speed, max_rounds, max_breaths, pause_seconds)
-        preview->progressive_speed = 0
-        session_reset_round_breathe(preview)
-    } else if *preview_speed != speed {
-        apply_settings(preview, speed, max_rounds, max_breaths, pause_seconds)
-        preview->progressive_speed = 0
-    }
-
-    if *preview_speed != speed {
+    if whm_preview_needs_reset(preview, speed, max_rounds, max_breaths,
+                               pause_seconds, animation) ||
+       *preview_speed != speed {
+        whm_preview_reset(preview, speed, max_rounds, max_breaths,
+                          pause_seconds, animation, content_w, content_h,
+                          remainder)
         *preview_speed = speed
+    } else {
+        update_preview_bounds(preview, content_w, content_h)
     }
 
-    update_preview_bounds(preview, content_w, content_h)
-    breath_session_step(preview)
+    whm_preview_step_elapsed(preview, remainder)
     draw_breath_preview(preview, center_x, center_y)
 }
 
@@ -103,10 +180,12 @@ whm_draw_progressive_start_speed_editor :: (app: InnerBreeze*) #private {
                                     app->breathing.max_rounds,
                                     int_from_count(app->breathing.maxbreaths),
                                     app->breathing.pause_seconds,
+                                    app->breathing.breath_animation,
                                     modal_w - Scale(48),
                                     Scale(210),
                                     modal_x + modal_w / 2,
-                                    modal_y + Scale(150))
+                                    modal_y + Scale(150),
+                                    &whm_start_speed_preview_remainder)
 
     if Slider((SliderProps){.id = 12,
                     .bounds = {modal_x + Scale(24), modal_y + Scale(250),
@@ -140,29 +219,6 @@ whm_config_draw_card :: (x: int, y: int, w: int, h: int) #private {
     DrawRectangleRoundedLinesEx(bounds, 0.08f, 10, 1.0f, GetThemeBorder())
 }
 
-whm_config_draw_static_breath_preview :: (center_x: int, center_y: int, radius: int) #private {
-    circle := GetThemeCircle()
-    link := GetThemeLink()
-    glow_r := radius + Scale(24)
-    ring_r := radius + Scale(12)
-
-    DrawCircleGradient((Vector2){(float)center_x, (float)center_y},
-                       (float)glow_r,
-                       Fade(link, 0.26f),
-                       Fade(GetThemeBackground(), 0.0f))
-    DrawRing((Vector2){(float)center_x, (float)center_y},
-             (float)(ring_r - Scale(4)), (float)ring_r,
-             0.0f, 360.0f, 96, Fade(link, 0.50f))
-    DrawCircleGradient((Vector2){(float)center_x, (float)center_y},
-                       (float)radius,
-                       LightenColor(circle, 34), circle)
-    DrawRing((Vector2){(float)center_x, (float)center_y},
-             (float)(radius - Scale(1)), (float)(radius + Scale(1)),
-             0.0f, 360.0f, 96, Fade(GetThemeText(), 0.44f))
-    DrawCircle(center_x - radius / 3, center_y - radius / 3,
-               radius / 5, Fade(WHITE, 0.24f))
-}
-
 whm_config_breath_card_height :: (app: InnerBreeze*) -> int #private {
     h := Scale(88) + Scale(154) + Scale(78) +
          Scale(72)
@@ -191,7 +247,6 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
     inner_w := content_w - card_pad * 2
     inner_y := y + card_pad
     preview_h := Scale(144)
-    preview_radius := 0
     speed := app->breathing.speed_level
     max_rounds := app->breathing.max_rounds
     max_breaths := int_from_count(app->breathing.maxbreaths)
@@ -231,13 +286,32 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
     }
     inner_y += Scale(82)
 
-    preview_radius = Scale(44)
-    if preview_radius > inner_w / 4 {
-        preview_radius = inner_w / 4
+    if whm_preview_needs_reset(&app->settings_preview, speed, max_rounds,
+                               max_breaths, pause_seconds,
+                               app->breathing.breath_animation) {
+        whm_preview_reset(&app->settings_preview, speed, max_rounds,
+                          max_breaths, pause_seconds,
+                          app->breathing.breath_animation, inner_w,
+                          preview_h, &whm_config_preview_remainder)
+    } else {
+        update_preview_bounds(&app->settings_preview, inner_w, preview_h)
     }
-    whm_config_draw_static_breath_preview(inner_x + inner_w / 2,
-                                          inner_y + preview_h / 2,
-                                          preview_radius)
+    DrawCircleGradient((Vector2){(float)(inner_x + inner_w / 2),
+                       (float)(inner_y + preview_h / 2)},
+                       (float)Scale(72),
+                       Fade(GetThemeLink(), 0.16f),
+                       Fade(GetThemeBackground(), 0.0f))
+    whm_preview_step_elapsed(&app->settings_preview,
+                             &whm_config_preview_remainder)
+    if app->settings_preview.phase != BreathPhaseBreathe {
+        whm_preview_reset(&app->settings_preview, speed, max_rounds,
+                          max_breaths, pause_seconds,
+                          app->breathing.breath_animation, inner_w,
+                          preview_h, &whm_config_preview_remainder)
+    }
+    draw_breath_preview(&app->settings_preview,
+                        inner_x + inner_w / 2,
+                        inner_y + preview_h / 2)
     inner_y += preview_h + Scale(20)
 
     if Slider((SliderProps){.id = 1,

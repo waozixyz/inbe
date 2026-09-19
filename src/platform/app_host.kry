@@ -107,7 +107,7 @@ native_after_app_init :: (app: InnerBreeze*, argc: int, argv: char**) #export {
         app->fullscreen_enabled = 0
     }
     #if ANDROID_BUILD {
-        ConfigureFramePacing(15, 30)
+        ConfigureFramePacing(15, 60)
     } #else {
         ConfigureFramePacing(30, 60)
     }
