@@ -6,9 +6,9 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root_dir=$(dirname -- "$script_dir")
 site_index=${SITE_INDEX:-"$root_dir/build/site/index.html"}
 
-version=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' "$root_dir/src/core/version.h")
+version=$(sed -n 's/^#define APP_VERSION_STRING "\([^"]*\)".*/\1/p' "$root_dir/src/core/version.h")
 if [ -z "$version" ]; then
-	printf 'Error: could not read INBE_VERSION_STRING\n' >&2
+	printf 'Error: could not read APP_VERSION_STRING\n' >&2
 	exit 1
 fi
 
