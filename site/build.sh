@@ -210,6 +210,8 @@ cp "$out_dir/legacy-converter.html" "$out_dir/legacy-converter/index.html"
 
 sync_shared_web_icons
 copy_dir_contents "$root_dir/web-assets" "$out_dir/web-assets"
+# Keep the released app's audio URL available alongside the current archive name.
+copy_path "$out_dir/web-assets/dl/breathing-meditation-audio-v1.zip" "$out_dir/web-assets/dl/inbe-meditation-audio-v1.zip"
 copy_dir_contents "$root_dir/site-icons" "$out_dir/site-icons"
 
 copy_dir_contents "$web_dir" "$out_dir/build/web"
