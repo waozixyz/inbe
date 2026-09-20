@@ -1,4 +1,10 @@
 # Changelog
+## [2.0.3] - 2026-09-20
+### Fixed
+- Web and browser builds can connect to compatible custom sync servers when you choose one.
+- Browser extensions no longer request access to the Inner Breeze website.
+- Chrome break reminders now follow the app's settings and Rest Now action.
+
 ## [2.0.2] - 2026-09-20
 ### Fixed
 - Habit editor section headings and reminder details now align with their rows.

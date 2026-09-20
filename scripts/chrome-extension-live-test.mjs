@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { accessSync, constants, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -193,6 +194,15 @@ async function main() {
   assert.ok(existsSync(join(extensionRoot, "index.html")), "missing built extension page");
 
   const chromium = resolveChromium();
+  const syncServer = createServer((request, response) => {
+    response.writeHead(200, {
+      "Access-Control-Allow-Origin": "*",
+      "Content-Type": "text/plain",
+    });
+    response.end(request.url === "/sync-probe" ? "custom sync server reachable" : "unexpected path");
+  });
+  await new Promise((resolveReady) => syncServer.listen(0, "127.0.0.1", resolveReady));
+  const syncServerPort = syncServer.address().port;
   const stderrLines = [];
   const args = [
     "--headless=new",
@@ -261,6 +271,10 @@ async function main() {
     const readyState = await waitForPageReady(cdp, page);
     assert.ok(readyState.href.includes("chrome-extension://"));
 
+    const customServerResponse = await evaluate(cdp, page,
+      `fetch('http://127.0.0.1:${syncServerPort}/sync-probe').then((response) => response.text())`, true);
+    assert.equal(customServerResponse, "custom sync server reachable");
+
     const pageExports = JSON.parse(await evaluate(cdp, page, `(() => {
       Module._app_web_test_enable_extension_breaks(60);
       return JSON.stringify({
@@ -297,6 +311,7 @@ async function main() {
     if (cdp) cdp.close();
     chrome.kill("SIGTERM");
     await delay(250);
+    await new Promise((resolveClosed) => syncServer.close(resolveClosed));
     rmSync(userDataDir, { recursive: true, force: true });
   }
 }

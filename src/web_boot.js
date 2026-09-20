@@ -107,7 +107,7 @@ function publishExtensionBreakConfig(force) {
   text = JSON.stringify(config);
   if (!force && text === extensionBridgeLastConfig) return;
   extensionBridgeLastConfig = text;
-  runtime.sendMessage({ type: 'breathing.breakConfig', config: config }, function() {
+  runtime.sendMessage({ type: 'inbe.breakConfig', config: config }, function() {
     var lastError = chrome.runtime && chrome.runtime.lastError;
     if (lastError) console.warn('Inner Breeze extension break sync failed:', lastError.message);
   });
@@ -117,7 +117,7 @@ window.__inbeExtensionBreakNow = function(breakType) {
   var runtime = extensionRuntime();
   publishExtensionBreakConfig(true);
   if (!runtime) return;
-  runtime.sendMessage({ type: 'breathing.breakNow', breakType: breakType | 0 }, function() {
+  runtime.sendMessage({ type: 'inbe.breakNow', breakType: breakType | 0 }, function() {
     var lastError = chrome.runtime && chrome.runtime.lastError;
     if (lastError) console.warn('Inner Breeze extension rest-now failed:', lastError.message);
   });
