@@ -269,8 +269,12 @@ draw_theme_settings :: (app: InnerBreeze*, x: int, w: int, y: int*) -> int #priv
     row_gap := Scale(14)
     row_h := Scale(40)
     font := AppFontSize()
+    follow_device_label: [128] char
+    snprintf(follow_device_label, sizeof(follow_device_label), "%s (%s)",
+             GetLocaleText("theme_follow_device"),
+             GetLocaleText(app->dark_mode ? "theme_dark" : "theme_light"))
     mode_options: [3] const char* = {
-        GetLocaleText("theme_follow_device"),
+        follow_device_label,
         GetLocaleText("theme_light"),
         GetLocaleText("theme_dark")
     }
@@ -336,7 +340,7 @@ draw_scale_row :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
         .label = GetLocaleText("appearance_scale_label"),
         .kind = NumericInt, .int_values = &scale_value,
         .value_count = 1, .min = 5, .max = 25,
-        .value_scale = 0.1, .value_format = "%.1f×",
+        .value_scale = 10.0, .value_format = "%.0f%%",
         .step_buttons = true, .show_limits = true,
         .measured_height = &slider_height
     })
