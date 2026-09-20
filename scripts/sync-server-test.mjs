@@ -51,7 +51,15 @@ try {
   if (!ready) throw new Error('Server did not become ready');
   await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve));
   const faultUrl = `http://127.0.0.1:${proxy.address().port}`;
-  const client = spawn(resolve('build/bin/tests/sync_server_test'), [url, root, faultUrl], { stdio: 'inherit' });
+  const clientEnv = {
+    ...process.env,
+    HTTP_PROXY: '', HTTPS_PROXY: '', ALL_PROXY: '',
+    http_proxy: '', https_proxy: '', all_proxy: '',
+    NO_PROXY: '127.0.0.1,localhost', no_proxy: '127.0.0.1,localhost',
+  };
+  const client = spawn(resolve('build/bin/tests/sync_server_test'), [url, root, faultUrl], {
+    stdio: 'inherit', env: clientEnv,
+  });
   const status = await new Promise((resolve, reject) => {
     client.on('error', reject); client.on('exit', resolve);
   });
