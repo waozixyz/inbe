@@ -18,7 +18,6 @@ SettingsScrollPageContext :: struct {
 
 SettingsMobileHubRow :: struct {
     label: const char*
-    value: const char*
     icon: int
     tab: int
     route: int
@@ -248,21 +247,6 @@ settings_screen_prepare :: (app: InnerBreeze*) #private {
     }
 }
 
-settings_mobile_row_value :: (app: InnerBreeze*, tab: int, route: int) -> const char* #private {
-    unused app
-    if route == APP_NAV_ROUTE_DATA {
-        return GetLocaleText("sync_status_ready")
-    }
-    if tab == SETTINGS_TAB_THEME {
-        return app != NULL && app->dark_mode ? GetLocaleText("theme_dark")
-                                             : GetLocaleText("theme_light")
-    }
-    if tab == SETTINGS_TAB_AUDIO {
-        return GetLocaleText("audio_music_title")
-    }
-    return ""
-}
-
 settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
                             x: int, y: int, w: int, id: int) -> int #private {
     h := Scale(56)
@@ -273,11 +257,9 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
     chevron_w := Scale(18)
     wide_nav := app_settings_wide_layout(app)
     if wide_nav {
-        row.value = ""
         chevron_w = 0
     }
-    value_w := AppTextWidth(row.value, Text14)
-    title_w := w - (text_x - x) - value_w - chevron_w - Scale(30)
+    title_w := w - (text_x - x) - chevron_w - Scale(30)
 
     selected := wide_nav && row.route == APP_NAV_ROUTE_NONE && app->settings_tab == row.tab
     clicked := Button((ButtonProps){
@@ -296,15 +278,6 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
         .wrap = TextWrapNone,
         .vertical_align = TextAlignCenter
     })
-    if row.value != NULL && row.value[0] != '\0' {
-        Text((TextProps){
-            .bounds={(float)(x + w - value_w - chevron_w - Scale(18)),
-                     (float)y, (float)value_w, (float)h},
-            .text=(row.value),
-            .wrap = TextWrapNone,
-            .vertical_align = TextAlignCenter
-        })
-    }
     if !wide_nav {
         Text((TextProps){
             .bounds={(float)(x + w - chevron_w - Scale(12)),
@@ -389,7 +362,6 @@ settings_mobile_hub_draw_content :: (content_x: int, content_y: int,
     for int i = 0; i < settings_desktop_tab_count(); i++ {
         tab := settings_desktop_tab_at(i)
         row := (SettingsMobileHubRow){settings_screen_tab_label(tab),
-            settings_mobile_row_value(app, tab, APP_NAV_ROUTE_NONE),
             tab == SETTINGS_TAB_THEME ? ICON_LIGHTON :
             tab == SETTINGS_TAB_AUDIO ? ICON_SOUND :
             tab == SETTINGS_TAB_BREAKS ? ICON_ACTIVITY :
@@ -401,7 +373,7 @@ settings_mobile_hub_draw_content :: (content_x: int, content_y: int,
         }
         y += Scale(64)
     }
-    row := (SettingsMobileHubRow){GetLocaleText("profile_data"), "", ICON_SAVE,
+    row := (SettingsMobileHubRow){GetLocaleText("profile_data"), ICON_SAVE,
                                   SETTINGS_TAB_DEVICE, APP_NAV_ROUTE_DATA}
     unused settings_mobile_hub_row(app, row, content_x, y, content_w, 7690)
 
