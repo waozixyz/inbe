@@ -5,16 +5,16 @@
   "start_url": "/build/web/index.html",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#5566aa",
+  "background_color": "#e6f1fa",
+  "theme_color": "#e6f1fa",
   "icons": [
     {
-      "src": "/site-icons/icon-192x192.png",
+      "src": "/site-icons/icon-192x192.png?v=${asset_version}",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/site-icons/icon-512x512.png",
+      "src": "/site-icons/icon-512x512.png?v=${asset_version}",
       "sizes": "512x512",
       "type": "image/png"
     }

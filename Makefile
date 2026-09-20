@@ -513,6 +513,7 @@ endif
 KRYON_WINDOWS_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 KRYON_CLICK_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
+WEB_CACHE_BUSTER := $(WEB_CACHE_BUSTER)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_APP_SCRIPT := <script>window.__inbeRenderer="canvas";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
@@ -1563,7 +1564,7 @@ $(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/w
 	rm -rf $(WEB_DIST_DIR)/web-assets/dl
 	rm -f $(WEB_DIST_DIR)/web-assets/canvas_index.html
 	cp -R site-icons $(WEB_DIST_DIR)/
-	cp manifest.json $(WEB_DIST_DIR)/webmanifest.json
+	perl -0pe 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' manifest.json > $(WEB_DIST_DIR)/webmanifest.json
 
 web-canvas: web
 
@@ -1598,7 +1599,7 @@ $(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) $(S
 	rm -rf $(WEB_CANVAS_DIR)/web-assets/dl
 	rm -f $(WEB_CANVAS_DIR)/web-assets/canvas_index.html
 	cp -R site-icons $(WEB_CANVAS_DIR)/
-	cp manifest.json $(WEB_CANVAS_DIR)/webmanifest.json
+	perl -0pe 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' manifest.json > $(WEB_CANVAS_DIR)/webmanifest.json
 
 android-copy-assets:
 	$(MAKE) $(FONT_FILES)

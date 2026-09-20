@@ -6,24 +6,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Inner Breeze</title>
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://breathing.waozi.xyz/">
+    <meta property="og:url" content="https://inbe.waozi.xyz/">
     <meta property="og:title" content="Inner Breeze">
     <meta property="og:description" content="guided breathing, meditation, and habit tracking">
-    <meta property="og:image" content="https://breathing.waozi.xyz/og.jpg">
+    <meta property="og:image" content="https://inbe.waozi.xyz/og.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://breathing.waozi.xyz/">
+    <meta name="twitter:url" content="https://inbe.waozi.xyz/">
     <meta name="twitter:title" content="Inner Breeze">
     <meta name="twitter:description" content="guided breathing, meditation, and habit tracking">
-    <meta name="twitter:image" content="https://breathing.waozi.xyz/og.jpg">
+    <meta name="twitter:image" content="https://inbe.waozi.xyz/og.png">
     <meta name="twitter:site" content="@waozixyz">
     <meta name="twitter:creator" content="@waozixyz">
-    <link rel="icon" type="image/png" sizes="32x32" href="site-icons/favicon-32x32.png">
-    <link rel="apple-touch-icon" href="site-icons/apple-touch-icon.png">
-    <link rel="manifest" href="webmanifest.json">
-    <meta name="theme-color" content="#779999">
+    <link rel="icon" type="image/png" sizes="32x32" href="site-icons/favicon-32x32.png?v=WEB_CACHE_BUSTER">
+    <link rel="icon" type="image/png" sizes="192x192" href="site-icons/icon-192x192.png?v=WEB_CACHE_BUSTER">
+    <link rel="apple-touch-icon" href="site-icons/apple-touch-icon.png?v=WEB_CACHE_BUSTER">
+    <link rel="manifest" href="webmanifest.json?v=WEB_CACHE_BUSTER">
+    <meta name="theme-color" content="#e6f1fa" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#182238" media="(prefers-color-scheme: dark)">
     <style>
       :root {
-        --app-background: #1a1a2e;
+        --app-background: #e6f1fa;
+        --loading-background: radial-gradient(circle at 50% 38%, #ffffff 0%, #e6f1fa 56%, #d8e9fa 100%);
+        --loading-ink: #1b2a49;
+        --loading-muted: #536b87;
+        --loading-track: rgba(53, 91, 149, 0.17);
+        --loading-progress: #7299d7;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --app-background: #182238;
+          --loading-background: radial-gradient(circle at 50% 38%, #314c78 0%, #182238 68%, #11182b 100%);
+          --loading-ink: #f7f9ff;
+          --loading-muted: #c5d8ed;
+          --loading-track: rgba(255, 255, 255, 0.18);
+          --loading-progress: #a1c6fa;
+        }
       }
 
       html, body {
@@ -44,8 +62,8 @@
 
       body {
         background: var(--app-background);
-        color: #f7fbf9;
-        font-family: ui-monospace, "SFMono-Regular", "Roboto Mono", "Cascadia Mono", "Liberation Mono", monospace;
+        color: var(--loading-ink);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       }
 
       .canvas-frame {
@@ -82,9 +100,7 @@
         justify-content: center;
         padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
         box-sizing: border-box;
-        background:
-          radial-gradient(circle at 50% 38%, rgba(132, 184, 172, 0.24), transparent 36%),
-          linear-gradient(180deg, #222640 0%, #17172a 58%, #10131f 100%);
+        background: var(--loading-background);
         opacity: 1;
         transition: opacity 360ms ease, visibility 360ms ease;
       }
@@ -104,10 +120,10 @@
       }
 
       .loading-mark {
-        width: 76px;
-        height: 76px;
-        border-radius: 18px;
-        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+        width: 128px;
+        height: 128px;
+        object-fit: contain;
+        filter: drop-shadow(0 8px 20px rgba(44, 77, 132, 0.16));
       }
 
       .loading-title {
@@ -119,7 +135,7 @@
 
       #status {
         min-height: 1.35em;
-        color: #c9deda;
+        color: var(--loading-muted);
         font-size: 13px;
         line-height: 1.35;
       }
@@ -130,29 +146,29 @@
         overflow: hidden;
         border: 0;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.18);
+        background: var(--loading-track);
       }
 
       #progress::-webkit-progress-bar {
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.18);
+        background: var(--loading-track);
       }
 
       #progress::-webkit-progress-value {
         border-radius: 999px;
-        background: #8fcfc2;
+        background: var(--loading-progress);
       }
 
       #progress::-moz-progress-bar {
         border-radius: 999px;
-        background: #8fcfc2;
+        background: var(--loading-progress);
       }
     </style>
   </head>
   <body>
     <div class="loading-screen" id="loading-screen" role="status" aria-live="polite">
       <div class="loading-panel">
-        <img class="loading-mark" src="site-icons/icon-192x192.png" alt="" width="76" height="76">
+        <img class="loading-mark" src="site-icons/icon-192x192.png?v=WEB_CACHE_BUSTER" alt="" width="128" height="128">
         <h1 class="loading-title">Inner Breeze</h1>
         <div id="status">Downloading...</div>
         <progress value="0" max="100" id="progress" hidden></progress>

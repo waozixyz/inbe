@@ -30,6 +30,7 @@ Fixed
 - Lightfield buttons and glow settings now update with the selected style, and glow is scoped to styles that support it.
 - Material sliders keep labels and values readable instead of floating too high or drawing white text on pale slider fills.
 - Android masked app icons use a gentle blue background instead of black.
+- Web loading screens and browser icons now show the current meditation logo.
 - Emptying a list no longer restores the initial sample data.
 - Improved text selection, keyboard focus, and composition handling when editing text.
 - Connecting to sync runs in the background so network requests do not block the interface.

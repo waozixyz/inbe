@@ -3,27 +3,27 @@
   "short_name": "Inbe",
   "start_url": "/",
   "display": "fullscreen",
-  "background_color": "#1a1a2e",
-  "theme_color": "#779999",
+  "background_color": "#e6f1fa",
+  "theme_color": "#e6f1fa",
   "icons": [
     {
-      "src": "/site-icons/icon-192x192.png",
+      "src": "/site-icons/icon-192x192.png?v=WEB_CACHE_BUSTER",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/site-icons/icon-512x512.png",
+      "src": "/site-icons/icon-512x512.png?v=WEB_CACHE_BUSTER",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/site-icons/maskable-192x192.png",
+      "src": "/site-icons/maskable-192x192.png?v=WEB_CACHE_BUSTER",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/site-icons/maskable-512x512.png",
+      "src": "/site-icons/maskable-512x512.png?v=WEB_CACHE_BUSTER",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
