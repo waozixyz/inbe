@@ -490,6 +490,8 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
         app->tutorial_step = 0
     } else {
         app->main_tab = APP_MAIN_TAB_PRACTICE
+        app->exercise_type = EXERCISE_WIM_HOF
+        app->practice_tab = PRACTICE_TAB_PLAY
         app->breathing.screen = ScreenStart
     }
 }

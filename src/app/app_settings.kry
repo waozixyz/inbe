@@ -164,6 +164,9 @@ load_bottom_nav_routes :: (app: InnerBreeze*, cache: const SettingsLoadCache*) #
 }
 
 default_theme_source :: () -> int #private {
+    #if #defined(_WIN32) {
+        return APP_THEME_SOURCE_APP
+    }
     return APP_THEME_SOURCE_SYSTEM
 }
 

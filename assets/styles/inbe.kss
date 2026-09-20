@@ -1,5 +1,5 @@
 Text.practice-heading {
-    foreground: #f6f1ff;
+    foreground: text;
 }
 Text.muted {
     foreground: muted;
@@ -16,6 +16,7 @@ Button.practice-pager {
 }
 
 Image {
+    foreground: #ffffff;
     background: #00000000;
     border: #00000000;
     radius: 0;
