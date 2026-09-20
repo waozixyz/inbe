@@ -1215,6 +1215,8 @@ test_elist_navigation_sanitizer_and_desktop_route(void)
     app.bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS;
     app.bottom_nav_routes[3] = APP_NAV_ROUTE_ELIST;
     app.bottom_nav_route_count = 4;
+    expect(app_migrate_legacy_bottom_nav_routes(&app),
+           "saved legacy Lists-after-Settings order should migrate once");
     app_sanitize_bottom_nav_routes(&app);
     expect(app.bottom_nav_routes[0] == APP_NAV_ROUTE_ELIST &&
            app.bottom_nav_routes[1] == APP_NAV_ROUTE_HABITS &&
@@ -1226,6 +1228,8 @@ test_elist_navigation_sanitizer_and_desktop_route(void)
     app.bottom_nav_routes[1] = APP_NAV_ROUTE_ELIST;
     app.bottom_nav_routes[2] = APP_NAV_ROUTE_PRACTICE;
     app.bottom_nav_routes[3] = APP_NAV_ROUTE_SETTINGS;
+    expect(app_migrate_legacy_bottom_nav_routes(&app),
+           "saved legacy Habits-first order should migrate once");
     app_sanitize_bottom_nav_routes(&app);
     expect(app.bottom_nav_routes[0] == APP_NAV_ROUTE_ELIST &&
            app.bottom_nav_routes[1] == APP_NAV_ROUTE_HABITS,
@@ -1234,6 +1238,14 @@ test_elist_navigation_sanitizer_and_desktop_route(void)
     expect(app_nav_option_index(&app, APP_NAV_ROUTE_ELIST) == 0 &&
            app_nav_route_for_option(&app, 0) == APP_NAV_ROUTE_ELIST,
            "Customize Nav should list Lists before Habits");
+
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE;
+    app.bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS;
+    app.bottom_nav_routes[3] = APP_NAV_ROUTE_ELIST;
+    app_sanitize_bottom_nav_routes(&app);
+    expect(app.bottom_nav_routes[3] == APP_NAV_ROUTE_ELIST,
+           "sanitizer must preserve this order when chosen after migration");
 
     app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
     app.bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE;

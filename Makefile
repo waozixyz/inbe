@@ -590,7 +590,7 @@ $(KRYON_RUNTIME_STAMP): Makefile $(K2C) $(KRYON_RUNTIME_KRY)
 $(KRYON_RUNTIME_C) $(KRYON_RUNTIME_H): $(KRYON_RUNTIME_STAMP)
 	@test -f $@
 
-$(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS) $(SYNC_RETRY_HEADER) $(STORAGE_LAYOUT_HEADER) | build-laws
+$(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS) $(SYNC_RETRY_HEADER) $(STORAGE_LAYOUT_HEADER) $(KRYON_RUNTIME_STAMP) | build-laws
 	rm -rf $(KRY_GEN_DIR)
 	mkdir -p $(KRY_GEN_DIR)
 	$(K2C) --root $(abspath .) -o $(KRY_GEN_DIR) $(abspath $(KRY_SRCS))

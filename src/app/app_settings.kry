@@ -147,6 +147,19 @@ load_bottom_nav_routes :: (app: InnerBreeze*, cache: const SettingsLoadCache*) #
         settings_cache_get_int(cache, "bottom_nav_route_2", APP_NAV_ROUTE_PRACTICE)
     app->bottom_nav_routes[3] =
         settings_cache_get_int(cache, "bottom_nav_route_3", APP_NAV_ROUTE_SETTINGS)
+    if settings_cache_get_int(cache, "bottom_nav_layout_version", 0) < 1 {
+        migrated := app_migrate_legacy_bottom_nav_routes(app)
+        storage_settings_begin_write()
+        storage_set_setting_int("bottom_nav_layout_version", 1)
+        if migrated {
+            storage_set_setting_int("bottom_nav_route_count", app->bottom_nav_route_count)
+            storage_set_setting_int("bottom_nav_route_0", app->bottom_nav_routes[0])
+            storage_set_setting_int("bottom_nav_route_1", app->bottom_nav_routes[1])
+            storage_set_setting_int("bottom_nav_route_2", app->bottom_nav_routes[2])
+            storage_set_setting_int("bottom_nav_route_3", app->bottom_nav_routes[3])
+        }
+        storage_settings_end_write()
+    }
     app_sanitize_bottom_nav_routes(app)
 }
 
@@ -227,6 +240,7 @@ save_settings :: (app: InnerBreeze*) {
     save_setting_int("navigation_placement", app->navigation_placement)
     save_setting_int("navigation_collapsed", app->nav_rail_collapsed)
     save_setting_int("profile_picture_icon", app->profile_picture_icon)
+    save_setting_int("bottom_nav_layout_version", 1)
     save_setting_int("bottom_nav_route_count", app->bottom_nav_route_count)
     save_setting_int("bottom_nav_route_0", app->bottom_nav_routes[0])
     save_setting_int("bottom_nav_route_1", app->bottom_nav_routes[1])

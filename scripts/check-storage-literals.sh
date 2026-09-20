@@ -5,6 +5,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+if ! command -v rg >/dev/null 2>&1; then
+    echo 'Storage literal checks require ripgrep (rg).' >&2
+    exit 1
+fi
+
 status=0
 
 check_pattern() {

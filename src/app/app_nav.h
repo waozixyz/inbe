@@ -28,6 +28,7 @@ int app_draw_customize_nav_page(InnerBreeze*app);
 void app_open_customize_nav(InnerBreeze*app);
 void app_apply_nav_route(InnerBreeze*app, int route);
 void app_reset_bottom_nav_routes(InnerBreeze*app);
+int app_migrate_legacy_bottom_nav_routes(InnerBreeze*app);
 void app_sanitize_bottom_nav_routes(InnerBreeze*app);
 
 #endif
