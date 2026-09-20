@@ -7,6 +7,9 @@ Text.muted {
 Text.selected-navigation {
     foreground: accent-ink;
 }
+Text.circle-ink {
+    foreground: #171022;
+}
 
 Button.practice-pager {
     font-size: 42;

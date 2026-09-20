@@ -1707,7 +1707,16 @@ try {
     }
   }
   server.close();
-  rmSync(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      rmSync(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      break;
+    } catch (error) {
+      if (attempt === 9 || !['ENOTEMPTY', 'EBUSY', 'EPERM'].includes(error.code))
+        throw error;
+      await delay(250);
+    }
+  }
 }
 
 if (failure) {

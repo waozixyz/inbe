@@ -75,6 +75,7 @@ meditation_manual_draw_page :: (app: InnerBreeze*, content_x: int,
                        (float)(center_y - Scale(48)),
                        (float)Scale(96), (float)Scale(96)},
             .text = GetLocaleText("meditation_title"),
+            .class_name = StyleClassId("circle-ink"),
             .wrap = TextWrapNone,
             .align = TextAlignCenter,
             .vertical_align = TextAlignCenter

@@ -627,8 +627,8 @@ draw_session_counter :: (app: InnerBreeze*, center_x: int, center_y: int) #priva
     count: int
     display_text: const char* = text
     font: int
-    text_w: int
     max_w: int
+    radius: int
 
     if app->breathing.phase == BreathPhaseStarting {
         total_seconds: int = effective_pause_seconds(&app->breathing)
@@ -661,14 +661,18 @@ draw_session_counter :: (app: InnerBreeze*, center_x: int, center_y: int) #priva
         snprintf(text, sizeof(text), "%d", int_from_count(app->breathing.count))
     }
 
-    max_w = (int)(draw_radius(&app->breathing) * 1.12f)
+    radius = (int)draw_radius(&app->breathing)
+    max_w = (int)((float)radius * 1.12f)
     font = AppFitFontSize(display_text, max_w, Text48, Text24)
-    text_w = AppTextWidth(display_text, font)
     Text((TextProps){
         .text = display_text,
-        .bounds = {(float)(center_x - text_w / 2), (float)(center_y - AppTextLineHeight(font) / 2), 0, 0},
+        .bounds = {(float)(center_x - radius), (float)(center_y - radius),
+                   (float)(radius * 2), (float)(radius * 2)},
         .font = font,
-        .wrap = TextWrapNone
+        .class_name = StyleClassId("circle-ink"),
+        .wrap = TextWrapNone,
+        .align = TextAlignCenter,
+        .vertical_align = TextAlignCenter
     })
 }
 
@@ -908,6 +912,8 @@ session_draw_start_preview :: (app: InnerBreeze*, center_x: int, center_y: int) 
                    (float)(center_y - scaled_radius),
                    (float)(scaled_radius * 2), (float)(scaled_radius * 2)},
         .text = play_text,
+        .font = AppFontSize(),
+        .class_name = StyleClassId("circle-ink"),
         .wrap = TextWrapNone,
         .align = TextAlignCenter,
         .vertical_align = TextAlignCenter

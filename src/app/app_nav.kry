@@ -69,10 +69,6 @@ app_draw_active_practice_title_bar :: (app: InnerBreeze*, title: const char*, he
     }
     title_area_x = content_x + left_reserved
     title_area_w = view_width - title_area_x - side_reserved
-    if title_area_w < Scale(160) {
-        title_area_x = content_x
-        title_area_w = content_w
-    }
     if max_w > title_area_w - Scale(24) {
         max_w = title_area_w - Scale(24)
     }

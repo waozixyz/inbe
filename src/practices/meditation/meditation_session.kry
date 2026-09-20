@@ -468,11 +468,9 @@ draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
 
 meditation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     time_text: [32] char
-    font := Text24
+    font: int
     circle: Color = GetThemeCircle()
     circle_radius := Scale(86)
-    max_w: int
-    text_w: int
     title_h := app_active_practice_title_height()
 
     if app_draw_active_practice_title_bar(app, GetLocaleText("meditation_title"), title_h) {
@@ -491,16 +489,18 @@ meditation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     DrawCircle(center_x, center_y, (float)circle_radius, circle)
 
     format_time(time_text, sizeof(time_text), app->meditation.remaining_seconds)
-    max_w = view_width - Scale(48)
-    if AppTextWidth(time_text, font) > max_w {
-        font = Text16
-    }
-    text_w = AppTextWidth(time_text, font)
+    font = AppFitFontSize(time_text, circle_radius * 2 - Scale(20),
+                          Scale(Text24), Scale(Text16))
     Text((TextProps){
         .text = time_text,
-        .bounds = {(float)(center_x - text_w / 2), (float)(center_y - AppTextLineHeight(font) / 2), 0, 0},
+        .bounds = {(float)(center_x - circle_radius),
+                   (float)(center_y - circle_radius),
+                   (float)(circle_radius * 2), (float)(circle_radius * 2)},
         .font = font,
-        .wrap = TextWrapNone
+        .class_name = StyleClassId("circle-ink"),
+        .wrap = TextWrapNone,
+        .align = TextAlignCenter,
+        .vertical_align = TextAlignCenter
     })
 
     draw_extend_controls(app, center_x, center_y + circle_radius + Scale(24))
