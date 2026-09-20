@@ -1,4 +1,8 @@
 # Changelog
+## [2.0.1] - 2026-09-20
+### Fixed
+- Existing installations reset navigation once to show Lists, Habits, Practice, and Settings in that order. Changes made afterward are kept.
+
 ## [2.0.0] - 2026-09-19
 ### Changed
 - Added cat, sea turtle, and crescent moon profile pictures in place of three similar tree choices.

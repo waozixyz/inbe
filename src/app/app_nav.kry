@@ -236,6 +236,14 @@ app_reset_bottom_nav_routes :: (app: InnerBreeze*) {
     app->bottom_nav_route_count = 4
 }
 
+app_reset_bottom_nav_routes_for_layout_version :: (app: InnerBreeze*, layout_version: int) -> int {
+    if app == NULL || layout_version >= 2 {
+        return 0
+    }
+    app_reset_bottom_nav_routes(app)
+    return 1
+}
+
 app_migrate_legacy_bottom_nav_routes :: (app: InnerBreeze*) -> int {
     if app == NULL {
         return 0

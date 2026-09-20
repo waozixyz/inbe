@@ -837,6 +837,38 @@ test_default_bottom_nav_routes_include_elist(void)
 }
 
 static void
+test_nav_update_resets_saved_layout_once(void)
+{
+    InnerBreeze app = test_app();
+
+    app.bottom_nav_route_count = 3;
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE;
+    app.bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS;
+
+    expect(app_reset_bottom_nav_routes_for_layout_version(&app, 1),
+           "updating an older layout should reset navigation");
+    expect(app.bottom_nav_route_count == 4 &&
+           app.bottom_nav_routes[0] == APP_NAV_ROUTE_ELIST &&
+           app.bottom_nav_routes[1] == APP_NAV_ROUTE_HABITS &&
+           app.bottom_nav_routes[2] == APP_NAV_ROUTE_PRACTICE &&
+           app.bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS,
+           "updated navigation should show Lists, Habits, Practice, Settings");
+
+    app.bottom_nav_route_count = 3;
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE;
+    app.bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS;
+    expect(!app_reset_bottom_nav_routes_for_layout_version(&app, 2),
+           "current layout should not reset again");
+    expect(app.bottom_nav_route_count == 3 &&
+           app.bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
+           app.bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
+           app.bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS,
+           "navigation changes after the update should be preserved");
+}
+
+static void
 test_same_frame_modal_close_consumes_bottom_nav_click(void)
 {
     InnerBreeze app = test_app();
@@ -1612,6 +1644,7 @@ main(void)
     test_desktop_rail_spacing();
     test_navigation_placement_and_collapse();
     test_default_bottom_nav_routes_include_elist();
+    test_nav_update_resets_saved_layout_once();
     test_same_frame_modal_close_consumes_bottom_nav_click();
     test_unblocked_bottom_nav_click_still_routes();
     test_edge_bottom_nav_routes_are_applied();

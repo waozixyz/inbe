@@ -1,0 +1,3 @@
+Fixed
+---
+- Existing installations reset navigation once to show Lists, Habits, Practice, and Settings in that order. Changes made afterward are kept.
