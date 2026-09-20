@@ -1118,6 +1118,18 @@ Wim Hof - %d 秒后开始
 [results_avg]
 平均 %ds
 ---
+[results_metric_rounds]
+轮次
+---
+[results_metric_best]
+最佳
+---
+[results_metric_average]
+平均
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 第%d轮  %ds
 ---

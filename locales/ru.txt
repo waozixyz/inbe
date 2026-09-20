@@ -1118,6 +1118,18 @@ Wim Hof - старт через %d с
 [results_avg]
 среднее %dс
 ---
+[results_metric_rounds]
+Раунды
+---
+[results_metric_best]
+Лучший
+---
+[results_metric_average]
+Среднее
+---
+[results_metric_seconds]
+%dс
+---
 [round_result_label]
 Раунд %d  %dс
 ---

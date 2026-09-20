@@ -1118,6 +1118,18 @@ terbaik %ds
 [results_avg]
 rata %ds
 ---
+[results_metric_rounds]
+Putaran
+---
+[results_metric_best]
+Terbaik
+---
+[results_metric_average]
+Rata-rata
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 Ronde %d  %ds
 ---

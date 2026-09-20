@@ -1120,6 +1120,18 @@ Wim Hof - 開始まで %d秒
 [results_avg]
 平均 %ds
 ---
+[results_metric_rounds]
+ラウンド
+---
+[results_metric_best]
+最長
+---
+[results_metric_average]
+平均
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 ラウンド %d  %ds
 ---

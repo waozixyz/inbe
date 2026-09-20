@@ -1118,6 +1118,18 @@ mejor %ds
 [results_avg]
 promedio %ds
 ---
+[results_metric_rounds]
+Rondas
+---
+[results_metric_best]
+Mejor
+---
+[results_metric_average]
+Promedio
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 Ronda %d  %ds
 ---

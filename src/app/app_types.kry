@@ -650,6 +650,7 @@ InnerBreeze :: struct {
     backgrounded: int
     results_saved: int
     session_result: SessionResult
+    results_scroll: int
     blocked_input_frame: int
     close_prompt_open: int
     close_prompt_result: AppClosePromptResult

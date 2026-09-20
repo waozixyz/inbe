@@ -1118,6 +1118,18 @@ nejlépe %ds
 [results_avg]
 průměr %ds
 ---
+[results_metric_rounds]
+Kola
+---
+[results_metric_best]
+Nejlepší
+---
+[results_metric_average]
+Průměr
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 Kolo %d  %ds
 ---

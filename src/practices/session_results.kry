@@ -15,6 +15,7 @@ app_prepare_session_results :: (app: InnerBreeze*, activity: int,
     }
     result = &app->session_result
     memset(result, 0, sizeof(*result))
+    app->results_scroll = 0
     result->active = 1
     result->activity = practice_clamp_id(activity)
     result->primary_value = primary_value

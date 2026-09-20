@@ -1357,6 +1357,18 @@ best %ds
 [results_avg]
 avg %ds
 ---
+[results_metric_rounds]
+Rounds
+---
+[results_metric_best]
+Best
+---
+[results_metric_average]
+Average
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 Round %d  %ds
 ---

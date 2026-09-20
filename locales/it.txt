@@ -1118,6 +1118,18 @@ migliore %ds
 [results_avg]
 media %ds
 ---
+[results_metric_rounds]
+Round
+---
+[results_metric_best]
+Migliore
+---
+[results_metric_average]
+Media
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 Round
 ---

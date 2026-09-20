@@ -1118,6 +1118,18 @@ Wim Hof - %d초 후 시작
 [results_avg]
 평균 %ds
 ---
+[results_metric_rounds]
+라운드
+---
+[results_metric_best]
+최고
+---
+[results_metric_average]
+평균
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 %d 라운드  %ds
 ---

@@ -1118,6 +1118,18 @@ meilleur %ds
 [results_avg]
 moy. %ds
 ---
+[results_metric_rounds]
+Tours
+---
+[results_metric_best]
+Meilleur
+---
+[results_metric_average]
+Moyenne
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 Cycle %d  %ds
 ---

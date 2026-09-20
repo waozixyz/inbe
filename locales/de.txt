@@ -1118,6 +1118,18 @@ beste %ds
 [results_avg]
 durchschn. %ds
 ---
+[results_metric_rounds]
+Runden
+---
+[results_metric_best]
+Bestwert
+---
+[results_metric_average]
+Durchschnitt
+---
+[results_metric_seconds]
+%ds
+---
 [round_result_label]
 Runde %d  %ds
 ---
