@@ -1,4 +1,8 @@
 # Changelog
+## [2.0.2] - 2026-09-20
+### Fixed
+- Habit editor section headings and reminder details now align with their rows.
+
 ## [2.0.1] - 2026-09-20
 ### Fixed
 - Existing installations reset navigation once to show Lists, Habits, Practice, and Settings in that order. Changes made afterward are kept.

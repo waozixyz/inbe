@@ -1,0 +1,3 @@
+Fixed
+---
+- Habit editor section headings and reminder details now align with their rows.
