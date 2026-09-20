@@ -112,12 +112,14 @@ jobs:
           "$HOME/emsdk/emsdk" activate latest
           echo "EMSDK=$HOME/emsdk" >> "$GITHUB_ENV"
           echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
-          echo "$HOME/emsdk" >> "$GITHUB_PATH"
+          echo "INBE_NODE_BIN=$(dirname "$(command -v node)")" >> "$GITHUB_ENV"
           echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
       - name: Build Web ZIP
         run: |
           set -euo pipefail
+          export PATH="$INBE_NODE_BIN:$PATH"
+          node --version
           make package-unpackaged-assets
           make web
           mkdir -p build/release/web
@@ -171,12 +173,14 @@ jobs:
           "$HOME/emsdk/emsdk" activate latest
           echo "EMSDK=$HOME/emsdk" >> "$GITHUB_ENV"
           echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
-          echo "$HOME/emsdk" >> "$GITHUB_PATH"
+          echo "INBE_NODE_BIN=$(dirname "$(command -v node)")" >> "$GITHUB_ENV"
           echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
       - name: Build Chrome Extension ZIP
         run: |
           set -euo pipefail
+          export PATH="$INBE_NODE_BIN:$PATH"
+          node --version
           make package-unpackaged-assets
           make chrome-web-store
           mkdir -p build/release/chrome-web-store
@@ -230,12 +234,14 @@ jobs:
           "$HOME/emsdk/emsdk" activate latest
           echo "EMSDK=$HOME/emsdk" >> "$GITHUB_ENV"
           echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
-          echo "$HOME/emsdk" >> "$GITHUB_PATH"
+          echo "INBE_NODE_BIN=$(dirname "$(command -v node)")" >> "$GITHUB_ENV"
           echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
       - name: Build Firefox Add-on ZIP
         run: |
           set -euo pipefail
+          export PATH="$INBE_NODE_BIN:$PATH"
+          node --version
           make package-unpackaged-assets
           make firefox-addons
           make firefox-addons-lint
