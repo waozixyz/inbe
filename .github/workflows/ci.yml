@@ -157,12 +157,14 @@ jobs:
           "$HOME/emsdk/emsdk" activate latest
           echo "EMSDK=$HOME/emsdk" >> "$GITHUB_ENV"
           echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
-          echo "$HOME/emsdk" >> "$GITHUB_PATH"
+          echo "INBE_NODE_BIN=$(dirname "$(command -v node)")" >> "$GITHUB_ENV"
           echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
       - name: Build Chrome Extension ZIP
         run: |
           set -euo pipefail
+          export PATH="$INBE_NODE_BIN:$PATH"
+          node --version
           make package-unpackaged-assets
           make chrome-web-store
           test -f build/dist/inbe-chrome-web-store.zip
@@ -170,11 +172,13 @@ jobs:
       - name: Run Web Smoke Test
         run: |
           set -euo pipefail
+          export PATH="$INBE_NODE_BIN:$PATH"
           make web-smoke-test
 
       - name: Run Canvas Web Smoke Test
         run: |
           set -euo pipefail
+          export PATH="$INBE_NODE_BIN:$PATH"
           make web-canvas
           make web-canvas-smoke-test
 
@@ -219,12 +223,14 @@ jobs:
           "$HOME/emsdk/emsdk" activate latest
           echo "EMSDK=$HOME/emsdk" >> "$GITHUB_ENV"
           echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
-          echo "$HOME/emsdk" >> "$GITHUB_PATH"
+          echo "INBE_NODE_BIN=$(dirname "$(command -v node)")" >> "$GITHUB_ENV"
           echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
       - name: Build Firefox Add-on ZIP
         run: |
           set -euo pipefail
+          export PATH="$INBE_NODE_BIN:$PATH"
+          node --version
           make package-unpackaged-assets
           make firefox-addons
           test -f build/dist/inbe-firefox-addons.zip
@@ -252,4 +258,5 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
           set -euo pipefail
+          export PATH="$INBE_NODE_BIN:$PATH"
           xvfb-run -a --server-args="-screen 0 1280x1024x24" make web-smoke-test-firefox
