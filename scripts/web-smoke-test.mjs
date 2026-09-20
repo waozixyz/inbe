@@ -1253,6 +1253,17 @@ async function verifyPracticeCarouselSwipe(client) {
   const target = await practiceStartClickTarget(client);
   const selected = () => pageJson(client, 'Module._app_web_test_practice_selected()');
   const initial = await selected();
+  async function waitForSelectionChange(previous, label) {
+    const deadline = Date.now() + 4000;
+    let current = await selected();
+    while (current === previous && Date.now() < deadline) {
+      await delay(50);
+      current = await selected();
+    }
+    if (current === previous)
+      throw new Error(`${label} did not change practice (selected=${current})`);
+    return current;
+  }
   const x = target.rect.left + target.rect.width / 2;
   const y = target.rect.top + (target.y - target.rect.top) * 0.4;
   const distance = target.rect.width * 0.4;
@@ -1263,29 +1274,38 @@ async function verifyPracticeCarouselSwipe(client) {
       type: 'mousePressed', x: startX, y: startY, button: 'left', clickCount: 1
     });
     await waitAnimationFrames(client, 2);
-    for (let i = 1; i <= 6; i++) {
-      await client.send('Input.dispatchMouseEvent', {
-        type: 'mouseMoved', x: startX + dx * i / 6, y: startY + dy * i / 6,
-        button: 'left', buttons: 1
-      });
-      await waitAnimationFrames(client, 1);
-    }
+    await client.send('Input.dispatchMouseEvent', {
+      type: 'mouseMoved', x: startX + dx, y: startY + dy,
+      button: 'left', buttons: 1
+    });
+    await waitAnimationFrames(client, 1);
     await client.send('Input.dispatchMouseEvent', {
       type: 'mouseReleased', x: startX + dx, y: startY + dy, button: 'left', clickCount: 1
     });
     await waitAnimationFrames(client, 3);
   }
   await drag(-distance, 0);
-  if (await selected() === initial) throw new Error('left swipe did not change practice');
+  const first = await waitForSelectionChange(initial, 'left swipe');
   await drag(distance, 0);
-  if (await selected() !== initial) throw new Error('right swipe did not return to practice');
+  if (await waitForSelectionChange(first, 'right swipe') !== initial)
+    throw new Error('right swipe did not return to practice');
   await drag(0, distance / 2);
   if (await selected() !== initial) throw new Error('vertical drag changed practice');
   await dispatchCanvasClick(client, x, y);
   await waitAnimationFrames(client, 3);
   if (await selected() !== initial) throw new Error('artwork tap changed practice');
-  for (let i = 0; i < 4; i++) await drag(-distance, 0);
-  if (await selected() !== initial) throw new Error('carousel did not wrap after four swipes');
+  const visited = new Set([initial]);
+  let previous = initial;
+  for (let i = 0; i < 4; i++) {
+    await drag(-distance, 0);
+    const current = await waitForSelectionChange(previous, `carousel swipe ${i + 1}`);
+    if (i < 3 && visited.has(current))
+      throw new Error(`carousel repeated practice early on swipe ${i + 1}: ${current}`);
+    if (i === 3 && current !== initial)
+      throw new Error(`carousel did not wrap after four swipes (selected=${current}, initial=${initial})`);
+    visited.add(current);
+    previous = current;
+  }
 }
 
 async function verifyPracticeStartClick(client) {
