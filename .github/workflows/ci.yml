@@ -101,7 +101,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: kryonlabs/daochi
-          ref: 430938f9285e7374c61990be1ece2bef5d3f3178
+          ref: 51902c57c537724cf4c083227f5da6c50e24ba39
           path: .test-server
           submodules: recursive
 

@@ -63,7 +63,9 @@ try {
   const status = await new Promise((resolve, reject) => {
     client.on('error', reject); client.on('exit', resolve);
   });
-  if (status !== 0) throw new Error(`Client test exited: ${status}`);
+  if (status !== 0) {
+    throw new Error(`Client test exited: ${status}; server exit=${server.exitCode}, signal=${server.signalCode}`);
+  }
   if (!dropped) throw new Error('The interrupted upload was not exercised');
 } finally {
   proxy.closeAllConnections();
