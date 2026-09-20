@@ -148,6 +148,10 @@ tasks.register('checkBuildLaws') {
             workingDir rootProject.file('..')
             commandLine 'node', 'scripts/generate-sync-retry.mjs'
         }
+        exec {
+            workingDir rootProject.file('..')
+            commandLine 'node', 'scripts/generate-storage-layout.mjs'
+        }
     }
 }
 tasks.named('preBuild').configure {

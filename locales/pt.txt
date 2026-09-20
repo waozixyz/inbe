@@ -1916,3 +1916,7 @@ Mostrar concluídos
 ---
 [elist_hide_completed]
 Ocultar concluídos
+---
+[guide_title]
+Guia rápido
+---

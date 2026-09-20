@@ -1918,3 +1918,7 @@ Dismiss forever
 ---
 [elist_hide_completed]
 完了した項目を非表示
+---
+[guide_title]
+クイックガイド
+---

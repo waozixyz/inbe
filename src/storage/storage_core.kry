@@ -406,7 +406,8 @@ storage_get_setting_int :: (key: const char*, fallback: int) -> int #export {
 
 storage_get_setting_text :: (key: const char*) -> const char* #export {
     stmt: sqlite3_stmt* = nil
-    g_storage.text_value[0] = '\0'
+    text_value: char* = storage_setting_text_buffer()
+    text_value[0] = '\0'
     if g_storage.db == nil || key == nil {
         return nil
     }
@@ -418,11 +419,11 @@ storage_get_setting_text :: (key: const char*) -> const char* #export {
     bind_text(stmt, 2, key)
     if sqlite3_step(stmt) == SQLITE_ROW {
         text: const char* = (const char *)sqlite3_column_text(stmt, 0)
-        snprintf(g_storage.text_value, sizeof(g_storage.text_value), "%s",
+        snprintf(text_value, STORAGE_SETTING_TEXT_BUFFER_SIZE, "%s",
         text != nil ? text : "")
     }
     sqlite3_finalize(stmt)
-    return g_storage.text_value[0] != '\0' ? g_storage.text_value : nil
+    return text_value[0] != '\0' ? text_value : nil
 }
 
 storage_setting_text_equals :: (key: const char*, value: const char*) -> int #export {
@@ -1847,17 +1848,47 @@ static storage_apply_encrypted_records_query: const char* = "SELECT json_extract
 storage_apply_encrypted_records :: (response_json: const char*) -> int #private {
     statement: sqlite3_stmt* = nil
     ok: int = 1
+    count: int = storage_json_array_count(response_json, "$.changes.encrypted_records") +
+                 storage_json_array_count(response_json, "$.data.encrypted_records")
+    fields: char** = nil
+    loaded: int = 0
+    if count <= 0 {
+        return 1
+    }
+    fields = (char**)calloc((size_t)count * 6, sizeof(char*))
+    if fields == nil {
+        return 0
+    }
     if sqlite3_prepare_v2(g_storage.db, storage_apply_encrypted_records_query, -1, &statement, nil) != SQLITE_OK {
+        free(fields)
         return 0
     }
     bind_text(statement, 1, response_json)
-    while ok && sqlite3_step(statement) == SQLITE_ROW {
-        collection: const char* = (const char *)sqlite3_column_text(statement, 0)
-        record_id: const char* = (const char *)sqlite3_column_text(statement, 1)
-        key_id: const char* = (const char *)sqlite3_column_text(statement, 2)
-        nonce: const char* = (const char *)sqlite3_column_text(statement, 3)
-        ciphertext: const char* = (const char *)sqlite3_column_text(statement, 4)
-        content_hash: const char* = (const char *)sqlite3_column_text(statement, 5)
+    while loaded < count && sqlite3_step(statement) == SQLITE_ROW {
+        for int column = 0; column < 6; column++ {
+            value: const char* = (const char*)sqlite3_column_text(statement, column)
+            fields[loaded * 6 + column] = strdup(value != nil ? value : "")
+            if fields[loaded * 6 + column] == nil {
+                ok = 0
+                break
+            }
+        }
+        if !ok {
+            break
+        }
+        loaded++
+    }
+    sqlite3_finalize(statement)
+    if loaded != count {
+        ok = 0
+    }
+    for int index = 0; ok && index < loaded; index++ {
+        collection: const char* = fields[index * 6]
+        record_id: const char* = fields[index * 6 + 1]
+        key_id: const char* = fields[index * 6 + 2]
+        nonce: const char* = fields[index * 6 + 3]
+        ciphertext: const char* = fields[index * 6 + 4]
+        content_hash: const char* = fields[index * 6 + 5]
         plaintext: char* = nil
         if collection == nil || storage_decrypted_array_name(collection) == nil {
             continue
@@ -1865,11 +1896,23 @@ storage_apply_encrypted_records :: (response_json: const char*) -> int #private 
         ok = record_id != nil && key_id != nil && nonce != nil &&
         ciphertext != nil &&
         storage_decrypt_record(collection, record_id, key_id, nonce,
-        ciphertext, content_hash, &plaintext) &&
-        storage_apply_decrypted_record(collection, plaintext)
+        ciphertext, content_hash, &plaintext)
+        if !ok {
+            TraceLog(LOG_WARNING, "SYNC: encrypted record decrypt failed: %s",
+                     collection)
+        } else {
+            ok = storage_apply_decrypted_record(collection, plaintext)
+            if !ok {
+                TraceLog(LOG_WARNING, "SYNC: encrypted record apply failed: %s",
+                         collection)
+            }
+        }
         free(plaintext)
     }
-    sqlite3_finalize(statement)
+    for int index = 0; index < count * 6; index++ {
+        free(fields[index])
+    }
+    free(fields)
     return ok
 }
 
@@ -1887,10 +1930,12 @@ storage_apply_sync_response_json :: (response_json: const char*) -> int #export 
         return 0
     }
     if !migrate_schema() {
+        TraceLog(LOG_WARNING, "SYNC: response migration failed")
         return 0
     }
     g_storage.last_sync_changed = 0
     if !storage_json_valid(response_json) {
+        TraceLog(LOG_WARNING, "SYNC: response JSON invalid")
         return 0
     }
     if storage_json_extract_text(response_json, "$.account_alias", account_alias,
@@ -1919,6 +1964,7 @@ storage_apply_sync_response_json :: (response_json: const char*) -> int #export 
                 return storage_apply_remote_full_snapshot(response_json)
             }
             if !storage_sync_review_write_json(response_json) {
+                TraceLog(LOG_WARNING, "SYNC: response review save failed")
                 return 0
             }
             set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "1")
@@ -1933,9 +1979,19 @@ storage_apply_sync_response_json :: (response_json: const char*) -> int #export 
         return 0
     }
     storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq)
-    if !storage_apply_encrypted_records(response_json) ||
-    !storage_reconcile_remote_habit_ids(response_json) ||
-    !storage_apply_sync_habits_json(response_json) ||
+    if !storage_apply_encrypted_records(response_json) {
+        TraceLog(LOG_WARNING, "SYNC: encrypted records apply failed")
+        exec_sql("ROLLBACK TO sync_apply")
+        exec_sql("RELEASE sync_apply")
+        return 0
+    }
+    if !storage_reconcile_remote_habit_ids(response_json) {
+        TraceLog(LOG_WARNING, "SYNC: habit ID reconciliation failed")
+        exec_sql("ROLLBACK TO sync_apply")
+        exec_sql("RELEASE sync_apply")
+        return 0
+    }
+    if !storage_apply_sync_habits_json(response_json) ||
     !storage_apply_sync_habit_days_json(response_json) ||
     !storage_apply_sync_elist_lists_json(response_json) ||
     !storage_apply_sync_elist_items_json(response_json) ||
@@ -1944,6 +2000,7 @@ storage_apply_sync_response_json :: (response_json: const char*) -> int #export 
     !storage_apply_sync_sessions_json(response_json) ||
     !storage_apply_sync_meditation_logs_json(response_json) ||
     !storage_apply_sync_social_json(response_json) {
+        TraceLog(LOG_WARNING, "SYNC: plaintext response apply failed")
         exec_sql("ROLLBACK TO sync_apply")
         exec_sql("RELEASE sync_apply")
         return 0
@@ -2027,6 +2084,7 @@ storage_apply_remote_full_snapshot :: (response_json: const char*) -> int #priva
         return 0
     }
     if !storage_clear_local_sync_data() {
+        TraceLog(LOG_WARNING, "SYNC: full snapshot local clear failed")
         free(copy)
         return 0
     }

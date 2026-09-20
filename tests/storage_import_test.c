@@ -169,7 +169,7 @@ insert_raw_habit_day(const char *root, const char *habit_id, int local_date, int
     sqlite3 *db = NULL;
     sqlite3_stmt *stmt = NULL;
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open raw habit day db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db == NULL)
         return;
@@ -197,7 +197,7 @@ read_raw_habit_day_count(const char *root, const char *habit_id, int local_date)
     sqlite3_stmt *stmt = NULL;
     int count = -1;
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open raw count db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db == NULL)
         return count;
@@ -223,7 +223,7 @@ read_raw_count_query(const char *root, const char *sql)
     sqlite3_stmt *stmt = NULL;
     int count = -1;
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open raw count query db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db == NULL)
         return count;
@@ -246,7 +246,7 @@ read_raw_session_round_seconds(const char *root, const char *session_id, int rou
     sqlite3_stmt *stmt = NULL;
     int seconds = -1;
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open raw session round db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db == NULL)
         return seconds;
@@ -287,7 +287,7 @@ test_sync_payload_omits_uploaded_state_after_upload_marker(void)
         sqlite3 *db = NULL;
         sqlite3_stmt *stmt = NULL;
         long long updated_at = 0;
-        make_path(db_path, sizeof(db_path), root, "breathing.db");
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
         check_true("open sync watermark raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
         if(db != NULL) {
             if(sqlite3_prepare_v2(db, "SELECT updated_at FROM habit_days WHERE local_date=20260612",
@@ -349,7 +349,7 @@ test_sync_backfill_includes_existing_habits(void)
     {
         char db_path[512];
         sqlite3 *db = NULL;
-        make_path(db_path, sizeof(db_path), root, "breathing.db");
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
         check_true("open backfill raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
         if(db != NULL) {
             check_true("mark old full upload done",
@@ -526,7 +526,7 @@ test_sync_payload_includes_v6_encrypted_records(void)
     check_true("v4 stale shadow queue recreated", status.queued_changes > 0);
     storage_close();
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open stale v4 queue db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
         check_true("mark stale completed v4 queue",
@@ -638,7 +638,7 @@ seed_versioned_sync_account(const char *root, int encrypted_shadow_complete)
         "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_backfill_v2_done','1');"
         "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_upload_at','1781902920');";
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open versioned sync fixture db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db == NULL)
         return;
@@ -804,7 +804,7 @@ test_sync_payload_batches_large_outbox(void)
     check_true("init large outbox db", storage_init(root));
     storage_close();
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open large outbox raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
         check_true("insert large outbox habit",
@@ -921,7 +921,7 @@ test_sync_apply_preserves_counter_counts(void)
     {
         char db_path[512];
         sqlite3 *db = NULL;
-        make_path(db_path, sizeof(db_path), root, "breathing.db");
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
         check_true("open sync counter raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
         if(db != NULL) {
             check_true(
@@ -973,7 +973,7 @@ test_sync_apply_clears_acknowledged_outbox_before_equal_timestamp_merge(void)
     check_true("init sync outbox equal db", storage_init(root));
     storage_close();
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open sync outbox equal raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
         check_true(
@@ -1041,7 +1041,7 @@ test_sync_apply_sessions_last_write_wins(void)
     {
         char db_path[512];
         sqlite3 *db = NULL;
-        make_path(db_path, sizeof(db_path), root, "breathing.db");
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
         check_true("open sync session raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
         if(db != NULL) {
             check_true(
@@ -1068,7 +1068,7 @@ test_sync_apply_sessions_last_write_wins(void)
     {
         char db_path[512];
         sqlite3 *db = NULL;
-        make_path(db_path, sizeof(db_path), root, "breathing.db");
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
         check_true("open queued sync session raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
         if(db != NULL) {
             check_true("reset queued sync session",
@@ -1200,7 +1200,7 @@ test_sync_payload_resets_cursor_for_orphan_habit_days(void)
     insert_raw_habit_day(root, "habit-2", 20260617, 1);
     insert_raw_habit_day(root, "habit-3", 20260618, 1);
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open orphan cursor raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
         check_true("set orphan sync cursor",
@@ -1240,7 +1240,7 @@ test_sync_payload_runs_one_time_habit_name_repair(void)
     check_true("init habit name repair db", storage_init(root));
     storage_close();
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open habit name repair raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
         check_true("set old sync cursor", sqlite3_exec(db,
@@ -1346,7 +1346,7 @@ test_sync_apply_preserves_queued_habit_counter_enabled(void)
     habits_save(&habits);
     storage_close();
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open queued counter raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
         snprintf(sql, sizeof(sql), "UPDATE habits SET updated_at=1781902800 WHERE id='%s';",
@@ -1748,7 +1748,7 @@ test_raw_db_import(void)
     make_clean_root(source, sizeof(source), "raw-source");
     make_clean_root(dest, sizeof(dest), "raw-dest");
     write_source_database(source);
-    make_path(db_path, sizeof(db_path), source, "breathing.db");
+    make_path(db_path, sizeof(db_path), source, "inbe.db");
 
     check_true("init raw import dest", storage_init(dest));
     check_true("raw db import", storage_import_zip(db_path));
@@ -1778,6 +1778,46 @@ test_zip_db_import(void)
     storage_close();
     assert_imported_database(dest);
 
+    remove_tree(source);
+    remove_tree(dest);
+}
+
+static void
+test_historical_inbe_archive_import(void)
+{
+    char source[512], dest[512], export_path[512], historical_path[512];
+    Archive exported = {0}, historical = {0};
+    void *database = NULL;
+    size_t database_size = 0;
+
+    make_clean_root(source, sizeof(source), "historical-inbe-source");
+    make_clean_root(dest, sizeof(dest), "historical-inbe-dest");
+    write_source_database(source);
+    make_path(export_path, sizeof(export_path), source, "export.zip");
+    make_path(historical_path, sizeof(historical_path), source, "historical-inbe.zip");
+    check_true("init historical export source", storage_init(source));
+    check_true("export database for historical fixture", storage_export_zip(export_path));
+    storage_close();
+
+    check_true("open exported archive", ArchiveOpenZip(&exported, export_path));
+    database = ArchiveReadNamedEntryHeap(&exported, "breathing-data/breathing.db",
+                                         &database_size);
+    check_true("read exported database", database != NULL && database_size > 0);
+    ArchiveClose(&exported);
+    check_true("create historical Inbe archive", ArchiveCreateZip(&historical, historical_path));
+    if(database != NULL) {
+        check_true("write historical Inbe database entry",
+                   ArchiveAddMemory(&historical, "inbe-data/inbe.db", database,
+                                    database_size, ARCHIVE_DEFLATE));
+    }
+    check_true("finish historical Inbe archive", ArchiveFinishZip(&historical));
+    ArchiveClose(&historical);
+    free(database);
+
+    check_true("init historical Inbe import destination", storage_init(dest));
+    check_true("import historical Inbe archive", storage_import_zip(historical_path));
+    storage_close();
+    assert_imported_database(dest);
     remove_tree(source);
     remove_tree(dest);
 }
@@ -2037,7 +2077,7 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
     storage_mark_habits_initialized();
     storage_close();
 
-    make_path(db_path, sizeof(db_path), root, "breathing.db");
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open empty initialized raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
         check_true("clear empty initialized habits",
@@ -2655,12 +2695,79 @@ test_checkin_backup_restore(void)
     remove_tree(target);
 }
 
+static void
+test_database_filename_migration(void)
+{
+    char root[512], current[512], legacy[512], current_wal[512], legacy_wal[512];
+    char current_shm[512], legacy_shm[512];
+    sqlite3 *db = NULL;
+
+    make_clean_root(root, sizeof(root), "database-name-migration");
+    write_source_database(root);
+    make_path(current, sizeof(current), root, "inbe.db");
+    make_path(legacy, sizeof(legacy), root, "breathing.db");
+    make_path(current_wal, sizeof(current_wal), root, "inbe.db-wal");
+    make_path(legacy_wal, sizeof(legacy_wal), root, "breathing.db-wal");
+    make_path(current_shm, sizeof(current_shm), root, "inbe.db-shm");
+    make_path(legacy_shm, sizeof(legacy_shm), root, "breathing.db-shm");
+    check_true("open source database with WAL", sqlite3_open(current, &db) == SQLITE_OK);
+    if(db != NULL) {
+        check_true("keep WAL on close", sqlite3_db_config(db, SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE, 1, NULL) == SQLITE_OK);
+        check_true("write uncheckpointed data",
+                   sqlite3_exec(db, "INSERT OR REPLACE INTO meta(key,value) "
+                                    "VALUES('migration-test','preserved')", NULL, NULL, NULL) == SQLITE_OK);
+        check_true("close source database", sqlite3_close(db) == SQLITE_OK);
+    }
+    check_true("source WAL contains pending data", FileExists(current_wal));
+    check_true("move source to legacy filename", rename(current, legacy) == 0);
+    check_true("move legacy WAL", rename(current_wal, legacy_wal) == 0);
+    if(FileExists(current_shm))
+        check_true("move legacy shared memory", rename(current_shm, legacy_shm) == 0);
+    check_true("legacy database exists", FileExists(legacy));
+    check_true("migrate legacy database", storage_init(root));
+    check_int("migrated sessions preserved", storage_session_count(), 1);
+    storage_close();
+    check_true("current database exists after migration", FileExists(current));
+    check_true("legacy database retained as rollback copy", FileExists(legacy));
+    check_int("uncheckpointed WAL data preserved",
+              read_raw_count_query(root, "SELECT COUNT(*) FROM meta WHERE key='migration-test' AND value='preserved'"), 1);
+    check_true("repeat migration is idempotent", storage_init(root));
+    check_int("sessions preserved after repeat startup", storage_session_count(), 1);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_database_filename_conflict_preserves_both(void)
+{
+    char root[512], current[512], legacy[512];
+    FILE *file;
+
+    make_clean_root(root, sizeof(root), "database-name-conflict");
+    write_source_database(root);
+    make_path(current, sizeof(current), root, "inbe.db");
+    make_path(legacy, sizeof(legacy), root, "breathing.db");
+    file = fopen(legacy, "wb");
+    check_true("create conflicting legacy file", file != NULL);
+    if(file != NULL) {
+        fputs("legacy sentinel", file);
+        fclose(file);
+    }
+    check_true("conflicting database names reject startup", !storage_init(root));
+    check_true("current database preserved on conflict", FileExists(current));
+    check_true("legacy database preserved on conflict", FileExists(legacy));
+    remove_tree(root);
+}
+
 int
 main(void)
 {
+    test_database_filename_migration();
+    test_database_filename_conflict_preserves_both();
     test_checkin_backup_restore();
     test_raw_db_import();
     test_zip_db_import();
+    test_historical_inbe_archive_import();
     test_habit_name_merge_import();
     test_import_conflict_prefers_data_over_empty();
     test_delete_all_resets_habits_to_empty_storage();

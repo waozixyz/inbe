@@ -17,10 +17,12 @@ ANDROID :: ANDROID_BUILD
     # activity to run the Health Connect permission flow and insert the
     # records. Java owns the incremental marker, toasts and error states.
     export :: () -> int {
-        path: [128] char
+        path: [STORAGE_PATH_SIZE] char
 
-        snprintf(path, sizeof(path), "%s/health-connect-export.csv",
-                 data_root())
+        if !storage_join_path(path, sizeof(path), data_root(),
+                              "health-connect-export.csv") {
+            return 0
+        }
         if !storage_export_health_connect_csv(path) {
             __android_log_write(ANDROID_LOG_WARN, health_log_tag,
                                 "nothing to export")

@@ -8,6 +8,7 @@
 #import "screens/settings/settings_sync_account_impl.h"
 #import "storage/sync_account.h"
 #import "storage.h"
+#import "storage_layout.h"
 #import "sync_account.h"
 #import "android_import.h"
 #import "platform/android/android_health"
@@ -24,7 +25,7 @@ NATIVE_FILE_DIALOG :: HAS_FILE_DIALOG
 #if WEB {
     #import <emscripten.h>
     web_download_file :: (path: const char*, filename: const char*, mime: const char*) -> int #intrinsic "web"
-    static web_export_path: const char* = "/tmp/breathing-web-export.zip"
+    static web_export_path: const char* = STORAGE_WEB_EXPORT_TMP
     static web_file_dialog: FileDialog = {0}
     static web_file_dialog_ready: int = 0
 }
@@ -619,9 +620,12 @@ request_delete_all_data :: (app: InnerBreeze*) #private {
 # shareable into spreadsheets / health dashboards.
 export_csv :: (app: InnerBreeze*) #private {
     #if ANDROID {
-        csv_path: [128] char
-        snprintf(csv_path, sizeof(csv_path), "%s/breathing-sessions.csv",
-                 data_root())
+        csv_path: [STORAGE_PATH_SIZE] char
+        if !storage_join_path(csv_path, sizeof(csv_path), data_root(),
+                              STORAGE_EXPORT_SESSIONS_CSV) {
+            settings_screen_set_status_error(GetLocaleText("export_failed"))
+            return
+        }
         file_dialog_begin(app, SETTINGS_DATA_ACTION_EXPORT)
         if storage_export_sessions_csv(csv_path) {
             file_dialog_finish(app)
@@ -633,7 +637,7 @@ export_csv :: (app: InnerBreeze*) #private {
     } #else_if WEB {
         unused app
         if storage_export_sessions_csv(web_export_path) &&
-           web_download_file(web_export_path, "breathing-sessions.csv", "text/csv") {
+           web_download_file(web_export_path, STORAGE_EXPORT_SESSIONS_CSV, "text/csv") {
             settings_screen_set_status_success(GetLocaleText("exported_label"), nil)
         } else {
             settings_screen_set_status_error(GetLocaleText("export_failed"))
@@ -643,7 +647,7 @@ export_csv :: (app: InnerBreeze*) #private {
         unused app
         InitFileDialog(&dlg)
         if SaveFileDialog(&dlg, GetLocaleText("export_csv_dialog_title"),
-                          "breathing-sessions.csv") {
+                          STORAGE_EXPORT_SESSIONS_CSV) {
             path := GetFileDialogPath(&dlg)
             if path != nil && storage_export_sessions_csv(path) {
                 settings_screen_set_status_success(GetLocaleText("exported_label"),

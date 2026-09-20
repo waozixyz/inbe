@@ -1915,3 +1915,7 @@ Show completed
 ---
 [elist_hide_completed]
 Hide completed
+---
+[guide_title]
+Quick guide
+---

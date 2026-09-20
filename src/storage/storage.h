@@ -70,6 +70,8 @@ typedef struct StorageSyncStatus {
 int storage_init(const char *root);
 void storage_close(void);
 const char *storage_db_path(void);
+int storage_join_path(char *out, size_t out_size, const char *root, const char *name);
+int storage_ensure_dir(const char *path);
 
 int storage_get_setting_int(const char *key, int fallback);
 int storage_list_settings(void (*callback)(const char *key, const char *value, void *user), void *user);

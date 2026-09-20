@@ -159,9 +159,11 @@ sync_account_export_private_key :: (account: const SyncAccount*,
         return android_share_bytes((const unsigned char*)body, (size_t)len, filename,
                                    "application/octet-stream")
     } #else_if WEB {
-        path: [512] char = {0}
+        path: [STORAGE_PATH_SIZE] char = {0}
 
-        snprintf(path, sizeof(path), "%s/%s", data_root(), filename)
+        if !storage_join_path(path, sizeof(path), data_root(), filename) {
+            return 0
+        }
         if !SaveFileData(path, body, len) {
             return 0
         }
@@ -170,8 +172,10 @@ sync_account_export_private_key :: (account: const SyncAccount*,
         if strchr(filename, '/') != nil || strchr(filename, '\\') != nil {
             return SaveFileData(filename, body, len)
         }
-        path: [512] char = {0}
-        snprintf(path, sizeof(path), "%s/%s", data_root(), filename)
+        path: [STORAGE_PATH_SIZE] char = {0}
+        if !storage_join_path(path, sizeof(path), data_root(), filename) {
+            return 0
+        }
         return SaveFileData(path, body, len)
     }
 }

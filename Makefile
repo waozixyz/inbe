@@ -2,6 +2,8 @@
 
 APP_NAME := inbe
 APP_TITLE := Inner Breeze
+# `make install` installs the production desktop app for this user.
+PREFIX ?= $(HOME)/.local
 ANDROID_APP_ID := xyz.waozi.inbe
 ANDROID_DEBUG_APP_ID := $(ANDROID_APP_ID).debug
 ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
@@ -314,6 +316,7 @@ WEB_LIBOQS_A := $(KRYON_WEB_LIBOQS_A)
 WEB_LIBOQS_INCLUDE := -I$(WEB_LIBOQS_BUILD_DIR)/include
 TEST_BIN_DIR := $(BUILD_BIN_DIR)/tests
 STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
+STORAGE_PATHS_TEST := $(TEST_BIN_DIR)/storage_paths_test
 LOCALE_KEYS_TEST := $(TEST_BIN_DIR)/locale_keys_test
 SYNC_URL_TEST := $(TEST_BIN_DIR)/sync_url_test
 SYNC_ACCOUNT_TEST := $(TEST_BIN_DIR)/sync_account_test
@@ -328,7 +331,7 @@ BREAK_ENGINE_TEST := $(TEST_BIN_DIR)/break_engine_test
 ACTIVITY_MONITOR_TEST := $(TEST_BIN_DIR)/activity_monitor_test
 FRAME_PACING_TEST := $(TEST_BIN_DIR)/frame_pacing_test
 SETTINGS_KEYS_TEST := $(TEST_BIN_DIR)/settings_keys_test
-TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(APP_BOTTOM_NAV_TEST) $(HABIT_MODEL_TEST) $(HABIT_SESSIONS_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST) $(FRAME_PACING_TEST) $(SETTINGS_KEYS_TEST)
+TESTS := $(STORAGE_IMPORT_TEST) $(STORAGE_PATHS_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(APP_BOTTOM_NAV_TEST) $(HABIT_MODEL_TEST) $(HABIT_SESSIONS_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST) $(FRAME_PACING_TEST) $(SETTINGS_KEYS_TEST)
 TESTS += $(TEST_BIN_DIR)/session_results_test
 TESTS += $(TEST_BIN_DIR)/habit_form_test
 TESTS += $(TEST_BIN_DIR)/practice_carousel_test
@@ -417,6 +420,7 @@ APP_INCLUDE += -I$(KRY_GEN_DIR)
 APP_INCLUDE += -I$(KRY_GEN_DIR)/src
 PROOF_DIR := $(BUILD_DIR)/proofs
 SYNC_RETRY_HEADER := $(PROOF_DIR)/sync_retry_table.h
+STORAGE_LAYOUT_HEADER := $(PROOF_DIR)/storage_layout.h
 APP_INCLUDE += -I$(PROOF_DIR)
 KRYON_INCLUDE += -I$(PROOF_DIR)
 RAY_PKGS ?= sdl2 libdrm gbm egl glesv2
@@ -586,7 +590,7 @@ $(KRYON_RUNTIME_STAMP): Makefile $(K2C) $(KRYON_RUNTIME_KRY)
 $(KRYON_RUNTIME_C) $(KRYON_RUNTIME_H): $(KRYON_RUNTIME_STAMP)
 	@test -f $@
 
-$(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS) $(SYNC_RETRY_HEADER) | build-laws
+$(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS) $(SYNC_RETRY_HEADER) $(STORAGE_LAYOUT_HEADER) | build-laws
 	rm -rf $(KRY_GEN_DIR)
 	mkdir -p $(KRY_GEN_DIR)
 	$(K2C) --root $(abspath .) -o $(KRY_GEN_DIR) $(abspath $(KRY_SRCS))
@@ -610,6 +614,7 @@ kry-c-plan9: $(KRY_GEN_STAMP)
 		--include-dir $(KRY_GEN_DIR) --include-dir vendor-builds/sqlite \
 		-o $(PLAN9_GENERATED) $(KRY_SRCS)
 	cp $(SYNC_RETRY_HEADER) $(PLAN9_GENERATED)/sync_retry_table.h
+	cp $(STORAGE_LAYOUT_HEADER) $(PLAN9_GENERATED)/storage_layout.h
 	find $(PLAN9_GENERATED) -type f -name '*.c' | LC_ALL=C sort > $(PLAN9_FILE_LIST)
 	sh vendor/kryon/scripts/embed-assets.sh $(PLAN9_EMBEDDED_ASSETS_C) \
 		$(STYLE_FILES) $(LOCALE_FILES) $(IMAGE_FILES) $(FONT_FILES)
@@ -687,13 +692,15 @@ vendor-prebuilds-web: web-tools-check $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMA
 vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(WIN64_CURL_A) $(WIN32_CURL_A) $(WIN64_LIBOQS_A) $(WIN32_LIBOQS_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H)
 
 run: $(TARGET)
-	./$(TARGET)
+	@root="$${XDG_DATA_HOME:-$$HOME/.local/share}/inbe-debug"; \
+	APP_DATA_ROOT="$$root" ./$(TARGET)
 
 tui run-tui run-termi:
 	@$(MAKE) --no-print-directory KRYON_BACKEND=termi run-termi-direct
 
 run-termi-direct: $(TARGET)
-	@./$(TARGET)
+	@root="$${XDG_DATA_HOME:-$$HOME/.local/share}/inbe-debug"; \
+	APP_DATA_ROOT="$$root" ./$(TARGET)
 
 run-fresh: $(TARGET)
 	@root=$$(mktemp -d /tmp/$(APP_NAME)-fresh.XXXXXX); \
@@ -774,13 +781,18 @@ test: version-check version-test
 .PHONY: proofs proof-test build-laws
 proofs:
 	node scripts/generate-sync-retry.mjs $(SYNC_RETRY_HEADER)
+	node scripts/generate-storage-layout.mjs $(STORAGE_LAYOUT_HEADER)
 
 proof-test:
 	node --test tests/sync_retry_proof_test.mjs
+	node --test tests/storage_layout_proof_test.mjs
 
 build-laws: version-check proofs
 
 $(SYNC_RETRY_HEADER): | proofs
+	@test -f $@
+
+$(STORAGE_LAYOUT_HEADER): | proofs
 	@test -f $@
 
 test: proof-test
@@ -805,7 +817,11 @@ habits-cards-ui-test: $(TARGET)
 lists-ui-test: $(TARGET)
 	xvfb-run -a bash tests/lists_ui_test.sh "$(abspath $(TARGET))"
 
-test: clean-text-api-check no-vendor-edits secret-check $(TESTS) font-bundle-check audio-test-fixture-check embedded-image-assets-check
+.PHONY: storage-literals-check
+storage-literals-check:
+	bash ./scripts/check-storage-literals.sh
+
+test: clean-text-api-check no-vendor-edits secret-check storage-literals-check $(TESTS) font-bundle-check audio-test-fixture-check embedded-image-assets-check
 	bash ./tests/screenshot_scene_test.sh
 	echo "== BreathSession tests =="; \
 	status=0; \
@@ -855,6 +871,13 @@ $(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c $(S
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRYON_SYNC_CRYPTO_C) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/storage/import.c $(SQLITE_SRC) \
+		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
+
+$(STORAGE_PATHS_TEST): tests/storage_paths_test.c $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/storage/data.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h src/storage/data.h $(STORAGE_LAYOUT_HEADER) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
+		-o $@ \
+		tests/storage_paths_test.c $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRYON_DIR)/src/ui/ui_inspect.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/storage/data.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
@@ -1996,4 +2019,4 @@ $(APPIMAGE_TARGET) $(DEB_TARGET) $(RPM_TARGET) $(SNAP_TARGET) $(FLATPAK_TARGET) 
 android-release android-bundle android-copy-release-apks android-copy-bundle windows-setup site: version-check
 
 # Actual artifacts are gated too, including direct and incremental builds.
-$(TARGET) $(KRYON_HOST_TARGET) $(WIN64_TARGET) $(WIN32_TARGET) $(WEB_JS_TARGET) $(WEB_CANVAS_TARGET): $(SYNC_RETRY_HEADER) | build-laws
+$(TARGET) $(KRYON_HOST_TARGET) $(WIN64_TARGET) $(WIN32_TARGET) $(WEB_JS_TARGET) $(WEB_CANVAS_TARGET): $(SYNC_RETRY_HEADER) $(STORAGE_LAYOUT_HEADER) | build-laws

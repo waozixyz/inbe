@@ -1,11 +1,13 @@
 #include "sync_account.h"
 #include "storage.h"
+#include "db.h"
 
 #include <dirent.h>
 #include <sqlite3.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -157,6 +159,66 @@ make_clean_root(char *out, size_t out_size, const char *name)
     remove_tree(out);
     check_true("create test root", ensure_dir(out));
     snprintf(g_data_root, sizeof(g_data_root), "%s", out);
+}
+
+static void *
+read_short_setting(void *unused)
+{
+    int *ok = (int *)unused;
+    const char *value = storage_get_setting_text("sync_enabled");
+    *ok = value != NULL && strcmp(value, "1") == 0;
+    return NULL;
+}
+
+static void *
+begin_and_commit_transaction(void *unused)
+{
+    int *result = (int *)unused;
+    int ok = exec_sql("BEGIN IMMEDIATE");
+    if(ok)
+        ok = exec_sql("COMMIT");
+    *result = ok;
+    return NULL;
+}
+
+static void
+test_parallel_setting_reads_and_transactions(void)
+{
+    char root[1024];
+    char key[5121];
+    pthread_t worker;
+    int result = 0;
+    int started;
+    const char *main_value;
+
+    make_clean_root(root, sizeof(root), "parallel-storage");
+    check_true("open parallel storage", storage_init(root));
+    memset(key, 'a', sizeof(key) - 1);
+    key[sizeof(key) - 1] = '\0';
+    storage_set_setting_text("sync_private_key", key);
+    storage_set_setting_text("sync_enabled", "1");
+    main_value = storage_get_setting_text("sync_private_key");
+    check_true("main thread reads full recovery key",
+               main_value != NULL && strlen(main_value) == 5120);
+    started = pthread_create(&worker, NULL, read_short_setting, &result) == 0;
+    check_true("start parallel setting read", started);
+    if(started)
+        pthread_join(worker, NULL);
+    check_true("parallel setting read succeeds", result == 1);
+    check_true("parallel read preserves recovery key buffer",
+               main_value != NULL && strcmp(main_value, key) == 0);
+
+    check_true("main transaction begins", exec_sql("BEGIN IMMEDIATE"));
+    result = 0;
+    started = pthread_create(&worker, NULL, begin_and_commit_transaction, &result) == 0;
+    check_true("start parallel transaction", started);
+    usleep(20000);
+    check_true("main transaction commits", exec_sql("COMMIT"));
+    if(started)
+        pthread_join(worker, NULL);
+    check_true("parallel transaction waits and commits", result == 1);
+    storage_close();
+    remove_tree(root);
 }
 
 static void
@@ -706,6 +768,7 @@ test_social_cache_does_not_block_account_switch(void)
 int
 main(void)
 {
+    test_parallel_setting_reads_and_transactions();
     test_import_export_clear();
     test_reject_invalid_keys();
     test_legacy_synced_account_migrates_connected_server();

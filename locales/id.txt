@@ -1916,3 +1916,7 @@ Tampilkan yang selesai
 ---
 [elist_hide_completed]
 Sembunyikan yang selesai
+---
+[guide_title]
+Panduan singkat
+---

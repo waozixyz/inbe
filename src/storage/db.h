@@ -6,12 +6,36 @@
 #include <sqlite3.h>
 #include <stddef.h>
 
+#define STORAGE_SETTING_TEXT_BUFFER_SIZE 8192
+
+/* Settings are read by the UI and sync worker on separate threads. */
+static inline char *storage_setting_text_buffer(void) {
+#if defined(_MSC_VER)
+    static __declspec(thread) char value[STORAGE_SETTING_TEXT_BUFFER_SIZE];
+#elif defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+    static char value[STORAGE_SETTING_TEXT_BUFFER_SIZE];
+#else
+    static __thread char value[STORAGE_SETTING_TEXT_BUFFER_SIZE];
+#endif
+    return value;
+}
+
+static inline int *storage_sql_transaction_lock_held(void) {
+#if defined(_MSC_VER)
+    static __declspec(thread) int held;
+#elif defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+    static int held;
+#else
+    static __thread int held;
+#endif
+    return &held;
+}
+
 typedef struct StorageState {
     sqlite3 *db;
     char root[STORAGE_PATH_SIZE];
     char db_path[STORAGE_PATH_SIZE];
     char user_id[STORAGE_ID_SIZE];
-    char text_value[8192];
     int last_sync_changed;
     int materialize_defer;
     int materialize_needed;
@@ -29,7 +53,7 @@ int db_select_int(const char *sql, int fallback);
 int db_exec_text(const char *sql, const char *text);
 int storage_join_path(char *out, size_t out_size, const char *root, const char *name);
 int path_exists(const char *path);
-int ensure_dir_local(const char *path);
+int storage_ensure_dir(const char *path);
 int exec_sql(const char *sql);
 int table_has_column(const char *table, const char *column);
 int table_exists(const char *table);

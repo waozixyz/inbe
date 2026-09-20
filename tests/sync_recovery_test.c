@@ -105,6 +105,12 @@ SyncResult sync_client_get_friend_stats(const char *url, const char *app,
 }
 int main(void)
 {
+    InnerBreeze app = {0};
+    app.breathing.screen = ScreenStart;
+    assert(app_background_sync_safe(&app));
+    app.breathing.screen = ScreenPracticeSession;
+    assert(!app_background_sync_safe(&app));
+
     /* Exercise the C boundary, including corrupted persisted attempt values. */
     const int attempts[] = {INT_MIN, -1, 0, 1, 2, 3, 4, 5, INT_MAX};
     const int expected_attempts[] = {1, 1, 1, 2, 3, 4, 4, 4, 4};

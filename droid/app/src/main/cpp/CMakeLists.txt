@@ -89,9 +89,12 @@ add_custom_target(app_build_laws
     COMMAND "${HOST_PYTHON}" "${REPO_ROOT}/scripts/check-version.py"
     COMMAND "${HOST_NODE}" "${REPO_ROOT}/scripts/generate-sync-retry.mjs"
         "${APP_PROOF_DIR}/sync_retry_table.h"
+    COMMAND "${HOST_NODE}" "${REPO_ROOT}/scripts/generate-storage-layout.mjs"
+        "${APP_PROOF_DIR}/storage_layout.h"
     BYPRODUCTS "${APP_PROOF_DIR}/sync_retry_table.h"
+        "${APP_PROOF_DIR}/storage_layout.h"
     WORKING_DIRECTORY "${REPO_ROOT}"
-    COMMENT "Checking release consistency and proving sync retry laws"
+    COMMENT "Checking release consistency and proving app laws"
     VERBATIM
 )
 set(KRYON_K2C "${CMAKE_BINARY_DIR}/host-tools/k2c")

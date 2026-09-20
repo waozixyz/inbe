@@ -1,11 +1,14 @@
 #import "storage/data.h"
 
 #import "platform.h" #private
+#import "storage/db.h" #private
 #import "storage.h" #private
 #import "kryon.h" #private
+#import "storage_layout.h" #private
 #import <stdio.h>
 #import <stdlib.h>
 #import <string.h>
+#import <sys/stat.h>
 #import <time.h>
 
 ANDROID :: ANDROID_BUILD
@@ -24,37 +27,46 @@ static g_data_root: [DATA_PATH_MAX] char = ""
 static g_today_dir: [DATA_PATH_MAX] char = ""
 static g_data_ready: int = 0
 
-ensure_dir :: (path: const char*) -> int #private {
-    temp: [DATA_PATH_MAX] char = {0}
-    p: char*
+data_directory_exists :: (path: const char*) -> int #private {
+    st: struct stat
 
-    if path == nil || path[0] == '\0' {
-        return 0
-    }
-    if DirectoryExists(path) {
-        return 1
-    }
+    return path != nil && stat(path, &st) == 0 && (st.st_mode & S_IFMT) == S_IFDIR
+}
 
-    #if ANDROID {
-        return MakeDirectory(path) || DirectoryExists(path)
-    } #else {
-        snprintf(temp, sizeof(temp), "%s", path)
-        p = temp
-        if *p == '/' {
-            p++
-        }
-        while (p = strchr(p, '/')) != nil {
-            *p = '\0'
-            if temp[0] != '\0' && !DirectoryExists(temp) &&
-               !MakeDirectory(temp) && !DirectoryExists(temp) {
-                *p = '/'
-                return 0
+migrate_data_root :: (legacy_root: const char*, current_root: const char*) #private {
+    backup_root: [DATA_PATH_MAX] char
+    legacy_exists: int = data_directory_exists(legacy_root)
+    current_exists: int = data_directory_exists(current_root)
+    archived: int = 0
+    moved: int = 0
+    selected: int
+
+    if legacy_exists && current_exists {
+        for int suffix = 0; suffix < 16; suffix++ {
+            snprintf(backup_root, sizeof(backup_root), STORAGE_DIR_ARCHIVE_FMT,
+                     current_root, suffix + 1)
+            if path_exists(backup_root) {
+                continue
             }
-            *p = '/'
-            p++
+            archived = rename(current_root, backup_root) == 0
+            if archived {
+                current_exists = 0
+            }
+            break
         }
-        return MakeDirectory(path) || DirectoryExists(path)
+        if !archived {
+            TraceLog(LOG_WARNING, "DATA: existing current directory could not be archived; using legacy data")
+        }
     }
+    if legacy_exists && !current_exists {
+        moved = rename(legacy_root, current_root) == 0
+        if !moved {
+            TraceLog(LOG_WARNING, "DATA: legacy directory move failed; continuing with existing data")
+        }
+    }
+    selected = storage_layout_decisions[legacy_exists][current_exists][moved ? 0 : 1]
+    snprintf(g_data_root, sizeof(g_data_root), "%s",
+             selected == STORAGE_ROOT_CURRENT ? current_root : legacy_root)
 }
 
 data_root :: () -> const char* {
@@ -67,42 +79,72 @@ data_root :: () -> const char* {
         override_root: const char* = getenv("APP_DATA_ROOT")
         if override_root != nil && override_root[0] != '\0' {
             snprintf(g_data_root, sizeof(g_data_root), "%s", override_root)
-            ensure_dir(g_data_root)
+            storage_ensure_dir(g_data_root)
             return g_data_root
         }
     }
 
     #if WEB {
-        snprintf(g_data_root, sizeof(g_data_root), "/home/breathing")
+        migrate_data_root(STORAGE_WEB_HOME_LEGACY, STORAGE_WEB_HOME)
     } #else_if ANDROID {
         app: struct android_app* = GetAndroidApp()
         internal_path: const char* = nil
+        base_path: const char*
+        legacy_root: [DATA_PATH_MAX] char
+        current_root: [DATA_PATH_MAX] char
 
         if app != nil && app->activity != nil {
             internal_path = app->activity->internalDataPath
         }
-        if internal_path != nil && internal_path[0] != '\0' {
-            snprintf(g_data_root, sizeof(g_data_root), "%s/breathing", internal_path)
-        } else {
-            snprintf(g_data_root, sizeof(g_data_root), "%s/breathing", GetWorkingDirectory())
-        }
+        base_path = internal_path != nil && internal_path[0] != '\0' ?
+                    internal_path : GetWorkingDirectory()
+        storage_join_path(legacy_root, sizeof(legacy_root), base_path,
+                          STORAGE_DIR_LEGACY_ANDROID)
+        storage_join_path(current_root, sizeof(current_root), base_path,
+                          STORAGE_DIR_NAME)
+        migrate_data_root(legacy_root, current_root)
     } #else_if WIN32 {
         local: const char* = getenv("LOCALAPPDATA")
         roaming: const char* = getenv("APPDATA")
+        base_path: const char* = local != nil && local[0] != '\0' ? local : roaming
+        legacy_root: [DATA_PATH_MAX] char
+        current_root: [DATA_PATH_MAX] char
 
-        if local != nil && local[0] != '\0' {
-            snprintf(g_data_root, sizeof(g_data_root), "%s/BreathSession", local)
-        } else if roaming != nil && roaming[0] != '\0' {
-            snprintf(g_data_root, sizeof(g_data_root), "%s/BreathSession", roaming)
+        if base_path != nil && base_path[0] != '\0' {
+            storage_join_path(legacy_root, sizeof(legacy_root), base_path,
+                              STORAGE_DIR_LEGACY_WINDOWS)
+            storage_join_path(current_root, sizeof(current_root), base_path,
+                              STORAGE_DIR_NAME)
         } else {
-            snprintf(g_data_root, sizeof(g_data_root), "BreathSession")
+            snprintf(legacy_root, sizeof(legacy_root), "%s", STORAGE_DIR_LEGACY_WINDOWS)
+            snprintf(current_root, sizeof(current_root), "%s", STORAGE_DIR_NAME)
         }
+        migrate_data_root(legacy_root, current_root)
     } #else {
-        root: const char* = AppDataRoot("breathing")
-        snprintf(g_data_root, sizeof(g_data_root), "%s", root != nil && root[0] != '\0' ? root : ".local/breathing")
+        xdg: const char* = getenv("XDG_DATA_HOME")
+        home: const char* = getenv("HOME")
+        plan9_home: const char* = getenv("home")
+        base_path: [DATA_PATH_MAX] char
+        legacy_root: [DATA_PATH_MAX] char
+        current_root: [DATA_PATH_MAX] char
+
+        if xdg != nil && xdg[0] != '\0' {
+            snprintf(base_path, sizeof(base_path), "%s", xdg)
+        } else if home != nil && home[0] != '\0' {
+            snprintf(base_path, sizeof(base_path), "%s/.local/share", home)
+        } else if plan9_home != nil && plan9_home[0] != '\0' {
+            snprintf(base_path, sizeof(base_path), "%s/.local/share", plan9_home)
+        } else {
+            snprintf(base_path, sizeof(base_path), ".local")
+        }
+        storage_join_path(legacy_root, sizeof(legacy_root), base_path,
+                          STORAGE_DIR_LEGACY_POSIX)
+        storage_join_path(current_root, sizeof(current_root), base_path,
+                          STORAGE_DIR_NAME)
+        migrate_data_root(legacy_root, current_root)
     }
 
-    if !ensure_dir(g_data_root) {
+    if !storage_ensure_dir(g_data_root) {
         TraceLog(LOG_ERROR, "DATA: failed to create root directory: %s", g_data_root)
     }
     TraceLog(LOG_INFO, "DATA: root directory: %s", g_data_root)
@@ -158,7 +200,7 @@ data_rename_session :: (old_path: const char*, new_path: const char*) -> int {
     data_init()
     name = GetFileName(new_path)
     if name == nil ||
-       sscanf(name, "breathing-%2d%2d%2d", &hour, &minute, &second) != 3 {
+       sscanf(name, STORAGE_SESSION_LEGACY_SCAN, &hour, &minute, &second) != 3 {
         return 0
     }
     unused second
@@ -210,9 +252,9 @@ data_default_export_filename :: (out: char*, out_size: size_t) {
 
     now = time(nil)
     if now > 0 {
-        snprintf(out, out_size, "breathing-%lld.zip", (long long)now)
+        snprintf(out, out_size, STORAGE_EXPORT_FILENAME_FMT, (long long)now)
     } else {
-        snprintf(out, out_size, "breathing.zip")
+        snprintf(out, out_size, "%s", STORAGE_EXPORT_FILENAME_FALLBACK)
     }
 }
 

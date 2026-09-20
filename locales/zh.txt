@@ -1916,3 +1916,7 @@ Dismiss forever
 ---
 [elist_hide_completed]
 隐藏已完成项目
+---
+[guide_title]
+快速指南
+---

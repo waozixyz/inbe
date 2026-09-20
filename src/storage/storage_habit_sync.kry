@@ -98,7 +98,7 @@ storage_merge_habit_into :: (keeper_id: const char*, duplicate_id: const char*) 
     return ok
 }
 
-static storage_reconcile_remote_habit_ids_remote_map_sql: const char* = "INSERT OR IGNORE INTO remote_habit_id_map(old_id,new_id) "
+static storage_reconcile_remote_habit_ids_remote_map_sql: const char* = "INSERT OR IGNORE INTO sync_remote_habit_map(old_id,new_id) "
 "SELECT h.id,COALESCE(json_extract(r.value,'$.id'),'') "
 "FROM (SELECT value FROM json_each(?1,'$.changes.habits') "
 "      UNION ALL SELECT value FROM json_each(?1,'$.data.habits')) AS r "
@@ -112,11 +112,7 @@ storage_reconcile_remote_habit_ids :: (response_json: const char*) -> int #expor
     if response_json == nil {
         return 0
     }
-    if !exec_sql("DROP TABLE IF EXISTS temp.remote_habit_id_map;"
-    "CREATE TEMP TABLE remote_habit_id_map("
-    " old_id TEXT PRIMARY KEY,"
-    " new_id TEXT NOT nil"
-    ")") {
+    if !exec_sql("DELETE FROM sync_remote_habit_map") {
         return 0
     }
     if !storage_exec_json_user_sql(storage_reconcile_remote_habit_ids_remote_map_sql, response_json) {
@@ -124,54 +120,54 @@ storage_reconcile_remote_habit_ids :: (response_json: const char*) -> int #expor
     }
     if !exec_sql("UPDATE habit_days "
     "SET completed=MAX(completed,COALESCE((SELECT d.completed FROM habit_days d "
-    "    JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
+    "    JOIN sync_remote_habit_map m ON m.old_id=d.habit_id "
     "    WHERE m.new_id=habit_days.habit_id "
     "      AND d.local_date=habit_days.local_date),0)),"
     " count=MAX(count,COALESCE((SELECT d.count FROM habit_days d "
-    "    JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
+    "    JOIN sync_remote_habit_map m ON m.old_id=d.habit_id "
     "    WHERE m.new_id=habit_days.habit_id "
     "      AND d.local_date=habit_days.local_date),0)),"
     " session_count=MAX(session_count,COALESCE((SELECT d.session_count FROM "
     "habit_days d "
-    "    JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
+    "    JOIN sync_remote_habit_map m ON m.old_id=d.habit_id "
     "    WHERE m.new_id=habit_days.habit_id "
     "      AND d.local_date=habit_days.local_date),0)),"
     " updated_at=MAX(updated_at,COALESCE((SELECT d.updated_at FROM habit_days d "
-    "    JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
+    "    JOIN sync_remote_habit_map m ON m.old_id=d.habit_id "
     "    WHERE m.new_id=habit_days.habit_id "
     "      AND d.local_date=habit_days.local_date),0)) "
-    "WHERE EXISTS (SELECT 1 FROM remote_habit_id_map m "
+    "WHERE EXISTS (SELECT 1 FROM sync_remote_habit_map m "
     "    WHERE m.new_id=habit_days.habit_id)") {
         return 0
     }
     if !exec_sql("INSERT INTO habit_days(habit_id,local_date,completed,count,session_count,"
     "updated_at) "
     "SELECT m.new_id,d.local_date,d.completed,d.count,d.session_count,d.updated_at "
-    "FROM habit_days d JOIN remote_habit_id_map m ON m.old_id=d.habit_id "
+    "FROM habit_days d JOIN sync_remote_habit_map m ON m.old_id=d.habit_id "
     "WHERE NOT EXISTS (SELECT 1 FROM habit_days k "
     "    WHERE k.habit_id=m.new_id AND k.local_date=d.local_date)") {
         return 0
     }
     if !exec_sql("UPDATE OR IGNORE sync_outbox SET entity_id=(SELECT m.new_id FROM "
-    "remote_habit_id_map m WHERE m.old_id=sync_outbox.entity_id) "
+    "sync_remote_habit_map m WHERE m.old_id=sync_outbox.entity_id) "
     "WHERE entity_type IN ('habit','habit_day') "
-    "AND EXISTS (SELECT 1 FROM remote_habit_id_map m "
+    "AND EXISTS (SELECT 1 FROM sync_remote_habit_map m "
     "    WHERE m.old_id=sync_outbox.entity_id);"
     "DELETE FROM sync_outbox WHERE entity_type IN ('habit','habit_day') "
-    "AND EXISTS (SELECT 1 FROM remote_habit_id_map m "
+    "AND EXISTS (SELECT 1 FROM sync_remote_habit_map m "
     "    WHERE m.old_id=sync_outbox.entity_id);"
     "UPDATE OR IGNORE sync_ops SET entity_id=(SELECT m.new_id FROM "
-    "remote_habit_id_map m WHERE m.old_id=sync_ops.entity_id) "
+    "sync_remote_habit_map m WHERE m.old_id=sync_ops.entity_id) "
     "WHERE entity_type IN ('habit','habit_day') "
-    "AND EXISTS (SELECT 1 FROM remote_habit_id_map m "
+    "AND EXISTS (SELECT 1 FROM sync_remote_habit_map m "
     "    WHERE m.old_id=sync_ops.entity_id);"
-    "DELETE FROM habit_days WHERE EXISTS (SELECT 1 FROM remote_habit_id_map m "
+    "DELETE FROM habit_days WHERE EXISTS (SELECT 1 FROM sync_remote_habit_map m "
     "    WHERE m.old_id=habit_days.habit_id);"
-    "DELETE FROM habits WHERE EXISTS (SELECT 1 FROM remote_habit_id_map m "
+    "DELETE FROM habits WHERE EXISTS (SELECT 1 FROM sync_remote_habit_map m "
     "    WHERE m.old_id=habits.id);") {
         return 0
     }
-    return exec_sql("DROP TABLE IF EXISTS temp.remote_habit_id_map")
+    return exec_sql("DELETE FROM sync_remote_habit_map")
 }
 
 storage_habit_exists :: (habit_id: const char*) -> int #private {

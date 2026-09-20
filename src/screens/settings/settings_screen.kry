@@ -139,7 +139,8 @@ settings_scroll_page_content_height :: (content_w: int, user_data: void*) -> int
     if planned_content_w < Scale(160) {
         planned_content_w = content_w
     }
-    return settings_tab_content_height(ctx->app, ctx->tab, planned_content_w)
+    return settings_tab_content_height(ctx->app, ctx->tab, planned_content_w) +
+           Scale(24)
 }
 
 settings_screen_tab_label :: (tab: int) -> const char* {
@@ -373,7 +374,7 @@ settings_mobile_hub_content_height :: (content_w: int, user_data: void*) -> int 
     unused user_data
 
     return Scale(76) + Scale(18) + (settings_desktop_tab_count() + 1) * Scale(64) +
-           Scale(16)
+           Scale(24)
 }
 
 settings_mobile_hub_draw_content :: (content_x: int, content_y: int,

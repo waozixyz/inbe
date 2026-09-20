@@ -633,8 +633,7 @@ app_background_sync_safe :: (app: const InnerBreeze*) -> int #private {
        app->profile_friend_input_focused {
         return 0
     }
-    if app->breathing.screen == ScreenStart ||
-       app->breathing.screen == ScreenPracticeSession ||
+    if app->breathing.screen == ScreenPracticeSession ||
        app->breathing.screen == ScreenMeditation ||
        app->breathing.screen == ScreenSunSalutation {
         return 0

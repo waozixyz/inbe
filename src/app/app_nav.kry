@@ -247,6 +247,18 @@ app_sanitize_bottom_nav_routes :: (app: InnerBreeze*) {
     if app == NULL {
         return
     }
+    // Earlier releases saved these default orders before Lists became the
+    // first tab. Migrate only those known layouts; leave custom orders alone.
+    if app->bottom_nav_route_count == 4 &&
+       app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS &&
+       ((app->bottom_nav_routes[1] == APP_NAV_ROUTE_PRACTICE &&
+         app->bottom_nav_routes[2] == APP_NAV_ROUTE_SETTINGS &&
+         app->bottom_nav_routes[3] == APP_NAV_ROUTE_ELIST) ||
+        (app->bottom_nav_routes[1] == APP_NAV_ROUTE_ELIST &&
+         app->bottom_nav_routes[2] == APP_NAV_ROUTE_PRACTICE &&
+         app->bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS)) {
+        app_reset_bottom_nav_routes(app)
+    }
     allowed[allowed_count] = APP_NAV_ROUTE_HABITS
     allowed_count += 1
     allowed[allowed_count] = APP_NAV_ROUTE_ELIST
@@ -589,18 +601,21 @@ app_nav_profile_identity :: (app: InnerBreeze*, out: char*, out_size: size_t,
     if subtitle != NULL && subtitle_size > 0 {
         subtitle[0] = '\0'
     }
-    if !sync_account_load(&account) {
-        snprintf(out, out_size, "%s", GetLocaleText("profile_no_account"))
-        return
-    }
-    alias = storage_get_setting_text("sync_account_alias")
     if app != NULL && app->profile_display_name[0] != '\0' {
         snprintf(out, out_size, "%s", app->profile_display_name)
-        if alias != NULL && alias[0] != '\0' && subtitle != NULL && subtitle_size > 0 {
-            snprintf(subtitle, subtitle_size, "@%s", alias)
+        if sync_account_load(&account) {
+            alias = storage_get_setting_text("sync_account_alias")
+            if alias != NULL && alias[0] != '\0' && subtitle != NULL && subtitle_size > 0 {
+                snprintf(subtitle, subtitle_size, "@%s", alias)
+            }
         }
         return
     }
+    if !sync_account_load(&account) {
+        snprintf(out, out_size, "%s", GetLocaleText("tab_profile"))
+        return
+    }
+    alias = storage_get_setting_text("sync_account_alias")
     if alias != NULL && alias[0] != '\0' {
         app_alias_display_name(alias, out, out_size)
         if subtitle != NULL && subtitle_size > 0 {
@@ -630,13 +645,13 @@ app_open_customize_nav :: (app: InnerBreeze*) {
 }
 
 app_nav_option_index :: (app: const InnerBreeze*, route: int) -> int #private {
-    if route == APP_NAV_ROUTE_HABITS {
+    if route == APP_NAV_ROUTE_ELIST {
         return 0
     }
     if route == APP_NAV_ROUTE_PRACTICE {
         return 2
     }
-    if route == APP_NAV_ROUTE_ELIST {
+    if route == APP_NAV_ROUTE_HABITS {
         return 1
     }
     if route == APP_NAV_ROUTE_SETTINGS {
@@ -662,8 +677,8 @@ app_nav_route_for_option :: (app: const InnerBreeze*, option: int) -> int #priva
     routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] int
     count := app_nav_config_option_count(app)
 
-    routes[0] = APP_NAV_ROUTE_HABITS
-    routes[1] = APP_NAV_ROUTE_ELIST
+    routes[0] = APP_NAV_ROUTE_ELIST
+    routes[1] = APP_NAV_ROUTE_HABITS
     routes[2] = APP_NAV_ROUTE_PRACTICE
     if app_nav_bottom_profile_enabled(app) {
         routes[3] = APP_NAV_ROUTE_PROFILE
@@ -709,8 +724,8 @@ app_first_unused_bottom_nav_route :: (app: const InnerBreeze*) -> int #private {
     routes: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] int
     count := app_nav_config_option_count(app)
 
-    routes[0] = APP_NAV_ROUTE_HABITS
-    routes[1] = APP_NAV_ROUTE_ELIST
+    routes[0] = APP_NAV_ROUTE_ELIST
+    routes[1] = APP_NAV_ROUTE_HABITS
     routes[2] = APP_NAV_ROUTE_PRACTICE
     if app_nav_bottom_profile_enabled(app) {
         routes[3] = APP_NAV_ROUTE_PROFILE
@@ -781,8 +796,8 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     }
     draw_count = app->bottom_nav_config_route_count
 
-    options[0] = app_nav_route_label(APP_NAV_ROUTE_HABITS)
-    options[1] = app_nav_route_label(APP_NAV_ROUTE_ELIST)
+    options[0] = app_nav_route_label(APP_NAV_ROUTE_ELIST)
+    options[1] = app_nav_route_label(APP_NAV_ROUTE_HABITS)
     options[2] = app_nav_route_label(APP_NAV_ROUTE_PRACTICE)
     if app_nav_bottom_profile_enabled(app) {
         options[3] = app_nav_route_label(APP_NAV_ROUTE_PROFILE)
@@ -807,6 +822,7 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
     if draw_count < option_count {
         content_h += button_h + Scale(14)
     }
+    content_h += Scale(24)
     viewport_h = view_height - title_h - top_gap - app_content_bottom_reserved(app)
     if viewport_h < 0 {
         viewport_h = 0

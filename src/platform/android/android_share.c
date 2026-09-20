@@ -123,7 +123,10 @@ int android_share_export(const char *filename)
         return 0;
     }
 
-    snprintf(export_path, sizeof(export_path), "%s/%s", data_root(), filename);
+    if(!storage_join_path(export_path, sizeof(export_path), data_root(), filename)) {
+        TraceLog(LOG_ERROR, "ANDROID_SHARE: export path is too long");
+        return 0;
+    }
     if(!storage_export_zip(export_path)) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: failed to export SQLite ZIP");
         return 0;

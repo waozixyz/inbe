@@ -186,7 +186,7 @@ exec_db_sql(const char *root, const char *sql)
     char *err = NULL;
     int ok;
 
-    snprintf(db_path, sizeof(db_path), "%s/breathing.db", root);
+    snprintf(db_path, sizeof(db_path), "%s/inbe.db", root);
     if(sqlite3_open(db_path, &db) != SQLITE_OK || db == NULL)
         return 0;
     ok = sqlite3_exec(db, sql, NULL, NULL, &err) == SQLITE_OK;
@@ -206,7 +206,7 @@ read_db_count(const char *root, const char *sql)
     sqlite3_stmt *stmt = NULL;
     int count = -1;
 
-    snprintf(db_path, sizeof(db_path), "%s/breathing.db", root);
+    snprintf(db_path, sizeof(db_path), "%s/inbe.db", root);
     if(sqlite3_open(db_path, &db) != SQLITE_OK || db == NULL)
         return count;
     if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK &&

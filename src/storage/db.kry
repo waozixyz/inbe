@@ -1,5 +1,6 @@
 #module "storage.db"
 #import "storage/db.h"
+#import "storage_layout.h"
 
 #import "import.h"
 #import "kryon.h"
@@ -11,6 +12,7 @@
 #import "unistd.h"
 
 WIN32 :: #defined(_WIN32)
+ANDROID :: ANDROID_BUILD
 EMSCRIPTEN :: #defined(__EMSCRIPTEN__)
 WEB :: #defined(PLATFORM_WEB)
 
@@ -48,13 +50,13 @@ path_exists :: (path: const char*) -> int #export {
     return path != nil && stat(path, &st) == 0
 }
 
-dir_exists_local :: (path: const char*) -> int {
+storage_dir_exists :: (path: const char*) -> int #private {
     st: struct stat
 
     return path != nil && stat(path, &st) == 0 && S_ISDIR(st.st_mode)
 }
 
-make_dir :: (path: const char*) -> int {
+storage_make_dir :: (path: const char*) -> int #private {
     #if WIN32 {
         return mkdir(path) == 0
     } #else {
@@ -62,14 +64,17 @@ make_dir :: (path: const char*) -> int {
     }
 }
 
-ensure_dir_local :: (path: const char*) -> int #export {
+# The one recursive directory creator for app storage. Every persisted path
+# goes through storage_join_path + storage_ensure_dir; duplicates are banned
+# by scripts/check-storage-literals.sh.
+storage_ensure_dir :: (path: const char*) -> int #export {
     temp: [STORAGE_PATH_SIZE] char
     p: char*
 
     if path == nil || path[0] == '\0' {
         return 0
     }
-    if dir_exists_local(path) {
+    if storage_dir_exists(path) {
         return 1
     }
 
@@ -80,26 +85,37 @@ ensure_dir_local :: (path: const char*) -> int #export {
     }
     while (p = strchr(p, '/')) != nil {
         *p = '\0'
-        if temp[0] != '\0' && !dir_exists_local(temp) && !make_dir(temp) &&
-           !dir_exists_local(temp) {
+        if temp[0] != '\0' && !storage_dir_exists(temp) &&
+           !storage_make_dir(temp) && !storage_dir_exists(temp) {
             *p = '/'
             return 0
         }
         *p = '/'
         p++
     }
-
-    return make_dir(path) || dir_exists_local(path)
+    return storage_make_dir(path) || storage_dir_exists(path)
 }
 
 exec_sql :: (sql: const char*) -> int #export {
     error: char* = nil
     rc: int = SQLITE_OK
+    mutex: sqlite3_mutex*
+    held: int*
+
+    if g_storage.db == nil || sql == nil {
+        return 0
+    }
+    mutex = sqlite3_db_mutex(g_storage.db)
+    held = storage_sql_transaction_lock_held()
+    if mutex != nil && *held == 0 {
+        sqlite3_mutex_enter(mutex)
+        *held = 1
+    }
 
     for int attempt = 0; attempt < 20; attempt++ {
         rc = sqlite3_exec(g_storage.db, sql, nil, nil, &error)
         if rc == SQLITE_OK {
-            return 1
+            break
         }
         if rc != SQLITE_BUSY && rc != SQLITE_LOCKED {
             break
@@ -111,12 +127,15 @@ exec_sql :: (sql: const char*) -> int #export {
         }
     }
     if rc != SQLITE_OK {
-        TraceLog(LOG_ERROR, "STORAGE: SQL failed: %s",
-                 error != nil ? error : "unknown")
+        TraceLog(LOG_ERROR, "STORAGE: SQL failed code=%d: %s", rc,
+                 error != nil ? error : sqlite3_errmsg(g_storage.db))
         sqlite3_free(error)
-        return 0
     }
-    return 1
+    if mutex != nil && *held != 0 && sqlite3_get_autocommit(g_storage.db) {
+        *held = 0
+        sqlite3_mutex_leave(mutex)
+    }
+    return rc == SQLITE_OK
 }
 
 table_has_column :: (table: const char*, column: const char*) -> int #export {
@@ -325,6 +344,10 @@ schema_create :: () -> int #export {
         " updated_at INTEGER NOT NULL,"
         " PRIMARY KEY(habit_id,local_date)"
         ");"
+        "CREATE TABLE IF NOT EXISTS sync_remote_habit_map("
+        " old_id TEXT PRIMARY KEY,"
+        " new_id TEXT NOT NULL"
+        ");"
         "CREATE TABLE IF NOT EXISTS break_days("
         " user_id TEXT NOT NULL,"
         " local_date INTEGER NOT NULL,"
@@ -448,8 +471,9 @@ meta_equals :: (key: const char*, value: const char*) -> int #export {
 
 get_meta_text :: (key: const char*) -> const char* #export {
     stmt: sqlite3_stmt* = nil
+    text_value: char* = storage_setting_text_buffer()
 
-    g_storage.text_value[0] = '\0'
+    text_value[0] = '\0'
 
     if g_storage.db == nil || key == nil {
         return nil
@@ -462,11 +486,11 @@ get_meta_text :: (key: const char*) -> const char* #export {
     if sqlite3_step(stmt) == SQLITE_ROW {
         text: const char* = (const char*)sqlite3_column_text(stmt, 0)
 
-        snprintf(g_storage.text_value, sizeof(g_storage.text_value), "%s",
+        snprintf(text_value, STORAGE_SETTING_TEXT_BUFFER_SIZE, "%s",
                  text != nil ? text : "")
     }
     sqlite3_finalize(stmt)
-    return g_storage.text_value[0] != '\0' ? g_storage.text_value : nil
+    return text_value[0] != '\0' ? text_value : nil
 }
 
 set_meta :: (key: const char*, value: const char*) #export {
@@ -686,24 +710,139 @@ migrate_schema :: () -> int #export {
     return 1
 }
 
+storage_copy_legacy_database :: (legacy_path: const char*, current_path: const char*,
+                                  marker_path: const char*, temporary_path: const char*) -> int #private {
+    source: sqlite3* = nil
+    destination: sqlite3* = nil
+    backup: sqlite3_backup* = nil
+    check: sqlite3_stmt* = nil
+    marker: FILE* = nil
+    ok: int = 0
+    rc: int
+    marker_written: int = 0
+
+    remove(temporary_path)
+    if sqlite3_open_v2(legacy_path, &source, SQLITE_OPEN_READWRITE, nil) != SQLITE_OK {
+        goto done
+    }
+    if sqlite3_open_v2(temporary_path, &destination,
+                       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nil) != SQLITE_OK {
+        goto done
+    }
+    backup = sqlite3_backup_init(destination, "main", source, "main")
+    if backup == nil {
+        goto done
+    }
+    rc = sqlite3_backup_step(backup, -1)
+    if sqlite3_backup_finish(backup) != SQLITE_OK || rc != SQLITE_DONE {
+        backup = nil
+        goto done
+    }
+    backup = nil
+    if sqlite3_prepare_v2(destination, "PRAGMA quick_check", -1, &check, nil) != SQLITE_OK ||
+       sqlite3_step(check) != SQLITE_ROW ||
+       strcmp((const char*)sqlite3_column_text(check, 0), "ok") != 0 {
+        goto done
+    }
+    sqlite3_finalize(check)
+    check = nil
+    if sqlite3_close(destination) != SQLITE_OK {
+        destination = nil
+        goto done
+    }
+    destination = nil
+    if sqlite3_close(source) != SQLITE_OK {
+        source = nil
+        goto done
+    }
+    source = nil
+    marker = fopen(marker_path, "wb")
+    if marker == nil {
+        goto done
+    }
+    marker_written = fprintf(marker, "%s\n", STORAGE_DB_NAME) > 0 && fflush(marker) == 0
+    if fclose(marker) != 0 {
+        marker_written = 0
+    }
+    marker = nil
+    if !marker_written {
+        goto done
+    }
+    ok = rename(temporary_path, current_path) == 0
+
+done:
+    if marker != nil {
+        fclose(marker)
+    }
+    if check != nil {
+        sqlite3_finalize(check)
+    }
+    if backup != nil {
+        sqlite3_backup_finish(backup)
+    }
+    if destination != nil {
+        sqlite3_close(destination)
+    }
+    if source != nil {
+        sqlite3_close(source)
+    }
+    if !ok {
+        remove(temporary_path)
+    }
+    return ok
+}
+
 storage_init :: (root: const char*) -> int #export {
+    legacy_db_path: [STORAGE_PATH_SIZE] char
+    current_db_path: [STORAGE_PATH_SIZE] char
+    marker_path: [STORAGE_PATH_SIZE] char
+    temporary_path: [STORAGE_PATH_SIZE] char
+    marker_name: [64] char
+    temporary_name: [64] char
+    use_legacy_db: int = 0
     if root == nil || root[0] == '\0' {
         return 0
     }
     g_storage.pending_sync_outbox_seq = 0
     g_storage.last_sync_changed = 0
     snprintf(g_storage.root, sizeof(g_storage.root), "%s", root)
-    if !ensure_dir_local(g_storage.root) {
+    if !storage_ensure_dir(g_storage.root) {
         TraceLog(LOG_ERROR, "STORAGE: failed to create root directory: %s",
                  g_storage.root)
         return 0
     }
-    if !storage_join_path(g_storage.db_path, sizeof(g_storage.db_path),
-                          g_storage.root, "breathing.db") {
+    snprintf(marker_name, sizeof(marker_name), "%s.migrated", STORAGE_DB_NAME)
+    snprintf(temporary_name, sizeof(temporary_name), "%s.migrating", STORAGE_DB_NAME)
+    if !storage_join_path(legacy_db_path, sizeof(legacy_db_path),
+                          g_storage.root, STORAGE_DB_NAME_LEGACY) ||
+       !storage_join_path(current_db_path, sizeof(current_db_path),
+                          g_storage.root, STORAGE_DB_NAME) ||
+       !storage_join_path(marker_path, sizeof(marker_path),
+                          g_storage.root, marker_name) ||
+       !storage_join_path(temporary_path, sizeof(temporary_path),
+                          g_storage.root, temporary_name) {
         TraceLog(LOG_ERROR, "STORAGE: database path is too long")
         return 0
     }
-    if sqlite3_open(g_storage.db_path, &g_storage.db) != SQLITE_OK {
+    if path_exists(legacy_db_path) && path_exists(current_db_path) &&
+       !path_exists(marker_path) {
+        TraceLog(LOG_ERROR, "STORAGE: both database names exist without a migration marker")
+        return 0
+    }
+    if path_exists(legacy_db_path) && !path_exists(current_db_path) {
+        if storage_copy_legacy_database(legacy_db_path, current_db_path,
+                                        marker_path, temporary_path) {
+            TraceLog(LOG_INFO, "STORAGE: migrated database to %s", STORAGE_DB_NAME)
+        } else {
+            TraceLog(LOG_WARNING, "STORAGE: database migration deferred; using legacy database")
+            use_legacy_db = 1
+        }
+    }
+    snprintf(g_storage.db_path, sizeof(g_storage.db_path), "%s",
+             use_legacy_db ? legacy_db_path : current_db_path)
+    if sqlite3_open_v2(g_storage.db_path, &g_storage.db,
+                       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX,
+                       nil) != SQLITE_OK {
         TraceLog(LOG_ERROR, "STORAGE: failed to open %s", g_storage.db_path)
         sqlite3_close(g_storage.db)
         g_storage.db = nil

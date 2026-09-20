@@ -84,9 +84,12 @@ test('actual Make proof prerequisite rejects broken policy despite an existing h
         fs.mkdirSync(path.join(directory, 'scripts'));
         fs.mkdirSync(path.join(directory, 'vendor'));
         fs.mkdirSync(path.join(directory, 'src/core'), { recursive: true });
-        for (const file of ['scripts/generate-sync-retry.mjs', 'src/core/version.h', 'Makefile']) {
+        for (const file of ['scripts/generate-sync-retry.mjs',
+            'scripts/generate-storage-layout.mjs', 'src/core/version.h', 'Makefile']) {
             fs.copyFileSync(path.join(root, file), path.join(directory, file));
         }
+        fs.cpSync(path.join(root, 'laws/storage_layout'), path.join(directory, 'laws/storage_layout'),
+            { recursive: true });
         fs.symlinkSync(path.join(root, 'vendor/kryon'), path.join(directory, 'vendor/kryon'), 'dir');
         const make = () => spawnSync('make', ['build/proofs/sync_retry_table.h'], {
             cwd: directory, encoding: 'utf8', timeout: 30000,

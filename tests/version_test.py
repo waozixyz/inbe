@@ -67,6 +67,7 @@ class VersionTest(unittest.TestCase):
         (self.root / "vendor/kryon").symlink_to(REPO / "vendor/kryon", target_is_directory=True)
         shutil.copytree(REPO / "laws", self.root / "laws")
         shutil.copy2(REPO / "scripts/generate-sync-retry.mjs", self.root / "scripts")
+        shutil.copy2(REPO / "scripts/generate-storage-layout.mjs", self.root / "scripts")
 
         def build():
             return subprocess.run(["make", "build-laws"], cwd=self.root,

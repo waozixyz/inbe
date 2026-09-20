@@ -1213,6 +1213,31 @@ test_elist_navigation_sanitizer_and_desktop_route(void)
     app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
     app.bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE;
     app.bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS;
+    app.bottom_nav_routes[3] = APP_NAV_ROUTE_ELIST;
+    app.bottom_nav_route_count = 4;
+    app_sanitize_bottom_nav_routes(&app);
+    expect(app.bottom_nav_routes[0] == APP_NAV_ROUTE_ELIST &&
+           app.bottom_nav_routes[1] == APP_NAV_ROUTE_HABITS &&
+           app.bottom_nav_routes[2] == APP_NAV_ROUTE_PRACTICE &&
+           app.bottom_nav_routes[3] == APP_NAV_ROUTE_SETTINGS,
+           "legacy Lists-after-Settings order should migrate to Lists first");
+
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_routes[1] = APP_NAV_ROUTE_ELIST;
+    app.bottom_nav_routes[2] = APP_NAV_ROUTE_PRACTICE;
+    app.bottom_nav_routes[3] = APP_NAV_ROUTE_SETTINGS;
+    app_sanitize_bottom_nav_routes(&app);
+    expect(app.bottom_nav_routes[0] == APP_NAV_ROUTE_ELIST &&
+           app.bottom_nav_routes[1] == APP_NAV_ROUTE_HABITS,
+           "legacy Habits-first order should migrate to Lists first");
+
+    expect(app_nav_option_index(&app, APP_NAV_ROUTE_ELIST) == 0 &&
+           app_nav_route_for_option(&app, 0) == APP_NAV_ROUTE_ELIST,
+           "Customize Nav should list Lists before Habits");
+
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_routes[1] = APP_NAV_ROUTE_PRACTICE;
+    app.bottom_nav_routes[2] = APP_NAV_ROUTE_SETTINGS;
     app.bottom_nav_route_count = 3;
     app_sanitize_bottom_nav_routes(&app);
     expect(app.bottom_nav_route_count == 3 &&
@@ -1487,11 +1512,14 @@ test_signed_out_profile_identity(void)
     reset_state();
     InnerBreeze app = test_app();
     char label[96], subtitle[96];
-    snprintf(app.profile_display_name, sizeof(app.profile_display_name), "Stale name");
     app_nav_profile_identity(&app, label, sizeof(label), subtitle, sizeof(subtitle));
-    expect(strcmp(label, GetLocaleText("profile_no_account")) == 0,
-           "Signed out profile must show No account, not the app or stale user name");
-    expect(subtitle[0] == '\0', "Signed out profile must not repeat No account");
+    expect(strcmp(label, GetLocaleText("tab_profile")) == 0,
+           "Unnamed local profile uses a neutral label");
+    expect(subtitle[0] == '\0', "Unnamed local profile has no subtitle");
+    snprintf(app.profile_display_name, sizeof(app.profile_display_name), "Alex");
+    app_nav_profile_identity(&app, label, sizeof(label), subtitle, sizeof(subtitle));
+    expect(strcmp(label, "Alex") == 0,
+           "Local display name remains visible without a sync account");
 }
 
 static void

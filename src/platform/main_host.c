@@ -80,30 +80,39 @@ extern struct android_app *GetAndroidApp(void);
 static const char *DESKTOP_APP_ID = "xyz.waozi.inbe";
 static const char *DESKTOP_APP_NAME = "inbe";
 static const char *DESKTOP_DISPLAY_NAME = "Inner Breeze";
+static const char *DEBUG_DESKTOP_APP_ID = "xyz.waozi.inbe.debug";
+static const char *DEBUG_DESKTOP_APP_NAME = "inbe-debug";
+static const char *DEBUG_DESKTOP_DISPLAY_NAME = "Inner Breeze (Debug)";
 static const char *DESKTOP_SUMMARY =
     "Syncable breathing, meditation, and habit practice app.";
 
 static void
 init_desktop_identity(void)
 {
+    const char *override_root = getenv("APP_DATA_ROOT");
+    int debug_profile = override_root != NULL && override_root[0] != '\0';
+    const char *app_id = debug_profile ? DEBUG_DESKTOP_APP_ID : DESKTOP_APP_ID;
+    const char *app_name = debug_profile ? DEBUG_DESKTOP_APP_NAME : DESKTOP_APP_NAME;
+    const char *display_name = debug_profile ? DEBUG_DESKTOP_DISPLAY_NAME : DESKTOP_DISPLAY_NAME;
     DesktopAppInfo info = {
-        DESKTOP_APP_ID,
-        DESKTOP_APP_NAME,
-        DESKTOP_DISPLAY_NAME,
+        app_id,
+        app_name,
+        display_name,
         DESKTOP_SUMMARY,
-        DESKTOP_APP_ID,
-        DESKTOP_APP_ID,
+        app_id,
+        app_id,
         0
     };
 
     InitDesktopApp(&info);
 #if defined(_WIN32)
-    _putenv("SDL_APP_NAME=Inner Breeze");
+    _putenv(debug_profile ? "SDL_APP_NAME=Inner Breeze (Debug)" :
+                            "SDL_APP_NAME=Inner Breeze");
 #else
-    setenv("SDL_APP_NAME", DESKTOP_DISPLAY_NAME, 1);
-    setenv("SDL_VIDEO_X11_WMCLASS", DESKTOP_APP_ID, 1);
-    setenv("SDL_VIDEO_WAYLAND_WMCLASS", DESKTOP_APP_ID, 1);
-    setenv("SDL_VIDEO_WAYLAND_APP_ID", DESKTOP_APP_ID, 1);
+    setenv("SDL_APP_NAME", display_name, 1);
+    setenv("SDL_VIDEO_X11_WMCLASS", app_id, 1);
+    setenv("SDL_VIDEO_WAYLAND_WMCLASS", app_id, 1);
+    setenv("SDL_VIDEO_WAYLAND_APP_ID", app_id, 1);
 #endif
 }
 #else
@@ -190,6 +199,11 @@ filtered_trace_log(int log_level, const char *text, va_list args)
     if(log_level < LOG_WARNING && trace_is_quiet_text(text))
         return;
 
+#if ANDROID_BUILD
+    if(log_level >= LOG_WARNING)
+        __android_log_vprint(ANDROID_LOG_WARN, "InnerBreeze", text, args);
+    return;
+#endif
     fprintf(stderr, "%s: ", trace_level_name(log_level));
     vfprintf(stderr, text, args);
     fputc('\n', stderr);
@@ -539,8 +553,17 @@ native_prepare(int argc, char **argv)
     install_trace_log_filter();
     if(getenv("APP_NO_SINGLE_INSTANCE") != NULL || g_screenshot.active)
         SetSingleInstance(0);
-    if(!g_screenshot.active)
+    if(!g_screenshot.active) {
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
+        const char *override_root = getenv("APP_DATA_ROOT");
+        if(override_root != NULL && override_root[0] != '\0') {
+            snprintf(config.title, sizeof(config.title), "%s",
+                     DEBUG_DESKTOP_DISPLAY_NAME);
+            config.title_custom = 1;
+        }
+#endif
         init_desktop_identity();
+    }
     if(g_screenshot.active) {
         SetTraceLogLevel(LOG_WARNING);
         config.width = g_screenshot.width;

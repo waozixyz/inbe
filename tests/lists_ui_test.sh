@@ -7,7 +7,7 @@ APP_SHOT_WINDOW=1 "$binary" --screenshot "$test_dir/start.png" \
     --screenshot-dark 1 > "$test_dir/app.log" 2>&1 &
 app_pid=$!
 trap 'kill "$app_pid" 2>/dev/null || true' EXIT
-db="/tmp/breathing-screenshot-$app_pid/breathing.db"
+db="/tmp/breathing-screenshot-$app_pid/inbe.db"
 window=""
 for attempt in {1..80}; do
     window="$(xdotool search --onlyvisible --pid "$app_pid" 2>/dev/null | head -1 || true)"

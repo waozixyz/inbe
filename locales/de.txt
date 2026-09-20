@@ -1916,3 +1916,7 @@ Erledigte anzeigen
 ---
 [elist_hide_completed]
 Erledigte ausblenden
+---
+[guide_title]
+Kurzanleitung
+---

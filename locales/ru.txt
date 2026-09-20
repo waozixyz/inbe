@@ -1916,3 +1916,7 @@ Dismiss forever
 ---
 [elist_hide_completed]
 Скрыть выполненные
+---
+[guide_title]
+Краткое руководство
+---

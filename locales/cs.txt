@@ -1916,3 +1916,7 @@ Zobrazit dokončené
 ---
 [elist_hide_completed]
 Skrýt dokončené
+---
+[guide_title]
+Rychlý průvodce
+---

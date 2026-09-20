@@ -1916,3 +1916,7 @@ Dismiss forever
 ---
 [elist_hide_completed]
 완료한 항목 숨기기
+---
+[guide_title]
+빠른 안내
+---

@@ -93,7 +93,7 @@ fresh_root() { # $1 = root; prepares an empty data root
 }
 
 set_setting() { # $1 = root, $2 = key, $3 = value
-    sqlite3 "$1/breathing.db" \
+    sqlite3 "$1/inbe.db" \
         "insert into settings(user_id,key,value,updated_at) select id,'$2','$3',strftime('%s','now') from users limit 1 on conflict(user_id,key) do update set value=excluded.value, updated_at=excluded.updated_at"
 }
 
@@ -108,12 +108,12 @@ fresh_root "$ROOT0"
 launch_app "$ROOT0" log0
 kill "$APP_PID" 2>/dev/null; APP_PID=""; sleep 1
 # The profile's tables may still live in the WAL; checkpoint before copying.
-sqlite3 "$ROOT0/breathing.db" "PRAGMA wal_checkpoint(TRUNCATE);" >/dev/null 2>&1
-rm -f "$ROOT0/breathing.db-wal" "$ROOT0/breathing.db-shm"
-cp "$ROOT0/breathing.db" "$WORK/template.db"
+sqlite3 "$ROOT0/inbe.db" "PRAGMA wal_checkpoint(TRUNCATE);" >/dev/null 2>&1
+rm -f "$ROOT0/inbe.db-wal" "$ROOT0/inbe.db-shm"
+cp "$ROOT0/inbe.db" "$WORK/template.db"
 # --- 1. startup maps the window -------------------------------------------
 ROOT1="$WORK/r-keep"
-fresh_root "$ROOT1"; cp "$WORK/template.db" "$ROOT1/breathing.db"
+fresh_root "$ROOT1"; cp "$WORK/template.db" "$ROOT1/inbe.db"
 mkdir -p "$ROOT1/runtime-assets"
 set_setting "$ROOT1" desktop_close_action 1   # KEEP_RUNNING
 launch_app "$ROOT1" log-keep
@@ -142,7 +142,7 @@ fi
 
 # --- 3. close = ask -> prompt -> Quit -> exits -----------------------------
 ROOT2="$WORK/r-ask"
-fresh_root "$ROOT2"; cp "$WORK/template.db" "$ROOT2/breathing.db"
+fresh_root "$ROOT2"; cp "$WORK/template.db" "$ROOT2/inbe.db"
 mkdir -p "$ROOT2/runtime-assets"
 set_setting "$ROOT2" desktop_close_action 0   # ASK
 launch_app "$ROOT2" log-ask
@@ -167,7 +167,7 @@ fi
 
 # --- 4. close = ask -> prompt -> Keep running ------------------------------
 ROOT3="$WORK/r-ask2"
-fresh_root "$ROOT3"; cp "$WORK/template.db" "$ROOT3/breathing.db"
+fresh_root "$ROOT3"; cp "$WORK/template.db" "$ROOT3/inbe.db"
 mkdir -p "$ROOT3/runtime-assets"
 set_setting "$ROOT3" desktop_close_action 0   # ASK
 launch_app "$ROOT3" log-ask2

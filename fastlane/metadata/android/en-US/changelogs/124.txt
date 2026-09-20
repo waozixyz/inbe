@@ -5,19 +5,28 @@ Changed
 - Updated Kryon controls, navigation, styling, and text editing throughout the app.
 - Material is now the default style. Choose Material, TK, or Lightfield in Appearance, with color themes available within each style.
 - Navigation customization has cleaner spacing and smoother reorder handles.
+- Desktop development runs keep their settings and sync account separate from the installed app.
 - Completed list items now move behind a Show Completed toggle instead of staying mixed into the active list.
 - Practice controls sit closer to the bottom navigation while preserving the image fade.
+- Session results now show a clearer round chart and a compact summary for single-round practices.
 - About now uses proper Discord, Telegram, and GitHub icons, and the support dialog has cleaner donation address previews.
 - Removed the Vanilla style and the startup style-selection screen.
 Fixed
 ---
+- Existing Android installations now move their private data to the consistent Inner Breeze location while preserving habits, sessions, settings, and sync details.
+- Desktop, web, and Windows installations now use the same Inner Breeze data location, moving existing data there on first launch instead of leaving it behind.
+- Backups exported by earlier releases import again, including archives named after the previous app identity.
 - Restored profile pictures in Settings and Profile. The picture picker now displays its full grid and uses standard scrolling and selection.
 - Settings row labels and icons now share the same vertical alignment.
 - Settings now uses one consistent modern screen instead of switching between duplicate layouts.
 - Sidebar switching is stable at responsive breakpoints instead of jittering between navigation modes.
 - Guide and modal panels remain visible with Material styling instead of showing text over the underlying screen.
 - Guide screens and practice previews are placed correctly across phone and desktop sizes.
+- Guide cards now have a clear heading, and tapping outside a focused control dismisses its focus.
+- Scrollable Settings pages leave comfortable space above the bottom navigation at larger text scales.
+- An unnamed local profile now has a neutral label in the navigation card.
 - Settings navigation opens the Settings overview, with improved bottom navigation and click handling.
+- Older navigation layouts now place Lists before Habits, Practice, and Settings.
 - Lightfield buttons and glow settings now update with the selected style, and glow is scoped to styles that support it.
 - Material sliders keep labels and values readable instead of floating too high or drawing white text on pale slider fills.
 - Android masked app icons use a gentle blue background instead of black.
@@ -28,6 +37,7 @@ Fixed
 - Automatic friend-list retries stop when account details need attention, and retry delays recover safely from invalid saved counts.
 - Profile shows actionable sync status instead of internal repair messages.
 - Restoring an account key now starts synchronization and retrieves the account alias and existing friendships. Friend lists remain available when leaderboard loading fails.
+- Restoring a profile now reliably recovers habit history and session data alongside the alias and friends, including on Android.
 - Sync no longer asks you to upgrade just because the server supports a newer sync protocol.
 - Sync connection and account errors now display readable, translated messages.
 - Desktop update links now use the current Inner Breeze release location.

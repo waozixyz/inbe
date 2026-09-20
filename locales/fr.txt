@@ -1916,3 +1916,7 @@ Afficher les éléments terminés
 ---
 [elist_hide_completed]
 Masquer les éléments terminés
+---
+[guide_title]
+Guide rapide
+---

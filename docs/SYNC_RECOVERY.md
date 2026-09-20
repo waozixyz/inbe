@@ -22,9 +22,16 @@ retry; failed leaderboard requests do not discard a fetched friend list or repla
 cached leaderboard data with empty results. Restoring a different account cannot
 recover friendships belonging to the original identity.
 
+Native clients share a SQLite connection between the UI and sync workers. Settings
+text uses a buffer per thread so a UI read cannot replace the recovery key during
+decryption. Transactions hold the connection mutex through commit or rollback,
+and habit ID reconciliation reuses a schema-created mapping table instead of
+dropping and recreating a temporary table while another thread is reading.
+
 Validation: `make sync-recovery-test`, the sync account/review and locale tests,
 and `DAOCHI_BIN=/path/to/daochi make sync-server-test`. The server test creates two
-accounts, accepts a friendship, restores an exported key on a fresh client, and
-checks that both data and the existing friendship return. It also drops an upload
-response to verify safe retry. Native screenshot scenes `sync_disconnected` and
+accounts with separate aliases, accepts a friendship, restores the first account's
+exported key on fresh clients with and without pre-seeded default habits, and checks
+that the alias, friend, custom habit, completed habit day, session, and check-in return.
+It also drops an upload response to verify safe retry. Native screenshot scenes `sync_disconnected` and
 `sync_retry` use disposable data and loopback configuration.

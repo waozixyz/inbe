@@ -187,16 +187,17 @@ session_result_metrics :: (result: SessionResult*, x: int, y: int,
         GetLocaleText("results_metric_average")
     }
     values: [3][32] char
+    metric_count := result->round_count <= 1 ? 2 : 3
     gap := Scale(8)
-    cell_w := (w - gap * 2) / 3
+    cell_w := (w - gap * (metric_count - 1)) / metric_count
     snprintf(values[0], sizeof(values[0]), "%d", result->round_count)
     FormatLocaleText(values[1], sizeof(values[1]),
                      "results_metric_seconds", best)
     FormatLocaleText(values[2], sizeof(values[2]),
                      "results_metric_seconds", avg)
-    for int i = 0; i < 3; i++ {
+    for int i = 0; i < metric_count; i++ {
         cell_x := x + i * (cell_w + gap)
-        actual_w := i == 2 ? x + w - cell_x : cell_w
+        actual_w := i == metric_count - 1 ? x + w - cell_x : cell_w
         session_result_card(cell_x, y, actual_w, Scale(78))
         DrawLine(cell_x + Scale(14), y + Scale(12),
                  cell_x + actual_w - Scale(14), y + Scale(12),
@@ -212,6 +213,10 @@ session_result_metrics :: (result: SessionResult*, x: int, y: int,
                                            Scale(28), Scale(20)),
                             TextAlignCenter)
     }
+}
+
+session_result_chart_height :: (result: SessionResult*) -> int #private {
+    return result->round_count <= 1 ? Scale(165) : Scale(220)
 }
 
 session_result_chart :: (result: SessionResult*, x: int, y: int, w: int,
@@ -231,10 +236,42 @@ session_result_chart :: (result: SessionResult*, x: int, y: int, w: int,
     if label_step < 1 {
         label_step = 1
     }
-    session_result_card(x, y, w, Scale(220))
+    session_result_card(x, y, w, session_result_chart_height(result))
     session_result_text(GetLocaleText("round_times_title"),
                         x + Scale(18), y + Scale(10), w - Scale(36),
                         Scale(32), Scale(18), TextAlignStart)
+    if result->round_count <= 1 {
+        value_label: [32] char
+        detail_label: [64] char
+        value := result->round_count == 1 ? result->round_values[0] : 0
+        if value < 0 {
+            value = 0
+        }
+        FormatLocaleText(value_label, sizeof(value_label),
+                         "results_metric_seconds", value)
+        if result->round_count == 1 {
+            FormatLocaleText(detail_label, sizeof(detail_label),
+                             "round_result_label", 1, value)
+        } else {
+            FormatLocaleText(detail_label, sizeof(detail_label),
+                             "results_rounds", 0)
+        }
+        DrawCircleGradient((Vector2){(float)(x + w / 2),
+                           (float)(y + Scale(91))},
+                           (float)Scale(62), Fade(accent, 0.18f),
+                           Fade(GetThemeSurface(), 0.0f))
+        DrawRing((Vector2){(float)(x + w / 2),
+                  (float)(y + Scale(91))},
+                 (float)Scale(46), (float)Scale(48),
+                 0.0f, 360.0f, 72, Fade(accent, 0.70f))
+        session_result_text(value_label, x + Scale(45), y + Scale(57),
+                            w - Scale(90), Scale(55), Scale(38),
+                            TextAlignCenter)
+        session_result_text(detail_label, x + Scale(20), y + Scale(127),
+                            w - Scale(40), Scale(25), Scale(14),
+                            TextAlignCenter)
+        return
+    }
     for int row = 0; row < 3; row++ {
         guide_y := chart_y + row * chart_h / 2
         DrawLine(chart_x, guide_y, chart_x + chart_w, guide_y,
@@ -391,12 +428,12 @@ session_result_status :: (result: SessionResult*, x: int, y: int,
 session_result_content_height :: (result: SessionResult*) -> int #private {
     h := Scale(20 + 86 + 14)
     if result->activity == EXERCISE_WIM_HOF {
-        h += Scale(78 + 14 + 220 + 14)
+        h += Scale(78 + 14 + 14) + session_result_chart_height(result)
     } else {
         h += Scale(50 + session_result_other_count(result) * 38 + 14)
     }
     h += Scale(50 + 14 + 124 + 14)
-    if result->activity == EXERCISE_WIM_HOF && result->round_count > 0 {
+    if result->activity == EXERCISE_WIM_HOF && result->round_count > 1 {
         h += Scale(50 + ((result->round_count + 1) / 2) * 40 + 14)
     }
     return h + Scale(20)
@@ -422,7 +459,7 @@ session_result_draw_content :: (app: InnerBreeze*, result: SessionResult*,
         session_result_metrics(result, box_x, content_y, box_w, best, avg)
         content_y += Scale(78 + 14)
         session_result_chart(result, box_x, content_y, box_w, best)
-        content_y += Scale(220 + 14)
+        content_y += session_result_chart_height(result) + Scale(14)
     } else {
         session_result_other_summary(result, box_x, content_y, box_w)
         content_y += Scale(50 + session_result_other_count(result) * 38 + 14)
@@ -432,7 +469,7 @@ session_result_draw_content :: (app: InnerBreeze*, result: SessionResult*,
     content_y += Scale(50 + 14)
     session_result_mood_picker(app, box_x, content_y, box_w)
     content_y += Scale(124 + 14)
-    if result->activity == EXERCISE_WIM_HOF && result->round_count > 0 {
+    if result->activity == EXERCISE_WIM_HOF && result->round_count > 1 {
         session_result_round_list(result, box_x, content_y, box_w)
     }
 }

@@ -35,6 +35,14 @@ saved retry states and delays. Each error classification has its own law.
 They do not prove server availability, delivery, alias/friend restoration,
 or arbitrary `.kry` behavior. Existing integration tests cover those effects.
 
+The Android private-data directory choice is also a proved finite Bend policy
+in `laws/storage_layout`. Its generated table is consumed by `data_root()` and
+distinguishes fresh installs, successful moves, failed moves, and an existing
+`inbe` directory that must be archived before migration. The proof does not
+establish the effects of Android filesystem calls or SQLite backup; storage
+integration tests and a device migration check cover those effects. See
+`docs/DATA_PATH_MIGRATION.md`.
+
 ## Build behavior and verification
 
 Install Node.js **22.18 or newer** on the build host and initialize recursive

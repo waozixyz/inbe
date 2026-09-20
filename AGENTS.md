@@ -49,3 +49,11 @@
 - Use descriptive names, explicit control flow, and focused helpers. Never
   compress multiple statements, branches, declarations, or checks onto one line.
   Format changed source, inspect the final diff, and run `git diff --check`.
+
+## Bend
+
+When using Bend:
+- run `bend guide` to learn it
+- use `LAWS.bend` to keep important rules
+- run `bend PROOF.bend` before committing
+- parallelize the code whenever possible

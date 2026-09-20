@@ -1916,3 +1916,7 @@ Mostra completati
 ---
 [elist_hide_completed]
 Nascondi completati
+---
+[guide_title]
+Guida rapida
+---

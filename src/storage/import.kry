@@ -3,6 +3,7 @@
 
 #import "app_setting_keys.h" #private
 #import "storage/db.h" #private
+#import "storage_layout.h" #private
 #import "screens/habits_screen.h" #private
 #import "core/breath_engine.h" #private
 #import "kry_archive.h"
@@ -291,10 +292,11 @@ storage_export_zip :: (path: const char*) -> int #export {
         return 0
     }
     snprintf(metadata, sizeof(metadata),
-             "{\n\"format\":\"breathing-data-sqlite\",\n\"format_version\":1,\n\"app_version\":\"%s\",\n\"user_id\":\"%s\",\n\"session_count\":%d,\n\"habit_count\":%d\n}\n",
-             APP_VERSION_STRING, g_storage.user_id, storage_session_count(), storage_habit_count())
-    ok = ArchiveAddMemory(&archive, "breathing-data/metadata.json", metadata, strlen(metadata), ARCHIVE_STORE) &&
-         ArchiveAddMemory(&archive, "breathing-data/breathing.db", buf, (size_t)size, ARCHIVE_DEFLATE) &&
+             "{\n\"format\":\"%s\",\n\"format_version\":1,\n\"app_version\":\"%s\",\n\"user_id\":\"%s\",\n\"session_count\":%d,\n\"habit_count\":%d\n}\n",
+             STORAGE_EXPORT_META_FORMAT, APP_VERSION_STRING, g_storage.user_id,
+             storage_session_count(), storage_habit_count())
+    ok = ArchiveAddMemory(&archive, STORAGE_EXPORT_ENTRY_META, metadata, strlen(metadata), ARCHIVE_STORE) &&
+         ArchiveAddMemory(&archive, STORAGE_EXPORT_ENTRY_DB, buf, (size_t)size, ARCHIVE_DEFLATE) &&
          ArchiveFinishZip(&archive)
     free(buf)
     ArchiveClose(&archive)
@@ -1082,9 +1084,19 @@ storage_import_zip :: (path: const char*) -> int #export {
     return storage_import_zip_ex(path, STORAGE_IMPORT_DATA_ONLY)
 }
 
+storage_archive_database_entry :: (archive: Archive*) -> const char* #private {
+    for int index = 0; index < STORAGE_IMPORT_ENTRY_COUNT; index++ {
+        if ArchiveFindEntry(archive, storage_import_entries[index]) >= 0 {
+            return storage_import_entries[index]
+        }
+    }
+    return nil
+}
+
 storage_import_zip_ex :: (path: const char*, mode: StorageImportMode) -> int #export {
     archive: Archive
     ok: int = 0
+    db_entry: const char*
 
     if path == nil || path[0] == '\0' {
         TraceLog(LOG_ERROR, "DATA: import path is empty")
@@ -1098,13 +1110,15 @@ storage_import_zip_ex :: (path: const char*, mode: StorageImportMode) -> int #ex
     if !ArchiveOpenZip(&archive, path) {
         return import_sqlite_db_file(path, mode)
     }
-    if ArchiveFindEntry(&archive, "breathing-data/breathing.db") >= 0 {
+    db_entry = storage_archive_database_entry(&archive)
+    if db_entry != nil {
         db_bytes: char*
         db_size: size_t = 0
         temp_path: [STORAGE_PATH_SIZE] char
         fp: FILE*
-        db_bytes = ArchiveReadNamedEntryHeap(&archive, "breathing-data/breathing.db", &db_size)
-        if !storage_join_path(temp_path, sizeof(temp_path), g_storage.root, "import-breathing.db") {
+        db_bytes = ArchiveReadNamedEntryHeap(&archive, db_entry, &db_size)
+        if !storage_join_path(temp_path, sizeof(temp_path), g_storage.root,
+                              STORAGE_IMPORT_DB_TMP) {
             TraceLog(LOG_ERROR, "DATA: import temp path is too long")
             free(db_bytes)
             ArchiveClose(&archive)
@@ -1117,10 +1131,10 @@ storage_import_zip_ex :: (path: const char*, mode: StorageImportMode) -> int #ex
             ok = import_sqlite_db_file(temp_path, mode)
             remove(temp_path)
             if !ok {
-                TraceLog(LOG_ERROR, "DATA: archive contained breathing-data/breathing.db but sqlite import failed")
+                TraceLog(LOG_ERROR, "DATA: archive contained %s but sqlite import failed", db_entry)
             }
         } else {
-            TraceLog(LOG_ERROR, "DATA: failed to extract breathing-data/breathing.db from archive")
+            TraceLog(LOG_ERROR, "DATA: failed to extract %s from archive", db_entry)
         }
         if fp != nil {
             fclose(fp)
@@ -1141,6 +1155,7 @@ storage_import_zip_ex :: (path: const char*, mode: StorageImportMode) -> int #ex
 storage_inspect_import :: (path: const char*, info: StorageImportInfo*) -> int #export {
     archive: Archive
     ok: int = 0
+    db_entry: const char*
 
     if info != nil {
         memset(info, 0, sizeof(*info))
@@ -1154,14 +1169,15 @@ storage_inspect_import :: (path: const char*, info: StorageImportInfo*) -> int #
         return inspect_sqlite_db_file(path, info)
     }
 
-    if ArchiveFindEntry(&archive, "breathing-data/breathing.db") >= 0 {
+    db_entry = storage_archive_database_entry(&archive)
+    if db_entry != nil {
         db_bytes: char*
         db_size: size_t = 0
         temp_path: [STORAGE_PATH_SIZE] char
         fp: FILE*
-        db_bytes = ArchiveReadNamedEntryHeap(&archive, "breathing-data/breathing.db", &db_size)
+        db_bytes = ArchiveReadNamedEntryHeap(&archive, db_entry, &db_size)
         if !storage_join_path(temp_path, sizeof(temp_path), g_storage.root,
-                              "import-inspect-breathing.db") {
+                              STORAGE_IMPORT_DB_INSPECT) {
             free(db_bytes)
             ArchiveClose(&archive)
             return 0

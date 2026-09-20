@@ -2,6 +2,9 @@
 #import "kry_archive.h"
 #import "practices/practice_registry.h"
 #import "runtime_assets.h"
+#import "storage.h" #private
+#import "storage/data.h" #private
+#import "storage_layout.h" #private
 #import "stdio.h"
 #import "stdlib.h"
 #import "string.h"
@@ -97,46 +100,6 @@ copy_text_checked :: (out: char*, out_size: size_t, input: const char*) -> int #
     }
 
     memcpy(out, input, len + 1)
-    return 1
-}
-
-join_path2 :: (out: char*, out_size: size_t,
-              base: const char*, suffix: const char*) -> int #private {
-    base_len: size_t
-    suffix_len: size_t
-
-    if out == nil || out_size == 0 || base == nil || suffix == nil {
-        return 0
-    }
-
-    base_len = strlen(base)
-    suffix_len = strlen(suffix)
-    if base_len + suffix_len >= out_size {
-        out[0] = '\0'
-        return 0
-    }
-
-    memcpy(out, base, base_len)
-    memcpy(out + base_len, suffix, suffix_len + 1)
-    return 1
-}
-
-append_text_checked :: (out: char*, out_size: size_t, suffix: const char*) -> int #private {
-    base_len: size_t
-    suffix_len: size_t
-
-    if out == nil || out_size == 0 || suffix == nil {
-        return 0
-    }
-
-    base_len = strlen(out)
-    suffix_len = strlen(suffix)
-    if base_len + suffix_len >= out_size {
-        out[0] = '\0'
-        return 0
-    }
-
-    memcpy(out + base_len, suffix, suffix_len + 1)
     return 1
 }
 
@@ -271,10 +234,8 @@ draw_attribution :: (content_x: int, content_w: int, y: int*) #private {
 }
 
 archive_path :: (app: InnerBreeze*, out: char*, out_size: size_t) #private {
-    if !join_path2(out,
-                   out_size,
-                   app->meditation.music_cache_dir,
-                   "/breathing-meditation-audio-v1.zip") {
+    if snprintf(out, out_size, "%s/breathing-meditation-audio-v1.zip",
+                app->meditation.music_cache_dir) >= (int)out_size {
         set_status(app, GetLocaleText("meditation_music_cache_path_too_long"))
     }
 }
@@ -294,8 +255,9 @@ track_path :: (app: InnerBreeze*, track: int, out: char*, out_size: size_t) #pri
         }
     }
 
-    if join_path2(out, out_size, app->meditation.music_cache_dir, "/audio/") &&
-       append_text_checked(out, out_size, tracks[track].file) &&
+    if snprintf(out, out_size, "%s/audio/%s",
+                app->meditation.music_cache_dir,
+                tracks[track].file) < (int)out_size &&
        audio_file_looks_valid(out) {
         return
     }
@@ -323,10 +285,8 @@ extract_audio_archive :: (app: InnerBreeze*, archive_file_path: const char*) -> 
 
     EnsureRuntimeAssetDir(app->meditation.music_cache_dir)
     audio_dir: [FS_PATH_MAX] char
-    if join_path2(audio_dir,
-                  sizeof(audio_dir),
-                  app->meditation.music_cache_dir,
-                  "/audio") {
+    if snprintf(audio_dir, sizeof(audio_dir), "%s/audio",
+                app->meditation.music_cache_dir) < (int)sizeof(audio_dir) {
         EnsureRuntimeAssetDir(audio_dir)
     } else {
         set_status(app, GetLocaleText("meditation_music_cache_path_too_long"))
@@ -350,11 +310,9 @@ extract_audio_archive :: (app: InnerBreeze*, archive_file_path: const char*) -> 
             continue
         }
 
-        if !join_path2(out_path,
-                       sizeof(out_path),
-                       app->meditation.music_cache_dir,
-                       "/audio/") ||
-           !append_text_checked(out_path, sizeof(out_path), stat.name) {
+        if snprintf(out_path, sizeof(out_path), "%s/audio/%s",
+                    app->meditation.music_cache_dir,
+                    stat.name) >= (int)sizeof(out_path) {
             set_status(app, GetLocaleText("meditation_music_file_path_too_long"))
             continue
         }
@@ -427,14 +385,20 @@ meditation_music_init :: (app: InnerBreeze*) {
         return
     }
 
-    InitRuntimeAssets("breathing")
-    if !GetRuntimeAssetCacheRoot("breathing",
-                                 app->meditation.music_cache_dir,
-                                 sizeof(app->meditation.music_cache_dir)) {
-        snprintf(app->meditation.music_cache_dir,
-                    sizeof(app->meditation.music_cache_dir),
-                    "runtime-assets")
-        EnsureRuntimeAssetDir(app->meditation.music_cache_dir)
+    #if WEB {
+        InitRuntimeAssets(STORAGE_DIR_NAME)
+        if !GetRuntimeAssetCacheRoot(STORAGE_DIR_NAME,
+                                     app->meditation.music_cache_dir,
+                                     sizeof(app->meditation.music_cache_dir)) {
+            app->meditation.music_cache_dir[0] = '\0'
+        }
+    } #else {
+        if !storage_join_path(app->meditation.music_cache_dir,
+                              sizeof(app->meditation.music_cache_dir),
+                              data_root(), "runtime-assets") ||
+           !EnsureRuntimeAssetDir(app->meditation.music_cache_dir) {
+            app->meditation.music_cache_dir[0] = '\0'
+        }
     }
 
     app_audio_music_sanitize_selection(app)
