@@ -313,31 +313,43 @@
     }
     app_web_test_first_run_guide_next_x :: () -> int #export #attr "EMSCRIPTEN_KEEPALIVE" {
         debug: GuideLayout = guide_layout
-        if debug.tip.width <= 0 {
+        app: InnerBreeze* = get_global_app()
+        if debug.tip.width <= 0 || app == nil {
             return -1
         }
-        return (int)(debug.next_button.x + debug.next_button.width * 0.5f)
+        target := GetWorldToScreen2D((Vector2){debug.next_button.x +
+            debug.next_button.width * 0.5f, 0}, app->camera)
+        return (int)target.x
     }
     app_web_test_first_run_guide_next_y :: () -> int #export #attr "EMSCRIPTEN_KEEPALIVE" {
         debug: GuideLayout = guide_layout
-        if debug.tip.width <= 0 {
+        app: InnerBreeze* = get_global_app()
+        if debug.tip.width <= 0 || app == nil {
             return -1
         }
-        return (int)(debug.next_button.y + debug.next_button.height * 0.5f)
+        target := GetWorldToScreen2D((Vector2){0, debug.next_button.y +
+            debug.next_button.height * 0.5f}, app->camera)
+        return (int)target.y
     }
     app_web_test_first_run_guide_close_x :: () -> int #export #attr "EMSCRIPTEN_KEEPALIVE" {
         debug: GuideLayout = guide_layout
-        if debug.tip.width <= 0 {
+        app: InnerBreeze* = get_global_app()
+        if debug.tip.width <= 0 || app == nil {
             return -1
         }
-        return (int)(debug.close_button.x + debug.close_button.width * 0.5f)
+        target := GetWorldToScreen2D((Vector2){debug.close_button.x +
+            debug.close_button.width * 0.5f, 0}, app->camera)
+        return (int)target.x
     }
     app_web_test_first_run_guide_close_y :: () -> int #export #attr "EMSCRIPTEN_KEEPALIVE" {
         debug: GuideLayout = guide_layout
-        if debug.tip.width <= 0 {
+        app: InnerBreeze* = get_global_app()
+        if debug.tip.width <= 0 || app == nil {
             return -1
         }
-        return (int)(debug.close_button.y + debug.close_button.height * 0.5f)
+        target := GetWorldToScreen2D((Vector2){0, debug.close_button.y +
+            debug.close_button.height * 0.5f}, app->camera)
+        return (int)target.y
     }
     web_test_rect_valid :: (rect: Rectangle) -> int #private {
         return rect.width > 0.0f && rect.height > 0.0f
@@ -482,16 +494,18 @@
         if app == nil || !web_test_rect_valid(app->practice_home_bounds_start) {
             return -1
         }
-        return (int)(app->practice_home_bounds_start.x +
-        app->practice_home_bounds_start.width * 0.5f)
+        target := GetWorldToScreen2D((Vector2){app->practice_home_bounds_start.x +
+            app->practice_home_bounds_start.width * 0.5f, 0}, app->camera)
+        return (int)target.x
     }
     app_web_test_practice_start_click_y :: () -> int #export #attr "EMSCRIPTEN_KEEPALIVE" {
         app: InnerBreeze* = get_global_app()
         if app == nil || !web_test_rect_valid(app->practice_home_bounds_start) {
             return -1
         }
-        return (int)(app->practice_home_bounds_start.y +
-        app->practice_home_bounds_start.height * 0.5f)
+        target := GetWorldToScreen2D((Vector2){0, app->practice_home_bounds_start.y +
+            app->practice_home_bounds_start.height * 0.5f}, app->camera)
+        return (int)target.y
     }
     app_web_test_enable_extension_breaks :: (limit_s: int) #export #attr "EMSCRIPTEN_KEEPALIVE" {
         app: InnerBreeze* = get_global_app()

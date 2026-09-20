@@ -1002,6 +1002,11 @@ async function verifyFirstRunGuideCanvasFlow(client) {
   if (renderer !== 'canvas')
     return;
 
+  await client.send('Emulation.setDeviceMetricsOverride', {
+    width: 450, height: 800, deviceScaleFactor: 1, mobile: false
+  });
+  await waitAnimationFrames(client, 4);
+
   let state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
     if (typeof Module._app_web_test_show_first_run_guide !== 'function')
       return { ok: false, reason: 'missing first-run guide show hook' };
@@ -1025,6 +1030,28 @@ async function verifyFirstRunGuideCanvasFlow(client) {
     state = { ok: true, ...(await firstRunGuideState(client)) };
   if (state.clipped !== 0)
     throw new Error(`Spanish first-run guide text is clipped: ${JSON.stringify(state)}`);
+
+  let previousTarget = null;
+  for (let expected = 1; expected < 3; expected++) {
+    let target;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      target = await firstRunGuideButtonTarget(client, 'next');
+      if (!previousTarget || target.rawY !== previousTarget.rawY)
+        break;
+      await waitAnimationFrames(client, 2);
+    }
+    if (previousTarget && target.rawY === previousTarget.rawY)
+      throw new Error(`guide Next layout did not advance at 1:1 scale: ${JSON.stringify({ expected, target })}`);
+    if (target.rect.width !== 450 || target.rect.height !== 800 ||
+        target.canvas.width !== 450 || target.canvas.height !== 800)
+      throw new Error(`guide canvas is not 1:1 at 450x800: ${JSON.stringify(target)}`);
+    await dispatchCanvasClick(client, target.x, target.y);
+    await waitAnimationFrames(client, 3);
+    state = await firstRunGuideState(client, false);
+    if (state.active !== 1 || state.step !== expected || state.clipped !== 0)
+      throw new Error(`guide Next missed or clipped at 1:1 scale: ${JSON.stringify({ expected, state, target })}`);
+    previousTarget = target;
+  }
 
   state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
     ${wasmHookEvalHelper()}
@@ -1050,6 +1077,8 @@ async function verifyFirstRunGuideCanvasFlow(client) {
   }))()`);
   if (state.active !== 0 || state.onboarding !== 1)
     throw new Error(`guide reopened after reload: ${JSON.stringify(state)}`);
+  await client.send('Emulation.clearDeviceMetricsOverride');
+  await waitAnimationFrames(client, 4);
 }
 
 function installHabitsLifecycleWatchExpression() {
