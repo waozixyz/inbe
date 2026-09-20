@@ -406,18 +406,26 @@ draw_form :: (app: InnerBreeze*) #private {
         }
         px := x + Scale(12)
         inner := w - Scale(24)
-        title_y := section == 2 ? y + Scale(10) :
-            AppControlTextY(titles[section], y, header, font)
-        Text((TextProps){
-            .bounds={(px), (title_y), 0, 0},
-            .text=(titles[section]),
-            .wrap=TextWrapNone
-        })
         if section == 2 {
+            title_y := y + Scale(10)
+            Text((TextProps){
+                .bounds={(px), (title_y), 0, 0},
+                .text=(titles[section]),
+                .font=font,
+                .wrap=TextWrapNone
+            })
             Text((TextProps){
                 .bounds={(px), (title_y + AppTextLineHeight(font) + Scale(2)), 0, 0},
                 .text=(GetLocaleText("habit_tracking_hint")),
                 .wrap=TextWrapNone
+            })
+        } else {
+            Text((TextProps){
+                .bounds={(float)px, (float)y, (float)inner, (float)header},
+                .text=(titles[section]),
+                .font=font,
+                .wrap=TextWrapNone,
+                .vertical_align=TextAlignCenter
             })
         }
         if section == 1 && !app->habit_edit.sections[section] {
@@ -429,10 +437,14 @@ draw_form :: (app: InnerBreeze*) #private {
                 snprintf(summary, sizeof(summary), "%02d:00", app->habit_edit.reminder_hour)
                 status = summary
             }
+            status_width := AppTextWidth(status, small)
             Text((TextProps){
-                .bounds={(x + w - Scale(44) - AppTextWidth(status, small)), (AppControlTextY(status, y, header, small)), 0, 0},
+                .bounds={(float)(x + w - Scale(44) - status_width),
+                         (float)y, (float)status_width, (float)header},
                 .text=(status),
-                .wrap=TextWrapNone
+                .font=small,
+                .wrap=TextWrapNone,
+                .vertical_align=TextAlignCenter
             })
         }
         cx := x + w - Scale(24)

@@ -2,6 +2,7 @@
 #include "sync_account.h"
 #include "sync_client.h"
 #include "screens/habits_screen.h"
+#include <curl/curl.h>
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -11,6 +12,37 @@
 #include <unistd.h>
 
 static char current_root[1024];
+static size_t
+discard_http_body(char *data, size_t size, size_t count, void *user)
+{
+    (void)data;
+    (void)user;
+    return size * count;
+}
+static void
+check_loopback_http(const char *base_url)
+{
+    char url[256];
+    char error[CURL_ERROR_SIZE] = {0};
+    CURL *curl = curl_easy_init();
+    CURLcode result;
+    long status = 0;
+    assert(curl != NULL);
+    snprintf(url, sizeof(url), "%s/healthz", base_url);
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_http_body);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+    result = curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
+    if(result != CURLE_OK || status != 200) {
+        fprintf(stderr, "loopback HTTP probe failed: curl=%d (%s), status=%ld, detail=%s\n",
+                (int)result, curl_easy_strerror(result), status, error);
+        curl_easy_cleanup(curl);
+        exit(1);
+    }
+    curl_easy_cleanup(curl);
+}
 void data_init(void) {}
 const char *data_root(void) { return current_root; }
 void TraceLog(int level, const char *fmt, ...) {
@@ -111,6 +143,8 @@ int main(int argc, char **argv) {
     /* The normal runner supplies a fresh loopback server and disposable data root. */
     assert(live || strncmp(argv[1], "http://127.0.0.1:", 17) == 0);
     assert(strncmp(argv[3], "http://127.0.0.1:", 17) == 0);
+    if(!live)
+        check_loopback_http(argv[1]);
     char alias[40], friend_alias[40];
     snprintf(alias, sizeof(alias), "restore_%ld", (long)getpid());
     snprintf(friend_alias, sizeof(friend_alias), "friend_%ld", (long)getpid());
