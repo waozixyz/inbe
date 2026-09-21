@@ -2,10 +2,13 @@
 
 ## Remaining migration work (2026-09-20)
 
-This section records the current working tree, not a shipped or verified
-state. The latest Kryon and Inbe `.kry` moves are uncommitted; code generation,
-builds, tests, screenshots, and Android/Plan 9 checks have not run for them.
-Kryon's source-level and Button evidence checklist is in
+This section records the committed migration state, not a shipped or fully
+verified one. Kryon `master` is clean at `6f141648` with the UI `.kry` moves and
+the round records committed; Inbe `vendor/kryon` is pinned to the migration
+commit `8f1a8608` and Inbe's migration is committed as `64c1b6b`. Inbe's
+`make native` and contract gates pass at that revision; screenshots and
+Android/Plan 9/web checks have not run. Kryon's source-level and Button evidence
+checklist is in
 [the upstream UI migration plan](../../kryon/plan/UI_MIGRATION_REMAINING.md).
 
 | Area | Current state | What closes it |
@@ -15,8 +18,8 @@ Kryon's source-level and Button evidence checklist is in
 | Platform UI moves | Screenshot scenes/capture, startup and icon selection, Android lifecycle/share title, Plan 9 app loop and music fallback, and style tokens now have `.kry` owners. | Generate and build the changed sources on each supported path; check screenshot parity, icon installation, Android pause/resume/share, Plan 9 startup/music fallback, and style persistence. The Plan 9 `entry.c` must remain a process adapter only. |
 | KSS ownership | `assets/styles/inbe.kss` supplies product presentation and `src/app/app_style.kry` supplies style behavior, but the current generated boundary and all live theme callers have not been reverified. | Review each hardcoded presentation choice and theme getter use, migrate reusable style choices upstream where necessary, then verify light/dark style switching and no-style fallback without changing the accepted appearance. |
 | UI test ownership | UI shell checks exist; `tests/app_bottom_nav_test.c`, `frame_pacing_test.c`, `font_locale_test.c`, `screenshot_scene_test.sh`, and other C/UI fixtures still need ownership review. | Move UI behavior/assertions into `.kry` tests where the language can express them, leaving shell/C only for narrow host setup or process checks. Ensure the test graph compiles the generated modules; record exact results. |
-| Background notification policy | Desktop tray, Chrome worker, and Android indicator/session code have working-tree edits for the rule that no background activity continues without a visible indicator. | Verify close/minimize/reopen, indicator loss, permission denial, Android foreground service and Chrome worker behavior on their actual targets. Confirm no timer or notification survives an absent indicator; record platform evidence. |
-| Vendor and delivery | `vendor/kryon` has a pointer change but its worktree is clean; upstream Kryon has uncommitted UI changes. | Verify and commit Kryon on upstream `master` first, then move the clean Inbe submodule pointer to that exact commit. Build/verify Inbe and commit app changes on `master`. No vendor source edits. |
+| Background notification policy | Desktop tray, Chrome worker, and Android indicator/session code carry committed edits for the rule that no background activity continues without a visible indicator. | Verify close/minimize/reopen, indicator loss, permission denial, Android foreground service and Chrome worker behavior on their actual targets. Confirm no timer or notification survives an absent indicator; record platform evidence. |
+| Vendor and delivery | Kryon is committed on upstream `master` and Inbe's clean `vendor/kryon` gitlink is `8f1a8608`; the parent commit `64c1b6b` is clean. | Done: pointer moved by commit and no vendor source edits. Keep the pointer moving only to clean upstream commits. |
 
 Verification requires separate user approval for each test and each Bend law.
 After approval, Inbe's `make build-laws` is mandatory for native, web, and
