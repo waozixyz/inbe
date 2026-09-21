@@ -114,6 +114,7 @@ jobs:
           echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
           echo "INBE_NODE_BIN=$(dirname "$(command -v node)")" >> "$GITHUB_ENV"
           echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+          bash scripts/ensure-emscripten-zlib.sh "$HOME/emsdk/upstream/emscripten/embuilder"
 
       - name: Build Web ZIP
         run: |
@@ -175,6 +176,7 @@ jobs:
           echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
           echo "INBE_NODE_BIN=$(dirname "$(command -v node)")" >> "$GITHUB_ENV"
           echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+          bash scripts/ensure-emscripten-zlib.sh "$HOME/emsdk/upstream/emscripten/embuilder"
 
       - name: Build Chrome Extension ZIP
         run: |
@@ -236,6 +238,7 @@ jobs:
           echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
           echo "INBE_NODE_BIN=$(dirname "$(command -v node)")" >> "$GITHUB_ENV"
           echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+          bash scripts/ensure-emscripten-zlib.sh "$HOME/emsdk/upstream/emscripten/embuilder"
 
       - name: Build Firefox Add-on ZIP
         run: |
