@@ -3,8 +3,8 @@ FontFallback :: struct {
     path: const char*
 }
 
-#import "app.h"
-#import "locale.h"
+#import "app/app.h"
+#import "ui_locale_props.generated.h"
 #import "app_internal.h"
 #import "app_font_assets.h"
 #import <stdlib.h>
