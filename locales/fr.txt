@@ -1136,6 +1136,9 @@ Cycle %d  %ds
 [session_round_label]
 CYCLE %d
 ---
+[round_number_label]
+Cycle %d
+---
 [notification_starting_seconds]
 Demarrage : %ds
 ---

@@ -1,4 +1,8 @@
 # Changelog
+## [2.0.5] - 2026-09-21
+### Changed
+- Session details now show the practice name, time, and round count above clearly separated round rows with larger hold times and easier-to-tap edit and delete actions. Editing a round highlights its value and provides a labeled number pad with separate Cancel and Save actions.
+
 ## [2.0.4] - 2026-09-21
 ### Changed
 - The account screen shows the connected alias, automatic sync progress, and counts for habits, history days, sessions, friends, lists, and list items.

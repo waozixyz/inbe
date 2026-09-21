@@ -1136,6 +1136,9 @@ Round
 [session_round_label]
 Round
 ---
+[round_number_label]
+Round %d
+---
 [notification_starting_seconds]
 Avvio: %ds
 ---

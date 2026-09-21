@@ -1136,6 +1136,9 @@ Wim Hof - %d 秒后开始
 [session_round_label]
 第%d轮
 ---
+[round_number_label]
+第%d轮
+---
 [notification_starting_seconds]
 开始: %d秒
 ---

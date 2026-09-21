@@ -41,83 +41,6 @@ text_filter :: (codepoint: int, user_data: void*) -> int #private {
     return 0
 }
 
-last_substring :: (text_value: const char*, needle: const char*) -> const char* #private {
-    match: const char* = nil
-    cursor: const char* = nil
-    needle_len: size_t = 0
-
-    if text_value == nil || needle == nil || needle[0] == '\0' {
-        return nil
-    }
-
-    needle_len = strlen(needle)
-    cursor = text_value
-    while (cursor = strstr(cursor, needle)) != nil {
-        match = cursor
-        cursor += needle_len
-    }
-
-    return match
-}
-
-draw_round_line :: (line_text: const char*, seconds_text: const char*,
-                   x: int, y: int, w: int, h: int, font: int,
-                   editing: int) #private {
-    value_at: const char* = nil
-    suffix: const char* = nil
-    prefix: [64] char = {0}
-    prefix_len: size_t = 0
-    text_y := 0
-    draw_x := 0
-
-    if !editing {
-        Text((TextProps){
-            .bounds={(float)x, (float)y, (float)w, (float)h},
-            .text=(line_text),
-            .wrap=TextWrapNone
-        })
-        return
-    }
-
-    value_at = last_substring(line_text, seconds_text)
-    if value_at == nil {
-        Text((TextProps){
-            .bounds={(float)x, (float)y, (float)w, (float)h},
-            .text=(line_text),
-            .wrap=TextWrapNone
-        })
-        return
-    }
-
-    prefix_len = (size_t)(value_at - line_text)
-    if prefix_len >= sizeof(prefix) {
-        prefix_len = sizeof(prefix) - 1
-    }
-    memcpy(prefix, line_text, prefix_len)
-    prefix[prefix_len] = '\0'
-    suffix = value_at + strlen(seconds_text)
-    text_y = AppControlTextY(line_text, y, h, font)
-    draw_x = x
-
-    Text((TextProps){
-        .bounds={(draw_x), (text_y), 0, 0},
-        .text=(prefix),
-        .wrap=TextWrapNone
-    })
-    draw_x += AppTextWidth(prefix, font)
-    Text((TextProps){
-        .bounds={(draw_x), (text_y), 0, 0},
-        .text=(seconds_text),
-        .wrap=TextWrapNone
-    })
-    draw_x += AppTextWidth(seconds_text, font)
-    Text((TextProps){
-        .bounds={(draw_x), (text_y), 0, 0},
-        .text=(suffix),
-        .wrap=TextWrapNone
-    })
-}
-
 delete_round :: (entry: const HabitLinkedEntry*, round: int) -> int #private {
     rounds: [MaxRounds] int
     out_count := 0
@@ -256,9 +179,10 @@ draw_edit_screen :: (app: InnerBreeze*) {
 draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                          content_x: int, content_w: int, y: int,
                          draw: int) -> int {
-    row_h := Scale(34)
-    section_gap := Scale(10)
-    section_h := Scale(28)
+    row_h := Scale(48)
+    section_gap := Scale(22)
+    title_h := Scale(38)
+    summary_h := Scale(40)
 
     if app == nil || ctx == nil {
         return y
@@ -272,7 +196,7 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                 .wrap=TextWrapNone
             })
         }
-        return y + row_h
+        return y + summary_h
     }
 
     for int activity = 0; activity < EXERCISE_COUNT; activity++ {
@@ -288,24 +212,24 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
             continue
         }
 
+        title := practice_activity_label(activity)
         if draw {
             Text((TextProps){
-                .bounds={(content_x), (y), 0, 0},
-                .text=(practice_activity_label(activity)),
+                .bounds={(content_x), (y), (content_w), (title_h)},
+                .text=(title),
+                .font=AppTitleFontSize(title, content_w),
                 .wrap=TextWrapNone
             })
         }
-        y += section_h
+        y += Scale(8)
 
         for int i = 0; i < ctx->count; i++ {
             time_text: [16] char = {0}
             summary_text: [32] char = {0}
-            icon_size := Scale(18)
-            icon_padding := Scale(6)
-            icon_w := icon_size + icon_padding * 2
+            icon_w := Scale(40)
             trash_x := content_x + content_w - icon_w
-            row_font := AppSmallFontSize()
-            summary_x := 0
+            row_font := AppFontSize()
+            summary_x := content_x + Scale(100)
 
             if ctx->entries[i].activity != activity {
                 continue
@@ -327,28 +251,28 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                                     "results_rounds",
                                     ctx->entries[i].round_count)
             }
-            summary_x = content_x + Scale(76)
             summary_too_wide := summary_x + AppTextWidth(summary_text, row_font) > trash_x - Scale(8)
             if summary_too_wide {
-                summary_x = content_x + Scale(62)
+                summary_x = content_x + Scale(68)
             }
 
             if draw {
                 Text((TextProps){
-                    .bounds={(content_x), (AppControlTextY(time_text, y, row_h, row_font)), 0, 0},
+                    .bounds={(content_x), (AppControlTextY(time_text, y, summary_h, row_font)), 0, 0},
                     .text=(time_text),
+                    .font=row_font,
                     .wrap=TextWrapNone
                 })
                 Text((TextProps){
-                    .bounds={(summary_x), (AppControlTextY(summary_text, y, row_h, row_font)), 0, 0},
+                    .bounds={(summary_x), (AppControlTextY(summary_text, y, summary_h, row_font)), 0, 0},
                     .text=(summary_text),
+                    .font=row_font,
                     .wrap=TextWrapNone
                 })
-                if Button((ButtonProps){
+                if !app->habit_session_edit.active && Button((ButtonProps){
                     .id = 0,
-                    .bounds = {(float)(trash_x), (float)(y - Scale(4)),
-                               (float)((icon_size) + (icon_padding) * 2),
-                               (float)((icon_size) + (icon_padding) * 2)},
+                    .bounds = {(float)(trash_x), (float)(y + (summary_h - icon_w) / 2),
+                               (float)(icon_w), (float)(icon_w)},
                     .icon_type = ICON_TRASH, .icon_only = 1,
                     .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
                 }) {
@@ -358,8 +282,11 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                     habit_session_cancel_edit(app)
                     return y
                 }
+                Line(content_x, y + summary_h + Scale(8),
+                     content_x + content_w, y + summary_h + Scale(8),
+                     Fade(StyleTokenColor("text"), 0.22f))
             }
-            y += row_h
+            y += summary_h + Scale(18)
 
             if activity == EXERCISE_MEDITATION ||
                activity == EXERCISE_SUN_SALUTATION {
@@ -368,60 +295,67 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
             }
 
             for int r = 0; r < ctx->entries[i].round_count; r++ {
-                round_line: [64] char = {0}
-                round_seconds: [16] char = {0}
+                round_label: [64] char = {0}
+                round_value: [24] char = {0}
                 round_trash_x := content_x + content_w - icon_w
-                round_edit_x := round_trash_x - icon_w - Scale(4)
-                round_text_x := content_x + Scale(16)
-                round_text_w := round_edit_x - round_text_x - Scale(8)
+                round_edit_x := round_trash_x - icon_w - Scale(8)
+                value_x := content_x + content_w / 3
+                value_w := round_edit_x - value_x - Scale(8)
                 editing_round: int = app->habit_session_edit.active &&
                                  app->habit_session_edit.kind == HABIT_SESSION_EDIT_ROUND &&
                                  app->habit_session_edit.round == r &&
                                  strcmp(app->habit_session_edit.path,
                                         ctx->entries[i].path) == 0
 
-                FormatLocaleText(round_line, sizeof(round_line),
-                                    "round_result_label", r + 1,
-                                    ctx->entries[i].rounds[r])
+                FormatLocaleText(round_label, sizeof(round_label),
+                                    "round_number_label", r + 1)
+                FormatLocaleText(round_value, sizeof(round_value),
+                                    "results_metric_seconds",
+                                    editing_round
+                                        ? atoi(app->habit_session_edit.text)
+                                        : ctx->entries[i].rounds[r])
                 if draw {
                     if editing_round {
-                        FormatLocaleText(round_line, sizeof(round_line),
-                                            "round_result_label", r + 1,
-                                            atoi(app->habit_session_edit.text))
+                        selection: Rectangle = {(float)content_x, (float)y,
+                                                (float)content_w, (float)row_h}
+                        DrawRectangleRounded(selection, 0.12f, 8,
+                                             Fade(StyleTokenColor("surface"), 0.75f))
+                        DrawRectangleRoundedLinesEx(selection, 0.12f, 8, 1.0f,
+                                                     Fade(StyleTokenColor("text"), 0.55f))
+                        value_field: Rectangle = {(float)(value_x - Scale(8)),
+                                                  (float)(y + Scale(5)),
+                                                  (float)Scale(78),
+                                                  (float)(row_h - Scale(10))}
+                        DrawRectangleRoundedLinesEx(value_field, 0.12f, 8, 1.0f,
+                                                     StyleTokenColor("text"))
                     }
-                    snprintf(round_seconds, sizeof(round_seconds), "%d",
-                                editing_round
-                                    ? atoi(app->habit_session_edit.text)
-                                    : ctx->entries[i].rounds[r])
-                    if round_text_w < Scale(80) {
-                        round_text_w = Scale(80)
-                    }
-                    draw_round_line(round_line, round_seconds, round_text_x,
-                                       y, round_text_w, Scale(24),
-                                       row_font, editing_round)
-                    if Button((ButtonProps){
+                    Text((TextProps){
+                        .bounds={(content_x), (AppControlTextY(round_label, y, row_h, row_font)),
+                                 (value_x - content_x - Scale(8)), 0},
+                        .text=(round_label), .font=row_font,
+                        .wrap=TextWrapNone
+                    })
+                    Text((TextProps){
+                        .bounds={(value_x), (AppControlTextY(round_value, y, row_h, Scale(19))),
+                                 (value_w), 0},
+                        .text=(round_value), .font=Scale(19),
+                        .wrap=TextWrapNone
+                    })
+                    if !app->habit_session_edit.active && Button((ButtonProps){
                         .id = 0,
-                        .bounds = {(float)(round_edit_x), (float)(y - Scale(6)),
-                                   (float)((icon_size) + (icon_padding) * 2),
-                                   (float)((icon_size) + (icon_padding) * 2)},
-                        .icon_type = editing_round ? ICON_SAVE : ICON_EDIT,
+                        .bounds = {(float)(round_edit_x), (float)(y + (row_h - icon_w) / 2),
+                                   (float)(icon_w), (float)(icon_w)},
+                        .icon_type = ICON_EDIT,
                         .icon_only = 1,
                         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
                     }) {
-                        if editing_round {
-                            if habit_session_commit_edit(app, &ctx->entries[i]) {
-                                return y
-                            }
-                        } else {
-                            begin_round_edit(app, &ctx->entries[i], r)
-                        }
+                        begin_round_edit(app, &ctx->entries[i], r)
                         return y
                     }
-                    if Button((ButtonProps){
+                    if !app->habit_session_edit.active && Button((ButtonProps){
                         .id = 0,
-                        .bounds = {(float)(round_trash_x), (float)(y - Scale(6)),
-                                   (float)((icon_size) + (icon_padding) * 2),
-                                   (float)((icon_size) + (icon_padding) * 2)},
+                        .bounds = {(float)(round_trash_x), (float)(y + (row_h - icon_w) / 2),
+                                   (float)(icon_w), (float)(icon_w)},
                         .icon_type = ICON_TRASH, .icon_only = 1,
                         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
                     }) {
@@ -431,10 +365,12 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                         habit_session_cancel_edit(app)
                         return y
                     }
+                    Line(content_x, y + row_h, content_x + content_w,
+                         y + row_h, Fade(StyleTokenColor("text"), 0.22f))
                 }
-                y += Scale(28)
+                y += row_h
             }
-            y += Scale(4)
+            y += Scale(12)
         }
         y += section_gap
     }
@@ -506,6 +442,8 @@ keyboard_height :: (app: InnerBreeze*) -> int {
     key_h := Scale(48)
     gap := Scale(6)
     pad := Scale(10)
+    header_h := Scale(54)
+    action_h := Scale(44)
 
     #if !ANDROID {
         if app == nil || !app->on_screen_keyboard_enabled {
@@ -515,7 +453,7 @@ keyboard_height :: (app: InnerBreeze*) -> int {
     if app == nil || !app->habit_session_edit.active {
         return 0
     }
-    return pad * 2 + key_h * 4 + gap * 3
+    return pad * 2 + header_h + key_h * 4 + gap * 4 + action_h
 }
 
 draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
@@ -523,16 +461,20 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
         "1", "2", "3",
         "4", "5", "6",
         "7", "8", "9",
-        "DEL", "0", "OK"
+        "DEL", "0", ""
     }
     key_h := Scale(48)
     gap := Scale(6)
     pad := Scale(10)
+    header_h := Scale(54)
+    action_h := Scale(44)
     keyboard_h := habit_session_keyboard_height(app)
     x := GetPageSidePadding()
     y := view_height - keyboard_h
     w := view_width - x * 2
     key_w := (w - gap * 2) / 3
+    round_label: [64] char = {0}
+    value_label: [24] char = {0}
 
     #if !ANDROID {
         if app == nil || !app->on_screen_keyboard_enabled {
@@ -547,11 +489,26 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
                      DarkenColor(StyleTokenColor("canvas"), 10))
     DrawLine(0, y, view_width, y, DarkenColor(StyleTokenColor("canvas"), 42))
 
-    for int i = 0; i < 12; i++ {
+    FormatLocaleText(round_label, sizeof(round_label),
+                     "round_number_label", app->habit_session_edit.round + 1)
+    FormatLocaleText(value_label, sizeof(value_label),
+                     "results_metric_seconds", atoi(app->habit_session_edit.text))
+    Text((TextProps){
+        .bounds={(x), (y + pad), (w), (Scale(22))},
+        .text=(round_label), .font=AppFontSize(),
+        .wrap=TextWrapNone, .align=TextAlignCenter
+    })
+    Text((TextProps){
+        .bounds={(x), (y + pad + Scale(24)), (w), (Scale(28))},
+        .text=(value_label), .font=Scale(24),
+        .wrap=TextWrapNone, .align=TextAlignCenter
+    })
+
+    for int i = 0; i < 11; i++ {
         col := i % 3
         row := i / 3
         key_x := x + col * (key_w + gap)
-        key_y := y + pad + row * (key_h + gap)
+        key_y := y + pad + header_h + row * (key_h + gap)
 
         if Button((ButtonProps){
             .bounds = {(float)(key_x), (float)(key_y), (float)(key_w), (float)(key_h)},
@@ -562,13 +519,29 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
         }) {
             if i == 9 {
                 habit_session_delete_before_cursor(app)
-            } else if i == 11 {
-                if habit_session_commit_edit(app, entry) {
-                    return 1
-                }
             } else {
                 habit_session_insert_char(app, labels[i][0])
             }
+        }
+    }
+
+    action_y := y + pad + header_h + key_h * 4 + gap * 4
+    action_w := (w - gap) / 2
+    if Button((ButtonProps){
+        .bounds={(float)x, (float)action_y, (float)action_w, (float)action_h},
+        .label=GetLocaleText("cancel_button"),
+        .tone=ButtonToneNeutral, .emphasis=ButtonEmphasisSoft
+    }) {
+        habit_session_cancel_edit(app)
+        return 1
+    }
+    if Button((ButtonProps){
+        .bounds={(float)(x + action_w + gap), (float)action_y,
+                 (float)action_w, (float)action_h},
+        .label=GetLocaleText("save_button")
+    }) {
+        if habit_session_commit_edit(app, entry) {
+            return 1
         }
     }
 

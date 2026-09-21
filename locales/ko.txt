@@ -1136,6 +1136,9 @@ Wim Hof - %d초 후 시작
 [session_round_label]
 %d 라운드
 ---
+[round_number_label]
+%d 라운드
+---
 [notification_starting_seconds]
 시작: %d초
 ---

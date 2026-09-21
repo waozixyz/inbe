@@ -1136,6 +1136,9 @@ Runde %d  %ds
 [session_round_label]
 RUNDE %d
 ---
+[round_number_label]
+Runde %d
+---
 [notification_starting_seconds]
 Start: %ds
 ---

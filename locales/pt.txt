@@ -1148,6 +1148,9 @@ Rodada %d  %ds
 [session_round_label]
 RODADA %d
 ---
+[round_number_label]
+Rodada %d
+---
 [notification_starting_seconds]
 Inicio: %ds
 ---

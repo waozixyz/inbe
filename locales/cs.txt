@@ -1136,6 +1136,9 @@ Kolo %d  %ds
 [session_round_label]
 KOLO %d
 ---
+[round_number_label]
+Kolo %d
+---
 [notification_starting_seconds]
 Start: %ds
 ---

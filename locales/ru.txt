@@ -1136,6 +1136,9 @@ Wim Hof - старт через %d с
 [session_round_label]
 РАУНД %d
 ---
+[round_number_label]
+Раунд %d
+---
 [notification_starting_seconds]
 Старт: %dс
 ---

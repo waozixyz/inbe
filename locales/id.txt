@@ -1148,6 +1148,9 @@ Ronde %d  %ds
 [session_round_label]
 RONDE %d
 ---
+[round_number_label]
+Ronde %d
+---
 [notification_starting_seconds]
 Mulai: %ds
 ---
