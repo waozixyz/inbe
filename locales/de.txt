@@ -620,7 +620,7 @@ Beenden
 Konto
 ---
 [sync_create_account_button]
-Konto erstellen
+Neues Konto erstellen
 ---
 [sync_account_created]
 Konto erstellt
@@ -629,7 +629,7 @@ Konto erstellt
 Konto konnte nicht erstellt werden
 ---
 [sync_import_key_button]
-.key-Datei importieren
+Kontoschlüssel importieren
 ---
 [sync_import_key_dialog_title]
 Kontoschlüssel importieren
@@ -680,7 +680,7 @@ Keeping local data
 Sync review failed
 ---
 [sync_no_account]
-Erstelle ein Konto, bevor du dich verbindest
+Noch kein Konto verbunden
 ---
 [sync_backup_warning]
 Speichere diesen privaten Schlüssel an einem Ort, den du kontrollierst. Jeder mit diesem Schlüssel kann dieses Konto übernehmen.
@@ -1864,7 +1864,7 @@ Die Synchronisierung für dieses Profil ist bereit.
 Konto und Synchronisierung
 ---
 [profile_account_sync_body]
-Konto erstellen oder Schlüssel importieren
+Neues Konto erstellen oder vorhandenen Schlüssel importieren
 ---
 [profile_data_management_title]
 Daten

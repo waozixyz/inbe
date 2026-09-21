@@ -38,7 +38,7 @@ Sync is ready for this profile.
 Account & sync
 ---
 [profile_account_sync_body]
-Create account or import key
+Create a new account or import an existing key
 ---
 [profile_data_management_title]
 Data
@@ -860,7 +860,7 @@ Break Settings...
 Account
 ---
 [sync_create_account_button]
-Create Account
+Create New Account
 ---
 [sync_account_created]
 Account created
@@ -869,7 +869,7 @@ Account created
 Could not create account
 ---
 [sync_import_key_button]
-Import .key File
+Import Account Key
 ---
 [sync_import_key_dialog_title]
 Import Account Key
@@ -956,7 +956,7 @@ Keeping local data
 Sync review failed
 ---
 [sync_no_account]
-Create an account before connecting
+No account connected yet
 ---
 [sync_backup_warning]
 Save this private key somewhere you control. Anyone with it can claim this account.

@@ -620,7 +620,7 @@ Esci
 Profilo
 ---
 [sync_create_account_button]
-Crea account
+Crea nuovo account
 ---
 [sync_account_created]
 Account creato
@@ -629,7 +629,7 @@ Account creato
 Impossibile creare l’account
 ---
 [sync_import_key_button]
-Importa file .key
+Importa chiave account
 ---
 [sync_import_key_dialog_title]
 Importa chiave account
@@ -680,7 +680,7 @@ Keeping local data
 Sync review failed
 ---
 [sync_no_account]
-Crea un account prima di connetterti
+Nessun account ancora connesso
 ---
 [sync_backup_warning]
 Salva questa chiave privata in un luogo che controlli. Chiunque la possieda può rivendicare questo account.
@@ -1864,7 +1864,7 @@ La sincronizzazione è pronta per questo profilo.
 Account e sincronizzazione
 ---
 [profile_account_sync_body]
-Crea account o importa chiave
+Crea un nuovo account o importa una chiave esistente
 ---
 [profile_data_management_title]
 Dati

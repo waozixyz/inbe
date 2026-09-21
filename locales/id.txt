@@ -620,7 +620,7 @@ Keluar
 Akun
 ---
 [sync_create_account_button]
-Buat akun
+Buat akun baru
 ---
 [sync_account_created]
 Akun dibuat
@@ -629,7 +629,7 @@ Akun dibuat
 Tidak dapat membuat akun
 ---
 [sync_import_key_button]
-Impor file .key
+Impor kunci akun
 ---
 [sync_import_key_dialog_title]
 Impor kunci akun
@@ -680,7 +680,7 @@ Keeping local data
 Sync review failed
 ---
 [sync_no_account]
-Buat akun sebelum menghubungkan
+Belum ada akun yang terhubung
 ---
 [sync_backup_warning]
 Simpan kunci pribadi ini di tempat yang Anda kendalikan. Siapa pun yang memilikinya dapat mengambil akun ini.
@@ -1864,7 +1864,7 @@ Sinkronisasi siap untuk profil ini.
 Akun dan sinkronisasi
 ---
 [profile_account_sync_body]
-Buat akun atau impor kunci
+Buat akun baru atau impor kunci yang ada
 ---
 [profile_data_management_title]
 Data

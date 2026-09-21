@@ -620,7 +620,7 @@ Inner Breeze를 계속 실행할까요?
 계정
 ---
 [sync_create_account_button]
-계정 만들기
+새 계정 만들기
 ---
 [sync_account_created]
 계정 생성됨
@@ -629,7 +629,7 @@ Inner Breeze를 계속 실행할까요?
 계정을 만들 수 없음
 ---
 [sync_import_key_button]
-.key 파일 가져오기
+계정 키 가져오기
 ---
 [sync_import_key_dialog_title]
 계정 키 가져오기
@@ -680,7 +680,7 @@ Keeping local data
 Sync review failed
 ---
 [sync_no_account]
-연결하기 전에 계정을 만드세요
+아직 연결된 계정이 없습니다
 ---
 [sync_backup_warning]
 이 개인 키를 직접 관리하는 곳에 저장하세요. 이 키를 가진 사람은 누구나 이 계정을 가져갈 수 있습니다.
@@ -1864,7 +1864,7 @@ Dismiss forever
 계정 및 동기화
 ---
 [profile_account_sync_body]
-계정 만들기 또는 키 가져오기
+새 계정을 만들거나 기존 키를 가져오세요
 ---
 [profile_data_management_title]
 데이터

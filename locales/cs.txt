@@ -620,7 +620,7 @@ Ukončit
 Účet
 ---
 [sync_create_account_button]
-Vytvořit účet
+Vytvořit nový účet
 ---
 [sync_account_created]
 Účet vytvořen
@@ -629,7 +629,7 @@ Vytvořit účet
 Účet se nepodařilo vytvořit
 ---
 [sync_import_key_button]
-Importovat soubor .key
+Importovat klíč účtu
 ---
 [sync_import_key_dialog_title]
 Importovat klíč účtu
@@ -680,7 +680,7 @@ Keeping local data
 Sync review failed
 ---
 [sync_no_account]
-Před připojením vytvořte účet
+Zatím není připojen žádný účet
 ---
 [sync_backup_warning]
 Uložte tento soukromý klíč někam, kde jej máte pod kontrolou. Kdokoli s ním může převzít tento účet.
@@ -1864,7 +1864,7 @@ Synchronizace tohoto profilu je připravena.
 Účet a synchronizace
 ---
 [profile_account_sync_body]
-Vytvořit účet nebo importovat klíč
+Vytvořte nový účet nebo importujte existující klíč
 ---
 [profile_data_management_title]
 Data

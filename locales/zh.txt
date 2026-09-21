@@ -620,7 +620,7 @@ Trocador
 账户
 ---
 [sync_create_account_button]
-创建账户
+创建新账户
 ---
 [sync_account_created]
 账户已创建
@@ -629,7 +629,7 @@ Trocador
 无法创建账户
 ---
 [sync_import_key_button]
-导入 .key 文件
+导入账户密钥
 ---
 [sync_import_key_dialog_title]
 导入账户密钥
@@ -680,7 +680,7 @@ Keeping local data
 Sync review failed
 ---
 [sync_no_account]
-连接前请先创建账户
+尚未连接任何账户
 ---
 [sync_backup_warning]
 请将此私钥保存到你可控制的位置。任何拥有它的人都可以认领此账户。
@@ -1864,7 +1864,7 @@ Dismiss forever
 账户与同步
 ---
 [profile_account_sync_body]
-创建账户或导入密钥
+创建新账户或导入现有密钥
 ---
 [profile_data_management_title]
 数据

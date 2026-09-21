@@ -620,7 +620,7 @@ Quitter
 Compte
 ---
 [sync_create_account_button]
-Créer un compte
+Créer un nouveau compte
 ---
 [sync_account_created]
 Compte créé
@@ -629,7 +629,7 @@ Compte créé
 Impossible de créer le compte
 ---
 [sync_import_key_button]
-Importer un fichier .key
+Importer la clé du compte
 ---
 [sync_import_key_dialog_title]
 Importer la clé du compte
@@ -716,7 +716,7 @@ Keeping local data
 Sync review failed
 ---
 [sync_no_account]
-Créez un compte avant de vous connecter
+Aucun compte connecté pour l'instant
 ---
 [sync_backup_warning]
 Enregistrez cette clé privée dans un endroit que vous contrôlez. Toute personne qui la possède peut revendiquer ce compte.
@@ -1864,7 +1864,7 @@ La synchronisation est prête pour ce profil.
 Compte et synchronisation
 ---
 [profile_account_sync_body]
-Créer un compte ou importer une clé
+Créez un nouveau compte ou importez une clé existante
 ---
 [profile_data_management_title]
 Données

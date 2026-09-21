@@ -622,7 +622,7 @@ Inner Breezeを実行したままにしますか？
 アカウント
 ---
 [sync_create_account_button]
-アカウントを作成
+新しいアカウントを作成
 ---
 [sync_account_created]
 アカウントを作成しました
@@ -631,7 +631,7 @@ Inner Breezeを実行したままにしますか？
 アカウントを作成できませんでした
 ---
 [sync_import_key_button]
-.keyファイルをインポート
+アカウントキーをインポート
 ---
 [sync_import_key_dialog_title]
 アカウントキーをインポート
@@ -682,7 +682,7 @@ Keeping local data
 Sync review failed
 ---
 [sync_no_account]
-接続する前にアカウントを作成してください
+まだアカウントが接続されていません
 ---
 [sync_backup_warning]
 この秘密キーは自分で管理できる場所に保存してください。これを持つ人は誰でもこのアカウントを取得できます。
@@ -1866,7 +1866,7 @@ Dismiss forever
 アカウントと同期
 ---
 [profile_account_sync_body]
-アカウントを作成または鍵をインポート
+新しいアカウントを作成するか、既存のキーをインポートしてください
 ---
 [profile_data_management_title]
 データ
