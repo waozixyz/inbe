@@ -1,5 +1,5 @@
 #import "kryon.h"
-#import "ui_swipe.h"
+#import "ui_swipe_props.generated.h"
 #import "platform.h"
 #import "core/breath_engine.h"
 #import "breaks/break_engine.h"
