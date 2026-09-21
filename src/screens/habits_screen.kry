@@ -1479,12 +1479,8 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     h := habits_focus_collapsed_height()
     surface := StyleTokenColor("surface")
     foreground := GetThemeReadableText(surface)
-    muted := Fade(foreground, 0.66f)
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
     description: [HABIT_DESCRIPTION_SIZE + 4] char = {0}
-    session_summary: [160] char = {0}
-    session_badge: [64] char = {0}
-    session_badge_w: int = 0
     weekdays: [7] const char* = {
         "habit_day_mon", "habit_day_tue", "habit_day_wed", "habit_day_thu",
         "habit_day_fri", "habit_day_sat", "habit_day_sun"
@@ -1502,72 +1498,18 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     input_captured := InputCapturesClick(mouse)
     expand_clicked := 0
 
-    if linked_ctx != nil && linked_ctx->count > 0 {
-        latest_day := 0
-        latest_count := 0
-        latest_seconds := 0
-        latest_date: [32] char = {0}
-        latest_count_text: [64] char = {0}
-        duration: [32] char = {0}
-        for int i = 0; i < linked_ctx->count; i++ {
-            entry := &linked_ctx->entries[i]
-            day := entry->year * 10000 + entry->month * 100 + entry->day
-            if day > latest_day {
-                latest_day = day
-                latest_count = 0
-                latest_seconds = 0
-            }
-            if day == latest_day {
-                latest_count++
-                latest_seconds += entry->total_seconds
-            }
-        }
-        FormatLocaleText(session_badge, sizeof(session_badge),
-                         linked_ctx->count == 1 ? "session_count_singular"
-                                                : "session_count_plural",
-                         linked_ctx->count)
-        session_badge_w = AppTextWidth(session_badge, AppSmallFontSize()) + Scale(18)
-        FormatLocaleText(latest_count_text, sizeof(latest_count_text),
-                         latest_count == 1 ? "session_count_singular"
-                                           : "session_count_plural",
-                         latest_count)
-        habit_format_date(latest_day, latest_date, sizeof(latest_date))
-        habit_format_duration(latest_seconds, duration, sizeof(duration))
-        snprintf(session_summary, sizeof(session_summary), "%s · %s · %s",
-                 latest_date, latest_count_text, duration)
-    }
-
     Card collapsed_card: {
         bounds = bounds
     }
     DrawRectangle(x + Scale(16), y + Scale(20),
                   Scale(9), Scale(9), habit->color)
     habits_draw_fitted_text(habit->name, x + Scale(36), y + Scale(10),
-                            w - Scale(76) -
-                                (session_badge_w > 0 ? session_badge_w + Scale(8) : 0),
-                            AppFontSize(), Text12,
-                            foreground)
-    if session_badge_w > 0 {
-        badge_x := x + w - Scale(60) - session_badge_w
-        badge_font := AppFitFontSize(session_badge,
-                                    session_badge_w - Scale(12),
-                                    AppSmallFontSize(), Scale(10))
-        DrawRectangleRounded((Rectangle){(float)badge_x, (float)(y + Scale(11)),
-                            (float)session_badge_w, (float)Scale(22)},
-                            0.45f, 8, Fade(habit->color, 0.22f))
-        Text((TextProps){
-            .bounds={(float)(badge_x + Scale(9)), (float)(y + Scale(14)),
-                     (float)(session_badge_w - Scale(18)), 0},
-            .font=badge_font, .text=session_badge, .wrap=TextWrapNone
-        })
-    }
+                            w - Scale(76), AppFontSize(), Text12, foreground)
     habits_card_description(habit->description, description,
                             sizeof(description))
     Text((TextProps){
         .bounds={(x + Scale(36)), (y + Scale(39)), (w - Scale(76)), 0},
-        .font = AppFitFontSize(session_summary[0] != '\0' ? session_summary : description,
-                               w - Scale(76), AppSmallFontSize(), Scale(10)),
-        .text=(session_summary[0] != '\0' ? session_summary : description),
+        .font=AppSmallFontSize(), .text=description,
         .wrap=TextWrapNone
     })
     for int col = 0; col < columns; col++ {

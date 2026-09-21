@@ -2,7 +2,7 @@
 ## [2.0.4] - 2026-09-21
 ### Changed
 - The account screen shows the connected alias, automatic sync progress, and counts for habits, history days, sessions, friends, lists, and list items.
-- Habits show a distinct mark and session details for days completed through a practice session.
+- Habits show a distinct mark for days completed through a practice session.
 - Importing an account key offers Merge or Replace before changing local data, with clear details about each choice.
 - Profile offers Connect Account, and the sync screen offers Import .key when no account is connected.
 
