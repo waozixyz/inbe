@@ -1,7 +1,7 @@
 #include "app/app.h"
 #include "app/app_nav.h"
 #include "locale.h"
-#include "ui_tree.h"
+#include "ui_tree_props.generated.h"
 #include "screens/settings/settings_screen.h"
 
 #include <stdbool.h>
