@@ -348,7 +348,7 @@ add_custom_command(
             "${KRYON_ICON_ASSETS_C}"
             --types-output "${KRYON_ICON_TYPES_H}"
             --names-output "${KRYON_ICON_NAMES_C}"
-    DEPENDS "${KRYON_DIR}/scripts/embed-icon-sheets.py" "${KRYON_DIR}/include/ui_icons.h" ${KRYON_ICON_FILES}
+    DEPENDS "${KRYON_DIR}/scripts/embed-icon-sheets.py" ${KRYON_ICON_FILES}
     WORKING_DIRECTORY "${KRYON_DIR}"
     VERBATIM)
 add_custom_target(kryon_icon_assets_generated DEPENDS "${KRYON_ICON_ASSETS_C}" "${KRYON_ICON_NAMES_C}" "${KRYON_ICON_TYPES_H}")
