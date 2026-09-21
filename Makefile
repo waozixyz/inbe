@@ -211,7 +211,8 @@ KRYON_RUNTIME_KRY := $(sort $(wildcard $(KRYON_DIR)/runtime/*.kry))
 KRYON_RUNTIME_C := $(patsubst $(KRYON_DIR)/%.kry,$(KRYON_GENERATED_SRC_DIR)/%.c,$(KRYON_RUNTIME_KRY))
 KRYON_RUNTIME_H := $(KRYON_RUNTIME_C:.c=.h)
 KRYON_RUNTIME_STAMP := $(KRYON_GENERATED_SRC_DIR)/runtime/.fresh
-KRYON_UI_KRY := $(sort $(wildcard $(KRYON_DIR)/src/ui/*.kry))
+# Inbe does not host a terminal paste stream, so it has no clipboard protocol callbacks.
+KRYON_UI_KRY := $(filter-out $(KRYON_DIR)/src/ui/clipboard_protocol.kry,$(sort $(wildcard $(KRYON_DIR)/src/ui/*.kry)))
 KRYON_UI_C := $(patsubst $(KRYON_DIR)/src/ui/%.kry,$(KRYON_GENERATED_SRC_DIR)/ui/%.c,$(KRYON_UI_KRY))
 KRYON_UI_H := $(KRYON_UI_C:.c=.h)
 KRYON_UI_STAMP := $(KRYON_GENERATED_SRC_DIR)/ui/.fresh
