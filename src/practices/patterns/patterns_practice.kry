@@ -659,10 +659,10 @@ pattern_circle_draw :: (app: InnerBreeze*, center_x: int, center_y: int,
         fraction = 1.0
     }
     r := (int)((float)min_r + fraction * (float)(max_r - min_r))
-    circle := GetThemeCircle()
+    circle := StyleTokenColor("accent")
 
     DrawCircle(center_x, center_y, (float)max_r,
-               DarkenColor(GetThemeBackground(), 8))
+               DarkenColor(StyleTokenColor("canvas"), 8))
     DrawCircle(center_x, center_y, (float)r, circle)
     unused app
 }

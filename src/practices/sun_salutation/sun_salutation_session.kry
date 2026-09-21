@@ -268,8 +268,8 @@ draw_pose_timer :: (app: InnerBreeze*, seconds: int, top_y: int, bottom_y: int) 
     if fill_w > w {
         fill_w = w
     }
-    DrawRectangle(x, y, w, h, DarkenColor(GetThemeBackground(), 12))
-    DrawRectangle(x, y, fill_w, h, GetThemeButtonHover())
+    DrawRectangle(x, y, w, h, DarkenColor(StyleTokenColor("canvas"), 12))
+    DrawRectangle(x, y, fill_w, h, StyleTokenColor("accent-hover"))
 }
 
 sun_salutation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {

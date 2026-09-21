@@ -134,7 +134,7 @@ draw_audio_meter :: (app: InnerBreeze*, x: int, y: int, w: int, label: const cha
     label_h := Scale(18)
     level := app_audio_output_level(app)
     fill_w := (int)(level * (float)w)
-    bg := GetThemeBackground()
+    bg := StyleTokenColor("canvas")
 
     if w <= 0 {
         return audio_meter_height()
@@ -160,7 +160,7 @@ draw_audio_meter :: (app: InnerBreeze*, x: int, y: int, w: int, label: const cha
             inner_w = Scale(2)
         }
         DrawRectangle(x + Scale(2), y + label_h + Scale(2),
-                      inner_w, bar_h - Scale(4), GetThemeButtonHover())
+                      inner_w, bar_h - Scale(4), StyleTokenColor("accent-hover"))
     }
     return audio_meter_height()
 }

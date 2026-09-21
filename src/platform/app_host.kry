@@ -206,7 +206,7 @@ app_frame :: (app: InnerBreeze*) #export {
         EndClip()
     } #else {
         BeginDrawing()
-        ClearBackground(GetThemeBackground())
+        ClearBackground(StyleTokenColor("canvas"))
         app_update_draw(app, (Rectangle){0, 0, (float)width, (float)height})
     }
     EndDrawing()

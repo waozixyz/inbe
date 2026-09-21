@@ -173,6 +173,13 @@ GetThemeSurface(void)
 }
 
 Color
+StyleTokenColor(const char *name)
+{
+    (void)name;
+    return (Color){0};
+}
+
+Color
 GetThemeBackground(void)
 {
     return (Color){0};

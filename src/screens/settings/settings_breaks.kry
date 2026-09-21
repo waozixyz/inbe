@@ -57,7 +57,7 @@ settings_breaks_draw_status :: (app: InnerBreeze*, x: int, w: int, y: int*) #pri
     })
     *y += Scale(30)
 
-    muted := DarkenColor(GetThemeText(), 40)
+    muted := DarkenColor(StyleTokenColor("text"), 40)
     names: [3] const char* = {
         GetLocaleText("break_micro_title"),
         GetLocaleText("break_rest_title"),
@@ -206,7 +206,7 @@ settings_breaks_draw_week :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
     })
     *y += Scale(30)
     if count <= 0 {
-        muted := DarkenColor(GetThemeText(), 40)
+        muted := DarkenColor(StyleTokenColor("text"), 40)
         Text((TextProps){
             .bounds={(x), (*y), 0, 0},
             .text=(GetLocaleText("settings_breaks_no_data")),
@@ -229,7 +229,7 @@ settings_breaks_draw_week :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
         postponed[t] += rows[i].postponed
     }
 
-    muted := DarkenColor(GetThemeText(), 40)
+    muted := DarkenColor(StyleTokenColor("text"), 40)
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
         line: [128] char
         name: const char* = t == BREAK_REST ? GetLocaleText("break_rest_title") : t == BREAK_DAILY ? GetLocaleText("break_daily_title") : GetLocaleText("break_micro_title")

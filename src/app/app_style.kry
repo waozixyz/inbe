@@ -92,8 +92,10 @@ register_style_pack_variant :: (source: const char*, label: const char*,
         {"field-border", style_token_color(colors.border)},
         {"scroll-thumb", style_token_color(colors.text_muted)},
         {"scroll-border", style_token_color(colors.border_strong)},
+        {"link", style_token_color(colors.link)},
+        {"icon", style_token_color(colors.icon)},
     }
-    return RegisterStylePackVariant("inbe", source, label, tokens, 45)
+    return RegisterStylePackVariant("inbe", source, label, tokens, 47)
 }
 
 static applied_style: int = -1
@@ -126,7 +128,9 @@ app_apply_style :: (app: InnerBreeze*) #export {
         .accent_pressed = MixThemeColor(GetThemeButton(), GetThemeText(), 0.12f),
         .on_accent = GetThemeButtonText(),
         .danger = scheme.error,
-        .on_danger = GetThemeReadableText(scheme.error)
+        .on_danger = GetThemeReadableText(scheme.error),
+        .link = GetThemeLink(),
+        .icon = GetThemeIcon()
     }
     if applied_style == app->style_index &&
     memcmp(&applied_colors, &colors, sizeof(ThemeColors)) == 0 &&

@@ -169,8 +169,8 @@ meditation_music_draw_download_progress :: (app: InnerBreeze*, x: int, y: int, w
     download: RuntimeAssetDownload*
     bar_h := Scale(10)
     fill_w := 0
-    bg := GetThemeBackground()
-    button := GetThemeButton()
+    bg := StyleTokenColor("canvas")
+    button := StyleTokenColor("accent")
 
     if app == nil || w <= 0 {
         return

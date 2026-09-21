@@ -270,7 +270,7 @@ settings_mobile_hub_row :: (app: InnerBreeze*, row: SettingsMobileHubRow,
         .disabled = app->modal.active
     })
     Icon(0, icon_x, y + (h - icon_size) / 2, icon_size,
-         row.icon, LightenColor(GetThemeButtonHover(), 54))
+         row.icon, LightenColor(StyleTokenColor("accent-hover"), 54))
     Text((TextProps){
         .bounds = {(float)text_x, (float)y, (float)title_w, (float)h},
         .text=(row.label),
@@ -319,7 +319,7 @@ settings_mobile_profile_strip :: (app: InnerBreeze*, x: int, y: int, w: int) -> 
         .disabled = app->modal.active
     })
     DrawCircle(avatar_x + avatar / 2, avatar_y + avatar / 2, avatar / 2,
-               LightenColor(GetThemeButton(), 30))
+               LightenColor(StyleTokenColor("accent"), 30))
     Icon(0, avatar_x, avatar_y, avatar, app->profile_picture_icon, WHITE)
     Text((TextProps){
         .bounds={(float)text_x, (float)(y + Scale(17)),
@@ -482,10 +482,10 @@ settings_desktop_draw_header :: (app: InnerBreeze*, layout: SettingsDesktopLayou
 settings_desktop_draw_nav :: (app: InnerBreeze*, layout: SettingsDesktopLayout) #private {
     DrawRectangleRounded((Rectangle){(float)layout.list_x, (float)layout.list_y,
                          (float)layout.list_w, (float)layout.list_h},
-                         0.025f, 10, DarkenColor(GetThemeBackground(), 4))
+                         0.025f, 10, DarkenColor(StyleTokenColor("canvas"), 4))
     DrawRectangleRoundedLinesEx((Rectangle){(float)layout.list_x, (float)layout.list_y,
                                 (float)layout.list_w, (float)layout.list_h},
-                                0.025f, 10, 1.0f, Fade(GetThemeText(), 0.07f))
+                                0.025f, 10, 1.0f, Fade(StyleTokenColor("text"), 0.07f))
     Scroll navigation: {
         bounds = {(float)layout.list_x, (float)layout.list_y,
                   (float)layout.list_w, (float)layout.list_h}
@@ -507,10 +507,10 @@ settings_desktop_draw_panel :: (app: InnerBreeze*, layout: SettingsDesktopLayout
 
     DrawRectangleRounded((Rectangle){(float)layout.panel_x, (float)layout.panel_y,
                          (float)layout.panel_w, (float)layout.panel_h},
-                         0.018f, 10, DarkenColor(GetThemeBackground(), 3))
+                         0.018f, 10, DarkenColor(StyleTokenColor("canvas"), 3))
     DrawRectangleRoundedLinesEx((Rectangle){(float)layout.panel_x, (float)layout.panel_y,
                                 (float)layout.panel_w, (float)layout.panel_h},
-                                0.018f, 10, 1.0f, Fade(GetThemeText(), 0.07f))
+                                0.018f, 10, 1.0f, Fade(StyleTokenColor("text"), 0.07f))
     Text((TextProps){
         .bounds={(float)(layout.panel_x + layout.panel_pad), (float)y,
                  (float)(layout.panel_w - layout.panel_pad * 2), (float)Scale(30)},

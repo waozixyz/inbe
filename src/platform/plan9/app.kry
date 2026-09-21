@@ -28,7 +28,7 @@
                                     (float)GetScreenWidth(),
                                     (float)GetScreenHeight()}
             BeginDrawing()
-            ClearBackground(GetThemeBackground())
+            ClearBackground(StyleTokenColor("canvas"))
             app_update_draw(app, viewport)
             EndDrawing()
         }

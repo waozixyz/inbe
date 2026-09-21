@@ -475,7 +475,7 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                     return y
                 }
                 DrawRectangle(label_x, y, label_w, button_h,
-                                 DarkenColor(GetThemeBackground(), 5))
+                                 DarkenColor(StyleTokenColor("canvas"), 5))
                 Text((TextProps){
                     .bounds={(label_x + Scale(8)), (AppControlTextY(total_text, y, button_h, AppSmallFontSize())), 0, 0},
                     .text=(total_text),
@@ -544,8 +544,8 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
     }
 
     DrawRectangle(0, y, view_width, keyboard_h,
-                     DarkenColor(GetThemeBackground(), 10))
-    DrawLine(0, y, view_width, y, DarkenColor(GetThemeBackground(), 42))
+                     DarkenColor(StyleTokenColor("canvas"), 10))
+    DrawLine(0, y, view_width, y, DarkenColor(StyleTokenColor("canvas"), 42))
 
     for int i = 0; i < 12; i++ {
         col := i % 3

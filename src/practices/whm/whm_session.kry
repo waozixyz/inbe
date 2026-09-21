@@ -760,7 +760,7 @@ draw_session_progress_circle :: (app: InnerBreeze*, center_x: int, center_y: int
     thickness: int
     inner_radius: float
     outer_radius: float
-    circle: Color = GetThemeCircle()
+    circle: Color = StyleTokenColor("accent")
     contrast: Color = text_color_for_background(circle)
     band_bg: Color
     band_fill: Color
@@ -903,8 +903,8 @@ session_draw_start_preview :: (app: InnerBreeze*, center_x: int, center_y: int) 
         .wrap=TextWrapNone
     })
 
-    DrawCircle(center_x, center_y, scaled_radius, GetThemeCircle())
-    DrawCircleLines(center_x, center_y, scaled_radius, GetThemeText())
+    DrawCircle(center_x, center_y, scaled_radius, StyleTokenColor("accent"))
+    DrawCircleLines(center_x, center_y, scaled_radius, StyleTokenColor("text"))
 
 
     Text((TextProps){
@@ -941,9 +941,9 @@ session_draw_round_title_bar :: (app: InnerBreeze*, title: const char*, height: 
 
 draw_breath_preview :: (breathing: BreathSession*, center_x: int, center_y: int) {
     r: float = draw_radius(breathing) * 0.72f
-    DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, GetThemeCircle())
+    DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, StyleTokenColor("accent"))
     DrawRing((Vector2){(float)center_x, (float)center_y}, r - 0.75f, r + 0.75f,
-             0.0f, 360.0f, 96, GetThemeText())
+             0.0f, 360.0f, 96, StyleTokenColor("text"))
 }
 
 stop_android_background_session :: (app: InnerBreeze*) #private {
@@ -1186,12 +1186,12 @@ session_draw_results_screen :: (app: InnerBreeze*, center_x: int, center_y: int,
             snprintf(lines[2], sizeof(lines[2]), "%ds", rounds > 0 ? total / rounds : 0)
         }
         DrawRectangle(box_x, box_y, box_w, Scale(29) * 3,
-                      DarkenColor(GetThemeBackground(), 6))
+                      DarkenColor(StyleTokenColor("canvas"), 6))
         for int i = 0; i < 3; i++ {
             info_y := box_y + i * Scale(29)
             if i > 0 {
                 DrawLine(box_x, info_y, box_x + box_w, info_y,
-                         DarkenColor(GetThemeBackground(), 30))
+                         DarkenColor(StyleTokenColor("canvas"), 30))
             }
             Text((TextProps){
                 .bounds={(float)(box_x + Scale(10)), (float)info_y,
@@ -1212,7 +1212,7 @@ session_draw_results_screen :: (app: InnerBreeze*, center_x: int, center_y: int,
         row_font: int = AppFontSize()
         FormatLocaleText(row, sizeof(row), "round_result_label", i + 1, round_times[i])
         DrawRectangle(box_x, row_y - 1, box_w, row_h,
-                      DarkenColor(GetThemeBackground(), 4))
+                      DarkenColor(StyleTokenColor("canvas"), 4))
         Text((TextProps){
             .bounds={(float)(box_x + Scale(10)), (float)(row_y - 1),
                      (float)(box_w - Scale(20)), (float)row_h},

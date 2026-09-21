@@ -129,14 +129,14 @@ AppGuideOverlay :: (guide: GuideOverlayProps) -> UIGuideResult #export {
     Box(scrim.bottom, scrim_color, BLANK)
     Box(scrim.left, scrim_color, BLANK)
     Box(scrim.right, scrim_color, BLANK)
-    Box(anchor, BLANK, GetThemeText())
+    Box(anchor, BLANK, StyleTokenColor("text"))
     arrow := GuideArrowFor(tip, anchor, metrics)
     Line((int)arrow.line_start.x, (int)arrow.line_start.y,
-    (int)arrow.line_end.x, (int)arrow.line_end.y, GetThemeText())
+    (int)arrow.line_end.x, (int)arrow.line_end.y, StyleTokenColor("text"))
     Line((int)arrow.tip0.x, (int)arrow.tip0.y,
-    (int)arrow.tip1.x, (int)arrow.tip1.y, GetThemeText())
+    (int)arrow.tip1.x, (int)arrow.tip1.y, StyleTokenColor("text"))
     Line((int)arrow.tip0.x, (int)arrow.tip0.y,
-    (int)arrow.tip2.x, (int)arrow.tip2.y, GetThemeText())
+    (int)arrow.tip2.x, (int)arrow.tip2.y, StyleTokenColor("text"))
     widget_panel(tip, panel)
     title := GetLocaleText("guide_title")
     title_width := tip.width - (float)(metrics.pad * 2 + metrics.close_size + metrics.nav_gap)
@@ -248,7 +248,7 @@ AppReorderHandle :: (x: int, y: int, w: int, h: int, active: int) #export {
         return
     }
     MarkClickable()
-    color := active ? GetThemeText() : GetThemeMutedText()
+    color := active ? StyleTokenColor("text") : StyleTokenColor("muted")
     r := Scale(2)
     if r < 2 {
         r = 2
@@ -273,11 +273,11 @@ AppReorderPlaceholder :: (bounds: Rectangle) #export {
     if paint.use_slot {
         Surface(paint.slot_bounds, (Style){
             .fields = StyleBackground | StyleBorder | StyleRadius | StyleBorderWidth,
-            .background = Fade(GetThemeButtonHover(), paint.fill_alpha),
-            .border = GetThemeButtonHover(), .radius = paint.radius,
+            .background = Fade(StyleTokenColor("accent-hover"), paint.fill_alpha),
+            .border = StyleTokenColor("accent-hover"), .radius = paint.radius,
             .border_width = paint.stroke_width
         })
     } else {
-        Box(paint.line_bounds, GetThemeButtonHover(), BLANK)
+        Box(paint.line_bounds, StyleTokenColor("accent-hover"), BLANK)
     }
 }

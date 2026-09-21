@@ -47,9 +47,9 @@ app_draw_close_dropdown_title_bar :: (app: InnerBreeze*,
     if close_y < 0 { close_y = 0 }
     if dropdown_y < 0 { dropdown_y = 0 }
     if dropdown_w < 1 { dropdown_w = 1 }
-    DrawRectangle(0, 0, view_width, height, GetThemeBackground())
+    DrawRectangle(0, 0, view_width, height, StyleTokenColor("canvas"))
     DrawLine(0, height - 1, view_width, height - 1,
-             DarkenColor(GetThemeButton(), 18))
+             DarkenColor(StyleTokenColor("accent"), 18))
     Dropdown((DropdownProps){.id = dropdown.id,
              .bounds = {dropdown_x, dropdown_y, dropdown_w, dropdown_h},
              .options = dropdown.options, .option_count = dropdown.option_count,

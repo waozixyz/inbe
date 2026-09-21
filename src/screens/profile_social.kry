@@ -719,7 +719,7 @@ draw_leaderboard_rows :: (app: InnerBreeze*, json: const char*,
 
         DrawRing((Vector2){(float)spinner_x, (float)spinner_y},
                  (float)Scale(5), (float)Scale(7),
-                 angle, angle + 270.0f, 24, GetThemeText())
+                 angle, angle + 270.0f, 24, StyleTokenColor("text"))
         Text((TextProps){
             .bounds={(x + Scale(24)), (*y), 0, 0},
             .text=(GetLocaleText("profile_updating_status")),
@@ -913,7 +913,7 @@ draw_combined_leaderboard :: (app: InnerBreeze*, x: int, w: int,
         DrawRing((Vector2){(float)(x + Scale(10)),
                            (float)(*y + Scale(9))},
                  (float)Scale(5), (float)Scale(7), angle,
-                 angle + 270.0f, 24, GetThemeText())
+                 angle + 270.0f, 24, StyleTokenColor("text"))
         *y += Scale(20)
         return
     }
@@ -1006,7 +1006,7 @@ draw_combined_leaderboard :: (app: InnerBreeze*, x: int, w: int,
                     names[i])
         if i % 2 == 1 {
             DrawRectangle(x, *y, w, row_h,
-                          DarkenColor(GetThemeBackground(), 5))
+                          DarkenColor(StyleTokenColor("canvas"), 5))
         }
         Text((TextProps){
             .bounds={(x + Scale(6)), (*y + Scale(8)), 0, 0},

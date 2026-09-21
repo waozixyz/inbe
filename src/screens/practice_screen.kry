@@ -583,15 +583,15 @@ practice_screen_draw_home_hero :: (app: InnerBreeze*) -> int #private {
     if banner_path != NULL {
         practice_draw_card_banner(banner_path, (Rectangle){hero.x, hero.y, hero.width, (float)(title_y + Scale(8))})
     } else {
-        DrawRectangleRec(hero, GetThemeSurface())
+        DrawRectangleRec(hero, StyleTokenColor("surface"))
     }
 
     fade_h := Scale(120)
     fade_y := title_y - fade_h
     DrawRectangleGradientV(content_view_x, fade_y, content_view_w, fade_h,
-                           Fade(GetThemeBackground(), 0.0f), GetThemeBackground())
+                           Fade(StyleTokenColor("canvas"), 0.0f), StyleTokenColor("canvas"))
     DrawRectangle(content_view_x, title_y, content_view_w,
-                  view_height - title_y, GetThemeBackground())
+                  view_height - title_y, StyleTokenColor("canvas"))
 
     practice_draw_home_title(app, x, title_y, content_w)
 
@@ -864,7 +864,7 @@ practice_screen_draw_modal :: (app: InnerBreeze*) {
     if app->modal.type != UIModalPracticeManual && app->modal.type != UIModalPracticeConfig && app->modal.type != UIModalEditProgressiveStartSpeed {
         return
     }
-    DrawRectangle(0, 0, view_width, view_height, GetThemeBackground())
+    DrawRectangle(0, 0, view_width, view_height, StyleTokenColor("canvas"))
     if app->modal.type == UIModalEditProgressiveStartSpeed {
         practice := practice_get(app->exercise_type)
         if practice->draw_config != NULL {

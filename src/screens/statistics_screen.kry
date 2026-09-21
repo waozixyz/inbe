@@ -131,9 +131,9 @@ statistics_draw_metric :: (x: int, y: int, w: int, h: int, label: const char*, v
     value_font := Text24
     value_w := 0
 
-    DrawRectangle(x, y, w, h, DarkenColor(GetThemeBackground(), 8))
+    DrawRectangle(x, y, w, h, DarkenColor(StyleTokenColor("canvas"), 8))
     DrawRectangle(x, y, Scale(4), h, accent)
-    DrawLine(x, y + h - 1, x + w, y + h - 1, DarkenColor(GetThemeBackground(), 30))
+    DrawLine(x, y + h - 1, x + w, y + h - 1, DarkenColor(StyleTokenColor("canvas"), 30))
     Text((TextProps){
         .bounds={(x + Scale(12)), (y + Scale(8)), 0, 0},
         .text=(label),
@@ -218,7 +218,7 @@ statistics_draw_mood_panel :: (content_x: int, y: int, content_w: int,
                            LightenColor(accent, 20))
 
     DrawRectangle(content_x, bars_y, content_w, bars_h,
-                  DarkenColor(GetThemeBackground(), 7))
+                  DarkenColor(StyleTokenColor("canvas"), 7))
     for int i = 0; i < 5; i++ {
         count := stats->counts[i]
         bar_h := count > 0 ? (count * (bars_h - Scale(24))) / stats->total
@@ -233,7 +233,7 @@ statistics_draw_mood_panel :: (content_x: int, y: int, content_w: int,
         }
         DrawRectangle(x, bar_y, w, bar_h,
                       count > 0 ? statistics_mood_color(i + 1)
-                                : DarkenColor(GetThemeBackground(), 24))
+                                : DarkenColor(StyleTokenColor("canvas"), 24))
         snprintf(label, sizeof(label), "%d", i + 1)
         Text((TextProps){
             .bounds={(x + (w - AppTextWidth(label, Text12)) / 2), (bars_y + bars_h - Scale(16)), 0, 0},
@@ -290,7 +290,7 @@ statistics_draw_hold_graph :: (app: InnerBreeze*, linked_ctx: const HabitLinkedC
     plot_h := graph_h - Scale(36)
     axis_label: [32] char = {0}
 
-    DrawRectangle(content_x, y, content_w, graph_h, DarkenColor(GetThemeBackground(), 7))
+    DrawRectangle(content_x, y, content_w, graph_h, DarkenColor(StyleTokenColor("canvas"), 7))
     for int i = 0; linked_ctx != NULL && i < linked_ctx->count; i++ {
         entry: const HabitLinkedEntry* = &linked_ctx->entries[i]
         day_index := 0
@@ -328,21 +328,21 @@ statistics_draw_hold_graph :: (app: InnerBreeze*, linked_ctx: const HabitLinkedC
     for int i = 1; i < graph_days; i++ {
         if graph_days == 7 || i % 5 == 0 {
             x := plot_x + (plot_w * i) / graph_days
-            DrawLine(x, plot_y, x, plot_y + plot_h, DarkenColor(GetThemeBackground(), 22))
+            DrawLine(x, plot_y, x, plot_y + plot_h, DarkenColor(StyleTokenColor("canvas"), 22))
         }
     }
     for int i = 0; i <= 2; i++ {
         line_y := plot_y + (plot_h * i) / 2
         seconds := max_hold - (max_hold * i) / 2
         snprintf(axis_label, sizeof(axis_label), "%ds", seconds)
-        DrawLine(plot_x, line_y, plot_x + plot_w, line_y, DarkenColor(GetThemeBackground(), 20))
+        DrawLine(plot_x, line_y, plot_x + plot_w, line_y, DarkenColor(StyleTokenColor("canvas"), 20))
         Text((TextProps){
             .bounds={(content_x + Scale(4)), (line_y - Scale(8)), 0, 0},
             .text=(axis_label),
             .wrap=TextWrapNone
         })
     }
-    DrawLine(plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h, DarkenColor(GetThemeText(), 42))
+    DrawLine(plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h, DarkenColor(StyleTokenColor("text"), 42))
     {
         day_seen := (int[STATISTICS_MAX_GRAPH_DAYS]){0}
         day_first_x := (int[STATISTICS_MAX_GRAPH_DAYS]){0}
@@ -526,7 +526,7 @@ statistics_draw_view :: (app: InnerBreeze*, active: Habit*, linked_ctx: HabitLin
     }
 
     y += statistics_draw_section_title(GetLocaleText("habit_stats_weekday_pattern"), content_x, y, content_w) + Scale(10)
-    DrawRectangle(content_x, y, content_w, chart_h, DarkenColor(GetThemeBackground(), 7))
+    DrawRectangle(content_x, y, content_w, chart_h, DarkenColor(StyleTokenColor("canvas"), 7))
     {
         labels: [7] const char* = {"S", "M", "T", "W", "T", "F", "S"}
         slot_w := content_w / 7
@@ -539,7 +539,7 @@ statistics_draw_view :: (app: InnerBreeze*, active: Habit*, linked_ctx: HabitLin
             if w < Scale(4) {
                 w = Scale(4)
             }
-            DrawRectangle(x, bar_y, w, h, weekday_counts[i] > 0 ? LightenColor(active->color, 12) : DarkenColor(GetThemeBackground(), 24))
+            DrawRectangle(x, bar_y, w, h, weekday_counts[i] > 0 ? LightenColor(active->color, 12) : DarkenColor(StyleTokenColor("canvas"), 24))
             Text((TextProps){
                 .bounds={(x + (w - AppTextWidth(labels[i], Text12)) / 2), (y + chart_h - Scale(18)), 0, 0},
                 .text=(labels[i]),

@@ -44,7 +44,7 @@ session_result_mood_color :: (mood: int) -> Color #private {
 }
 
 session_result_accent :: () -> Color #private {
-    background := GetThemeBackground()
+    background := StyleTokenColor("canvas")
     luma := background.r * 299 + background.g * 587 + background.b * 114
     return luma >= 128000 ? (Color){82, 119, 193, 255} :
                             (Color){190, 163, 250, 255}
@@ -125,8 +125,8 @@ session_result_text :: (label: const char*, x: int, y: int, w: int, h: int,
 
 session_result_card :: (x: int, y: int, w: int, h: int) #private {
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
-    DrawRectangleRounded(bounds, 0.12f, 10, GetThemeSurface())
-    DrawRectangleRoundedLinesEx(bounds, 0.12f, 10, 1.0f, GetThemeBorder())
+    DrawRectangleRounded(bounds, 0.12f, 10, StyleTokenColor("surface"))
+    DrawRectangleRoundedLinesEx(bounds, 0.12f, 10, 1.0f, StyleTokenColor("border"))
 }
 
 session_result_mood_picker :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
@@ -259,7 +259,7 @@ session_result_chart :: (result: SessionResult*, x: int, y: int, w: int,
         DrawCircleGradient((Vector2){(float)(x + w / 2),
                            (float)(y + Scale(91))},
                            (float)Scale(62), Fade(accent, 0.18f),
-                           Fade(GetThemeSurface(), 0.0f))
+                           Fade(StyleTokenColor("surface"), 0.0f))
         DrawRing((Vector2){(float)(x + w / 2),
                   (float)(y + Scale(91))},
                  (float)Scale(46), (float)Scale(48),
@@ -275,7 +275,7 @@ session_result_chart :: (result: SessionResult*, x: int, y: int, w: int,
     for int row = 0; row < 3; row++ {
         guide_y := chart_y + row * chart_h / 2
         DrawLine(chart_x, guide_y, chart_x + chart_w, guide_y,
-                 Fade(GetThemeBorder(), 0.55f))
+                 Fade(StyleTokenColor("border"), 0.55f))
     }
     for int i = 0; i < result->round_count; i++ {
         value := result->round_values[i]
@@ -309,7 +309,7 @@ session_result_chart :: (result: SessionResult*, x: int, y: int, w: int,
                        (Vector2){(float)point_x, (float)point_y},
                        (float)Scale(3), accent)
         }
-        DrawCircle(point_x, point_y, Scale(5), GetThemeText())
+        DrawCircle(point_x, point_y, Scale(5), StyleTokenColor("text"))
         if i % label_step == 0 || i == result->round_count - 1 {
             value_label: [24] char
             index_label: [16] char
@@ -345,7 +345,7 @@ session_result_round_list :: (result: SessionResult*, x: int, y: int,
                          i + 1, result->round_values[i])
         DrawRectangleRounded((Rectangle){(float)cell_x, (float)cell_y,
                               (float)cell_w, (float)Scale(32)},
-                             0.16f, 6, Fade(GetThemeLink(), 0.08f))
+                             0.16f, 6, Fade(StyleTokenColor("link"), 0.08f))
         session_result_text(label, cell_x + Scale(7), cell_y,
                             cell_w - Scale(14), Scale(32),
                             AppFitFontSize(label, cell_w - Scale(14),
@@ -394,7 +394,7 @@ session_result_other_summary :: (result: SessionResult*, x: int, y: int,
         if i > 0 {
             DrawLine(x + Scale(16), y + Scale(30 + i * 38),
                      x + w - Scale(16), y + Scale(30 + i * 38),
-                     Fade(GetThemeBorder(), 0.70f))
+                     Fade(StyleTokenColor("border"), 0.70f))
         }
         session_result_text(labels[i], x + Scale(18),
                             y + Scale(30) + i * Scale(38),
@@ -409,7 +409,7 @@ session_result_status :: (result: SessionResult*, x: int, y: int,
                             (result->saved ? "results_saved_status" :
                                              "results_unsaved_status"))
     icon := result->write_failed ? (Color){226, 83, 78, 255} :
-            result->saved ? (Color){108, 199, 145, 255} : GetThemeLink()
+            result->saved ? (Color){108, 199, 145, 255} : StyleTokenColor("link")
     session_result_card(x, y, w, Scale(50))
     DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w,
                           (float)Scale(50)}, 0.12f, 10, Fade(icon, 0.07f))
@@ -445,7 +445,7 @@ session_result_draw_content :: (app: InnerBreeze*, result: SessionResult*,
     content_y := top_y + Scale(20)
         DrawCircleGradient((Vector2){(float)center_x, (float)(content_y + Scale(20))},
                        (float)Scale(170), Fade(session_result_accent(), 0.17f),
-                       Fade(GetThemeBackground(), 0.0f))
+                       Fade(StyleTokenColor("canvas"), 0.0f))
     session_result_text(GetLocaleText("results_title"), box_x, content_y,
                         box_w, Scale(25), Scale(14), TextAlignStart)
     session_result_text(practice_label(result->activity), box_x,

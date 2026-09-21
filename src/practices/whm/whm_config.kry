@@ -144,10 +144,10 @@ whm_draw_progressive_start_speed_editor :: (app: InnerBreeze*) #private {
         (float)modal_h
     })
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180})
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, GetThemeSurface())
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, StyleTokenColor("surface"))
     Bevel(modal_x, modal_y, modal_w, modal_h,
-                   LightenColor(GetThemeSurface(), 40),
-                   DarkenColor(GetThemeSurface(), 40))
+                   LightenColor(StyleTokenColor("surface"), 40),
+                   DarkenColor(StyleTokenColor("surface"), 40))
 
     title = GetLocaleText("progressive_start_speed_editor_title")
     title_w = AppTextWidth(title, title_font)
@@ -215,8 +215,8 @@ whm_config_draw_section_title :: (x: int, y: int*, title: const char*) #private 
 whm_config_draw_card :: (x: int, y: int, w: int, h: int) #private {
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
 
-    DrawRectangleRounded(bounds, 0.08f, 10, GetThemeSurface())
-    DrawRectangleRoundedLinesEx(bounds, 0.08f, 10, 1.0f, GetThemeBorder())
+    DrawRectangleRounded(bounds, 0.08f, 10, StyleTokenColor("surface"))
+    DrawRectangleRoundedLinesEx(bounds, 0.08f, 10, 1.0f, StyleTokenColor("border"))
 }
 
 whm_config_breath_card_height :: (app: InnerBreeze*) -> int #private {
@@ -299,8 +299,8 @@ whm_config_draw_breath_card :: (app: InnerBreeze*, content_x: int, content_w: in
     DrawCircleGradient((Vector2){(float)(inner_x + inner_w / 2),
                        (float)(inner_y + preview_h / 2)},
                        (float)Scale(72),
-                       Fade(GetThemeLink(), 0.16f),
-                       Fade(GetThemeBackground(), 0.0f))
+                       Fade(StyleTokenColor("link"), 0.16f),
+                       Fade(StyleTokenColor("canvas"), 0.0f))
     whm_preview_step_elapsed(&app->settings_preview,
                              &whm_config_preview_remainder)
     if app->settings_preview.phase != BreathPhaseBreathe {

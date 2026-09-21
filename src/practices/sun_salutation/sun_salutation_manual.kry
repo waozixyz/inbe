@@ -80,7 +80,7 @@ content_w: int, step: int, y: int*) #private {
     visual := (Rectangle){(float)content_x, (float)*y,
         (float)content_w, (float)visual_h}
 
-    DrawRectangleRounded(visual, 0.12f, 10, GetThemeSurface())
+    DrawRectangleRounded(visual, 0.12f, 10, StyleTokenColor("surface"))
     if step < 2 {
         pose_w := (content_w - Scale(36)) / 3
         poses: [3] int = {0, step == 0 ? 5 : 3, step == 0 ? 11 : 7}
@@ -98,7 +98,7 @@ content_w: int, step: int, y: int*) #private {
             poses[i], pose_bounds)
             DrawCircle((int)(pose_bounds.x + pose_bounds.width / 2),
             *y + Scale(151), Scale(4),
-            i == 1 ? GetThemeButton() : GetThemeBorder())
+            i == 1 ? StyleTokenColor("accent") : StyleTokenColor("border"))
         }
     } else {
         value: [32] char = {0}

@@ -349,13 +349,13 @@ meditation_draw_setup_modal :: (app: InnerBreeze*) {
         (float)modal_h
     })
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180})
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, GetThemeSurface())
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, StyleTokenColor("surface"))
     Bevel(modal_x,
                    modal_y,
                    modal_w,
                    modal_h,
-                   LightenColor(GetThemeSurface(), 40),
-                   DarkenColor(GetThemeSurface(), 40))
+                   LightenColor(StyleTokenColor("surface"), 40),
+                   DarkenColor(StyleTokenColor("surface"), 40))
 
     title_font = AppTitleFontSize(GetLocaleText("meditation_title"),
                                     modal_w - side * 2)
@@ -469,7 +469,7 @@ draw_extend_controls :: (app: InnerBreeze*, center_x: int, y: int) #private {
 meditation_draw_screen :: (app: InnerBreeze*, center_x: int, center_y: int) {
     time_text: [32] char
     font: int
-    circle: Color = GetThemeCircle()
+    circle: Color = StyleTokenColor("accent")
     circle_radius := Scale(86)
     title_h := app_active_practice_title_height()
 

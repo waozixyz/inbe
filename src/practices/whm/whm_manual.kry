@@ -211,12 +211,12 @@ whm_manual_draw_breath_visual :: (app: InnerBreeze*, content_x: int,
 
     DrawRectangleGradientV((int)hero.x, (int)hero.y,
                            (int)hero.width, (int)hero.height,
-                           Fade(GetThemeLink(), 0.10f),
-                           Fade(GetThemeBackground(), 0.0f))
+                           Fade(StyleTokenColor("link"), 0.10f),
+                           Fade(StyleTokenColor("canvas"), 0.0f))
     DrawCircleGradient((Vector2){(float)center_x, (float)center_y},
                        (float)outer + Scale(18),
-                       Fade(GetThemeLink(), 0.20f),
-                       Fade(GetThemeBackground(), 0.0f))
+                       Fade(StyleTokenColor("link"), 0.20f),
+                       Fade(StyleTokenColor("canvas"), 0.0f))
     apply_settings(&app->settings_preview, speed, app->breathing.max_rounds,
                       int_from_count(app->breathing.maxbreaths),
                       app->breathing.pause_seconds)
@@ -234,7 +234,7 @@ whm_manual_draw_breath_visual :: (app: InnerBreeze*, content_x: int,
     draw_breath_preview(&app->settings_preview, center_x, center_y)
     DrawRing((Vector2){(float)center_x, (float)center_y},
              (float)(outer - ring_thick), (float)outer,
-             0.0f, 360.0f, 64, Fade(GetThemeLink(), 0.60f))
+             0.0f, 360.0f, 64, Fade(StyleTokenColor("link"), 0.60f))
     manual_screen_draw_hero_progress(hero, 1, tutorial_steps_count())
     *y += visual_h
 }
@@ -247,7 +247,7 @@ whm_manual_draw_breath_info :: (app: InnerBreeze*, content_x: int,
 
     DrawRectangleRounded((Rectangle){(float)content_x, (float)*y,
                                      (float)content_w, (float)row_h},
-                         0.14f, 10, Fade(GetThemeSurface(), 0.54f))
+                         0.14f, 10, Fade(StyleTokenColor("surface"), 0.54f))
     if Slider((SliderProps){.id = 490,
                     .bounds = {content_x + pad, *y + Scale(12),
                                content_w - pad * 2, Scale(56)},
@@ -278,12 +278,12 @@ whm_manual_draw_hold_preview :: (app: InnerBreeze*, content_x: int,
 
     DrawRectangleGradientV((int)hero.x, (int)hero.y,
                            (int)hero.width, (int)hero.height,
-                           Fade(GetThemeLink(), 0.10f),
-                           Fade(GetThemeBackground(), 0.0f))
+                           Fade(StyleTokenColor("link"), 0.10f),
+                           Fade(StyleTokenColor("canvas"), 0.0f))
     DrawCircleGradient((Vector2){(float)center_x, (float)center_y},
                        (float)hold_preview_radius + Scale(34),
-                       Fade(GetThemeLink(), 0.18f),
-                       Fade(GetThemeBackground(), 0.0f))
+                       Fade(StyleTokenColor("link"), 0.18f),
+                       Fade(StyleTokenColor("canvas"), 0.0f))
     draw_tutorial_hold_preview(app, center_x, center_y, hold_preview_radius)
     manual_screen_draw_hero_progress(hero, 2, tutorial_steps_count())
     *y += visual_h
@@ -318,11 +318,11 @@ whm_manual_draw_hint_card :: (content_x: int, content_w: int,
 
     DrawRectangleRounded((Rectangle){(float)content_x, (float)*y,
                                      (float)content_w, (float)card_h},
-                         0.16f, 10, Fade(GetThemeSurface(), 0.58f))
+                         0.16f, 10, Fade(StyleTokenColor("surface"), 0.58f))
     DrawRectangleRoundedLinesEx(
         (Rectangle){(float)content_x, (float)*y,
                     (float)content_w, (float)card_h},
-        0.16f, 10, (float)Scale(1), Fade(GetThemeLink(), 0.46f))
+        0.16f, 10, (float)Scale(1), Fade(StyleTokenColor("link"), 0.46f))
 
     Paragraph(hint, text_x, &hint_y)
     *y += card_h
@@ -348,7 +348,7 @@ whm_manual_draw_page :: (app: InnerBreeze*, content_x: int, content_w: int,
         *y += tutorial_safety_warning_top_gap()
         warning_bounds := (Rectangle){(float)content_x, (float)*y,
                                       (float)content_w, (float)warning_h}
-        warning_color := GetThemeLink()
+        warning_color := StyleTokenColor("link")
         icon_center_x := content_x + Scale(34)
         icon_center_y := *y + warning_h / 2
         icon_size := Scale(30)

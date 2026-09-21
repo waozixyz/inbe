@@ -141,10 +141,10 @@ desktop_rail_collect_routes :: (app: InnerBreeze*, routes: int*, route_count: in
 
 desktop_rail_draw_background :: (layout: DesktopRailLayout) #private {
     DrawRectangle(layout.rail_x, 0, layout.rail_w, view_height,
-    DarkenColor(GetThemeBackground(), 9))
+    DarkenColor(StyleTokenColor("canvas"), 9))
     DrawLine(layout.rail_x + layout.rail_w - 1, 0,
              layout.rail_x + layout.rail_w - 1, view_height,
-    Fade(GetThemeText(), 0.12f))
+    Fade(StyleTokenColor("text"), 0.12f))
 }
 
 desktop_rail_button :: (app: InnerBreeze*, route: int, rail_x: int, y: int, item_h: int) -> int #private {
@@ -233,7 +233,7 @@ rail_w: int) -> int #private {
                     app->blocked_input_frame == app->breathing.frame
     })
     DrawCircle(avatar_x + avatar_size / 2, avatar_y + avatar_size / 2,
-    avatar_size / 2, LightenColor(GetThemeButton(), 30))
+    avatar_size / 2, LightenColor(StyleTokenColor("accent"), 30))
     Icon(0, avatar_x, avatar_y, avatar_size,
          app->profile_picture_icon, WHITE)
     if !app->nav_rail_collapsed {

@@ -83,7 +83,7 @@ patterns_manual_phase_count :: (app: InnerBreeze*, phase: int) -> int #private {
 patterns_manual_phase_card :: (label: const char*, count: int, x: int,
                                y: int, w: int, h: int, index: int,
                                active: int) #private {
-    fill := active ? GetThemeButton() : GetThemeSurface()
+    fill := active ? StyleTokenColor("accent") : StyleTokenColor("surface")
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
     badge_size := Scale(28)
     badge_x := x + Scale(12)
@@ -94,8 +94,8 @@ patterns_manual_phase_card :: (label: const char*, count: int, x: int,
     badge_font := AppSmallFontSize()
 
     DrawRectangleRounded(bounds, 0.2f, 8, fill)
-    DrawRectangleRoundedLinesEx(bounds, 0.2f, 8, 1.0f, GetThemeBorder())
-    badge_fill = active ? GetThemeButtonText() : Fade(GetThemeCircle(), 0.32f)
+    DrawRectangleRoundedLinesEx(bounds, 0.2f, 8, 1.0f, StyleTokenColor("border"))
+    badge_fill = active ? StyleTokenColor("accent-ink") : Fade(StyleTokenColor("accent"), 0.32f)
     badge_text = active ? BLACK : WHITE
     DrawCircle(badge_x + badge_size / 2, badge_y + badge_size / 2,
                badge_size / 2, badge_fill)
@@ -145,8 +145,8 @@ patterns_manual_preset_ratio_text :: (app: InnerBreeze*, preset: int, out: char*
 patterns_manual_preset_card :: (app: InnerBreeze*, preset: int,
                                 bounds: Rectangle) #private {
     selected := app->patterns.preset == preset
-    fill := selected ? GetThemeButton() : GetThemeSurface()
-    border := selected ? GetThemeCircle() : GetThemeBorder()
+    fill := selected ? StyleTokenColor("accent") : StyleTokenColor("surface")
+    border := selected ? StyleTokenColor("accent") : StyleTokenColor("border")
     label := GetLocaleText(patterns_preset_label_key(preset))
     label_font := AppFitFontSize(label, (int)bounds.width - Scale(22),
                               AppFontSize(), AppSmallFontSize())
@@ -189,7 +189,7 @@ patterns_manual_draw_preset_selector :: (app: InnerBreeze*, content_x: int,
     card_w := (content_w - pad * 2 - gap) / 2
     current_ratio: [32] char = {0}
 
-    DrawRectangleRounded(bounds, 0.12f, 10, GetThemeSurfaceAlt())
+    DrawRectangleRounded(bounds, 0.12f, 10, StyleTokenColor("panel"))
     patterns_ratio_text(app, current_ratio, sizeof(current_ratio))
     Text((TextProps){
         .bounds={
@@ -243,7 +243,7 @@ patterns_manual_draw_visual :: (app: InnerBreeze*, content_x: int,
         patterns_manual_draw_preset_selector(app, content_x, content_w, y)
         return
     }
-    DrawRectangleRounded(bounds, 0.12f, 10, GetThemeSurfaceAlt())
+    DrawRectangleRounded(bounds, 0.12f, 10, StyleTokenColor("panel"))
     if step == 1 {
         labels: [4] const char* = {
             GetLocaleText("patterns_phase_inhale"),
@@ -285,13 +285,13 @@ patterns_manual_draw_visual :: (app: InnerBreeze*, content_x: int,
             (float)card_y,
             (float)card_w,
             (float)card_h
-        }, 0.18f, 10, GetThemeSurface())
+        }, 0.18f, 10, StyleTokenColor("surface"))
         DrawRectangleRoundedLinesEx((Rectangle){
             (float)card_x,
             (float)card_y,
             (float)card_w,
             (float)card_h
-        }, 0.18f, 10, 1.0f, GetThemeBorder())
+        }, 0.18f, 10, 1.0f, StyleTokenColor("border"))
         Text((TextProps){
             .bounds={
                 (card_x + Scale(18)),
@@ -319,13 +319,13 @@ patterns_manual_draw_visual :: (app: InnerBreeze*, content_x: int,
             (float)card_y,
             (float)card_w,
             (float)card_h
-        }, 0.18f, 10, GetThemeSurface())
+        }, 0.18f, 10, StyleTokenColor("surface"))
         DrawRectangleRoundedLinesEx((Rectangle){
             (float)card_x,
             (float)card_y,
             (float)card_w,
             (float)card_h
-        }, 0.18f, 10, 1.0f, GetThemeBorder())
+        }, 0.18f, 10, 1.0f, StyleTokenColor("border"))
         Text((TextProps){
             .bounds={
                 (card_x + Scale(18)),

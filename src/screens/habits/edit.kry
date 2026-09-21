@@ -394,7 +394,7 @@ draw_form :: (app: InnerBreeze*) #private {
         height := section_height(app, section, w - Scale(24))
         open := app->habit_edit.sections[section]
         DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)height},
-                             0.08f, 10, GetThemeSurface())
+                             0.08f, 10, StyleTokenColor("surface"))
         if Button((ButtonProps){
             .bounds = {(float)x, (float)y, (float)w, (float)header}, .id = 7510 + section,
             .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
@@ -451,9 +451,9 @@ draw_form :: (app: InnerBreeze*) #private {
         cy := y + header / 2
         direction := app->habit_edit.sections[section] ? -1 : 1
         DrawLineEx((Vector2){(float)(cx - Scale(5)), (float)(cy - direction * Scale(2))},
-                   (Vector2){(float)cx, (float)(cy + direction * Scale(3))}, Scale(2), GetThemeText())
+                   (Vector2){(float)cx, (float)(cy + direction * Scale(3))}, Scale(2), StyleTokenColor("text"))
         DrawLineEx((Vector2){(float)cx, (float)(cy + direction * Scale(3))},
-                   (Vector2){(float)(cx + Scale(5)), (float)(cy - direction * Scale(2))}, Scale(2), GetThemeText())
+                   (Vector2){(float)(cx + Scale(5)), (float)(cy - direction * Scale(2))}, Scale(2), StyleTokenColor("text"))
         row := y + header + Scale(4)
         columns := inner / Scale(48)
         if columns < 1 { columns = 1 }
@@ -514,7 +514,7 @@ draw_form :: (app: InnerBreeze*) #private {
                 chosen := !more && app->habit_edit.color.r == colors[c].r &&
                     app->habit_edit.color.g == colors[c].g &&
                     app->habit_edit.color.b == colors[c].b
-                color := more ? GetThemeButton() : colors[c]
+                color := more ? StyleTokenColor("accent") : colors[c]
                 if Button((ButtonProps){
                     .bounds = {cell.x + Scale(4), cell.y + Scale(2),
                                (float)Scale(40), (float)Scale(40)},
@@ -675,7 +675,7 @@ draw_form :: (app: InnerBreeze*) #private {
         y += height + Scale(12)
         }
     }
-    DrawRectangle(0, view_height - footer, view_width, footer, GetThemeBackground())
+    DrawRectangle(0, view_height - footer, view_width, footer, StyleTokenColor("canvas"))
     if app->habit_edit.name_error {
         message := GetLocaleText(app->habit_edit.name_error == 1 ? "habit_name_required" : "habit_name_duplicate")
         Text((TextProps){

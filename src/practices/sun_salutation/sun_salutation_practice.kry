@@ -145,7 +145,7 @@ draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
     active_step: int
     preview_step_ticks: int
     row_y: int
-    muted := DarkenColor(GetThemeText(), 40)
+    muted := DarkenColor(StyleTokenColor("text"), 40)
 
     if thumb_w < Scale(34) {
         thumb_w = Scale(34)
@@ -180,9 +180,9 @@ draw_preview :: (app: InnerBreeze*, x: int, y: int, w: int) #private {
         pose_index := sun_salutation_step_pose_index(i)
 
         DrawRectangle(px, py, thumb_w, thumb_h,
-        DarkenColor(GetThemeBackground(), 6))
+        DarkenColor(StyleTokenColor("canvas"), 6))
         if i == active_step {
-            DrawRectangleLines(px, py, thumb_w, thumb_h, GetThemeButtonHover())
+            DrawRectangleLines(px, py, thumb_w, thumb_h, StyleTokenColor("accent-hover"))
         }
         draw_preview_pose(app->sun_salutation.figure,
         pose_index,

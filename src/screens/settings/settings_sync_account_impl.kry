@@ -587,7 +587,7 @@ draw_connected_header :: (account: const SyncAccount*,
 
     Card((CardProps){.bounds = {(float)x, (float)*y, (float)w, (float)card_h}})
     Circle(x + Scale(28), *y + Scale(28), icon_box / 2,
-           LightenColor(GetThemeButton(), 10))
+           LightenColor(StyleTokenColor("accent"), 10))
     Icon(0, x + Scale(28) - icon_size / 2,
          *y + Scale(28) - icon_size / 2, icon_size, ICON_CHECK, WHITE)
     Text((TextProps){
@@ -611,8 +611,8 @@ draw_sync_step :: (x: int, w: int, y: int*, label: const char*,
                   complete: int) #private {
     icon_size := Scale(16)
     Circle(x + Scale(13), *y + Scale(17), Scale(11),
-           complete ? LightenColor(GetThemeButton(), 10)
-                    : DarkenColor(GetThemeBackground(), 8))
+           complete ? LightenColor(StyleTokenColor("accent"), 10)
+                    : DarkenColor(StyleTokenColor("canvas"), 8))
     if complete {
         Icon(0, x + Scale(13) - icon_size / 2,
              *y + Scale(17) - icon_size / 2, icon_size, ICON_CHECK, WHITE)

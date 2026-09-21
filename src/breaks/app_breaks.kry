@@ -208,7 +208,7 @@ app_breaks_window_update :: (app: InnerBreeze*) {
                  NATIVE_WINDOW_STICKY
         app->break_window = OpenNativeWindow("Inner Breeze", 0, 0,
                                          win_w, win_h, flags,
-                                         DarkenColor(GetThemeBackground(), 8),
+                                         DarkenColor(StyleTokenColor("canvas"), 8),
                                          scale)
         if app->break_window == nil {
             last_window_fail_frame = app->breathing.frame
@@ -607,7 +607,7 @@ app_breaks_hud_update :: (app: InnerBreeze*) {
         app->break_hud = nil
     }
     if app->break_hud == nil {
-        track := DarkenColor(GetThemeBackground(), 18)
+        track := DarkenColor(StyleTokenColor("canvas"), 18)
         flags := NATIVE_WINDOW_BORDERLESS + NATIVE_WINDOW_ALWAYS_ON_TOP +
                  NATIVE_WINDOW_SKIP_TASKBAR + NATIVE_WINDOW_STICKY
         hud_x := Scale(8)
@@ -663,8 +663,8 @@ app_breaks_hud_update :: (app: InnerBreeze*) {
 }
 
 app_breaks_hud_draw :: (app: InnerBreeze*, hud_w: int, hud_h: int, row_h: int, pad: int) {
-    track := DarkenColor(GetThemeBackground(), 18)
-    border: Color = DarkenColor(GetThemeText(), 62)
+    track := DarkenColor(StyleTokenColor("canvas"), 18)
+    border: Color = DarkenColor(StyleTokenColor("text"), 62)
     fill := (Color){74, 178, 102, 255}
     overdue := (Color){222, 140, 44, 255}
     idle_col := (Color){240, 200, 60, 255}
@@ -721,7 +721,7 @@ app_breaks_hud_draw :: (app: InnerBreeze*, hud_w: int, hud_h: int, row_h: int, p
                 if fraction > bar_w - 2 {
                     fraction = bar_w - 2
                 }
-                Box((Rectangle){(float)(bar_x), (float)(row_y + row_h - Scale(4)), (float)(bar_w), (float)(Scale(3))}, DarkenColor(GetThemeBackground(), 30), DarkenColor(GetThemeBackground(), 30))
+                Box((Rectangle){(float)(bar_x), (float)(row_y + row_h - Scale(4)), (float)(bar_w), (float)(Scale(3))}, DarkenColor(StyleTokenColor("canvas"), 30), DarkenColor(StyleTokenColor("canvas"), 30))
                 if fraction > 0 {
                     Box((Rectangle){(float)(bar_x + 1), (float)(row_y + row_h - Scale(4)), (float)(fraction), (float)(Scale(3))}, fill, fill)
                 }
@@ -744,7 +744,7 @@ app_breaks_hud_draw :: (app: InnerBreeze*, hud_w: int, hud_h: int, row_h: int, p
                 if fraction > bar_w - 2 {
                     fraction = bar_w - 2
                 }
-                Box((Rectangle){(float)(bar_x), (float)(row_y + row_h - Scale(4)), (float)(bar_w), (float)(Scale(3))}, DarkenColor(GetThemeBackground(), 30), DarkenColor(GetThemeBackground(), 30))
+                Box((Rectangle){(float)(bar_x), (float)(row_y + row_h - Scale(4)), (float)(bar_w), (float)(Scale(3))}, DarkenColor(StyleTokenColor("canvas"), 30), DarkenColor(StyleTokenColor("canvas"), 30))
                 if fraction > 0 {
                     Box((Rectangle){(float)(bar_x + 1), (float)(row_y + row_h - Scale(4)), (float)(fraction), (float)(Scale(3))}, next == 0 ? overdue : fill, next == 0 ? overdue : fill)
                 }

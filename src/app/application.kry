@@ -865,11 +865,11 @@ app_draw_donation_coin_section :: (label: const char*, address: const char*, wal
     card_h = app_donation_coin_section_height(address, w)
     DrawRectangleRounded((Rectangle){(float)x, (float)card_y, (float)w,
         (float)card_h}, 0.08f, 8,
-    DarkenColor(GetThemeBackground(), 5))
+    DarkenColor(StyleTokenColor("canvas"), 5))
     DrawRectangleRoundedLinesEx((Rectangle){(float)x, (float)card_y,
         (float)w, (float)card_h}, 0.08f, 8,
     (float)Scale(1),
-    DarkenColor(GetThemeBackground(), 26))
+    DarkenColor(StyleTokenColor("canvas"), 26))
     *y = card_y + pad
     Text((TextProps){
         .bounds = {(float)content_x, (float)*y, 0, 0},
@@ -881,11 +881,11 @@ app_draw_donation_coin_section :: (label: const char*, address: const char*, wal
     unused focus_id
     DrawRectangleRounded((Rectangle){(float)content_x, (float)*y,
                          (float)content_w, (float)box_h},
-                         0.06f, 8, GetThemeButton())
+                         0.06f, 8, StyleTokenColor("accent"))
     DrawRectangleRoundedLinesEx((Rectangle){(float)content_x, (float)*y,
                                  (float)content_w, (float)box_h},
                                  0.06f, 8, (float)Scale(1),
-                                 DarkenColor(GetThemeBackground(), 28))
+                                 DarkenColor(StyleTokenColor("canvas"), 28))
     address_y = *y + (box_h - AppTextLineHeight(address_font)) / 2
     Text((TextProps){
         .bounds = {(float)(content_x + Scale(10)), (float)address_y,
@@ -1108,7 +1108,7 @@ draw_about_donation_modal :: (app: InnerBreeze*) #private {
         (track_h - thumb_h) * app_donation_modal_scroll /
         max_scroll,
         Scale(3), thumb_h,
-        Fade(GetThemeText(), 0.28f))
+        Fade(StyleTokenColor("text"), 0.28f))
     }
     if Button((ButtonProps){
         .bounds = {(float)(frame.x + (frame.w - button_w) / 2), (float)(frame.y + frame.h - button_h - Scale(16)), (float)(button_w), (float)(button_h)},
@@ -1705,7 +1705,7 @@ app_update_draw :: (vapp: void*, viewport: Rectangle) #export {
     app_device_preferences_update(app)
     update_check_poll()
     app_refresh_theme(app)
-    DrawRectangleRec(viewport, GetThemeBackground())
+    DrawRectangleRec(viewport, StyleTokenColor("canvas"))
     content_w = full_width - rail_width
     if content_w < 1 {
         content_w = 1
@@ -1737,7 +1737,7 @@ app_update_draw :: (vapp: void*, viewport: Rectangle) #export {
     app->camera.offset.y = IsInspectActive() ? 0.0f : viewport.y + top_height
     SetFrameCamera(app->camera)
     if IsInspectActive() {
-        DrawRectangle(0, 0, view_width, view_height, GetThemeBackground())
+        DrawRectangle(0, 0, view_width, view_height, StyleTokenColor("canvas"))
         profile_update_start = app_profile_now()
         updateapp(app)
         app_profile_record_update(profile_update_start)
@@ -1745,7 +1745,7 @@ app_update_draw :: (vapp: void*, viewport: Rectangle) #export {
     } else {
         BeginClip((int)viewport.x, (int)viewport.y, full_width, full_height)
         BeginMode2D(app->camera)
-        DrawRectangle(0, 0, view_width, view_height, GetThemeBackground())
+        DrawRectangle(0, 0, view_width, view_height, StyleTokenColor("canvas"))
         profile_update_start = app_profile_now()
         updateapp(app)
         Overlays()

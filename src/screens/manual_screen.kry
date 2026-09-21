@@ -116,7 +116,7 @@ manual_screen_draw_hero_progress :: (bounds: Rectangle, page: int,
         dot_x := center_x - dots_w / 2 + i * dot_gap
 
         DrawCircle(dot_x, dots_y, Scale(i == page ? 4 : 3),
-                   i == page ? GetThemeButton() : GetThemeMutedText())
+                   i == page ? StyleTokenColor("accent") : StyleTokenColor("muted"))
     }
 }
 
@@ -169,7 +169,7 @@ manual_screen_guide_controls :: (app: InnerBreeze*, nav: ManualGuideNav) {
         height = Scale(48)
     }
     if !close && width > 0 && height > 0 {
-        DrawRectangle(0, nav.y, view_width, nav.h, GetThemeBackground())
+        DrawRectangle(0, nav.y, view_width, nav.h, StyleTokenColor("canvas"))
         y := nav.y + (nav.h - height) / 2
         if Button((ButtonProps){
             .bounds = {(float)content_x, (float)y, (float)width, (float)height},

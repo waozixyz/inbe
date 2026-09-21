@@ -940,14 +940,14 @@ app_draw_customize_nav_page :: (app: InnerBreeze*) -> int {
                 dropdown_w = Scale(48)
             }
             DrawRectangle(content_x, overlay_y, content_w, row_h,
-                             LightenColor(GetThemeBackground(), 8))
+                             LightenColor(StyleTokenColor("canvas"), 8))
             AppReorderHandle(content_x, overlay_y, handle_w, row_h, 1)
             Dropdown((DropdownProps){.id = 740 + i,
                                     .bounds = {dropdown_x, dropdown_y, dropdown_w, button_h},
                                     .options = options, .option_count = option_count,
                                     .selected_index = &selected[i]})
             Icon(0, trash_x + Scale(8), dropdown_y + Scale(6),
-                 Scale(20), ICON_TRASH, GetThemeIcon())
+                 Scale(20), ICON_TRASH, StyleTokenColor("icon"))
         }
 
         y += row_h * draw_count

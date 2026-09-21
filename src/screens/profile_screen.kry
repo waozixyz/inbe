@@ -191,7 +191,7 @@ profile_draw_metric_card :: (x: int, w: int, y: int*, label: const char*,
     value_w := AppTextWidth(value, AppFontSize())
 
     DrawRectangleRounded((Rectangle){(float)x, (float)*y, (float)w, (float)h},
-                         0.12f, 8, DarkenColor(GetThemeBackground(), 7))
+                         0.12f, 8, DarkenColor(StyleTokenColor("canvas"), 7))
     Text((TextProps){
         .bounds={(x + Scale(12)), (*y + Scale(20)), 0, 0},
         .text=(label),
@@ -289,7 +289,7 @@ profile_draw_hub_route_card :: (app: InnerBreeze*, x: int, y: int*, w: int,
         profile_open_tab_card(app, tab)
     }
     Circle(icon_x + icon_box / 2, *y + h / 2, icon_box / 2,
-           DarkenColor(GetThemeButton(), 12))
+           DarkenColor(StyleTokenColor("accent"), 12))
     Icon(0, icon_x + (icon_box - icon_size) / 2,
          *y + h / 2 - icon_size / 2, icon_size, icon_type, WHITE)
     profile_draw_fitted_text(title, text_x, *y + Scale(16), text_w,
@@ -347,12 +347,12 @@ profile_draw_hub_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
                  GetLocaleText("profile_sync_prompt_body"))
     }
 
-    DrawRectangleRounded(bounds, 0.14f, 12, DarkenColor(GetThemeBackground(), 8))
+    DrawRectangleRounded(bounds, 0.14f, 12, DarkenColor(StyleTokenColor("canvas"), 8))
     DrawRectangleGradientV(x, *y, w, card_h,
-                           Fade(GetThemeButton(), 0.32f),
-                           Fade(GetThemeBackground(), 0.0f))
+                           Fade(StyleTokenColor("accent"), 0.32f),
+                           Fade(StyleTokenColor("canvas"), 0.0f))
     DrawRectangleRoundedLinesEx(bounds, 0.14f, 12, 1.0f,
-                                DarkenColor(GetThemeButton(), 18))
+                                DarkenColor(StyleTokenColor("accent"), 18))
     if Button((ButtonProps){
         .bounds = {(float)avatar_x, (float)avatar_y,
                    (float)avatar, (float)avatar},
@@ -418,7 +418,7 @@ profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     profile_draw_hub_stat_card(x, *y, stat_w, stat_h,
                                ICON_CALENDAR,
                                GetLocaleText("profile_today_short"), value,
-                               GetThemeButton())
+                               StyleTokenColor("accent"))
     if loading {
         snprintf(value, sizeof(value), "…")
     } else {
@@ -427,13 +427,13 @@ profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     profile_draw_hub_stat_card(x + stat_w + stat_gap, *y, stat_w, stat_h,
                                ICON_ACTIVITY,
                                GetLocaleText("profile_active_days_short"),
-                               value, GetThemeCircle())
+                               value, StyleTokenColor("accent"))
     snprintf(value, sizeof(value), loading ? "…" : "%d", practice_sessions)
     profile_draw_hub_stat_card(x + (stat_w + stat_gap) * 2, *y,
                                w - (stat_w + stat_gap) * 2, stat_h,
                                ICON_STAT,
                                GetLocaleText("profile_sessions_short"),
-                               value, GetThemeLink())
+                               value, StyleTokenColor("link"))
     *y += stat_h + Scale(14)
 
     if loading {
@@ -508,7 +508,7 @@ profile_draw_data_summary :: (x: int, w: int, y: int*) #private {
 }
 
 profile_draw_divider :: (x: int, w: int, y: int) #private {
-    DrawLine(x, y, x + w, y, DarkenColor(GetThemeBackground(), 28))
+    DrawLine(x, y, x + w, y, DarkenColor(StyleTokenColor("canvas"), 28))
 }
 
 profile_tab_title :: (tab: int) -> const char* #private {
@@ -535,9 +535,9 @@ profile_draw_tabs :: (app: InnerBreeze*, y: int, h: int) -> int #private {
     clicked := -1
     tab_w := view_width / PROFILE_TAB_COUNT
 
-    DrawRectangle(0, y, view_width, h, DarkenColor(GetThemeBackground(), 6))
+    DrawRectangle(0, y, view_width, h, DarkenColor(StyleTokenColor("canvas"), 6))
     DrawLine(0, y + h - 1, view_width, y + h - 1,
-             DarkenColor(GetThemeBackground(), 24))
+             DarkenColor(StyleTokenColor("canvas"), 24))
     for int i = 0; i < PROFILE_TAB_COUNT; i++ {
         x := i * tab_w
         w := i == PROFILE_TAB_COUNT - 1 ? view_width - x : tab_w
@@ -556,7 +556,7 @@ profile_draw_tabs :: (app: InnerBreeze*, y: int, h: int) -> int #private {
                 line_w = Scale(24)
             }
             DrawRectangle(x + (w - line_w) / 2, y + h - Scale(2),
-                          line_w, Scale(2), GetThemeText())
+                          line_w, Scale(2), StyleTokenColor("text"))
         }
     }
     return clicked

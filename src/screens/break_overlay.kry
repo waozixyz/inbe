@@ -28,8 +28,8 @@ break_overlay_remaining_s :: (app: const InnerBreeze*, t: int) -> int {
 }
 
 break_overlay_draw_bar :: (x: int, y: int, w: int, h: int, fraction: int) #private {
-    track := DarkenColor(GetThemeBackground(), 26)
-    border := DarkenColor(GetThemeText(), 60)
+    track := DarkenColor(StyleTokenColor("canvas"), 26)
+    border := DarkenColor(StyleTokenColor("text"), 60)
     fill := (Color){74, 178, 102, 255}
 
     Box((Rectangle){(float)(x), (float)(y), (float)(w), (float)(h)}, track, border)
@@ -128,8 +128,8 @@ break_overlay_draw_practice_chips :: (app: InnerBreeze*, w: int, h: int) #privat
     if chips <= 0 {
         return
     }
-    chip_fill := DarkenColor(GetThemeBackground(), 18)
-    chip_border := DarkenColor(GetThemeText(), 55)
+    chip_fill := DarkenColor(StyleTokenColor("canvas"), 18)
+    chip_border := DarkenColor(StyleTokenColor("text"), 55)
     for int i = 0; i < chips; i++ {
         r: Rectangle = rects[i]
         Box((Rectangle){(float)((int)r.x), (float)((int)r.y), (float)((int)r.width), (float)((int)r.height)}, chip_fill, chip_border)
@@ -173,12 +173,12 @@ break_overlay_draw_sized :: (app: InnerBreeze*, w: int, h: int) {
     panel_x := w / 2 - panel_w / 2
     panel_y := h / 2 - panel_h / 2
 
-    scrim := DarkenColor(DarkenColor(GetThemeBackground(), 8), 30)
+    scrim := DarkenColor(DarkenColor(StyleTokenColor("canvas"), 8), 30)
     Box((Rectangle){(float)(0), (float)(0), (float)(w), (float)(h)}, scrim, scrim)
 
     activity_flash := app->break_input_active != 0 && (app->breathing.frame / 30) % 2 == 0
-    border: Color = activity_flash ? (Color){222, 140, 44, 255} : DarkenColor(GetThemeText(), 62)
-    fill := DarkenColor(GetThemeBackground(), 12)
+    border: Color = activity_flash ? (Color){222, 140, 44, 255} : DarkenColor(StyleTokenColor("text"), 62)
+    fill := DarkenColor(StyleTokenColor("canvas"), 12)
 
     Box((Rectangle){(float)(panel_x), (float)(panel_y), (float)(panel_w), (float)(panel_h)}, fill, border)
 
