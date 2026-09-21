@@ -526,11 +526,11 @@ draw_habit_link_dot :: (x: int, y: int, w: int, color: Color) {
     DrawCircle(x + w - Scale(8),
                   y + Scale(8),
                   Scale(5),
-                  DarkenColor(GetThemeBackground(), 35))
+                  DarkenColor(StyleTokenColor("canvas"), 35))
     DrawCircle(x + w - Scale(8),
                   y + Scale(8),
                   Scale(3),
-                  GetThemeText())
+                  StyleTokenColor("text"))
 }
 
 habit_calendar_day_cell :: (app: InnerBreeze*, x: int, y: int, w: int, h: int,
@@ -538,12 +538,12 @@ habit_calendar_day_cell :: (app: InnerBreeze*, x: int, y: int, w: int, h: int,
                                disabled: int, current_day: int,
                                accent: Color) -> int {
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
-    ring: Color = Fade(GetThemeText(), disabled ? 0.16f : 0.28f)
+    ring: Color = Fade(StyleTokenColor("text"), disabled ? 0.16f : 0.28f)
     progress_ring: Color = accent
-    today_ring: Color = GetThemeButtonHover()
+    today_ring: Color = StyleTokenColor("accent-hover")
     text_color: Color = disabled
-        ? DarkenColor(GetThemeText(), 35)
-        : GetThemeText()
+        ? DarkenColor(StyleTokenColor("text"), 35)
+        : StyleTokenColor("text")
     font: int = Text16
     text_w: int
     center_x: float = x + w / 2.0f
@@ -750,8 +750,8 @@ habit_weekly_summary_button :: (app: InnerBreeze*, x: int, y: int,
                                secondary: const char*) -> int #private {
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
     text_color: Color = disabled
-        ? DarkenColor(GetThemeText(), 35)
-        : GetThemeText()
+        ? DarkenColor(StyleTokenColor("text"), 35)
+        : StyleTokenColor("text")
     pad: int = Scale(9)
     text_x: int
     text_w: int
@@ -941,7 +941,7 @@ draw_habits_weekly_view :: (app: InnerBreeze*, active: Habit*,
                 (float)y,
                 (float)label_w,
                 (float)row_h
-            }, 0.18f, 10, GetThemeSurface())
+            }, 0.18f, 10, StyleTokenColor("surface"))
             Text((TextProps){
                 .bounds={(content_x + Scale(8)), (y + Scale(7)), 0, 0},
                 .text=(day_label),
@@ -1154,7 +1154,7 @@ habit_focus_completion_count :: (habit: const Habit*,
 habits_focus_draw_metric :: (x: int, y: int, w: int, h: int,
                              label: const char*, value: const char*,
                              accent: Color) #private {
-    surface := GetThemeSurface()
+    surface := StyleTokenColor("surface")
     foreground := GetThemeReadableText(surface)
     DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)h},
                          0.12f, 8, DarkenColor(surface, 3))
@@ -1272,11 +1272,11 @@ habits_focus_draw_week :: (app: InnerBreeze*, habit: Habit*, selected: int,
         })
         if off && !complete {
             Line(cx - Scale(5), cy, cx + Scale(5), cy,
-                 Fade(GetThemeText(), 0.35f))
+                 Fade(StyleTokenColor("text"), 0.35f))
         } else {
             habits_draw_day_marker(cx, cy, radius, complete, counting, count, linked,
-                                   cell_hovered, GetThemeSurface(),
-                                   GetThemeText(), habit->color)
+                                   cell_hovered, StyleTokenColor("surface"),
+                                   StyleTokenColor("text"), habit->color)
         }
         if !app->modal.active && (!off || complete) {
             handled := 0
@@ -1328,8 +1328,8 @@ habit_focus_chevron_control :: (center_x: int, center_y: int, size: int,
     style := (Style){
         .fields = StyleBackground | StyleBorder | StyleRadius |
                   StyleBorderWidth | StyleOpacity,
-        .background = GetThemeSurfaceAlt(),
-        .border = GetThemeBorder(),
+        .background = StyleTokenColor("panel"),
+        .border = StyleTokenColor("border"),
         .radius = (float)size / 2.0f,
         .border_width = 1.0f,
         .opacity = disabled ? 0.45f : 1.0f
@@ -1338,7 +1338,7 @@ habit_focus_chevron_control :: (center_x: int, center_y: int, size: int,
     drop := Scale(6)
 
     if hover && !disabled {
-        style.background = GetThemeButtonHover()
+        style.background = StyleTokenColor("accent-hover")
     }
     Surface(bounds, style)
     if expanded {
@@ -1371,7 +1371,7 @@ habits_focus_draw_card :: (app: InnerBreeze*, selected: int,
                            x: int, y: int, w: int) #private {
     habit := &app->habits.items[selected]
     linked_ctx := habit_cached_linked_entries(app, selected, 0)
-    surface := GetThemeSurface()
+    surface := StyleTokenColor("surface")
     foreground := GetThemeReadableText(surface)
     muted := Fade(foreground, 0.68f)
     card_h := habits_focus_card_height()
@@ -1477,7 +1477,7 @@ habits_focus_draw_collapsed :: (app: InnerBreeze*, index: int,
     habit := &app->habits.items[index]
     linked_ctx := habit_cached_linked_entries(app, index, 0)
     h := habits_focus_collapsed_height()
-    surface := GetThemeSurface()
+    surface := StyleTokenColor("surface")
     foreground := GetThemeReadableText(surface)
     muted := Fade(foreground, 0.66f)
     bounds := (Rectangle){(float)x, (float)y, (float)w, (float)h}
