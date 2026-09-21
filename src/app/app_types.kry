@@ -85,20 +85,8 @@ IconRowRequest :: struct {
     items: const IconRowAction*
 }
 
-ProfileImagePickerProps :: struct {
-    title: const char*
-    selected_icon_type: IconType*
-    close_icon_type: int
-    max_width: int
-    scroll_offset: int*
-}
-
-ProfileImagePickerResult :: struct {
-    closed: int
-    changed: int
-    selected_index: int
-    selected_icon_type: IconType
-}
+# ProfileImagePickerProps/Result come from kryon's tracked
+# ui_profile_icon_props surface now.
 
 #enum {
     SETTINGS_SPEED_MIN = 1

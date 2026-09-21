@@ -753,7 +753,6 @@ draw_profile_picture_picker_modal :: (app: InnerBreeze*) #private {
     memset(&props, 0, sizeof(props))
     props.title = "Profile picture"
     props.selected_icon_type = &app->profile_picture_icon
-    props.close_icon_type = ICON_X
     props.max_width = 520
     props.scroll_offset = &app->profile_picture_picker_scroll
     result = AppProfileImagePickerModal(props)

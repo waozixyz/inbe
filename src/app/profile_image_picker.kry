@@ -35,7 +35,7 @@ AppProfileImagePickerModal :: (modal: ProfileImagePickerProps) -> ProfileImagePi
         height = view_height - Scale(24)
     }
     frame := AppModalFrame(width, height,
-        modal.title != NULL ? modal.title : "Profile image", 0, modal.close_icon_type)
+        modal.title != NULL ? modal.title : "Profile image", 0, modal.close_icon.id != 0 ? ICON_X : 0)
     if frame.right_clicked {
         result.closed = 1
         return result
