@@ -244,7 +244,9 @@ save_prepared :: (app: InnerBreeze*, account: SyncAccount*,
         return 0
     }
 
+    TraceLog(LOG_INFO, "SYNC: save_prepared calling sync_account_save...")
     result = sync_account_save(account, clear_local_data)
+    TraceLog(LOG_INFO, "SYNC: sync_account_save result=%d", result)
     if result == SYNC_ACCOUNT_SAVE_NEEDS_CLEAR {
         app->pending_sync_account = *account
         app->pending_sync_account_action = action
@@ -266,6 +268,7 @@ save_prepared :: (app: InnerBreeze*, account: SyncAccount*,
             snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s",
                      saved_url != nil && saved_url[0] != '\0' ? saved_url : sync_server_url_default)
         }
+        TraceLog(LOG_INFO, "SYNC: calling run_connect...")
         run_connect(app)
         TraceLog(LOG_INFO, "SYNC: Private key restored; synchronization requested")
     }

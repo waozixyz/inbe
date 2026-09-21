@@ -264,10 +264,10 @@ data_export :: (path: const char*) -> int {
         filename: [64] char = {0}
 
         if path != nil && path[0] != '\0' {
-            return android_share_export(path)
+            return android_share_export(path, GetLocaleText("share_sheet_title"))
         }
         data_default_export_filename(filename, sizeof(filename))
-        return android_share_export(filename)
+        return android_share_export(filename, GetLocaleText("share_sheet_title"))
     } #else {
         return storage_export_zip(path)
     }

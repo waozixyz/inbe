@@ -2,21 +2,12 @@
 #include "android_import.h"
 #include "android_device.h"
 #include "android_runtime_assets.h"
-#include "android_timer.h"
 #include "android_wakelock.h"
-#include "app.h"
-#include "core/breath_engine.h"
-#include <stdio.h>
+#include "platform/android/android_lifecycle.h"
 
 #include "kryon.h"
-#include "breaks/app_breaks.h"
-#include "practices/practice_registry.h"
 #include <pthread.h>
 #include <jni.h>
-#include <android/log.h>
-
-extern InnerBreeze* get_global_app(void);
-extern void app_request_graphics_reload(InnerBreeze*app);
 
 #define LOG_TAG "APP_INSETS"
 
@@ -26,9 +17,6 @@ extern void app_request_graphics_reload(InnerBreeze*app);
 
 extern void android_wakelock_set_activity(JNIEnv *env, jobject activity);
 extern void android_wakelock_set_jvm(JavaVM *vm);
-extern void android_timer_activate(void);
-extern void android_timer_deactivate(void);
-
 static void android_wakelock_set_activity_impl(JNIEnv *env, jobject thiz) {
     android_wakelock_set_activity(env, thiz);
 }
@@ -63,67 +51,12 @@ static void nativeSetDeviceDensity(JNIEnv *env, jobject thiz, jfloat density)
     SetDeviceDensity(density);
 }
 
-static jint nativeGetPlayInBackground(JNIEnv *env, jobject thiz)
+static jint nativeSyncLifecycleState(JNIEnv *env, jobject thiz,
+                                    jboolean paused, jboolean indicator_visible)
 {
-	void *app = get_global_app();
-	if(app == NULL)
-		return 0;
-	return get_play_in_background(&((InnerBreeze*)app)->breathing);
-}
-
-static void nativeSetBackgroundActive(JNIEnv *env, jobject thiz, jboolean active)
-{
-	(void)env;
-	(void)thiz;
-
-	InnerBreeze *app = (InnerBreeze*)get_global_app();
-
-	if (active) {
-		if (app != NULL) {
-			app->backgrounded = 1;
-		}
-		android_timer_activate();
-	} else {
-		android_timer_deactivate();
-		if (app != NULL) {
-			app->backgrounded = 0;
-		}
-	}
-}
-
-static jint nativePauseSession(JNIEnv *env, jobject thiz)
-{
-	(void)env;
-	(void)thiz;
-
-	InnerBreeze*app = get_global_app();
-	if (app == NULL) {
-		__android_log_write(ANDROID_LOG_ERROR, "APP_JNI", "nativePauseSession: app is NULL!");
-		return 0;
-	}
-	if (app->session_paused)
-		return 0;
-
-	app->session_paused = 1;
-	app->backgrounded = 1;
-	return 1;
-}
-
-static void nativeResumeSession(JNIEnv *env, jobject thiz)
-{
-	(void)env;
-	(void)thiz;
-
-	InnerBreeze*app = get_global_app();
-	if (app == NULL) {
-		__android_log_write(ANDROID_LOG_ERROR, "APP_JNI", "nativeResumeSession: app is NULL!");
-		return;
-	}
-	if (!app->session_paused)
-		return;
-
-	app->session_paused = 0;
-	app->backgrounded = 0;
+    (void)env;
+    (void)thiz;
+    return android_sync_lifecycle(paused != 0, indicator_visible != 0);
 }
 
 static void nativeInvalidateGraphicsResources(JNIEnv *env, jobject thiz)
@@ -131,9 +64,7 @@ static void nativeInvalidateGraphicsResources(JNIEnv *env, jobject thiz)
     (void)env;
     (void)thiz;
 
-    InnerBreeze*app = get_global_app();
-    if(app != NULL)
-        app_request_graphics_reload(app);
+    android_invalidate_graphics_resources();
 }
 
 /* Widget / quick-settings tile / launcher shortcut entry point. Runs on
@@ -142,19 +73,16 @@ static void nativeInvalidateGraphicsResources(JNIEnv *env, jobject thiz)
  * by the practice (same semantics as the desktop break-window chips). */
 static jboolean nativeStartPractice(JNIEnv *env, jobject thiz, jint practice_id)
 {
-    InnerBreeze*app = get_global_app();
+    int selected_practice;
 
     (void)env;
     (void)thiz;
-    if(app == NULL)
-        return JNI_FALSE;
-
     pthread_mutex_lock(&insets_mutex);
-    pending_practice_start = practice_id >= 0
-        ? practice_clamp_id(practice_id)
-        : practice_clamp_id(app->exercise_type);
+    selected_practice = android_practice_to_start(practice_id);
+    if(selected_practice >= 0)
+        pending_practice_start = selected_practice;
     pthread_mutex_unlock(&insets_mutex);
-    return JNI_TRUE;
+    return selected_practice >= 0 ? JNI_TRUE : JNI_FALSE;
 }
 
 int android_take_pending_practice_start(void)
@@ -183,58 +111,32 @@ static jboolean
 nativeDebugImportMusicForPractice(JNIEnv *env, jobject thiz, jstring path,
                                   jint practice_id)
 {
-    InnerBreeze*app = get_global_app();
     const char *native_path;
-    int error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
-    int track;
+    int imported;
 
     (void)thiz;
-    if(app == NULL || path == NULL)
+    if(path == NULL)
         return JNI_FALSE;
     native_path = (*env)->GetStringUTFChars(env, path, NULL);
     if(native_path == NULL)
         return JNI_FALSE;
-    app_audio_ensure_ready(app);
-    if(!app_audio_import_custom_music_ex(app, native_path, &error_code)) {
-        TraceLog(LOG_ERROR, "ANDROID_DEBUG_MUSIC: import failed error=%d path=%s",
-                 error_code, native_path);
-        (*env)->ReleaseStringUTFChars(env, path, native_path);
-        return JNI_FALSE;
-    }
+    imported = android_debug_import_music_for_practice(native_path, practice_id);
     (*env)->ReleaseStringUTFChars(env, path, native_path);
-
-    practice_id = practice_clamp_id(practice_id);
-    track = AUDIO_BUILTIN_MUSIC_COUNT + app->audio_custom_music_count - 1;
-    app->meditation.music_practice_tracks[practice_id] = track;
-    app->meditation.music_track = track;
-    app_audio_music_sanitize_selection(app);
-    app->sound_volume = 0;
-    app->music_volume = 100;
-    save_settings(app);
-    TraceLog(LOG_INFO,
-             "ANDROID_DEBUG_MUSIC: imported and selected track=%d practice=%d path=%s",
-             track, (int)practice_id, app->audio_custom_music[track - AUDIO_BUILTIN_MUSIC_COUNT].path);
-    return JNI_TRUE;
+    return imported ? JNI_TRUE : JNI_FALSE;
 }
 
 static jboolean nativeDebugStartMusicDownload(JNIEnv *env, jobject thiz)
 {
-    InnerBreeze*app = get_global_app();
     (void)env;
     (void)thiz;
-    if(app == NULL)
-        return JNI_FALSE;
-    meditation_music_start_download(app);
-    return JNI_TRUE;
+    return android_debug_start_music_download() ? JNI_TRUE : JNI_FALSE;
 }
 
 static jboolean nativeDebugOpenDonationReminder(JNIEnv *env, jobject thiz)
 {
-    InnerBreeze*app = get_global_app();
-
     (void)env;
     (void)thiz;
-    if(app == NULL)
+    if(!android_can_open_donation_reminder())
         return JNI_FALSE;
     pthread_mutex_lock(&insets_mutex);
     pending_donation_reminder = 1;
@@ -246,10 +148,7 @@ static const JNINativeMethod g_methods[] = {
     {"nativeSetInsets", "(IIIIIIIII)V", (void*)nativeSetInsets},
     {"nativeSetDeviceDensity", "(F)V", (void*)nativeSetDeviceDensity},
     {"nativeWakeLockReady", "()V", (void*)android_wakelock_set_activity_impl},
-    {"nativeSetBackgroundActive", "(Z)V", (void*)nativeSetBackgroundActive},
-    {"nativeGetPlayInBackground", "()I", (void*)nativeGetPlayInBackground},
-    {"nativePauseSession", "()I", (void*)nativePauseSession},
-    {"nativeResumeSession", "()V", (void*)nativeResumeSession},
+    {"nativeSyncLifecycleState", "(ZZ)I", (void*)nativeSyncLifecycleState},
     {"nativeSetSystemDark", "(I)V", (void*)android_device_native_set_system_dark},
     {"nativeSetOrientation", "(I)V", (void*)android_device_native_set_orientation},
     {"nativeImportSelectedFile", "(ILjava/lang/String;)V", (void*)android_import_native_selected},
@@ -296,6 +195,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 }
 
 void android_insets_init(void) {
+    android_lifecycle_reset();
     pthread_mutex_lock(&insets_mutex);
     pending_practice_start = -1;
     pending_donation_reminder = 0;

@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [[ -z "${INBE_UI_TEST_XVFB:-}" ]]; then
+    exec env -u DISPLAY -u WAYLAND_DISPLAY -u SESSION_MANAGER \
+        -u DBUS_SESSION_BUS_ADDRESS xvfb-run -a \
+        env -u WAYLAND_DISPLAY -u SESSION_MANAGER -u DBUS_SESSION_BUS_ADDRESS \
+        SDL_VIDEODRIVER=x11 INBE_UI_TEST_XVFB=1 bash "$0" "$@"
+fi
 binary="${1:?native binary required}"
 test_dir="$(mktemp -d /tmp/inbe-lists-ui.XXXXXX)"
 APP_SHOT_WINDOW=1 "$binary" --screenshot "$test_dir/start.png" \
@@ -7,7 +13,7 @@ APP_SHOT_WINDOW=1 "$binary" --screenshot "$test_dir/start.png" \
     --screenshot-dark 1 > "$test_dir/app.log" 2>&1 &
 app_pid=$!
 trap 'kill "$app_pid" 2>/dev/null || true' EXIT
-db="/tmp/breathing-screenshot-$app_pid/inbe.db"
+db="/tmp/inbe-screenshot-$app_pid/inbe.db"
 window=""
 for attempt in {1..80}; do
     window="$(xdotool search --onlyvisible --pid "$app_pid" 2>/dev/null | head -1 || true)"

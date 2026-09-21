@@ -11,6 +11,7 @@ import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.service.notification.StatusBarNotification;
 import android.util.Log;
 
 public class SessionForegroundService extends Service {
@@ -20,16 +21,16 @@ public class SessionForegroundService extends Service {
     private static final String CHANNEL_ID = "active_session";
     private static final int NOTIFICATION_ID = 3001;
     private static String currentStatusText = "";
-    private static SessionForegroundService activeService = null;
+    private static volatile SessionForegroundService activeService = null;
 
     private PowerManager.WakeLock wakeLock = null;
-    private boolean foregroundActive = false;
+    private volatile boolean foregroundActive = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
         activeService = this;
-        ensureNotificationChannel();
+        ensureNotificationChannel(this);
     }
 
     @Override
@@ -60,6 +61,11 @@ public class SessionForegroundService extends Service {
     }
 
     private void startSession() {
+        if (!canShowIndicator(this)) {
+            Log.w(TAG, "Session indicator unavailable; refusing background service");
+            stopSelf();
+            return;
+        }
         currentStatusText = "";
         Notification notification = buildNotification();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -100,6 +106,56 @@ public class SessionForegroundService extends Service {
         if (manager != null) {
             manager.notify(NOTIFICATION_ID, service.buildNotification());
         }
+    }
+
+    static boolean hasVisibleIndicator(Context context) {
+        SessionForegroundService service = activeService;
+        if (service == null || !service.foregroundActive) {
+            return false;
+        }
+
+        NotificationManager manager = notificationManagerWithVisibleChannel(context);
+        if (manager == null) {
+            return false;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                for (StatusBarNotification notification : manager.getActiveNotifications()) {
+                    if (notification.getId() == NOTIFICATION_ID) {
+                        return true;
+                    }
+                }
+            } catch (RuntimeException error) {
+                Log.w(TAG, "Could not confirm session indicator", error);
+            }
+            return false;
+        }
+        // Older Android releases cannot confirm that the posted indicator is
+        // visible, so they cannot authorize background session execution.
+        return false;
+    }
+
+    static boolean canShowIndicator(Context context) {
+        ensureNotificationChannel(context);
+        return notificationManagerWithVisibleChannel(context) != null;
+    }
+
+    private static NotificationManager notificationManagerWithVisibleChannel(Context context) {
+        NotificationManager manager =
+            (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager == null) {
+            return null;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !manager.areNotificationsEnabled()) {
+            return null;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = manager.getNotificationChannel(CHANNEL_ID);
+            if (channel == null || channel.getImportance() == NotificationManager.IMPORTANCE_NONE) {
+                return null;
+            }
+        }
+        return manager;
     }
 
     private void stopForegroundCompat() {
@@ -179,20 +235,20 @@ public class SessionForegroundService extends Service {
         return builder.build();
     }
 
-    private void ensureNotificationChannel() {
+    private static void ensureNotificationChannel(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return;
         }
 
         NotificationManager manager =
-            (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+            (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager == null) {
             return;
         }
 
         NotificationChannel channel = new NotificationChannel(
             CHANNEL_ID,
-            getApplicationInfo().loadLabel(getPackageManager()),
+            context.getApplicationInfo().loadLabel(context.getPackageManager()),
             NotificationManager.IMPORTANCE_LOW
         );
         manager.createNotificationChannel(channel);

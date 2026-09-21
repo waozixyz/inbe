@@ -32,6 +32,70 @@ style_pack_label :: (index: int) -> const char* #export {
     }
 }
 
+style_token_color :: (color: Color) -> u32 #private {
+    return (u32)ColorToInt(color)
+}
+
+lightfield_token_color :: (style_index: int, color: Color,
+                           alpha: float) -> u32 #private {
+    if style_index == 3 {
+        return style_token_color(Fade(color, alpha))
+    }
+    return style_token_color(color)
+}
+
+register_style_pack_variant :: (source: const char*, label: const char*,
+                                colors: ThemeColors, style_index: int) -> int #private {
+    tokens: [45] StyleColorToken = {
+        {"canvas", style_token_color(colors.background)},
+        {"text", style_token_color(colors.text)},
+        {"muted", style_token_color(colors.text_muted)},
+        {"surface", lightfield_token_color(style_index, colors.surface, 0.87f)},
+        {"surface-end", lightfield_token_color(style_index, colors.surface_raised, 0.93f)},
+        {"card", lightfield_token_color(style_index, colors.surface_raised, 0.87f)},
+        {"card-end", lightfield_token_color(style_index, colors.surface, 0.93f)},
+        {"panel", style_token_color(colors.surface_raised)},
+        {"panel-hover", style_token_color(colors.surface)},
+        {"panel-pressed", style_token_color(colors.surface_sunken)},
+        {"button", lightfield_token_color(style_index, colors.surface_raised, 0.87f)},
+        {"button-end", lightfield_token_color(style_index, colors.surface, 0.93f)},
+        {"button-hover", lightfield_token_color(style_index, colors.surface, 0.93f)},
+        {"button-hover-end", lightfield_token_color(style_index, colors.surface_raised, 0.93f)},
+        {"button-pressed", lightfield_token_color(style_index, colors.surface_sunken, 0.93f)},
+        {"button-pressed-end", lightfield_token_color(style_index, colors.surface, 0.93f)},
+        {"button-disabled", style_token_color(colors.surface)},
+        {"dropdown-end", lightfield_token_color(style_index, colors.surface_raised, 0.93f)},
+        {"border", style_token_color(colors.border)},
+        {"border-soft", style_token_color(colors.divider)},
+        {"border-hover", style_token_color(colors.border_strong)},
+        {"border-hover-strong", style_token_color(colors.border_strong)},
+        {"border-disabled", style_token_color(colors.divider)},
+        {"card-border", style_token_color(colors.border)},
+        {"outline-border", style_token_color(colors.border_strong)},
+        {"focus", style_token_color(colors.focus)},
+        {"accent", style_token_color(colors.accent)},
+        {"accent-end", style_token_color(colors.accent_pressed)},
+        {"accent-hover", style_token_color(colors.accent_hover)},
+        {"accent-hover-end", style_token_color(colors.accent)},
+        {"accent-border", style_token_color(colors.accent_pressed)},
+        {"accent-ink", style_token_color(colors.on_accent)},
+        {"danger", style_token_color(colors.danger)},
+        {"danger-hover", style_token_color(colors.danger)},
+        {"danger-ink", style_token_color(colors.on_danger)},
+        {"danger-border", style_token_color(colors.danger)},
+        {"row", lightfield_token_color(style_index, colors.surface, 0.67f)},
+        {"thumb-ink", style_token_color(colors.on_accent)},
+        {"divider", style_token_color(colors.divider)},
+        {"track", style_token_color(colors.surface_sunken)},
+        {"track-hover", style_token_color(colors.surface_raised)},
+        {"field", style_token_color(colors.surface_sunken)},
+        {"field-border", style_token_color(colors.border)},
+        {"scroll-thumb", style_token_color(colors.text_muted)},
+        {"scroll-border", style_token_color(colors.border_strong)},
+    }
+    return RegisterStylePackVariant("inbe", source, label, tokens, 45)
+}
+
 static applied_style: int = -1
 static applied_colors: ThemeColors
 
@@ -92,8 +156,8 @@ app_apply_style :: (app: InnerBreeze*) #export {
         }
         free(overrides)
     }
-    if app_register_style_pack_variant(source, style_pack_label(app->style_index),
-                                       colors, app->style_index) {
+    if register_style_pack_variant(source, style_pack_label(app->style_index),
+                                   colors, app->style_index) {
         SetActiveStylePack("inbe")
         applied_style = app->style_index
         applied_colors = colors

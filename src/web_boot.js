@@ -57,6 +57,8 @@ function hideLoadingScreen() {
 
 var extensionBridgeStarted = false;
 var extensionBridgeLastConfig = '';
+var extensionBridgePort = null;
+var extensionPageSuspended = false;
 
 function extensionRuntime() {
   var isExtensionPage = window.__inbeExtension ||
@@ -97,6 +99,26 @@ function extensionBreakConfig() {
   };
 }
 
+function syncExtensionPagePresence() {
+  var runtime = extensionRuntime();
+  if (!runtime || window.location.protocol !== 'chrome-extension:') return;
+  if (document.hidden || extensionPageSuspended) {
+    if (extensionBridgePort) extensionBridgePort.disconnect();
+    extensionBridgePort = null;
+    return;
+  }
+  if (extensionBridgePort) return;
+  try {
+    var port = runtime.connect({ name: 'inbe-visible-page' });
+    extensionBridgePort = port;
+    port.onDisconnect.addListener(function() {
+      if (extensionBridgePort === port) extensionBridgePort = null;
+    });
+  } catch (error) {
+    console.warn('Inner Breeze extension presence failed:', error);
+  }
+}
+
 function publishExtensionBreakConfig(force) {
   var runtime = extensionRuntime();
   var config;
@@ -126,8 +148,19 @@ window.__inbeExtensionBreakNow = function(breakType) {
 function startExtensionBridge() {
   if (extensionBridgeStarted || !extensionRuntime()) return;
   extensionBridgeStarted = true;
+  syncExtensionPagePresence();
+  document.addEventListener('visibilitychange', syncExtensionPagePresence, false);
+  window.addEventListener('pagehide', function() {
+    extensionPageSuspended = true;
+    syncExtensionPagePresence();
+  }, false);
+  window.addEventListener('pageshow', function() {
+    extensionPageSuspended = false;
+    syncExtensionPagePresence();
+  }, false);
   publishExtensionBreakConfig(true);
   setInterval(function() {
+    syncExtensionPagePresence();
     publishExtensionBreakConfig(false);
   }, 2000);
 }

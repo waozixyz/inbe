@@ -26,6 +26,7 @@ const chrome = {
     },
     onInstalled: event("runtime.onInstalled"),
     onStartup: event("runtime.onStartup"),
+    onConnect: event("runtime.onConnect"),
     onMessage: event("runtime.onMessage"),
   },
   storage: {
@@ -127,8 +128,20 @@ assert.ok(tabs.some((tab) => tab.url === "chrome-extension://inbe/index.html"));
 
 await api.requestBreakNow(1);
 assert.equal(storage.inbeBreakConfig.enabled, true);
-assert.ok(notifications.some((entry) => entry.id === "inbe-break-1"));
-assert.equal(chrome.action.badgeText, "BR");
+assert.ok(notifications.some((entry) => entry.id === "inbe-break-1" && entry.options));
+assert.equal(chrome.action.badgeText, "", "manual break does not start a hidden alarm");
+
+let disconnectVisiblePage;
+events["runtime.onConnect"][0]({
+  name: "inbe-visible-page",
+  onDisconnect: {
+    addListener(listener) {
+      disconnectVisiblePage = listener;
+    },
+  },
+});
+await new Promise((resolve) => setImmediate(resolve));
+assert.equal(chrome.action.badgeText, "BR", "visible page enables automatic breaks");
 
 storage.inbeBreakConfig = api.normalizeConfig({
   enabled: true,
@@ -141,10 +154,27 @@ storage.inbeBreakConfig = api.normalizeConfig({
 storage.inbeBreakState = api.normalizeState({ lastTickMs: 1000 });
 idleState = "active";
 await api.tickBreaks(61000);
-assert.ok(notifications.some((entry) => entry.id === "inbe-break-0" && entry.options.buttons.length === 2));
+assert.ok(notifications.some((entry) =>
+  entry.id === "inbe-break-0" && entry.options && entry.options.buttons.length === 2));
 
 await api.applyNotificationAction("inbe-break-0", 0);
 assert.ok(storage.inbeBreakState.timers[0].snoozeUntilMs > Date.now(), "postpone stores snooze deadline");
+
+disconnectVisiblePage();
+await new Promise((resolve) => setImmediate(resolve));
+assert.equal(chrome.action.badgeText, "", "closing the page stops the indicator");
+assert.ok(alarms.some((entry) => entry.name === "inbe-break-tick" && entry.clear));
+const notificationCount = notifications.filter((entry) => entry.options).length;
+await api.tickBreaks(122000);
+assert.equal(notifications.filter((entry) => entry.options).length, notificationCount,
+  "closed page cannot receive automatic reminders");
+assert.equal(storage.inbeBreakState.lastTickMs, 0, "closed page resets the timer");
+
+events["runtime.onConnect"][0]({
+  name: "inbe-visible-page",
+  onDisconnect: { addListener() {} },
+});
+await new Promise((resolve) => setImmediate(resolve));
 
 storage.inbeBreakState = api.normalizeState({
   lastTickMs: 1000,

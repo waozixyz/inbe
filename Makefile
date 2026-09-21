@@ -211,10 +211,14 @@ KRYON_RUNTIME_KRY := $(sort $(wildcard $(KRYON_DIR)/runtime/*.kry))
 KRYON_RUNTIME_C := $(patsubst $(KRYON_DIR)/%.kry,$(KRYON_GENERATED_SRC_DIR)/%.c,$(KRYON_RUNTIME_KRY))
 KRYON_RUNTIME_H := $(KRYON_RUNTIME_C:.c=.h)
 KRYON_RUNTIME_STAMP := $(KRYON_GENERATED_SRC_DIR)/runtime/.fresh
+KRYON_UI_KRY := $(sort $(wildcard $(KRYON_DIR)/src/ui/*.kry))
+KRYON_UI_C := $(patsubst $(KRYON_DIR)/src/ui/%.kry,$(KRYON_GENERATED_SRC_DIR)/ui/%.c,$(KRYON_UI_KRY))
+KRYON_UI_H := $(KRYON_UI_C:.c=.h)
+KRYON_UI_STAMP := $(KRYON_GENERATED_SRC_DIR)/ui/.fresh
 KRYON_ICON_ASSETS_C := $(KRYON_GENERATED_SRC_DIR)/ui/ui_icon_assets.c
 KRYON_ICON_NAMES_C := $(KRYON_GENERATED_SRC_DIR)/ui/ui_icon_names.c
 KRYON_ICON_TYPES_H := $(KRYON_GENERATED_INCLUDE_DIR)/ui_icon_types.h
-KRYON_SRCS := $(filter-out $(KRYON_DIR)/src/ui/ui_icon_assets.c $(KRYON_DIR)/src/ui/ui_icon_names.c,$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C) $(KRYON_RUNTIME_C)
+KRYON_SRCS := $(filter-out $(KRYON_DIR)/src/ui/ui_icon_assets.c $(KRYON_DIR)/src/ui/ui_icon_names.c,$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C) $(KRYON_RUNTIME_C) $(KRYON_UI_C)
 KRYON_SYNC_ICONS := $(KRYON_DIR)/scripts/sync-icons.sh
 WEB_SHARED_ICON_SHEETS := platforms language tiles
 KRYON_LIBDRAW_SRCS := $(filter $(KRYON_DIR)/src/backend/libdraw_%.c,$(KRYON_SRCS))
@@ -229,7 +233,7 @@ KRYON_WEB_SRCS := $(KRYON_SRCS)
 KRYON_WEB_SRCS := $(filter-out $(KRYON_DIR)/src/backend/dom_%.c,$(KRYON_WEB_SRCS))
 KRYON_WINDOWS_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_CLICK_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
-KRYON_INCLUDE := -I$(KRYON_GENERATED_INCLUDE_DIR) -I$(KRYON_GENERATED_SRC_DIR) -I$(KRYON_DIR)/include -I$(KRYON_DIR)/vendor/monocypher/src -I$(KRYON_DIR)/vendor/monocypher/src/optional
+KRYON_INCLUDE := -I$(KRYON_GENERATED_INCLUDE_DIR) -I$(KRYON_GENERATED_SRC_DIR) -I$(KRYON_DIR)/include -I$(KRYON_DIR)/src/ui -I$(KRYON_DIR)/src/platform -I$(KRYON_DIR)/src/backend -I$(KRYON_GENERATED_SRC_DIR)/runtime -I$(KRYON_DIR)/vendor/utf8proc -DUTF8PROC_STATIC -I$(KRYON_DIR)/vendor/monocypher/src -I$(KRYON_DIR)/vendor/monocypher/src/optional
 KRYON_SYNC_ACCOUNT_C := $(KRYON_DIR)/src/sync/sync_account.c
 KRYON_SYNC_CRYPTO_C := $(KRYON_DIR)/src/sync/sync_crypto.c $(KRYON_DIR)/src/sync/monocypher.c $(KRYON_DIR)/src/sync/monocypher_ed25519.c
 KRYON_SYNC_C := $(KRYON_DIR)/src/sync/sync.c
@@ -591,6 +595,17 @@ $(KRYON_RUNTIME_STAMP): Makefile $(K2C) $(KRYON_RUNTIME_KRY)
 $(KRYON_RUNTIME_C) $(KRYON_RUNTIME_H): $(KRYON_RUNTIME_STAMP)
 	@test -f $@
 
+# Kryon's .kry-backed UI modules generate the public ui/*.h headers that the
+# retained handwritten src/ui/*.c host services include, plus the generated
+# implementations for the migrated widgets. Mirror kryon's own --root src pass.
+$(KRYON_UI_STAMP): Makefile $(K2C) $(KRYON_UI_KRY) $(KRYON_RUNTIME_STAMP)
+	mkdir -p $(dir $@)
+	$(K2C) --no-main --root $(abspath $(KRYON_DIR)/src) -o $(abspath $(KRYON_GENERATED_SRC_DIR)) $(abspath $(KRYON_UI_KRY))
+	touch $@
+
+$(KRYON_UI_C) $(KRYON_UI_H): $(KRYON_UI_STAMP)
+	@test -f $@
+
 $(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS) $(SYNC_RETRY_HEADER) $(STORAGE_LAYOUT_HEADER) $(KRYON_RUNTIME_STAMP) | build-laws
 	rm -rf $(KRY_GEN_DIR)
 	mkdir -p $(KRY_GEN_DIR)
@@ -812,11 +827,11 @@ embedded-image-assets-check: $(EMBEDDED_ASSETS_C)
 
 .PHONY: habits-cards-ui-test
 habits-cards-ui-test: $(TARGET)
-	xvfb-run -a bash tests/habits_cards_ui_test.sh "$(abspath $(TARGET))"
+	bash tests/habits_cards_ui_test.sh "$(abspath $(TARGET))"
 
 .PHONY: lists-ui-test
 lists-ui-test: $(TARGET)
-	xvfb-run -a bash tests/lists_ui_test.sh "$(abspath $(TARGET))"
+	bash tests/lists_ui_test.sh "$(abspath $(TARGET))"
 
 .PHONY: storage-literals-check
 storage-literals-check:

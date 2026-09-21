@@ -52,7 +52,12 @@ run_screenshot_if_requested :: () -> int {
                 TraceLog(LOG_INFO, "APP: quit requested by shutdown signal")
                 quit = 1
             }
-            if tray_action != tray.DESKTOP_TRAY_ACTION_NONE {
+            if (IsWindowHidden() || IsWindowMinimized()) &&
+               !tray.desktop_tray_ready() {
+                TraceLog(LOG_INFO, "APP: tray indicator unavailable; stopping background execution")
+                quit = 1
+            }
+            if !quit && tray_action != tray.DESKTOP_TRAY_ACTION_NONE {
                 tray.desktop_tray_apply_action(&app, tray_action, &quit)
             }
             if close_requested != 0 && !app.close_prompt_open {
@@ -67,7 +72,9 @@ run_screenshot_if_requested :: () -> int {
 
             close_result = app_consume_close_prompt_result(&app)
             if close_result == AppClosePromptKeepRunning {
-                tray.desktop_tray_keep_running()
+                if !tray.desktop_tray_keep_running() {
+                    quit = 1
+                }
             } else if close_result == AppClosePromptQuit {
                 TraceLog(LOG_INFO, "APP: quit requested by close prompt")
                 quit = 1
@@ -97,6 +104,12 @@ run_screenshot_if_requested :: () -> int {
         quit := 0
 
         while !host.ShutdownRequested() && !quit {
+            #if #defined(PLATFORM_DESKTOP) {
+                if IsWindowHidden() || IsWindowMinimized() {
+                    TraceLog(LOG_INFO, "APP: no tray indicator; stopping background execution")
+                    break
+                }
+            }
             host.DrawFrame(&app)
             if WindowShouldClose() || StealCoreWindowClose() ||
                host.ShutdownRequested() || app.request_quit {

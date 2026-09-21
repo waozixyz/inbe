@@ -470,7 +470,7 @@ DesktopTrayAction :: enum {
         item_count: int
         # APP_NO_TRAY = 1 skips the tray entirely. With the lazy-GTK tray build
         # this also keeps libgtk-3 and its dependency chain out of the process;
-        # closing the window then quits or minimizes instead of hiding.
+        # closing or minimizing the window then quits instead of hiding.
         if getenv("APP_NO_TRAY") != nil {
             return 0
         }
@@ -503,24 +503,27 @@ DesktopTrayAction :: enum {
         return (DesktopTrayAction)PollDesktopTrayAction()
     }
     desktop_tray_ready :: () -> int #export {
-        return TrayReady
+        return TrayReady && IsDesktopTrayVisible()
     }
     RestoreTrayWindow :: () #private {
         ClearWindowState(FLAG_WINDOW_HIDDEN)
         RestoreWindow()
     }
     HideTrayWindow :: () #private {
+        if !desktop_tray_ready() {
+            return
+        }
         # The window vanishing with the process still running is the single
         # most confusing failure mode this app has; always say why it hid.
         TraceLog(LOG_INFO, "APP: hiding main window (tray action)")
         SetWindowState(FLAG_WINDOW_HIDDEN)
     }
-    desktop_tray_keep_running :: () #export {
-        if TrayReady {
-            SetWindowState(FLAG_WINDOW_HIDDEN)
-        } else {
-            MinimizeWindow()
+    desktop_tray_keep_running :: () -> int #export {
+        if !desktop_tray_ready() {
+            return 0
         }
+        HideTrayWindow()
+        return 1
     }
     StartTrayPractice :: (app: InnerBreeze*, practice_id: int) #private {
         practice: const PracticeDefinition*
@@ -703,7 +706,7 @@ DesktopTrayAction :: enum {
     desktop_tray_update_status :: (app: InnerBreeze*) #export {
         unused app
     }
-    desktop_tray_keep_running :: () #export {
-        MinimizeWindow()
+    desktop_tray_keep_running :: () -> int #export {
+        return 0
     }
 }

@@ -7,9 +7,9 @@
 #
 # Covered cases (the "closing windows in different inbe modes" matrix):
 #   1. startup        main window maps on a fresh profile
-#   2. close-keep     close action = keep running -> window hides, app lives
-#   3. close-ask      close action = ask -> prompt modal -> Quit -> app exits
-#   4. close-ask-keep close action = ask -> prompt -> Keep running -> hidden
+#   2. close-keep     no tray icon -> close exits, even with Keep running set
+#   3. close-ask      no tray icon -> close exits without a hidden process
+#   4. startup-hidden no tray icon -> app stays visible; minimize exits
 #
 # Requirements: xvfb-run/Xvfb, xfwm4, xdotool, xwininfo (x11-utils), sqlite3.
 # The user's session and data are never touched. Break HUD dragging needs a
@@ -32,8 +32,9 @@ for tool in xvfb-run Xvfb xfwm4 xdotool xwininfo sqlite3; do
 done
 
 if [ -z "${INBE_DESKTOP_WINDOW_TEST_XVFB:-}" ]; then
-    exec xvfb-run -a -s "-screen 0 $GEOMETRY" \
-        env INBE_DESKTOP_WINDOW_TEST_XVFB=1 "$0" "$@"
+    exec env -u DISPLAY -u WAYLAND_DISPLAY -u SESSION_MANAGER \
+        -u DBUS_SESSION_BUS_ADDRESS xvfb-run -a -s "-screen 0 $GEOMETRY" \
+        env -u WAYLAND_DISPLAY INBE_DESKTOP_WINDOW_TEST_XVFB=1 "$0" "$@"
 fi
 
 DISPLAY_TEST=${DISPLAY:?xvfb-run did not set DISPLAY}
@@ -55,8 +56,16 @@ say() { printf '%s\n' "$*"; }
 ok()  { PASS=$((PASS + 1)); say "PASS: $1"; }
 bad() { FAIL=$((FAIL + 1)); say "FAIL: $1"; }
 
-XD() { DISPLAY="$DISPLAY_TEST" xdotool "$@" 2>/dev/null; }
-XW() { DISPLAY="$DISPLAY_TEST" xwininfo "$@" 2>/dev/null; }
+XD() { env -u WAYLAND_DISPLAY DISPLAY="$DISPLAY_TEST" xdotool "$@" 2>/dev/null; }
+XW() { env -u WAYLAND_DISPLAY DISPLAY="$DISPLAY_TEST" xwininfo "$@" 2>/dev/null; }
+
+capture_visual() { # $1 = capture name
+    [ -n "${INBE_VISUAL_OUTPUT_DIR:-}" ] || return 0
+    mkdir -p "$INBE_VISUAL_OUTPUT_DIR"
+    env -u WAYLAND_DISPLAY DISPLAY="$DISPLAY_TEST" \
+        xwd -root -silent -out "$WORK/$1.xwd"
+    convert "$WORK/$1.xwd" "$INBE_VISUAL_OUTPUT_DIR/$1.png"
+}
 
 # Main (client) window id: named, wider than 500px.
 main_window() {
@@ -81,7 +90,7 @@ close_button() {
 launch_app() { # $1 = root dir, $2 = log name
     [ -n "$APP_PID" ] && { kill "$APP_PID" 2>/dev/null; sleep 1; }
     rm -f "$WORK/$2"
-    DISPLAY="$DISPLAY_TEST" APP_DATA_ROOT="$1" INBE_NO_TRAY=1 \
+    env -u WAYLAND_DISPLAY DISPLAY="$DISPLAY_TEST" APP_DATA_ROOT="$1" APP_NO_TRAY=1 \
         setsid "$BIN" >"$WORK/$2" 2>&1 &
     APP_PID=$!
     sleep 8
@@ -98,7 +107,7 @@ set_setting() { # $1 = root, $2 = key, $3 = value
 }
 
 # --- environment -----------------------------------------------------------
-DISPLAY="$DISPLAY_TEST" setsid xfwm4 >/dev/null 2>&1 &
+env -u WAYLAND_DISPLAY DISPLAY="$DISPLAY_TEST" setsid xfwm4 >/dev/null 2>&1 &
 WM_PID=$!
 sleep 1.5
 
@@ -120,27 +129,28 @@ launch_app "$ROOT1" log-keep
 MW=$(main_window)
 if [ -n "$MW" ] && XW -id "$MW" | grep -q IsViewable; then
     ok "startup: main window maps"
+    capture_visual "01-window-visible"
 else
     bad "startup: main window does not map"
 fi
 
-# --- 2. close = keep running -> hidden but alive ---------------------------
+# --- 2. close = keep running, but no indicator -> exits --------------------
 if CB=$(close_button); then
     XD mousemove ${CB% *} ${CB#* }
     XD click 1
     sleep 2.5
-    MW=$(main_window)
-    if kill -0 "$APP_PID" 2>/dev/null && \
-       XW -id "$MW" | grep -q IsUnMapped; then
-        ok "close-keep: window hidden, app alive"
+    if ! kill -0 "$APP_PID" 2>/dev/null; then
+        ok "close-keep: no indicator, so app exits"
+        capture_visual "02-after-close"
+        APP_PID=""
     else
-        bad "close-keep: expected hidden window with live process"
+        bad "close-keep: app stayed alive without an indicator"
     fi
 else
     bad "close-keep: no WM frame found"
 fi
 
-# --- 3. close = ask -> prompt -> Quit -> exits -----------------------------
+# --- 3. close = ask, but no indicator -> exits ------------------------------
 ROOT2="$WORK/r-ask"
 fresh_root "$ROOT2"; cp "$WORK/template.db" "$ROOT2/inbe.db"
 mkdir -p "$ROOT2/runtime-assets"
@@ -149,49 +159,41 @@ launch_app "$ROOT2" log-ask
 if CB=$(close_button); then
     XD mousemove ${CB% *} ${CB#* }
     XD click 1
-    sleep 2
-    # The prompt is proven behaviorally: the right-hand button only quits
-    # when the close prompt is up and accepting clicks.
-    XD mousemove 715 482
-    XD mousedown 1; sleep 0.15; XD mouseup 1
     sleep 2.5
     if kill -0 "$APP_PID" 2>/dev/null; then
-        bad "close-ask: prompt Quit did not exit the app"
+        bad "close-ask: app stayed alive without an indicator"
     else
-        ok "close-ask: prompt appears and Quit exits the app"
+        ok "close-ask: no indicator, so app exits"
         APP_PID=""
     fi
 else
     bad "close-ask: no WM frame found"
 fi
 
-# --- 4. close = ask -> prompt -> Keep running ------------------------------
-ROOT3="$WORK/r-ask2"
+# --- 4. startup hidden without a tray -> visible, then minimize exits -----
+ROOT3="$WORK/r-start-hidden"
 fresh_root "$ROOT3"; cp "$WORK/template.db" "$ROOT3/inbe.db"
 mkdir -p "$ROOT3/runtime-assets"
-set_setting "$ROOT3" desktop_close_action 0   # ASK
-launch_app "$ROOT3" log-ask2
-if CB=$(close_button); then
-    XD mousemove ${CB% *} ${CB#* }
-    XD click 1
-    sleep 2
-    # Left-hand prompt button is Keep running.
-    XD mousemove 520 482
-    XD mousedown 1; sleep 0.15; XD mouseup 1
+set_setting "$ROOT3" desktop_startup_mode 1   # STARTUP_HIDDEN
+launch_app "$ROOT3" log-start-hidden
+MW=$(main_window)
+if [ -n "$MW" ] && XW -id "$MW" | grep -q IsViewable; then
+    ok "startup-hidden: no indicator, so window stays visible"
+    capture_visual "03-start-hidden-without-indicator"
+    XD windowminimize "$MW"
     sleep 2.5
-    MW=$(main_window)
-    if kill -0 "$APP_PID" 2>/dev/null && \
-       XW -id "$MW" | grep -q IsUnMapped; then
-        ok "close-ask-keep: Keep running hides window, app alive"
+    if ! kill -0 "$APP_PID" 2>/dev/null; then
+        ok "minimize: no indicator, so app exits"
+        APP_PID=""
     else
-        bad "close-ask-keep: expected hidden window with live process"
+        bad "minimize: app stayed alive without an indicator"
     fi
 else
-    bad "close-ask-keep: no WM frame found"
+    bad "startup-hidden: window did not remain visible"
 fi
 
 # Break HUD dragging used to live here, but this harness deliberately runs with
-# INBE_NO_TRAY=1 so close-window behavior can be tested without a desktop tray.
+# APP_NO_TRAY=1 so close-window behavior can be tested without a desktop tray.
 # HUD behavior requires a separate tray-ready harness.
 
 say ""

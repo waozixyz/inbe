@@ -107,11 +107,19 @@ app_request_desktop_close :: (app: InnerBreeze*) #export {
         app->request_quit = 1
         return
     }
+    #if #defined(DESKTOP_TRAY_ENABLED) {
+        if !desktop_tray_ready() {
+            app->request_quit = 1
+            return
+        }
+    }
     if app->desktop_close_action == CLOSE_KEEP_RUNNING {
         #if #defined(DESKTOP_TRAY_ENABLED) {
-            desktop_tray_keep_running()
+            if !desktop_tray_keep_running() {
+                app->request_quit = 1
+            }
         } #else {
-            MinimizeWindow()
+            app->request_quit = 1
         }
         return
     }
@@ -500,8 +508,10 @@ app_draw_blank_home_easteregg :: (app: InnerBreeze*) #private {
         ((float)available_h - logo_size) / 2, logo_size, logo_size}
     if Button((ButtonProps){
         .bounds = bounds,
-        .image_asset_path = "assets/easteregg/waozi.png",
-        .image_bounds = bounds, .image_fit = ImageFitContain,
+        .image = (ImageProps){
+            .asset_path = "assets/easteregg/waozi.png",
+            .bounds = bounds, .fit = ImageFitContain
+        },
         .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisGhost
     }) {
         OpenURI("https://waozi.xyz")

@@ -25,6 +25,10 @@ public class PushServiceImpl extends PushService {
 
     @Override
     public void onMessage(PushMessage message, String instance) {
+        if (!NotificationPresence.canPostPush(this)) {
+            Log.d(TAG, "Ignoring push without a visible app or session indicator");
+            return;
+        }
         String text = new String(message.getContent());
         String title = "Inner Breeze";
         String body = text;
@@ -85,6 +89,9 @@ public class PushServiceImpl extends PushService {
                 .setContentText(body)
                 .setAutoCancel(true)
                 .setContentIntent(pi);
+        if (!NotificationPresence.canPostPush(this)) {
+            return;
+        }
         nm.notify(NOTIFICATION_ID, b.build());
     }
 }

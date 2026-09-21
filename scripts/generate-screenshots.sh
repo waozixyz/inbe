@@ -238,8 +238,11 @@ EOF
   fi
 
   set +e
-  INBE_DATA_ROOT="$data_root" xvfb-run -a -s "-screen 0 ${width}x${height}x24" \
-    "$BIN" \
+  env -u DISPLAY -u WAYLAND_DISPLAY -u SESSION_MANAGER \
+    -u DBUS_SESSION_BUS_ADDRESS INBE_DATA_ROOT="$data_root" \
+    xvfb-run -a -s "-screen 0 ${width}x${height}x24" \
+    env -u WAYLAND_DISPLAY -u SESSION_MANAGER -u DBUS_SESSION_BUS_ADDRESS \
+    SDL_VIDEODRIVER=x11 "$BIN" \
     --screenshot "$output" \
     --screenshot-scene "$scene" \
     --screenshot-width "$width" \

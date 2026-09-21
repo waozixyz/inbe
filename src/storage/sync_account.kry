@@ -96,10 +96,12 @@ sync_account_import_private_key_preview :: (account: SyncAccount*,
         return 0
     }
     memset(account, 0, sizeof(*account))
+    TraceLog(LOG_INFO, "SYNC: ImportSyncAccountFile(%s)...", filename)
     if !ImportSyncAccountFile(filename, account) {
         TraceLog(LOG_WARNING, "SYNC: Private key import failed")
         return 0
     }
+    TraceLog(LOG_INFO, "SYNC: ImportSyncAccountFile OK, public_id=%.8s...", account->public_id)
     return 1
 }
 
@@ -157,7 +159,8 @@ sync_account_export_private_key :: (account: const SyncAccount*,
 
     #if ANDROID {
         return android_share_bytes((const unsigned char*)body, (size_t)len, filename,
-                                   "application/octet-stream")
+                                   "application/octet-stream",
+                                   GetLocaleText("share_sheet_title"))
     } #else_if WEB {
         path: [STORAGE_PATH_SIZE] char = {0}
 

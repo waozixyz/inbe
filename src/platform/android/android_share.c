@@ -53,7 +53,7 @@ android_share_helper_class(JNIEnv *env, jobject activity)
 
 int
 android_share_bytes(const unsigned char *data, size_t data_size, const char *filename,
-                    const char *mime_type)
+                    const char *mime_type, const char *title)
 {
     struct android_app *app = GetAndroidApp();
     ANativeActivity *native_activity;
@@ -91,7 +91,7 @@ android_share_bytes(const unsigned char *data, size_t data_size, const char *fil
     (*env)->SetByteArrayRegion(env, jarr, 0, data_size, (const jbyte *)data);
     jname = (*env)->NewStringUTF(env, filename);
     jmime = (*env)->NewStringUTF(env, mime_type != NULL ? mime_type : "application/octet-stream");
-    jtitle = (*env)->NewStringUTF(env, GetLocaleText("share_sheet_title"));
+    jtitle = (*env)->NewStringUTF(env, title != NULL ? title : "");
     (*env)->CallStaticVoidMethod(env, share_helper_class, method, native_activity->clazz,
                                  jarr, jname, jmime, jtitle);
 
@@ -103,7 +103,7 @@ android_share_bytes(const unsigned char *data, size_t data_size, const char *fil
     return 1;
 }
 
-int android_share_export(const char *filename)
+int android_share_export(const char *filename, const char *title)
 {
     struct android_app *app;
     char export_path[FS_PATH_MAX];
@@ -233,7 +233,7 @@ int android_share_export(const char *filename)
     (*env)->SetByteArrayRegion(env, jarr, 0, zip_size, (jbyte*)zip_data);
 
     jstring jname = (*env)->NewStringUTF(env, filename);
-    jstring jtitle = (*env)->NewStringUTF(env, GetLocaleText("share_sheet_title"));
+    jstring jtitle = (*env)->NewStringUTF(env, title != NULL ? title : "");
     (*env)->CallStaticVoidMethod(env, share_helper_class, method, native_activity->clazz, jarr, jname, jtitle);
 
     (*env)->DeleteLocalRef(env, jarr);
@@ -248,16 +248,18 @@ int android_share_export(const char *filename)
 }
 
 #else
-int android_share_export(const char *filename) {
+int android_share_export(const char *filename, const char *title) {
     (void)filename;
+    (void)title;
     return 0;
 }
 int android_share_bytes(const unsigned char *data, size_t data_size, const char *filename,
-                        const char *mime_type) {
+                        const char *mime_type, const char *title) {
     (void)data;
     (void)data_size;
     (void)filename;
     (void)mime_type;
+    (void)title;
     return 0;
 }
 #endif

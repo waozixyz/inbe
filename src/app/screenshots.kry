@@ -4,6 +4,8 @@
 #import "sync_client.h"
 #import "practices/practice_registry.h"
 #import "app/device_preferences.h"
+#import "screens/settings/settings_data_ui.h"
+#import "screens/settings/settings_sync_account_impl.h"
 #import <stdio.h>
 #import <stdlib.h>
 #import <string.h>
@@ -19,7 +21,33 @@ ScreenshotRequest :: struct {
     output: [512] char
 }
 
+static screenshot_request: ScreenshotRequest
+
+current_screenshot_request :: () -> ScreenshotRequest* #export {
+    return &screenshot_request
+}
+
 SCREENSHOT_THEME_CURRENT :: (-1)
+
+screenshot_warmup_frames :: (request: const ScreenshotRequest*) -> int #export {
+    if request != nil && strcmp(request->scene, "tutorial_whm_step2") == 0 {
+        return 150
+    }
+    return 4
+}
+
+screenshot_after_warmup :: (app: InnerBreeze*,
+                            request: const ScreenshotRequest*) #export {
+    if app == nil || request == nil {
+        return
+    }
+    if strcmp(request->scene, "tutorial_whm_step2") == 0 {
+        app->tutorial_step = 2
+    } else if strcmp(request->scene, "tutorial_whm_step0") == 0 ||
+              strcmp(request->scene, "tutorial_meditation") == 0 {
+        app->tutorial_step = 0
+    }
+}
 
 parse_int_arg :: (text: const char*, fallback: int) -> int #private {
     end: char* = nil
@@ -488,6 +516,16 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
         app->practice_tab = PRACTICE_TAB_MANUAL
         app->breathing.screen = ScreenStart
         app->tutorial_step = 0
+    } else if strcmp(request->scene, "sync_import_key_trace") == 0 {
+        /* Temporary trace scene: tests import_sync_key_path directly with
+           a pre-generated key file, bypassing the file dialog. */
+        storage_set_setting_text("sync_public_id", "")
+        storage_set_setting_text("sync_public_key", "")
+        storage_set_setting_text("sync_private_key", "")
+        settings_data_import_sync_key_path(app, "tmp/test-account.key")
+        app->profile_view = PROFILE_VIEW_MAIN
+        app->profile_tab = PROFILE_TAB_SYNC
+        app->breathing.screen = ScreenProfile
     } else {
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->exercise_type = EXERCISE_WIM_HOF

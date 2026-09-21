@@ -8,6 +8,7 @@ const TICK_ALARM = "inbe-break-tick";
 const STORAGE_CONFIG = "inbeBreakConfig";
 const STORAGE_STATE = "inbeBreakState";
 const MAX_ELAPSED_S = 300;
+const visiblePages = new Set();
 
 const practiceUrls = {
   whm: `${appUrl}?inbe_launch=start-practice&practice=whm`,
@@ -134,6 +135,7 @@ function notificationIdFor(type) {
 }
 
 async function showBreakNotification(type, state, config, forced) {
+  if (!forced && visiblePages.size === 0) return;
   const timer = config.timers[type];
   const timerState = state.timers[type];
   const buttons = [];
@@ -152,6 +154,7 @@ async function showBreakNotification(type, state, config, forced) {
   timerState.notificationId = id;
   timerState.buttonActions = buttonActions;
   await storageSet({ [STORAGE_STATE]: state });
+  if (!forced && visiblePages.size === 0) return;
   await chrome.notifications.create(id, {
     type: "basic",
     iconUrl: "icons/icon-128.png",
@@ -161,17 +164,39 @@ async function showBreakNotification(type, state, config, forced) {
     requireInteraction: true,
     buttons,
   });
+  if (!forced && visiblePages.size === 0)
+    await chrome.notifications.clear(id);
 }
 
 async function scheduleBreakAlarm(config) {
-  if (!config.enabled) {
+  if (!config.enabled || visiblePages.size === 0) {
     await chrome.alarms.clear(TICK_ALARM);
     await chrome.action.setBadgeText({ text: "" });
+    for (const type of BREAK_TYPES)
+      await chrome.notifications.clear(notificationIdFor(type));
     return;
   }
   await chrome.alarms.create(TICK_ALARM, { periodInMinutes: 1 });
+  if (visiblePages.size === 0) {
+    await chrome.alarms.clear(TICK_ALARM);
+    return;
+  }
   await chrome.action.setBadgeText({ text: "BR" });
   await chrome.action.setBadgeBackgroundColor({ color: "#2c7388" });
+  if (visiblePages.size === 0)
+    await chrome.action.setBadgeText({ text: "" });
+}
+
+async function stopAutomaticBreaks() {
+  if (visiblePages.size !== 0) return;
+  await storageSet({
+    [STORAGE_STATE]: {
+      lastTickMs: 0,
+      timers: BREAK_TYPES.map(() => defaultTimerState()),
+    },
+  });
+  const data = await storageGet([STORAGE_CONFIG]);
+  await scheduleBreakAlarm(normalizeConfig(data[STORAGE_CONFIG]));
 }
 
 async function saveConfig(config) {
@@ -219,6 +244,10 @@ async function tickBreaks(nowMs = Date.now()) {
   const config = normalizeConfig(data[STORAGE_CONFIG]);
   const state = normalizeState(data[STORAGE_STATE]);
 
+  if (visiblePages.size === 0) {
+    await stopAutomaticBreaks();
+    return state;
+  }
   if (!config.enabled) {
     await scheduleBreakAlarm(config);
     return state;
@@ -228,6 +257,10 @@ async function tickBreaks(nowMs = Date.now()) {
     ? clampInt((nowMs - state.lastTickMs) / 1000, 60, 1, MAX_ELAPSED_S)
     : 60;
   const idleState = await chrome.idle.queryState(Math.max(60, Math.ceil(elapsedS)));
+  if (visiblePages.size === 0) {
+    await stopAutomaticBreaks();
+    return state;
+  }
   const active = idleState === "active";
   state.lastTickMs = nowMs;
 
@@ -235,7 +268,13 @@ async function tickBreaks(nowMs = Date.now()) {
     if (stepTimer(config.timers[type], state.timers[type], elapsedS, active, nowMs))
       await showBreakNotification(type, state, config, false);
   }
+  if (visiblePages.size === 0) {
+    await stopAutomaticBreaks();
+    return state;
+  }
   await storageSet({ [STORAGE_STATE]: state });
+  if (visiblePages.size === 0)
+    await stopAutomaticBreaks();
   return state;
 }
 
@@ -247,9 +286,9 @@ async function requestBreakNow(type) {
 
   if (!config.enabled)
     config.enabled = true;
-  await showBreakNotification(safeType, state, config, true);
   await storageSet({ [STORAGE_CONFIG]: config, [STORAGE_STATE]: state });
   await scheduleBreakAlarm(config);
+  await showBreakNotification(safeType, state, config, true);
 }
 
 async function applyNotificationAction(notificationId, buttonIndex) {
@@ -305,6 +344,20 @@ chrome.runtime.onStartup.addListener(async () => {
   rebuildContextMenus();
   const data = await storageGet([STORAGE_CONFIG]);
   await scheduleBreakAlarm(normalizeConfig(data[STORAGE_CONFIG]));
+});
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== "inbe-visible-page") return;
+  visiblePages.add(port);
+  storageGet([STORAGE_CONFIG]).then((data) =>
+    scheduleBreakAlarm(normalizeConfig(data[STORAGE_CONFIG]))
+  ).catch((error) => console.error("Inner Breeze break activation failed:", error));
+  port.onDisconnect.addListener(() => {
+    visiblePages.delete(port);
+    if (visiblePages.size === 0)
+      stopAutomaticBreaks().catch((error) =>
+        console.error("Inner Breeze break stop failed:", error));
+  });
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

@@ -13,10 +13,9 @@ ROOT=/sys/src/inbe
 
 list=$ROOT/build/plan9/generated-c-files.txt
 gensrc=`{cat $list | grep -v -e 'storage/import.c' -e 'meditation/meditation_music.c' -e '/src/main.c' -e '/platform/app_host.c'}
-appsrc=src/platform/plan9/main.c \
+appsrc=src/platform/plan9/entry.c \
 	src/platform/plan9/sqlite3_stub.c \
 	src/platform/plan9/storage_import_stub.c \
-	src/platform/plan9/meditation_music_stub.c \
 	src/app/app_web_bridge.c \
 	src/storage/storage_json_builder.c
 hostsrc=build/plan9/app_embedded_assets.c

@@ -1,0 +1,40 @@
+#module "platform.plan9.app"
+
+#import "kryon.h"
+#import "app.h"
+
+#if #defined(KRYON_PLATFORM_PLAN9) {
+    CreateApp :: (project_path: const char*) -> void* #extern
+    DestroyApp :: (app: void*) #extern
+
+    Plan9Run :: () -> const char* #export {
+        InitWindow(900, 720, "Inner Breeze")
+        if !IsWindowReady() {
+            return "window"
+        }
+
+        SetExitKey(0)
+        InitDPI()
+        SetTargetFPS(60)
+
+        app: InnerBreeze* = (InnerBreeze*)CreateApp("/sys/src/breathing")
+        if app == nil {
+            CloseWindow()
+            return "app"
+        }
+
+        while !WindowShouldClose() {
+            viewport := (Rectangle){0, 0,
+                                    (float)GetScreenWidth(),
+                                    (float)GetScreenHeight()}
+            BeginDrawing()
+            ClearBackground(GetThemeBackground())
+            app_update_draw(app, viewport)
+            EndDrawing()
+        }
+
+        DestroyApp(app)
+        CloseWindow()
+        return nil
+    }
+}

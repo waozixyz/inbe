@@ -68,7 +68,6 @@ public class MainActivity extends NativeActivity {
     private boolean activityPaused = false;
     private boolean windowFocused = true;
     private boolean backgroundExecutionActive = false;
-    private boolean autoPausedForLifecycle = false;
     private boolean notificationPermissionRequestInFlight = false;
     private int lastDeleteRepeatCount = -1;
     private int pendingImportKind = 0;
@@ -78,6 +77,14 @@ public class MainActivity extends NativeActivity {
     private boolean pendingDebugDonationReminder = false;
     private int pendingDebugDonationReminderRetries = 0;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable checkSessionIndicator = new Runnable() {
+        @Override
+        public void run() {
+            if (backgroundExecutionActive) {
+                syncLifecycleState("indicator check");
+            }
+        }
+    };
 
     private native void nativeSetInsets(int left, int top, int right, int bottom, int imeBottom,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
@@ -85,10 +92,7 @@ public class MainActivity extends NativeActivity {
     private native void nativeSetSystemDark(int dark);
     private native void nativeSetOrientation(int orientation);
     private native void nativeWakeLockReady();
-    private native void nativeSetBackgroundActive(boolean active);
-    private native int nativeGetPlayInBackground();
-    private native int nativePauseSession();
-    private native void nativeResumeSession();
+    private native int nativeSyncLifecycleState(boolean paused, boolean indicatorVisible);
     private native void nativeImportSelectedFile(int kind, String path);
     private native void nativeImportCancelled(int kind);
     private native void nativeRuntimeAssetDownloadSucceeded(long handle, long bytes, int httpStatus);
@@ -683,8 +687,12 @@ public class MainActivity extends NativeActivity {
     }
 
     public void acquireWakeLock() {
-        Log.d(TAG, "Starting session foreground service");
         requestNotificationPermissionIfNeeded();
+        if (!SessionForegroundService.canShowIndicator(this)) {
+            Log.w(TAG, "Session indicator unavailable; background service not started");
+            return;
+        }
+        Log.d(TAG, "Starting session foreground service");
         Intent intent = new Intent(this, SessionForegroundService.class);
         intent.setAction(SessionForegroundService.ACTION_START);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -696,9 +704,7 @@ public class MainActivity extends NativeActivity {
 
     public void releaseWakeLock() {
         Log.d(TAG, "Stopping session foreground service");
-        Intent intent = new Intent(this, SessionForegroundService.class);
-        intent.setAction(SessionForegroundService.ACTION_STOP);
-        startService(intent);
+        stopService(new Intent(this, SessionForegroundService.class));
     }
 
     public void updateSessionNotification(final String statusText) {
@@ -984,34 +990,27 @@ public class MainActivity extends NativeActivity {
     }
 
     private void syncLifecycleState(String reason) {
-        int playInBackground = nativeGetPlayInBackground();
-        boolean shouldRunInBackground = playInBackground != 0 && activityPaused;
+        boolean indicatorVisible = SessionForegroundService.hasVisibleIndicator(this);
+        backgroundExecutionActive = nativeSyncLifecycleState(activityPaused, indicatorVisible) != 0;
 
-        Log.d(TAG, reason + ": play_in_background=" + playInBackground
-            + " activityPaused=" + activityPaused
+        Log.d(TAG, reason + ": activityPaused=" + activityPaused
+            + " indicatorVisible=" + indicatorVisible
             + " windowFocused=" + windowFocused
             + " backgroundActive=" + backgroundExecutionActive);
 
-        if (backgroundExecutionActive != shouldRunInBackground) {
-            nativeSetBackgroundActive(shouldRunInBackground);
-            backgroundExecutionActive = shouldRunInBackground;
+        if (activityPaused && !backgroundExecutionActive) {
+            stopService(new Intent(this, SessionForegroundService.class));
         }
 
-        if (playInBackground == 0) {
-            if (activityPaused && !autoPausedForLifecycle) {
-                autoPausedForLifecycle = nativePauseSession() != 0;
-            } else if (!activityPaused && autoPausedForLifecycle) {
-                nativeResumeSession();
-                autoPausedForLifecycle = false;
-            }
-        } else if (autoPausedForLifecycle) {
-            nativeResumeSession();
-            autoPausedForLifecycle = false;
+        mainHandler.removeCallbacks(checkSessionIndicator);
+        if (backgroundExecutionActive) {
+            mainHandler.postDelayed(checkSessionIndicator, 2000);
         }
     }
 
     @Override
     protected void onPause() {
+        NotificationPresence.setActivityVisible(false);
         super.onPause();
         activityPaused = true;
         syncLifecycleState("onPause");
@@ -1020,6 +1019,7 @@ public class MainActivity extends NativeActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        NotificationPresence.setActivityVisible(true);
         activityPaused = false;
         configureSystemBars();
         nativeInvalidateGraphicsResources();
@@ -1060,6 +1060,8 @@ public class MainActivity extends NativeActivity {
 
     @Override
     protected void onDestroy() {
+        NotificationPresence.setActivityVisible(false);
+        mainHandler.removeCallbacks(checkSessionIndicator);
         super.onDestroy();
         Log.d(TAG, "onDestroy called - releasing wake lock");
         allowScreenOff();
