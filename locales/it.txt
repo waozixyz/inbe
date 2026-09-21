@@ -1957,3 +1957,10 @@ Ripristino degli amici…
 [sync_remote_label]
 Server di sincronizzazione
 ---
+---
+[sync_lists_label]
+Liste
+---
+[sync_list_items_label]
+Elementi
+---

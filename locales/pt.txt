@@ -1957,3 +1957,10 @@ Sincronizar agora
 [sync_remote_label]
 Servidor de sincronização
 ---
+---
+[sync_lists_label]
+Listas
+---
+[sync_list_items_label]
+Itens
+---

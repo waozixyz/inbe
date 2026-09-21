@@ -1957,3 +1957,10 @@ Sinkronkan sekarang
 [sync_remote_label]
 Server sinkronisasi
 ---
+---
+[sync_lists_label]
+Daftar
+---
+[sync_list_items_label]
+Item
+---

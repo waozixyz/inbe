@@ -1957,3 +1957,10 @@ Dismiss forever
 [sync_remote_label]
 Сервер синхронизации
 ---
+---
+[sync_lists_label]
+Списки
+---
+[sync_list_items_label]
+Элементы
+---

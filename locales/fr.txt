@@ -1957,3 +1957,10 @@ Restauration des amis…
 [sync_remote_label]
 Serveur de synchronisation
 ---
+---
+[sync_lists_label]
+Listes
+---
+[sync_list_items_label]
+Éléments
+---

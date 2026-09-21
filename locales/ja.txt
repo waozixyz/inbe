@@ -1959,3 +1959,10 @@ Dismiss forever
 [sync_remote_label]
 同期サーバー
 ---
+---
+[sync_lists_label]
+リスト
+---
+[sync_list_items_label]
+項目
+---

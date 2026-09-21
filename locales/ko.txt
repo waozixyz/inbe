@@ -1957,3 +1957,10 @@ Dismiss forever
 [sync_remote_label]
 동기화 서버
 ---
+---
+[sync_lists_label]
+목록
+---
+[sync_list_items_label]
+항목
+---

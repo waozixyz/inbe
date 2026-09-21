@@ -1957,3 +1957,10 @@ Obnovování přátel…
 [sync_remote_label]
 Synchronizační server
 ---
+---
+[sync_lists_label]
+Seznamy
+---
+[sync_list_items_label]
+Položky
+---

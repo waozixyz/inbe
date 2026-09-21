@@ -1956,3 +1956,10 @@ Restoring friends…
 [sync_remote_label]
 Sync server
 ---
+---
+[sync_lists_label]
+Lists
+---
+[sync_list_items_label]
+Items
+---

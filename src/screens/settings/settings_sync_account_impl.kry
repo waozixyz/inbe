@@ -677,7 +677,7 @@ config_content_height :: (content_w: int) -> int {
 
     h += Scale(88) + Scale(16)
     h += Scale(108) + Scale(16)
-    h += Scale(132) + Scale(16)
+    h += Scale(202) + Scale(16)
     buttons_main: [2] SettingsSyncButton = {
         {GetLocaleText("sync_backup_key_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_now_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
@@ -770,6 +770,8 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     btn_h := Scale(36)
     gap := Scale(10)
     sync_status: StorageSyncStatus = {0}
+    list_count: int = 0
+    item_count: int = 0
 
     if app != nil && app->sync_server_url[0] == '\0' {
         saved: const char* = nil
@@ -840,6 +842,12 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     draw_sync_metric(x + metric_w + metric_gap, *y, w - metric_w - metric_gap,
                      GetLocaleText("profile_friends_title"),
                      profile_social_friends_count(app))
+    *y += Scale(70)
+    storage_elist_counts(&list_count, &item_count)
+    draw_sync_metric(x, *y, metric_w, GetLocaleText("sync_lists_label"),
+                     list_count)
+    draw_sync_metric(x + metric_w + metric_gap, *y, w - metric_w - metric_gap,
+                     GetLocaleText("sync_list_items_label"), item_count)
     *y += Scale(62) + Scale(16)
 
     buttons_main: [2] SettingsSyncButton = {

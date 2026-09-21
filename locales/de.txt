@@ -1957,3 +1957,10 @@ Freunde werden wiederhergestellt…
 [sync_remote_label]
 Synchronisierungsserver
 ---
+---
+[sync_lists_label]
+Listen
+---
+[sync_list_items_label]
+Einträge
+---

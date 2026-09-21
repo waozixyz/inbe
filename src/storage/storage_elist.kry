@@ -108,6 +108,26 @@ storage_elist_load :: (value: void*) -> int #export {
     return 1
 }
 
+storage_elist_counts :: (lists: int*, items: int*) #export {
+    statement: sqlite3_stmt* = nil
+    if lists != nil { *lists = 0 }
+    if items != nil { *items = 0 }
+    if g_storage.db == nil { return }
+    if sqlite3_prepare_v2(g_storage.db,
+        "SELECT (SELECT COUNT(*) FROM elist_lists "
+        "WHERE user_id=?1 AND deleted_at=0), "
+        "(SELECT COUNT(*) FROM elist_items i "
+        "JOIN elist_lists l ON l.id=i.list_id "
+        "WHERE l.user_id=?1 AND l.deleted_at=0 AND i.deleted_at=0)",
+        -1, &statement, nil) != SQLITE_OK { return }
+    bind_text(statement, 1, g_storage.user_id)
+    if sqlite3_step(statement) == SQLITE_ROW {
+        if lists != nil { *lists = sqlite3_column_int(statement, 0) }
+        if items != nil { *items = sqlite3_column_int(statement, 1) }
+    }
+    sqlite3_finalize(statement)
+}
+
 storage_elist_create_list :: (title: const char*, out_id: char*) -> int #export {
     statement: sqlite3_stmt* = nil
     id: [37]char

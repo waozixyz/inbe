@@ -93,7 +93,10 @@ static void expect_list(const char *list_id, const char *item_id,
                         const char *title, const char *comment, int done) {
     EListState state = {0};
     int found_list = 0, found_item = 0;
+    int lists = 0, items = 0;
     assert(storage_elist_load(&state));
+    storage_elist_counts(&lists, &items);
+    assert(lists > 0 && items > 0);
     for(int i = 0; i < state.list_count; i++)
         if(strcmp(state.lists[i].id, list_id) == 0 &&
            strcmp(state.lists[i].title, title) == 0) found_list = 1;
