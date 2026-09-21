@@ -6,11 +6,11 @@
     NOMINMAX :: 1
 }
 
-#import "app.h"
+#import "app/app.h"
 
 #import "src/screens/elist_screen.h"
 #import "app_internal.h"
-#import "app_runtime.h"
+#import "ui_app_host_props.generated.h"
 #import "app/app_sync.h"
 #import "app/app_route_state.h"
 #import "app/app_route_url.h"
