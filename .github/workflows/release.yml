@@ -846,12 +846,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout Kryon Appcast Tool
-        run: |
-          set -euo pipefail
-          git submodule update --init --depth 1 vendor/kryon
-          test -f vendor/kryon/scripts/make_appcast.py
-
       - name: Download Release Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -954,7 +948,7 @@ jobs:
             echo "no release artifacts found for the appcast"
             exit 1
           fi
-          python3 vendor/kryon/scripts/make_appcast.py \
+          python3 scripts/make_appcast.py \
             --version "$VERSION" \
             --base-url "$BASE" \
             --notes-url "https://github.com/waozixyz/inbe/releases/tag/$TAG" \
