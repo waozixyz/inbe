@@ -1,7 +1,7 @@
-#import "app.h"
+#import "app/app.h"
 #import "app_nav.h"
 
-#import "app_shell.h" #private
+#import "ui_app_shell_props.generated.h" #private
 #import "storage.h" #private
 #import "sync_account.h" #private
 #import "screens/settings/settings_screen.h" #private
