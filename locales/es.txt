@@ -1953,3 +1953,7 @@ Días del historial
 ---
 [sync_now_button]
 Sincronizar ahora
+---
+[sync_remote_label]
+Servidor de sincronización
+---

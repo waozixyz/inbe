@@ -1953,3 +1953,7 @@ Dismiss forever
 ---
 [sync_progress_friends]
 正在恢复好友…
+---
+[sync_remote_label]
+同步服务器
+---

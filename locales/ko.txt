@@ -1953,3 +1953,7 @@ Dismiss forever
 ---
 [sync_progress_friends]
 친구 복원 중…
+---
+[sync_remote_label]
+동기화 서버
+---

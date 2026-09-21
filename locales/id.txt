@@ -1953,3 +1953,7 @@ Hari riwayat
 ---
 [sync_now_button]
 Sinkronkan sekarang
+---
+[sync_remote_label]
+Server sinkronisasi
+---

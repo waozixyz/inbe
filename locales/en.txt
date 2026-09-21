@@ -1952,3 +1952,7 @@ Restoring account data…
 ---
 [sync_progress_friends]
 Restoring friends…
+---
+[sync_remote_label]
+Sync server
+---

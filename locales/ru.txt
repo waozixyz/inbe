@@ -1953,3 +1953,7 @@ Dismiss forever
 ---
 [sync_progress_friends]
 Восстановление друзей…
+---
+[sync_remote_label]
+Сервер синхронизации
+---

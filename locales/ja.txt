@@ -1955,3 +1955,7 @@ Dismiss forever
 ---
 [sync_progress_friends]
 友達を復元中…
+---
+[sync_remote_label]
+同期サーバー
+---

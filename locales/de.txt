@@ -1953,3 +1953,7 @@ Kontodaten werden wiederhergestellt…
 ---
 [sync_progress_friends]
 Freunde werden wiederhergestellt…
+---
+[sync_remote_label]
+Synchronisierungsserver
+---

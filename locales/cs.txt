@@ -1953,3 +1953,7 @@ Obnovování dat účtu…
 ---
 [sync_progress_friends]
 Obnovování přátel…
+---
+[sync_remote_label]
+Synchronizační server
+---

@@ -1953,3 +1953,7 @@ Restauration des données du compte…
 ---
 [sync_progress_friends]
 Restauration des amis…
+---
+[sync_remote_label]
+Serveur de synchronisation
+---
