@@ -46,7 +46,7 @@ lightfield_token_color :: (style_index: int, color: Color,
 
 register_style_pack_variant :: (source: const char*, label: const char*,
                                 colors: ThemeColors, style_index: int) -> int #private {
-    tokens: [45] StyleColorToken = {
+    tokens: [47] StyleColorToken = {
         {"canvas", style_token_color(colors.background)},
         {"text", style_token_color(colors.text)},
         {"muted", style_token_color(colors.text_muted)},
