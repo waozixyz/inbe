@@ -238,7 +238,7 @@ start_sync_key_export_dialog :: (app: InnerBreeze*, filename: const char*) -> in
                sync_account_load(&account) &&
                sync_account_export_private_key(&account, path) {
                 settings_screen_set_status_success(GetLocaleText("sync_private_key_backup_saved"), GetFileName(path))
-                TraceLog(LOG_INFO, "SYNC: Private key backup saved to %s", path)
+                TraceLog(LOG_WARNING, "SYNC: Private key backup saved to %s", path)
             } else {
                 settings_screen_set_status_error(GetLocaleText("sync_private_key_backup_failed"))
                 TraceLog(LOG_ERROR, "SYNC: Private key backup failed")
@@ -258,17 +258,17 @@ start_sync_key_export_dialog :: (app: InnerBreeze*, filename: const char*) -> in
 import_sync_key_path :: (app: InnerBreeze*, path: const char*) -> int {
     account: SyncAccount
 
-    TraceLog(LOG_INFO, "SYNC: import_sync_key_path path=%s", path != nil ? path : "(nil)")
+    TraceLog(LOG_WARNING, "SYNC: import_sync_key_path path=%s", path != nil ? path : "(nil)")
     if path != nil && path[0] != '\0' &&
        sync_account_import_private_key_preview(&account, path) {
-        TraceLog(LOG_INFO, "SYNC: key file parsed OK, saving account...")
+        TraceLog(LOG_WARNING, "SYNC: key file parsed OK, saving account...")
         if settings_sync_account_save_prepared(app, &account,
                                                PendingSyncAccountImport, 0) {
-            TraceLog(LOG_INFO, "SYNC: account saved, connecting...")
+            TraceLog(LOG_WARNING, "SYNC: account saved, connecting...")
             settings_sync_account_connect(app)
-            TraceLog(LOG_INFO, "SYNC: Private key imported from %s", path)
+            TraceLog(LOG_WARNING, "SYNC: Private key imported from %s", path)
         } else {
-            TraceLog(LOG_INFO, "SYNC: save_prepared returned false")
+            TraceLog(LOG_WARNING, "SYNC: save_prepared returned false")
         }
         return 1
     }
@@ -301,13 +301,13 @@ start_sync_key_import_dialog :: (app: InnerBreeze*) -> int #private {
         dlg: FileDialog = {0}
         unused app
         InitFileDialog(&dlg)
-        TraceLog(LOG_INFO, "SYNC: opening native file dialog for import key...")
+        TraceLog(LOG_WARNING, "SYNC: opening native file dialog for import key...")
         if LoadFilteredFileDialog(&dlg, GetLocaleText("sync_import_key_dialog_title"),
                                   sync_key_import_filter) {
-            TraceLog(LOG_INFO, "SYNC: file dialog returned path=%s", GetFileDialogPath(&dlg))
+            TraceLog(LOG_WARNING, "SYNC: file dialog returned path=%s", GetFileDialogPath(&dlg))
             import_sync_key_path(app, GetFileDialogPath(&dlg))
         } else {
-            TraceLog(LOG_INFO, "SYNC: file dialog cancelled or failed")
+            TraceLog(LOG_WARNING, "SYNC: file dialog cancelled or failed")
             settings_screen_set_status_error(GetLocaleText("sync_private_key_import_cancelled"))
         }
         CloseFileDialog(&dlg)

@@ -244,9 +244,9 @@ save_prepared :: (app: InnerBreeze*, account: SyncAccount*,
         return 0
     }
 
-    TraceLog(LOG_INFO, "SYNC: save_prepared calling sync_account_save...")
+    TraceLog(LOG_WARNING, "SYNC: save_prepared calling sync_account_save...")
     result = sync_account_save(account, clear_local_data)
-    TraceLog(LOG_INFO, "SYNC: sync_account_save result=%d", result)
+    TraceLog(LOG_WARNING, "SYNC: sync_account_save result=%d", result)
     if result == SYNC_ACCOUNT_SAVE_NEEDS_CLEAR {
         app->pending_sync_account = *account
         app->pending_sync_account_action = action
@@ -268,9 +268,9 @@ save_prepared :: (app: InnerBreeze*, account: SyncAccount*,
             snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s",
                      saved_url != nil && saved_url[0] != '\0' ? saved_url : sync_server_url_default)
         }
-        TraceLog(LOG_INFO, "SYNC: calling run_connect...")
+        TraceLog(LOG_WARNING, "SYNC: calling run_connect...")
         run_connect(app)
-        TraceLog(LOG_INFO, "SYNC: Private key restored; synchronization requested")
+        TraceLog(LOG_WARNING, "SYNC: Private key restored; synchronization requested")
     }
 
     return 1
@@ -989,10 +989,10 @@ draw_alias_modal :: (app: InnerBreeze*) -> int {
                                      url, sizeof(url)) {
             alias_result := sync_client_register_alias(url, app->sync_alias_input)
 
-            TraceLog(LOG_INFO, "SYNC: saving alias @%s with %s",
+            TraceLog(LOG_WARNING, "SYNC: saving alias @%s with %s",
                         app->sync_alias_input, url)
             if alias_result == SYNC_OK {
-                TraceLog(LOG_INFO, "SYNC: alias saved @%s", app->sync_alias_input)
+                TraceLog(LOG_WARNING, "SYNC: alias saved @%s", app->sync_alias_input)
                 result = 1
             } else {
                 TraceLog(LOG_WARNING,
