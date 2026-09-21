@@ -311,11 +311,14 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
 
                 FormatLocaleText(round_label, sizeof(round_label),
                                     "round_number_label", r + 1)
-                FormatLocaleText(round_value, sizeof(round_value),
-                                    "results_metric_seconds",
-                                    editing_round
-                                        ? atoi(app->habit_session_edit.text)
-                                        : ctx->entries[i].rounds[r])
+                if editing_round {
+                    snprintf(round_value, sizeof(round_value), "%s",
+                             app->habit_session_edit.text)
+                } else {
+                    FormatLocaleText(round_value, sizeof(round_value),
+                                     "results_metric_seconds",
+                                     ctx->entries[i].rounds[r])
+                }
                 if draw {
                     if editing_round {
                         selection: Rectangle = {(float)content_x, (float)y,
@@ -494,8 +497,8 @@ draw_keyboard :: (app: InnerBreeze*, entry: const HabitLinkedEntry*) -> int {
 
     FormatLocaleText(round_label, sizeof(round_label),
                      "round_number_label", app->habit_session_edit.round + 1)
-    FormatLocaleText(value_label, sizeof(value_label),
-                     "results_metric_seconds", atoi(app->habit_session_edit.text))
+    snprintf(value_label, sizeof(value_label), "%s",
+             app->habit_session_edit.text)
     Text((TextProps){
         .bounds={(x), (y + pad), (w), (Scale(22))},
         .text=(round_label), .font=AppFontSize(),
