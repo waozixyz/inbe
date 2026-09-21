@@ -118,6 +118,7 @@ int storage_has_any(void);
 int storage_session_count(void);
 long long storage_session_change_clock(void);
 int storage_habit_count(void);
+int storage_habit_day_count(void);
 long long storage_total_size(void);
 int storage_profile_activity_stats(int activity, int today_date,
                                    int *streak_out, long *avg_hold_out);

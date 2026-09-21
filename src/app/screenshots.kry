@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 #import "storage.h"
 #import "sync_account.h"
 #import "sync_client.h"
@@ -250,7 +250,12 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
     app->tutorial_step = 0
     app->habits_guide_seen = 1
     app->tutorial_seen = 1
-    screenshot_seed_habits(app)
+    # Sync screenshots must show only data already present in their isolated
+    # storage root. Seeding defaults here can turn a visual check into an
+    # upload as soon as an account is connected.
+    if strncmp(request->scene, "sync_", 5) != 0 {
+        screenshot_seed_habits(app)
+    }
     screenshot_apply_theme(app, request->theme_id, request->dark_mode)
     if strcmp(request->scene, "lists") == 0 || strcmp(request->scene, "lists_completed") == 0 {
         list_id: [37] char = {0}
@@ -456,6 +461,31 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
         app->profile_view = PROFILE_VIEW_MAIN
         app->profile_tab = storage_sync_enabled() ? PROFILE_TAB_SYNC : PROFILE_TAB_DATA
         app->breathing.screen = ScreenProfile
+    } else if strcmp(request->scene, "sync_connected") == 0 {
+        account: SyncAccount = {0}
+        payload: char* = nil
+        if sync_account_generate(&account) {
+            sync_account_save(&account, SYNC_ACCOUNT_LOCAL_DATA_ASK)
+        }
+        storage_set_setting_text("sync_account_alias", "waozi")
+        storage_set_setting_text("sync_server_url", "https://api.waozi.xyz")
+        storage_set_sync_enabled(1)
+        screenshot_seed_habits(app)
+        storage_set_social_cache_json(
+            "friends.list",
+            "{\"friends\":[{\"id\":\"friend-1\"},{\"id\":\"friend-2\"}]}")
+        for int sync_pass = 0; sync_pass < 4; sync_pass++ {
+            payload = storage_build_sync_payload_json(account.public_id,
+                                                      account.public_key_hex)
+            storage_free_sync_payload_json(payload)
+            storage_apply_sync_response_json(
+                "{\"server_version\":1,\"changes\":{\"habits\":[],"
+                "\"habit_days\":[],\"sessions\":[]}}")
+        }
+        app_sync_record_result(SYNC_OK)
+        app->profile_view = PROFILE_VIEW_MAIN
+        app->profile_tab = PROFILE_TAB_SYNC
+        app->breathing.screen = ScreenProfile
     } else if strcmp(request->scene, "configure_account") == 0 ||
     strcmp(request->scene, "profile_sync_account") == 0 {
         app->profile_view = PROFILE_VIEW_MAIN
@@ -516,16 +546,6 @@ setup_screenshot_scene :: (app: InnerBreeze*, request: const ScreenshotRequest*)
         app->practice_tab = PRACTICE_TAB_MANUAL
         app->breathing.screen = ScreenStart
         app->tutorial_step = 0
-    } else if strcmp(request->scene, "sync_import_key_trace") == 0 {
-        /* Temporary trace scene: tests import_sync_key_path directly with
-           a pre-generated key file, bypassing the file dialog. */
-        storage_set_setting_text("sync_public_id", "")
-        storage_set_setting_text("sync_public_key", "")
-        storage_set_setting_text("sync_private_key", "")
-        settings_data_import_sync_key_path(app, "tmp/test-account.key")
-        app->profile_view = PROFILE_VIEW_MAIN
-        app->profile_tab = PROFILE_TAB_SYNC
-        app->breathing.screen = ScreenProfile
     } else {
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->exercise_type = EXERCISE_WIM_HOF

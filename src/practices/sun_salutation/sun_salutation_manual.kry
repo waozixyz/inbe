@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 #import "practices/sun_salutation/sun_salutation_practice.h"
 #import "screens/manual_screen.h"
 #import "screens/practice_screen.h"

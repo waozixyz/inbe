@@ -2,7 +2,7 @@
     web_extension_host_js :: () -> int #extern
     web_extension_break_now_js :: (break_type: int) #extern
 }
-#import "app.h"
+#import "app/app.h"
 #import "app/widgets.h"
 #import "app_internal.h"
 #import "data.h"

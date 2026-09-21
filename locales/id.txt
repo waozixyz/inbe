@@ -317,7 +317,19 @@ Lewati
 OK
 ---
 [retry_button]
-Coba lagi
+Sinkronkan sekarang
+---
+[sync_progress_uploading]
+Mengirim %lld item lokal…
+---
+[sync_progress_securing]
+Mengamankan %lld dari %lld item…
+---
+[sync_progress_restoring]
+Memulihkan data akun…
+---
+[sync_progress_friends]
+Memulihkan teman…
 ---
 [audio_import_music_button]
 Impor musik
@@ -628,8 +640,11 @@ Akun dibuat
 [sync_account_create_failed]
 Tidak dapat membuat akun
 ---
+[sync_connect_account_button]
+Hubungkan akun
+---
 [sync_import_key_button]
-Impor kunci akun
+Impor file .key
 ---
 [sync_import_key_dialog_title]
 Impor kunci akun
@@ -651,12 +666,6 @@ ID publik disalin
 ---
 [sync_backup_key_button]
 Cadangkan kunci
----
-[sync_remote_label]
-Jarak jauh
----
-[sync_connect_button]
-Hubungkan
 ---
 [sync_server_url_invalid]
 Gunakan https:// atau loopback seperti localhost:8080
@@ -719,13 +728,16 @@ Keluar
 Sudah keluar. Data lokal tetap ada di perangkat ini.
 ---
 [sync_account_switch_title]
-Hapus data lokal?
+Pilih cara menghubungkan
 ---
 [sync_account_switch_message]
-Perangkat ini memiliki data dari akun sinkronisasi lain. Hapus data lokal sebelum memakai akun ini.
+Data lokal ditemukan di perangkat ini. Ganti akan menghapusnya dan memulihkan akun ini. Gabungkan akan menyimpannya dan menggabungkan kedua kumpulan data.
+---
+[sync_account_switch_merge_button]
+Gabungkan dan hubungkan
 ---
 [sync_account_switch_clear_button]
-Hapus dan pakai akun
+Ganti dan hubungkan
 ---
 [sync_account_switch_cancelled]
 Pergantian akun dibatalkan
@@ -1858,13 +1870,16 @@ Sesi
 Buat akun untuk menyinkronkan dan melindungi kemajuan Anda.
 ---
 [profile_sync_ready_body]
-Sinkronisasi siap untuk profil ini.
+Menyinkronkan otomatis.
 ---
 [profile_account_sync_title]
 Akun dan sinkronisasi
 ---
+[profile_account_connected_body]
+Kelola akun terhubung dan sinkronisasi otomatis
+---
 [profile_account_sync_body]
-Buat akun baru atau impor kunci yang ada
+Buat akun baru atau impor file .key yang sudah ada
 ---
 [profile_data_management_title]
 Data
@@ -1893,9 +1908,6 @@ Menyinkronkan…
 Koneksi gagal. Mencoba lagi secara otomatis.
 
 ---
-[sync_retry_button]
-Coba lagi
----
 [app_icon_label]
 Ikon aplikasi
 ---
@@ -1920,3 +1932,24 @@ Sembunyikan yang selesai
 [guide_title]
 Panduan singkat
 ---
+---
+[sync_connected_as]
+Terhubung sebagai %s
+---
+[sync_everything_up_to_date]
+Semuanya sudah terbaru
+---
+[sync_step_account_connected]
+Akun terhubung
+---
+[sync_step_data_restored]
+Data dipulihkan
+---
+[sync_step_automatic_on]
+Sinkronisasi otomatis aktif
+---
+[sync_history_days_label]
+Hari riwayat
+---
+[sync_now_button]
+Sinkronkan sekarang

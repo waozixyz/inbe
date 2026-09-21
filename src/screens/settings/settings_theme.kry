@@ -1,6 +1,6 @@
 #module "settings.theme"
 
-#import "app.h"
+#import "app/app.h"
 #import "app/app_nav.h"
 #import "app/app_settings.h"
 #import "app/app_style.h"

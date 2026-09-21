@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 #import "app_nav.h"
 #import "src/screens/profile_social.h"
 #import "screens/practice_screen.h"
@@ -375,7 +375,7 @@ profile_draw_hub_identity :: (app: InnerBreeze*, x: int, w: int, y: int*) #priva
     if Button((ButtonProps){
         .bounds = {(float)(text_x), (float)(*y + Scale(108)), (float)(w - (text_x - x) - Scale(18)), (float)(Scale(38))},
         .label = GetLocaleText(has_account ? "sync_account_title"
-                                               : "sync_create_account_button"),
+                                               : "sync_connect_account_button"),
         .tone = ButtonToneAccent,
         .emphasis = ButtonEmphasisFilled,
         .disabled = 0
@@ -471,7 +471,9 @@ profile_draw_overview :: (app: InnerBreeze*, x: int, w: int, y: int*) #private {
     profile_draw_hub_route_card(app, x, y, w, Scale(68),
                                 ICON_GLOBE,
                                 GetLocaleText("profile_account_sync_title"),
-                                GetLocaleText("profile_account_sync_body"),
+                                GetLocaleText(sync_account_load(&(SyncAccount){0})
+                                    ? "profile_account_connected_body"
+                                    : "profile_account_sync_body"),
                                 friends_value, PROFILE_TAB_SYNC)
 }
 
@@ -544,7 +546,7 @@ profile_draw_tabs :: (app: InnerBreeze*, y: int, h: int) -> int #private {
             .bounds = {(float)x, (float)y, (float)w, (float)h},
             .label = profile_tab_title(i),
             .tone = selected ? ButtonToneAccent : ButtonToneNeutral,
-            .emphasis = ButtonEmphasisSoft, .selected = selected
+            .emphasis = selected ? ButtonEmphasisSoft : ButtonEmphasisGhost, .selected = selected
         }) {
             clicked = i
         }

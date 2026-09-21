@@ -1,6 +1,6 @@
 #module "platform.app_host"
 
-#import "app.h"
+#import "app/app.h"
 #import "app/screenshots.h"
 #import "breaks/app_breaks.h"
 #import "desktop.h"

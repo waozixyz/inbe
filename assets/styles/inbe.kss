@@ -5,7 +5,7 @@ Text.muted {
     foreground: muted;
 }
 Text.selected-navigation {
-    foreground: accent-ink;
+    foreground: text;
 }
 Text.circle-ink {
     foreground: #171022;

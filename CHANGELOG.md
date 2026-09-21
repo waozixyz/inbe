@@ -1,4 +1,16 @@
 # Changelog
+## [2.0.4] - 2026-09-21
+### Changed
+- The account screen shows the connected alias, automatic sync progress, and counts for habits, history days, sessions, and friends.
+- Importing an account key offers Merge or Replace before changing local data, with clear details about each choice.
+- Profile offers Connect Account, and the sync screen offers Import .key when no account is connected.
+
+### Fixed
+- Restoring an existing account now retrieves its username, friends, habits, history, and sessions from the complete account data.
+- Lists and their items now sync across devices, including completed items and changes made on another device.
+- Sync status shows the current upload or restore step instead of staying on a generic syncing message.
+- Connecting an account starts automatic sync without leaving a stale status message behind.
+
 ## [2.0.3] - 2026-09-20
 ### Fixed
 - Web and browser builds can connect to compatible custom sync servers when you choose one.
@@ -94,7 +106,7 @@
 
 ## [1.9.16] - 2026-08-29
 ### Changed
-- Sync now speaks Ksync protocol v5 compatibility mode while keeping existing secure synced data usable.
+- Sync remains compatible with existing secure account keys and synced data.
 
 ### Fixed
 - Fixed web sync key import stability in Firefox.

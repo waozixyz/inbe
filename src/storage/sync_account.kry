@@ -106,7 +106,7 @@ sync_account_import_private_key_preview :: (account: SyncAccount*,
 }
 
 sync_account_save :: (account: SyncAccount*,
-                         clear_local_data: int) -> SyncAccountSaveResult {
+                         local_data_choice: SyncAccountLocalDataChoice) -> SyncAccountSaveResult {
     owner: const char*
 
     data_init()
@@ -125,10 +125,11 @@ sync_account_save :: (account: SyncAccount*,
     owner = storage_sync_data_owner_public_id()
     if owner != nil && !sync_account_same_owner(owner, account) &&
        storage_has_local_syncable_data() {
-        if !clear_local_data {
+        if local_data_choice == SYNC_ACCOUNT_LOCAL_DATA_ASK {
             return SYNC_ACCOUNT_SAVE_NEEDS_CLEAR
         }
-        if !storage_clear_local_syncable_data() {
+        if local_data_choice == SYNC_ACCOUNT_LOCAL_DATA_REPLACE &&
+           !storage_clear_local_syncable_data() {
             return SYNC_ACCOUNT_SAVE_FAILED
         }
     }

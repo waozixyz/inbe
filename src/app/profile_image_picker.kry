@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 
 AppProfileImagePickerModal :: (modal: ProfileImagePickerProps) -> ProfileImagePickerResult {
     result := (ProfileImagePickerResult){0}

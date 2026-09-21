@@ -1,7 +1,7 @@
 #ifndef APP_WHM_SESSION_H
 #define APP_WHM_SESSION_H
 
-#include "app.h"
+#include "app/app.h"
 
 void session_reset_round_breathe(BreathSession *breathing);
 void session_update_circle_bounds_for_view(BreathSession *breathing, int top_reserve, int bottom_reserve);

@@ -1,6 +1,6 @@
 #module "app.lifecycle"
 
-#import "app.h"
+#import "app/app.h"
 #import "app/app_route_url.h" #private
 #import "practices/whm/whm_session.h" #private
 #import <stdlib.h> #private

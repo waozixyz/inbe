@@ -317,7 +317,7 @@ Ignorer
 OK
 ---
 [retry_button]
-Réessayer
+Synchroniser
 ---
 [audio_import_music_button]
 Importer de la musique
@@ -628,8 +628,11 @@ Compte créé
 [sync_account_create_failed]
 Impossible de créer le compte
 ---
+[sync_connect_account_button]
+Connecter un compte
+---
 [sync_import_key_button]
-Importer la clé du compte
+Importer un fichier .key
 ---
 [sync_import_key_dialog_title]
 Importer la clé du compte
@@ -687,12 +690,6 @@ Alias indisponible ou échec distant
 ---
 [sync_backup_key_button]
 Sauvegarder la clé
----
-[sync_remote_label]
-Distant
----
-[sync_connect_button]
-Connecter
 ---
 [sync_server_url_invalid]
 Utilisez https:// ou une boucle locale comme localhost:8080
@@ -755,13 +752,16 @@ Se déconnecter
 Déconnecté. Les données locales restent sur cet appareil.
 ---
 [sync_account_switch_title]
-Effacer les données locales ?
+Choisir le mode de connexion
 ---
 [sync_account_switch_message]
-Cet appareil contient des données d’un autre compte de synchronisation. Effacez les données locales avant d’utiliser ce compte.
+Des données locales ont été trouvées sur cet appareil. Remplacer les supprime et restaure ce compte. Fusionner les conserve et combine les deux ensembles de données.
+---
+[sync_account_switch_merge_button]
+Fusionner et connecter
 ---
 [sync_account_switch_clear_button]
-Effacer et utiliser le compte
+Remplacer et connecter
 ---
 [sync_account_switch_cancelled]
 Changement de compte annulé
@@ -1858,13 +1858,16 @@ Séances
 Créez un compte pour synchroniser et protéger votre progression.
 ---
 [profile_sync_ready_body]
-La synchronisation est prête pour ce profil.
+Synchronisation automatique.
 ---
 [profile_account_sync_title]
 Compte et synchronisation
 ---
+[profile_account_connected_body]
+Gérez votre compte connecté et la synchronisation automatique
+---
 [profile_account_sync_body]
-Créez un nouveau compte ou importez une clé existante
+Créez un compte ou importez un fichier .key existant
 ---
 [profile_data_management_title]
 Données
@@ -1893,9 +1896,6 @@ Synchronisation…
 Échec de connexion. Nouvelle tentative automatique.
 
 ---
-[sync_retry_button]
-Réessayer
----
 [app_icon_label]
 Icône de l’application
 ---
@@ -1920,3 +1920,36 @@ Masquer les éléments terminés
 [guide_title]
 Guide rapide
 ---
+---
+[sync_connected_as]
+Connecté en tant que %s
+---
+[sync_everything_up_to_date]
+Tout est à jour
+---
+[sync_step_account_connected]
+Compte connecté
+---
+[sync_step_data_restored]
+Données restaurées
+---
+[sync_step_automatic_on]
+Synchronisation automatique activée
+---
+[sync_history_days_label]
+Jours d’historique
+---
+[sync_now_button]
+Synchroniser maintenant
+---
+[sync_progress_uploading]
+Envoi de %lld éléments locaux…
+---
+[sync_progress_securing]
+Sécurisation de %lld éléments sur %lld…
+---
+[sync_progress_restoring]
+Restauration des données du compte…
+---
+[sync_progress_friends]
+Restauration des amis…

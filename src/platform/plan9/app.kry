@@ -1,7 +1,7 @@
 #module "platform.plan9.app"
 
 #import "kryon.h"
-#import "app.h"
+#import "app/app.h"
 
 #if #defined(KRYON_PLATFORM_PLAN9) {
     CreateApp :: (project_path: const char*) -> void* #extern

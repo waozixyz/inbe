@@ -1,6 +1,6 @@
 #module "profile_social"
 
-#import "app.h"
+#import "app/app.h"
 #import "practices/practice_registry.h"
 #import "src/screens/settings/settings_screen.h"
 #import "storage.h"

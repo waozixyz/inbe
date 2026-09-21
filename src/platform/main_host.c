@@ -2,7 +2,7 @@
 #if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD && defined(NATIVE_WINDOW_HAVE_SDL)
 #include <SDL2/SDL.h>
 #endif
-#include "app.h"
+#include "app/app.h"
 #include "platform/app_host.h"
 #include "desktop.h"
 #include "storage.h"

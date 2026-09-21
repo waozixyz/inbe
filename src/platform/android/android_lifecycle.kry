@@ -1,7 +1,7 @@
 #module "platform.android.lifecycle"
 
 #if ANDROID_BUILD {
-    #import "app.h"
+    #import "app/app.h"
     #import "platform/android/android_timer.h"
     #import "practices/practice_registry.h"
     #import "practices/meditation/meditation_practice.h"

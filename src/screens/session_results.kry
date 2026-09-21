@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 #import "practices/practice_registry.h"
 #import "practices/session_results.h"
 #import "practices/whm/whm_session.h"

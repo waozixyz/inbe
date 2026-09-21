@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 
 #import "app_nav.h" #private
 #import "app/device_preferences.h" #private

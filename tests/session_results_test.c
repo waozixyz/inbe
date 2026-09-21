@@ -1,11 +1,11 @@
-#include "app.h"
+#include "app/app.h"
 #include "practices/session_results.h"
 #include "practices/meditation/meditation_practice.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
-static int write_ok, writes, syncs, switches, settings;
+static int write_ok, writes, syncs, switches, settings_saves;
 static int sessions;
 int clampi(int value, int low, int high) { return value < low ? low : value > high ? high : value; }
 void app_play_bell_cue(InnerBreeze*app, float volume) { (void)app; (void)volume; }
@@ -28,7 +28,7 @@ void PopInspectSource(void) {}
 int practice_count(void) { return 4; }
 int practice_clamp_id(int id) { return id >= 0 && id < 4 ? id : 0; }
 int practice_ordered_id(int index) { return index; }
-void save_settings(InnerBreeze*app) { (void)app; settings++; }
+void save_settings(InnerBreeze*app) { (void)app; settings_saves++; }
 int app_auto_sync(InnerBreeze*app) { (void)app; syncs++; return 1; }
 void app_switch_screen(InnerBreeze*app, int screen) {
     app->breathing.screen = screen; switches++;
@@ -43,7 +43,7 @@ int data_save_session_checkin(const char *path, const StorageSessionCheckin *che
 int main(void) {
     InnerBreeze app = {0};
     app_prepare_session_results(&app, 1, 60, 0, NULL, NULL, 0, "session-1");
-    assert(settings == 0);
+    assert(settings_saves == 0);
     app.session_result.mood = 4;
     session_result_done(&app);
     assert(app.session_result.active && app.session_result.write_failed);

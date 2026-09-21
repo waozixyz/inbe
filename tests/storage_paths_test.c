@@ -13,6 +13,18 @@
 #include <unistd.h>
 
 void
+PushInspectSource(const char *path, int line)
+{
+    (void)path;
+    (void)line;
+}
+
+void
+PopInspectSource(void)
+{
+}
+
+void
 TraceLog(int level, const char *text, ...)
 {
     va_list args;

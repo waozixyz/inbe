@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 
 #import "app/app_notifications.h" #private
 #import "platform.h" #private
@@ -155,6 +155,38 @@ app_sync_status_key :: () -> const char* {
         return "sync_status_local_queued"
     }
     return "sync_status_ready"
+}
+
+app_sync_progress_text :: (out: char*, out_size: size_t) {
+    status: StorageSyncStatus
+
+    if out == nil || out_size == 0 {
+        return
+    }
+    out[0] = '\0'
+    if app_sync_loading() {
+        if storage_sync_status(&status) {
+            if status.secure_migration_pending &&
+               status.secure_migration_total > 0 {
+                FormatLocaleText(out, out_size, "sync_progress_securing",
+                                 status.secure_migration_done,
+                                 status.secure_migration_total)
+                return
+            }
+            if status.queued_changes > 0 {
+                FormatLocaleText(out, out_size, "sync_progress_uploading",
+                                 status.queued_changes)
+                return
+            }
+        }
+        snprintf(out, out_size, "%s", GetLocaleText("sync_progress_restoring"))
+        return
+    }
+    if app_social_refresh_loading() {
+        snprintf(out, out_size, "%s", GetLocaleText("sync_progress_friends"))
+        return
+    }
+    snprintf(out, out_size, "%s", GetLocaleText(app_sync_status_key()))
 }
 
 app_clear_disconnected_sync_work :: () #private {
@@ -1099,7 +1131,7 @@ app_auto_sync :: (app: InnerBreeze*) -> int {
     if g_sync.dirty_sync_at <= 0.0 || due < g_sync.dirty_sync_at {
         g_sync.dirty_sync_at = due
     }
-    TraceLog(LOG_INFO, "SYNC: queued local changes")
+    TraceLog(LOG_INFO, "SYNC: automatic sync scheduled")
     return 1
 }
 

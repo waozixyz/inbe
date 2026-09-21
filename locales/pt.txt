@@ -317,7 +317,19 @@ Pular
 OK
 ---
 [retry_button]
-Tentar novamente
+Sincronizar agora
+---
+[sync_progress_uploading]
+Enviando %lld itens locais…
+---
+[sync_progress_securing]
+Protegendo %lld de %lld itens…
+---
+[sync_progress_restoring]
+Restaurando os dados da conta…
+---
+[sync_progress_friends]
+Restaurando amigos…
 ---
 [audio_import_music_button]
 Importar música
@@ -628,8 +640,11 @@ Conta criada
 [sync_account_create_failed]
 Não foi possível criar a conta
 ---
+[sync_connect_account_button]
+Conectar conta
+---
 [sync_import_key_button]
-Importar chave da conta
+Importar arquivo .key
 ---
 [sync_import_key_dialog_title]
 Importar chave da conta
@@ -651,12 +666,6 @@ ID público copiado
 ---
 [sync_backup_key_button]
 Fazer backup da chave
----
-[sync_remote_label]
-Remoto
----
-[sync_connect_button]
-Conectar
 ---
 [sync_server_url_invalid]
 Use https:// ou loopback como localhost:8080
@@ -719,13 +728,16 @@ Sair
 Sessão encerrada. Os dados locais permanecem neste dispositivo.
 ---
 [sync_account_switch_title]
-Limpar dados locais?
+Escolha como conectar
 ---
 [sync_account_switch_message]
-Este dispositivo tem dados de outra conta de sincronização. Limpe os dados locais antes de usar esta conta.
+Foram encontrados dados locais neste dispositivo. Substituir os exclui e restaura esta conta. Mesclar os mantém e combina os dois conjuntos de dados.
+---
+[sync_account_switch_merge_button]
+Mesclar e conectar
 ---
 [sync_account_switch_clear_button]
-Limpar e usar conta
+Substituir e conectar
 ---
 [sync_account_switch_cancelled]
 Troca de conta cancelada
@@ -1858,13 +1870,16 @@ Sessões
 Crie uma conta para sincronizar e proteger seu progresso.
 ---
 [profile_sync_ready_body]
-A sincronização está pronta para este perfil.
+Sincronizando automaticamente.
 ---
 [profile_account_sync_title]
 Conta e sincronização
 ---
+[profile_account_connected_body]
+Gerencie sua conta conectada e a sincronização automática
+---
 [profile_account_sync_body]
-Crie uma nova conta ou importe uma chave existente
+Crie uma nova conta ou importe um arquivo .key existente
 ---
 [profile_data_management_title]
 Dados
@@ -1893,9 +1908,6 @@ Sincronizando…
 Falha na conexão. Tentando novamente automaticamente.
 
 ---
-[sync_retry_button]
-Tentar novamente
----
 [app_icon_label]
 Ícone do aplicativo
 ---
@@ -1920,3 +1932,24 @@ Ocultar concluídos
 [guide_title]
 Guia rápido
 ---
+---
+[sync_connected_as]
+Conectado como %s
+---
+[sync_everything_up_to_date]
+Tudo está atualizado
+---
+[sync_step_account_connected]
+Conta conectada
+---
+[sync_step_data_restored]
+Dados restaurados
+---
+[sync_step_automatic_on]
+Sincronização automática ativada
+---
+[sync_history_days_label]
+Dias no histórico
+---
+[sync_now_button]
+Sincronizar agora

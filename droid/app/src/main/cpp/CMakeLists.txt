@@ -57,7 +57,15 @@ list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/ui/ui_icon_names.c")
 list(FILTER KRYON_SOURCES EXCLUDE REGEX "${KRYON_DIR}/src/backend/.*")
 list(FILTER KRYON_SOURCES EXCLUDE REGEX "${KRYON_DIR}/src/platform/plan9/.*")
 list(APPEND KRYON_SOURCES
+    "${KRYON_DIR}/src/backend/kry_backend.c"
+    "${KRYON_DIR}/src/backend/kry_backend_draw.c"
+    "${KRYON_DIR}/src/backend/kry_dpi.c"
     "${KRYON_DIR}/src/backend/kry_event_wait.c"
+    "${KRYON_DIR}/src/backend/kry_icon_atlas.c"
+    "${KRYON_DIR}/src/backend/kry_layer_texture.c"
+    "${KRYON_DIR}/src/backend/kry_style_build_mode.c"
+    "${KRYON_DIR}/src/backend/kry_ui_platform.c"
+    "${KRYON_DIR}/src/backend/kry_unicode.c"
     "${KRYON_DIR}/src/backend/kry_image.c"
     "${KRYON_DIR}/src/backend/kry_image_decode.c"
     "${KRYON_DIR}/src/backend/kry_input.c"
@@ -166,6 +174,29 @@ add_custom_command(
 )
 add_custom_target(kryon_runtime_generated DEPENDS ${KRYON_RUNTIME_GENERATED_C})
 list(APPEND KRYON_SOURCES ${KRYON_RUNTIME_GENERATED_C})
+# Kryon's .kry-backed UI modules generate the public ui/*.h headers that the
+# retained handwritten src/ui/*.c host services include, plus the generated
+# implementations for the migrated widgets. Mirrors the root Makefile's
+# KRYON_UI pass (k2c --no-main --root kryon/src), which runs after the
+# runtime pass.
+set(KRYON_UI_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated-ui")
+file(GLOB KRYON_UI_MODULE_FILES CONFIGURE_DEPENDS
+    "${KRYON_DIR}/src/ui/*.kry")
+set(KRYON_UI_GENERATED_C)
+foreach(kryon_module_file ${KRYON_UI_MODULE_FILES})
+    file(RELATIVE_PATH kryon_module "${KRYON_DIR}/src" "${kryon_module_file}")
+    string(REGEX REPLACE "\\.kry$" ".c" kryon_module_c "${kryon_module}")
+    list(APPEND KRYON_UI_GENERATED_C "${KRYON_UI_GEN_DIR}/${kryon_module_c}")
+endforeach()
+add_custom_command(
+    OUTPUT ${KRYON_UI_GENERATED_C}
+    COMMAND "${KRYON_K2C}" --no-main --root "${KRYON_DIR}/src" -o "${KRYON_UI_GEN_DIR}" ${KRYON_UI_MODULE_FILES}
+    DEPENDS "${KRYON_K2C}" ${KRYON_UI_MODULE_FILES} ${KRYON_RUNTIME_GENERATED_C}
+    WORKING_DIRECTORY "${KRYON_DIR}"
+    VERBATIM
+)
+add_custom_target(kryon_ui_generated DEPENDS ${KRYON_UI_GENERATED_C})
+list(APPEND KRYON_SOURCES ${KRYON_UI_GENERATED_C})
 add_custom_target(app_kry_generated DEPENDS
     ${APP_KRY_GENERATED_SOURCES}
     ${APP_KRY_GENERATED_HEADERS}
@@ -307,7 +338,7 @@ add_library(main SHARED
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
 add_dependencies(main app_kry_generated kryon_raylib_generated
-    kryon_runtime_generated app_build_laws)
+    kryon_runtime_generated kryon_ui_generated app_build_laws)
 
 file(GLOB_RECURSE KRYON_ICON_FILES CONFIGURE_DEPENDS "${KRYON_DIR}/icons/*.png" "${KRYON_DIR}/icons/*.json")
 add_custom_command(
@@ -328,6 +359,10 @@ target_include_directories(main PRIVATE
     "${KRYON_ICON_GENERATED_INCLUDE_DIR}"
     "${KRYON_DIR}/include"
     "${KRYON_DIR}/src"
+    "${KRYON_DIR}/src/ui"
+    "${KRYON_DIR}/src/platform"
+    "${KRYON_DIR}/src/backend"
+    "${KRYON_DIR}/vendor/utf8proc"
     "${KRYON_DIR}/vendor/monocypher/src"
     "${KRYON_DIR}/vendor/monocypher/src/optional"
     "${SRC_DIR}"
@@ -345,6 +380,8 @@ target_include_directories(main PRIVATE
     "${APP_KRY_GEN_DIR}"
     "${APP_KRY_GEN_DIR}/src"
     "${KRYON_RUNTIME_GEN_DIR}"
+    "${KRYON_RUNTIME_GEN_DIR}/runtime"
+    "${KRYON_UI_GEN_DIR}"
     "${NATIVE_APP_GLUE_DIR}"
     "${SQLITE_BUILD_DIR}"
 )
@@ -354,6 +391,7 @@ target_compile_definitions(main PRIVATE
     ANDROID_BUILD=1
     _DEFAULT_SOURCE
     _GNU_SOURCE
+    UTF8PROC_STATIC
     _FILE_OFFSET_BITS=64
     MG_TLS=MG_TLS_BUILTIN
     MG_ENABLE_EPOLL=0

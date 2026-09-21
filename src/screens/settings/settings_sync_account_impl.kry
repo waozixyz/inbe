@@ -1,8 +1,9 @@
 #module "settings.sync_account"
 
 #import "screens/settings/settings_screen.h"
-#import "app.h"
+#import "app/app.h"
 #import "storage/sync_account.h"
+#import "screens/profile_social.h"
 #import "storage.h"
 #import "sync_account.h"
 #import "sync_client.h"
@@ -237,15 +238,34 @@ open_alias_modal :: (app: InnerBreeze*, then_backup: int) #private {
 }
 
 save_prepared :: (app: InnerBreeze*, account: SyncAccount*,
-                     action: int, clear_local_data: int) -> int {
+                     action: int, local_data_choice: SyncAccountLocalDataChoice) -> int {
     result: SyncAccountSaveResult
+    owner: const char* = nil
+    replacing_local_data: int = 0
 
     if app == nil || account == nil {
         return 0
     }
 
+    owner = storage_sync_data_owner_public_id()
+    replacing_local_data = action == PendingSyncAccountImport &&
+    storage_has_local_syncable_data() &&
+    (owner == nil || owner[0] == '\0' || strcmp(owner, account->public_id) != 0)
+    if replacing_local_data &&
+       local_data_choice == SYNC_ACCOUNT_LOCAL_DATA_ASK {
+        app->pending_sync_account = *account
+        app->pending_sync_account_action = action
+        app_open_modal(app, UIModalConfirmSyncAccountSwitch)
+        return 0
+    }
+    if replacing_local_data &&
+       local_data_choice == SYNC_ACCOUNT_LOCAL_DATA_REPLACE &&
+       !storage_clear_local_syncable_data() {
+        return 0
+    }
+
     TraceLog(LOG_WARNING, "SYNC: save_prepared calling sync_account_save...")
-    result = sync_account_save(account, clear_local_data)
+    result = sync_account_save(account, local_data_choice)
     TraceLog(LOG_WARNING, "SYNC: sync_account_save result=%d", result)
     if result == SYNC_ACCOUNT_SAVE_NEEDS_CLEAR {
         app->pending_sync_account = *account
@@ -363,8 +383,8 @@ run_connect :: (app: InnerBreeze*) #private {
 
     storage_set_setting_text(sync_server_url_key, url)
     storage_set_sync_enabled(1)
+    settings_screen_clear_status()
     app_auto_sync(app)
-    settings_screen_set_status_success(GetLocaleText("sync_in_progress"), nil)
 }
 
 connect :: (app: InnerBreeze*) {
@@ -533,14 +553,110 @@ adaptive_button_row_height :: (items: const SettingsSyncButton*, count: int,
     return height
 }
 
+draw_connected_header :: (account: const SyncAccount*,
+                          x: int, w: int, y: int*) #private {
+    alias := storage_get_setting_text(sync_account_alias_key)
+    identity: [96] char = {0}
+    title: [160] char = {0}
+    status_text: [160] char = {0}
+    sync_status: StorageSyncStatus
+    up_to_date := 0
+    card_h := Scale(88)
+    icon_box := Scale(36)
+    icon_size := Scale(19)
+
+    if alias != nil && alias[0] != '\0' {
+        snprintf(identity, sizeof(identity), "@%s", alias)
+    } else {
+        compact_public_id(account->public_id, identity, sizeof(identity))
+    }
+    FormatLocaleText(title, sizeof(title), "sync_connected_as", identity)
+    if storage_sync_status(&sync_status) {
+        up_to_date = sync_status.enabled && sync_status.server_version > 0 &&
+                     sync_status.queued_changes == 0 &&
+                     !sync_status.review_pending && !app_sync_loading() &&
+                     !app_social_refresh_loading() &&
+                     storage_get_setting_int("sync_last_result", SYNC_OK) == SYNC_OK
+    }
+    if up_to_date {
+        snprintf(status_text, sizeof(status_text), "%s",
+                 GetLocaleText("sync_everything_up_to_date"))
+    } else {
+        app_sync_progress_text(status_text, sizeof(status_text))
+    }
+
+    Card((CardProps){.bounds = {(float)x, (float)*y, (float)w, (float)card_h}})
+    Circle(x + Scale(28), *y + Scale(28), icon_box / 2,
+           LightenColor(GetThemeButton(), 10))
+    Icon(0, x + Scale(28) - icon_size / 2,
+         *y + Scale(28) - icon_size / 2, icon_size, ICON_CHECK, WHITE)
+    Text((TextProps){
+        .bounds = {(float)(x + Scale(54)), (float)(*y + Scale(15)),
+                   (float)(w - Scale(68)), (float)Scale(24)},
+        .text = title,
+        .font = AppFontSize(),
+        .wrap = TextWrapNone
+    })
+    Text((TextProps){
+        .bounds = {(float)(x + Scale(54)), (float)(*y + Scale(43)),
+                   (float)(w - Scale(68)), (float)Scale(26)},
+        .text = status_text,
+        .font = AppSmallFontSize(),
+        .disabled = !up_to_date
+    })
+    *y += card_h
+}
+
+draw_sync_step :: (x: int, w: int, y: int*, label: const char*,
+                  complete: int) #private {
+    icon_size := Scale(16)
+    Circle(x + Scale(13), *y + Scale(17), Scale(11),
+           complete ? LightenColor(GetThemeButton(), 10)
+                    : DarkenColor(GetThemeBackground(), 8))
+    if complete {
+        Icon(0, x + Scale(13) - icon_size / 2,
+             *y + Scale(17) - icon_size / 2, icon_size, ICON_CHECK, WHITE)
+    }
+    Text((TextProps){
+        .bounds = {(float)(x + Scale(34)), (float)(*y + Scale(5)),
+                   (float)(w - Scale(34)), (float)Scale(26)},
+        .text = label,
+        .font = AppSmallFontSize(),
+        .disabled = !complete,
+        .wrap = TextWrapNone
+    })
+    *y += Scale(36)
+}
+
+draw_sync_metric :: (x: int, y: int, w: int, label: const char*,
+                     value: int) #private {
+    value_text: [24] char = {0}
+    card_h := Scale(62)
+    snprintf(value_text, sizeof(value_text), "%d", value)
+    Card((CardProps){.bounds = {(float)x, (float)y, (float)w, (float)card_h}})
+    Text((TextProps){
+        .bounds = {(float)(x + Scale(12)), (float)(y + Scale(9)),
+                   (float)(w - Scale(24)), (float)Scale(23)},
+        .text = value_text,
+        .font = Scale(20),
+        .wrap = TextWrapNone
+    })
+    Text((TextProps){
+        .bounds = {(float)(x + Scale(12)), (float)(y + Scale(34)),
+                   (float)(w - Scale(24)), (float)Scale(20)},
+        .text = label,
+        .font = AppSmallFontSize(),
+        .disabled = 1,
+        .wrap = TextWrapNone
+    })
+}
+
 config_content_height :: (content_w: int) -> int {
     account: SyncAccount
     has_account := sync_account_load(&account)
     btn_h := Scale(36)
     gap := Scale(10)
     h := 0
-    display: [96] char
-    alias: const char* = nil
 
     if content_w <= 0 {
         content_w = Scale(320)
@@ -559,35 +675,22 @@ config_content_height :: (content_w: int) -> int {
         return h
     }
 
-    alias = storage_get_setting_text(sync_account_alias_key)
-    if alias != nil && alias[0] != '\0' {
-        snprintf(display, sizeof(display), "@%s", alias)
-    } else {
-        compact_public_id(account.public_id, display, sizeof(display))
+    h += Scale(88) + Scale(16)
+    h += Scale(108) + Scale(16)
+    h += Scale(132) + Scale(16)
+    buttons_main: [2] SettingsSyncButton = {
+        {GetLocaleText("sync_backup_key_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_now_button"), ButtonToneAccent, ButtonEmphasisFilled, 0},
     }
-
-    h += Scale(18)
-    h += AppParagraphHeight(display, content_w, AppSmallFontSize(), Scale(4))
-    h += Scale(8)
-    h += Scale(18) + btn_h + Scale(12)
-    h += btn_h + Scale(12)
-
-    h += Scale(80)
-
-    buttons_main: [3] SettingsSyncButton = {
+    h += adaptive_button_row_height(buttons_main, 2, content_w, btn_h, gap)
+    h += Scale(12)
+    buttons_account: [2] SettingsSyncButton = {
         {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
         {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
-        {GetLocaleText("sync_backup_key_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
     }
-    h += adaptive_button_row_height(buttons_main, 3, content_w, btn_h, gap)
-    h += Scale(12)
-
-    buttons_danger: [2] SettingsSyncButton = {
-        {GetLocaleText("sync_logout_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
-        {GetLocaleText("sync_clear_remote_data_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
-    }
-    h += adaptive_button_row_height(buttons_danger, 2, content_w, btn_h, gap)
-    h += Scale(12)
+    h += adaptive_button_row_height(buttons_account, 2, content_w, btn_h, gap)
+    h += Scale(12) + Scale(18) + btn_h + Scale(12) + btn_h + Scale(12)
+    h += btn_h + Scale(12) + btn_h + Scale(12)
     h += Scale(42)
 
     return h
@@ -664,12 +767,9 @@ draw :: (app: InnerBreeze*, x: int, w: int, y: int*) {
 draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
     account: SyncAccount
     has_account := sync_account_load(&account)
-    font := AppFontSize()
-    small_font := AppSmallFontSize()
     btn_h := Scale(36)
     gap := Scale(10)
-
-    commit := 0
+    sync_status: StorageSyncStatus = {0}
 
     if app != nil && app->sync_server_url[0] == '\0' {
         saved: const char* = nil
@@ -714,25 +814,80 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
 
     if !has_account {
         settings_screen_draw_status_reserved(x, y, Scale(42))
-        unused font
         return
     }
 
-    Text((TextProps){
-        .bounds={(x), (*y), 0, 0},
-        .text=(GetLocaleText("sync_public_id_label")),
-        .wrap=TextWrapNone
-    })
-    *y += Scale(18)
-    draw_account_id(app, &account, x, w, y, small_font)
-    *y += Scale(8)
+    draw_connected_header(&account, x, w, y)
+    *y += Scale(16)
+    storage_sync_status(&sync_status)
+    draw_sync_step(x, w, y, GetLocaleText("sync_step_account_connected"), 1)
+    draw_sync_step(x, w, y, GetLocaleText("sync_step_data_restored"),
+                   sync_status.server_version > 0)
+    draw_sync_step(x, w, y, GetLocaleText("sync_step_automatic_on"),
+                   sync_status.enabled)
+    *y += Scale(16)
 
-    Text((TextProps){
-        .bounds={(x), (*y), 0, 0},
-        .text=(GetLocaleText("sync_remote_label")),
-        .wrap=TextWrapNone
-    })
+    metric_gap := Scale(8)
+    metric_w := (w - metric_gap) / 2
+    draw_sync_metric(x, *y, metric_w, GetLocaleText("profile_habits_label"),
+                     storage_habit_count())
+    draw_sync_metric(x + metric_w + metric_gap, *y, w - metric_w - metric_gap,
+                     GetLocaleText("sync_history_days_label"),
+                     storage_habit_day_count())
+    *y += Scale(70)
+    draw_sync_metric(x, *y, metric_w, GetLocaleText("profile_sessions_label"),
+                     storage_session_count())
+    draw_sync_metric(x + metric_w + metric_gap, *y, w - metric_w - metric_gap,
+                     GetLocaleText("profile_friends_title"),
+                     profile_social_friends_count(app))
+    *y += Scale(62) + Scale(16)
+
+    buttons_main: [2] SettingsSyncButton = {
+        {GetLocaleText("sync_backup_key_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_now_button"), ButtonToneAccent, ButtonEmphasisFilled,
+         app_sync_loading()},
+    }
+    row_h_main := 0
+    clicked_main := draw_adaptive_button_row((SettingsSyncButtonRow){
+        .x = x,
+        .y = *y,
+        .width = w,
+        .height = btn_h,
+        .gap = gap,
+        .items = buttons_main,
+        .count = 2,
+    }, &row_h_main)
+
+    if clicked_main == 0 {
+        app_open_modal(app, UIModalSyncAccountBackup)
+    } else if clicked_main == 1 {
+        run_connect(app)
+    }
+    *y += row_h_main
+    *y += Scale(12)
+
+    buttons_account: [2] SettingsSyncButton = {
+        {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+        {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+    }
+    row_h_account := 0
+    clicked_account := draw_adaptive_button_row((SettingsSyncButtonRow){
+        .x = x, .y = *y, .width = w, .height = btn_h, .gap = gap,
+        .items = buttons_account, .count = 2,
+    }, &row_h_account)
+    if clicked_account == 0 {
+        SetClipboardText(account.public_id)
+        settings_screen_set_status_success(GetLocaleText("sync_public_id_copied"), nil)
+    } else if clicked_account == 1 {
+        open_alias_modal(app, 0)
+    }
+    *y += row_h_account + Scale(12)
+
+    Text((TextProps){.bounds = {(float)x, (float)*y, 0, 0},
+                     .text = GetLocaleText("sync_remote_label"),
+                     .wrap = TextWrapNone})
     *y += Scale(18)
+    commit := 0
     TextField((TextFieldProps){
         .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
         .text = app->sync_server_url,
@@ -746,85 +901,35 @@ draw_config :: (app: InnerBreeze*, x: int, w: int, y: int*) {
         server_save(app)
     }
     *y += btn_h + Scale(12)
-
     if Button((ButtonProps){
-        .bounds = {(float)(x), (float)(*y), (float)(w), (float)(btn_h)},
-        .label = server_connected(app)
-                               ? GetLocaleText("sync_retry_button")
-                               : GetLocaleText("sync_connect_button"),
-        .tone = ButtonToneAccent,
-        .emphasis = ButtonEmphasisFilled,
-        .disabled = app_sync_loading()
+        .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
+        .label = GetLocaleText("save_button"),
+        .tone = ButtonToneNeutral, .emphasis = ButtonEmphasisSoft
     }) {
-        run_connect(app)
+        server_save(app)
     }
     *y += btn_h + Scale(12)
 
-    Text((TextProps){
-        .bounds = {x, *y, w, Scale(48)},
-        .text = GetLocaleText(app_sync_status_key())
-    })
-    *y += Scale(52)
-    sync_status: StorageSyncStatus
-    if storage_sync_status(&sync_status) {
-        queued: [96] char
-        FormatLocaleText(queued, sizeof(queued), "sync_status_queued", sync_status.queued_changes)
-        Text((TextProps){.bounds = {x, *y, w, Scale(24)}, .text = queued})
-        *y += Scale(28)
-    }
-
-    buttons_main: [3] SettingsSyncButton = {
-        {GetLocaleText("sync_copy_id_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
-        {GetLocaleText("sync_alias_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
-        {GetLocaleText("sync_backup_key_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
-    }
-    row_h_main := 0
-    clicked_main := draw_adaptive_button_row((SettingsSyncButtonRow){
-        .x = x,
-        .y = *y,
-        .width = w,
-        .height = btn_h,
-        .gap = gap,
-        .items = buttons_main,
-        .count = 3,
-    }, &row_h_main)
-
-    if clicked_main == 0 {
-        SetClipboardText(account.public_id)
-        settings_screen_set_status_success(GetLocaleText("sync_public_id_copied"), nil)
-    } else if clicked_main == 1 {
-        open_alias_modal(app, 0)
-    } else if clicked_main == 2 {
-        app_open_modal(app, UIModalSyncAccountBackup)
-    }
-    *y += row_h_main
-    *y += Scale(12)
-
-    buttons_danger: [2] SettingsSyncButton = {
-        {GetLocaleText("sync_logout_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
-        {GetLocaleText("sync_clear_remote_data_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
-    }
-    row_h_danger := 0
-    clicked_danger := draw_adaptive_button_row((SettingsSyncButtonRow){
-        .x = x,
-        .y = *y,
-        .width = w,
-        .height = btn_h,
-        .gap = gap,
-        .items = buttons_danger,
-        .count = 2,
-    }, &row_h_danger)
-
-    if clicked_danger == 0 {
+    if Button((ButtonProps){
+        .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
+        .label = GetLocaleText("sync_logout_button"),
+        .tone = ButtonToneNeutral,
+        .emphasis = ButtonEmphasisSoft
+    }) {
         logout(app)
-    } else if clicked_danger == 1 {
+    }
+    *y += btn_h + Scale(12)
+    if Button((ButtonProps){
+        .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
+        .label = GetLocaleText("sync_clear_remote_data_button"),
+        .tone = ButtonToneDanger,
+        .emphasis = ButtonEmphasisSoft
+    }) {
         app_open_modal(app, UIModalConfirmDeleteSyncAccount)
     }
-    *y += row_h_danger
-    *y += Scale(12)
+    *y += btn_h + Scale(12)
 
     settings_screen_draw_status_reserved(x, y, Scale(42))
-    unused font
 }
 
 draw_backup_modal :: (app: InnerBreeze*) -> int {

@@ -3,7 +3,7 @@
 
 #include "app_fwd.h"
 
-/* Forward declaration; full definition in runtime_assets.h (via app.h). */
+/* Forward declaration; full definition comes from the generated app surface. */
 struct RuntimeAssetDownload;
 
 void meditation_practice_init(InnerBreeze*app);

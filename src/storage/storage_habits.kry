@@ -13,6 +13,12 @@ storage_habit_count :: () -> int #export {
     return db_select_int("SELECT COUNT(*) FROM habits WHERE deleted_at=0", 0)
 }
 
+storage_habit_day_count :: () -> int #export {
+    return db_select_int(
+        "SELECT COUNT(*) FROM habit_days "
+        "WHERE completed!=0 OR count>0 OR session_count>0", 0)
+}
+
 storage_habits_load :: (habits_ptr: void*) -> int #export {
     habits: Habits* = habits_ptr
     stmt: sqlite3_stmt* = nil

@@ -1,6 +1,6 @@
 #module "settings.data"
 
-#import "app.h"
+#import "app/app.h"
 #import "app_nav.h"
 #import "data.h"
 #import "file_dialog.h"
@@ -265,7 +265,6 @@ import_sync_key_path :: (app: InnerBreeze*, path: const char*) -> int {
         if settings_sync_account_save_prepared(app, &account,
                                                PendingSyncAccountImport, 0) {
             TraceLog(LOG_WARNING, "SYNC: account saved, connecting...")
-            settings_sync_account_connect(app)
             TraceLog(LOG_WARNING, "SYNC: Private key imported from %s", path)
         } else {
             TraceLog(LOG_WARNING, "SYNC: save_prepared returned false")
@@ -973,29 +972,32 @@ draw_modals :: (app: InnerBreeze*) -> int {
     }
 
     if app->modal.type == UIModalConfirmSyncAccountSwitch {
-        actions: [2] ModalAction = {
+        actions: [3] ModalAction = {
             {GetLocaleText("cancel_button"), ButtonToneNeutral, ButtonEmphasisSoft, 0},
+            {GetLocaleText("sync_account_switch_merge_button"), ButtonToneAccent, ButtonEmphasisSoft, 0},
             {GetLocaleText("sync_account_switch_clear_button"), ButtonToneDanger, ButtonEmphasisFilled, 0},
         }
         modal_result := Modal((ModalProps){
             .title = GetLocaleText("sync_account_switch_title"),
             .message = GetLocaleText("sync_account_switch_message"),
             .actions = actions,
-            .action_count = 2
+            .action_count = 3
         })
         if modal_result == 1 {
             app_close_modal(app)
             memset(&app->pending_sync_account, 0, sizeof(app->pending_sync_account))
             app->pending_sync_account_action = PendingSyncAccountNone
             settings_screen_set_status_error(GetLocaleText("sync_account_switch_cancelled"))
-        } else if modal_result == 2 {
+        } else if modal_result == 2 || modal_result == 3 {
             account: SyncAccount = app->pending_sync_account
             action: PendingSyncAccountAction = app->pending_sync_account_action
+            local_data_choice := modal_result == 2
+                ? SYNC_ACCOUNT_LOCAL_DATA_MERGE
+                : SYNC_ACCOUNT_LOCAL_DATA_REPLACE
             app_close_modal(app)
-            if settings_sync_account_save_prepared(app, &account, action, 1) {
-                if action == PendingSyncAccountImport {
-                    settings_sync_account_connect(app)
-                } else {
+            if settings_sync_account_save_prepared(app, &account, action,
+                                                    local_data_choice) {
+                if action != PendingSyncAccountImport {
                     app_reload_after_import(app, 0)
                 }
             } else {

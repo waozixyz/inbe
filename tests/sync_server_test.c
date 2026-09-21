@@ -2,6 +2,7 @@
 #include "sync_account.h"
 #include "sync_client.h"
 #include "screens/habits_screen.h"
+#include "screens/elist_types.h"
 #include <curl/curl.h>
 #include <assert.h>
 #include <stdarg.h>
@@ -87,6 +88,21 @@ static void seed_default_habits(void) {
     storage_habits_save(habits);
     free(habits);
     assert(storage_habit_count() == 2);
+}
+static void expect_list(const char *list_id, const char *item_id,
+                        const char *title, const char *comment, int done) {
+    EListState state = {0};
+    int found_list = 0, found_item = 0;
+    assert(storage_elist_load(&state));
+    for(int i = 0; i < state.list_count; i++)
+        if(strcmp(state.lists[i].id, list_id) == 0 &&
+           strcmp(state.lists[i].title, title) == 0) found_list = 1;
+    for(int i = 0; i < state.item_count; i++)
+        if(strcmp(state.items[i].id, item_id) == 0 &&
+           strcmp(state.items[i].list_id, list_id) == 0 &&
+           strcmp(state.items[i].comment, comment) == 0 &&
+           state.items[i].done == done) found_item = 1;
+    assert(found_list && found_item);
 }
 static void synchronize(const char *url) {
     for(int attempt = 0; attempt < 8; attempt++) {
@@ -184,6 +200,10 @@ int main(int argc, char **argv) {
     storage_set_setting_text("sync_server_url", argv[1]);
     storage_set_sync_enabled(1);
     assert(sync_client_register_alias(argv[1], alias) == SYNC_OK);
+    char list_id[37] = {0}, item_id[37] = {0};
+    assert(storage_elist_create_list("Travel", list_id));
+    assert(storage_elist_create_item(list_id, "Pack bag", "Passport", item_id));
+    synchronize(argv[1]);
     open_client(b);
     assert(sync_account_save(&account, 0) == SYNC_ACCOUNT_SAVE_OK);
     synchronize(argv[1]);
@@ -191,6 +211,13 @@ int main(int argc, char **argv) {
     assert(strcmp(storage_get_setting_text("sync_account_alias"), alias) == 0);
     assert(storage_session_count() == 1);
     expect_habit(habit_id, habit_name, habit_date);
+    expect_list(list_id, item_id, "Travel", "Passport", 0);
+    assert(storage_elist_update_item(item_id, "Pack bag", "Passport", 1, 0));
+    synchronize(argv[1]);
+    open_client(a);
+    synchronize(argv[1]);
+    expect_list(list_id, item_id, "Travel", "Passport", 1);
+    open_client(b);
     assert(storage_load_session_checkin(id, &loaded) && loaded.mood_after == 4);
     checkin.mood_after = 2;
     assert(storage_save_session_checkin(id, &checkin));
@@ -269,6 +296,7 @@ int main(int argc, char **argv) {
     assert(storage_session_count() == 1);
     assert(storage_load_session_checkin(id, &loaded) && loaded.mood_after == 4);
     expect_habit(habit_id, habit_name, habit_date);
+    expect_list(list_id, item_id, "Travel", "Passport", 1);
     /* A newly installed app may seed defaults before the key is restored. */
     char restored_defaults[1024];
     SyncAccount default_account = {0};
@@ -283,6 +311,7 @@ int main(int argc, char **argv) {
     assert(strcmp(storage_get_setting_text("sync_account_alias"), alias) == 0);
     assert(storage_session_count() == 1);
     expect_habit(habit_id, habit_name, habit_date);
+    expect_list(list_id, item_id, "Travel", "Passport", 1);
     assert(sync_client_get_friends(argv[1], friends, sizeof(friends)) == SYNC_OK);
     assert(strstr(friends, friend_account.public_id) != NULL);
     open_client(b);
@@ -312,6 +341,6 @@ int main(int argc, char **argv) {
         assert(sync_client_delete_account(argv[1]) == SYNC_OK);
     }
     storage_close();
-    puts("PASS two-client sync, habit/session/alias/friend recovery, offline retry, conflict, backup restore, deletion");
+    puts("PASS two-client sync, habit/session/list/alias/friend recovery, offline retry, conflict, backup restore, deletion");
     return 0;
 }

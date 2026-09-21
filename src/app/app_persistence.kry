@@ -1,6 +1,6 @@
 #module "app.persistence"
 
-#import "app.h"
+#import "app/app.h"
 #import "screens/habits_screen.h" #private
 
 app_flush_deferred_settings :: (app: InnerBreeze*) #export {

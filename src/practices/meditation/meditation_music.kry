@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 #import "kry_archive.h"
 #import "practices/practice_registry.h"
 #import "runtime_assets.h"

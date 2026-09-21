@@ -2,7 +2,7 @@ ANDROID :: ANDROID_BUILD
 
 #if ANDROID {
     #import "platform/android/android_timer.h"
-    #import "app.h" #private
+    #import "app/app.h" #private
     #import "practices/practice_registry.h" #private
     #import "kryon.h" #private
     #import <time.h>

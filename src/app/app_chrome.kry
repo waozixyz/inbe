@@ -1,6 +1,6 @@
 #module "app.chrome"
 
-#import "app.h"
+#import "app/app.h"
 
 app_draw_close_title_bar :: (app: InnerBreeze*, title: const char*,
                              height: int) -> int #export {

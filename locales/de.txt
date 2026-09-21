@@ -628,8 +628,11 @@ Konto erstellt
 [sync_account_create_failed]
 Konto konnte nicht erstellt werden
 ---
+[sync_connect_account_button]
+Konto verbinden
+---
 [sync_import_key_button]
-Kontoschlüssel importieren
+.key-Datei importieren
 ---
 [sync_import_key_dialog_title]
 Kontoschlüssel importieren
@@ -651,12 +654,6 @@ ID kopieren
 ---
 [sync_backup_key_button]
 Schlüssel sichern
----
-[sync_remote_label]
-Server
----
-[sync_connect_button]
-Verbinden
 ---
 [sync_server_url_invalid]
 Nutze https:// oder Loopback wie localhost:8080
@@ -719,13 +716,16 @@ Abmelden
 Abgemeldet. Lokale Daten bleiben auf diesem Gerät.
 ---
 [sync_account_switch_title]
-Lokale Daten löschen?
+Verbindungsmethode wählen
 ---
 [sync_account_switch_message]
-Dieses Gerät enthält Daten eines anderen Sync-Kontos. Lösche lokale Daten, bevor du dieses Konto verwendest.
+Auf diesem Gerät wurden lokale Daten gefunden. Ersetzen löscht sie und stellt dieses Konto wieder her. Zusammenführen behält sie und kombiniert beide Datensätze.
+---
+[sync_account_switch_merge_button]
+Zusammenführen und verbinden
 ---
 [sync_account_switch_clear_button]
-Löschen und Konto verwenden
+Ersetzen und verbinden
 ---
 [sync_account_switch_cancelled]
 Kontowechsel abgebrochen
@@ -1863,8 +1863,11 @@ Die Synchronisierung für dieses Profil ist bereit.
 [profile_account_sync_title]
 Konto und Synchronisierung
 ---
+[profile_account_connected_body]
+Verbundenes Konto und automatische Synchronisierung verwalten
+---
 [profile_account_sync_body]
-Neues Konto erstellen oder vorhandenen Schlüssel importieren
+Neues Konto erstellen oder eine vorhandene .key-Datei importieren
 ---
 [profile_data_management_title]
 Daten
@@ -1893,9 +1896,6 @@ Synchronisierung läuft…
 Verbindung fehlgeschlagen. Automatischer neuer Versuch.
 
 ---
-[sync_retry_button]
-Erneut versuchen
----
 [app_icon_label]
 App-Symbol
 ---
@@ -1920,3 +1920,36 @@ Erledigte ausblenden
 [guide_title]
 Kurzanleitung
 ---
+---
+[sync_connected_as]
+Verbunden als %s
+---
+[sync_everything_up_to_date]
+Alles ist auf dem neuesten Stand
+---
+[sync_step_account_connected]
+Konto verbunden
+---
+[sync_step_data_restored]
+Daten wiederhergestellt
+---
+[sync_step_automatic_on]
+Automatische Synchronisierung aktiv
+---
+[sync_history_days_label]
+Verlaufstage
+---
+[sync_now_button]
+Jetzt synchronisieren
+---
+[sync_progress_uploading]
+Lokale Elemente werden gesendet: %lld…
+---
+[sync_progress_securing]
+Elemente werden geschützt: %lld von %lld…
+---
+[sync_progress_restoring]
+Kontodaten werden wiederhergestellt…
+---
+[sync_progress_friends]
+Freunde werden wiederhergestellt…

@@ -32,13 +32,16 @@ Sessions
 Create an account to sync and protect your progress.
 ---
 [profile_sync_ready_body]
-Sync is ready for this profile.
+Syncing automatically.
 ---
 [profile_account_sync_title]
 Account & sync
 ---
+[profile_account_connected_body]
+Manage your connected account and automatic sync
+---
 [profile_account_sync_body]
-Create a new account or import an existing key
+Create a new account or import an existing .key file
 ---
 [profile_data_management_title]
 Data
@@ -868,8 +871,11 @@ Account created
 [sync_account_create_failed]
 Could not create account
 ---
+[sync_connect_account_button]
+Connect Account
+---
 [sync_import_key_button]
-Import Account Key
+Import .key
 ---
 [sync_import_key_dialog_title]
 Import Account Key
@@ -927,12 +933,6 @@ Alias unavailable or remote failed
 ---
 [sync_backup_key_button]
 Backup Key
----
-[sync_remote_label]
-Remote
----
-[sync_connect_button]
-Connect
 ---
 [sync_server_url_invalid]
 Use https:// or loopback like localhost:8080
@@ -995,13 +995,16 @@ Log out
 Logged out. Local data stays on this device.
 ---
 [sync_account_switch_title]
-Clear local data?
+Choose how to connect
 ---
 [sync_account_switch_message]
-This device has data from another sync account. Clear local data before using this account.
+Local data was found on this device. Replace deletes it and restores this account. Merge keeps it and combines both sets of data.
+---
+[sync_account_switch_merge_button]
+Merge and Connect
 ---
 [sync_account_switch_clear_button]
-Clear and Use Account
+Replace and Connect
 ---
 [sync_account_switch_cancelled]
 Account switch cancelled
@@ -1892,9 +1895,6 @@ Syncing…
 Connection failed. Retrying automatically.
 
 ---
-[sync_retry_button]
-Retry
----
 [app_icon_label]
 App icon
 ---
@@ -1919,3 +1919,36 @@ Hide completed
 [guide_title]
 Quick guide
 ---
+---
+[sync_connected_as]
+Connected as %s
+---
+[sync_everything_up_to_date]
+Everything is up to date
+---
+[sync_step_account_connected]
+Account connected
+---
+[sync_step_data_restored]
+Data restored
+---
+[sync_step_automatic_on]
+Automatic sync on
+---
+[sync_history_days_label]
+History days
+---
+[sync_now_button]
+Sync now
+---
+[sync_progress_uploading]
+Uploading %lld local items…
+---
+[sync_progress_securing]
+Securing %lld of %lld items…
+---
+[sync_progress_restoring]
+Restoring account data…
+---
+[sync_progress_friends]
+Restoring friends…

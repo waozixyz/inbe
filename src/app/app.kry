@@ -1,0 +1,26 @@
+#module "app"
+
+# The public app surface is composed from the generated headers owned by the
+# modules that implement it. Keeping the umbrella in Kry prevents declarations
+# from drifting away from their implementations.
+#import "app/app_types.h"
+#import "app/application.h"
+#import "app/app_chrome.h"
+#import "app/app_donation.h"
+#import "app/app_lifecycle.h"
+#import "app/app_modal_state.h"
+#import "app/app_nav.h"
+#import "app/app_route_state.h"
+#import "app/app_settings.h"
+#import "app/app_style.h"
+#import "app/app_sync.h"
+#import "app/audio.h"
+#import "app/device_preferences.h"
+#import "app/locale_dropdown.h"
+#import "app/metrics.h"
+#import "app/music_library.h"
+#import "app/profile_image_picker.h"
+#import "app/sync_retry.h"
+#import "app/widgets.h"
+#import "practices/session_results.h"
+#import "practices/whm/whm_session.h"

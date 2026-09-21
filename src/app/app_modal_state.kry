@@ -1,6 +1,6 @@
 #module "app.modal_state"
 
-#import "app.h"
+#import "app/app.h"
 
 app_block_current_click :: (app: InnerBreeze*) #export {
     if app != nil { app->blocked_input_frame = app->breathing.frame }

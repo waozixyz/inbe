@@ -1,5 +1,5 @@
 #import "kryon.h"
-#import "app.h"
+#import "app/app.h"
 host :: #import "platform/app_host"
 tray :: #import "platform/tray"
 

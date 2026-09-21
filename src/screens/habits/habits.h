@@ -5,7 +5,7 @@
 #include "screens/practice_screen.h"
 #include "data.h"
 #include "storage.h"
-#include "app.h"
+#include "app/app.h"
 #include "runtime_assets.h"
 #include "core/breath_engine.h"
 

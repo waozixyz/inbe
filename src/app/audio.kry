@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 #import "app_internal.h"
 #import "practices/meditation/meditation_practice.h"
 #import <stdio.h>

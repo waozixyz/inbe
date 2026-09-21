@@ -317,7 +317,7 @@ Finish
 OK
 ---
 [retry_button]
-再試行
+同期する
 ---
 [audio_import_music_button]
 音楽をインポート
@@ -630,8 +630,11 @@ Inner Breezeを実行したままにしますか？
 [sync_account_create_failed]
 アカウントを作成できませんでした
 ---
+[sync_connect_account_button]
+アカウントに接続
+---
 [sync_import_key_button]
-アカウントキーをインポート
+.keyファイルをインポート
 ---
 [sync_import_key_dialog_title]
 アカウントキーをインポート
@@ -653,12 +656,6 @@ IDをコピー
 ---
 [sync_backup_key_button]
 キーをバックアップ
----
-[sync_remote_label]
-リモート
----
-[sync_connect_button]
-接続
 ---
 [sync_server_url_invalid]
 https:// または localhost:8080 のようなループバックを使用してください
@@ -721,13 +718,16 @@ Sync review failed
 ログアウトしました。ローカルデータはこの端末に残ります。
 ---
 [sync_account_switch_title]
-ローカルデータをクリアしますか？
+接続方法を選択
 ---
 [sync_account_switch_message]
-この端末には別の同期アカウントのデータがあります。このアカウントを使う前にローカルデータをクリアしてください。
+この端末にローカルデータがあります。置き換えると削除してこのアカウントを復元します。統合すると保持したまま両方のデータをまとめます。
+---
+[sync_account_switch_merge_button]
+統合して接続
 ---
 [sync_account_switch_clear_button]
-クリアしてアカウントを使用
+置き換えて接続
 ---
 [sync_account_switch_cancelled]
 アカウントの切り替えをキャンセルしました
@@ -1865,8 +1865,11 @@ Dismiss forever
 [profile_account_sync_title]
 アカウントと同期
 ---
+[profile_account_connected_body]
+接続済みアカウントと自動同期を管理
+---
 [profile_account_sync_body]
-新しいアカウントを作成するか、既存のキーをインポートしてください
+新しいアカウントを作成するか、既存の.keyファイルをインポートしてください
 ---
 [profile_data_management_title]
 データ
@@ -1895,9 +1898,6 @@ Dismiss forever
 接続に失敗しました。自動的に再試行します。
 
 ---
-[sync_retry_button]
-再試行
----
 [app_icon_label]
 アプリアイコン
 ---
@@ -1922,3 +1922,36 @@ Dismiss forever
 [guide_title]
 クイックガイド
 ---
+---
+[sync_connected_as]
+%s として接続中
+---
+[sync_everything_up_to_date]
+すべて最新です
+---
+[sync_step_account_connected]
+アカウント接続済み
+---
+[sync_step_data_restored]
+データ復元済み
+---
+[sync_step_automatic_on]
+自動同期オン
+---
+[sync_history_days_label]
+履歴の日数
+---
+[sync_now_button]
+今すぐ同期
+---
+[sync_progress_uploading]
+ローカル項目を %lld 件送信中…
+---
+[sync_progress_securing]
+%lld / %lld 件を保護中…
+---
+[sync_progress_restoring]
+アカウントデータを復元中…
+---
+[sync_progress_friends]
+友達を復元中…

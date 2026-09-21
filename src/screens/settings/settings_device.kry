@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 #import "app/app_settings.h"
 #import "app/device_preferences.h"
 #import "src/screens/settings/settings_types.h"

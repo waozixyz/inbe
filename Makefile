@@ -947,7 +947,7 @@ $(FONT_GLYPH_COVERAGE_TEST): tests/font_glyph_coverage_test.c $(FONT_FILES) $(LO
 		-o $@ \
 		tests/font_glyph_coverage_test.c
 
-$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.kry $(KRY_GEN_DIR)/src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui_tree.h $(KRYON_GENERATED_SRC_DIR)/ui/app_shell_layout.c $(KRYON_GENERATED_SRC_DIR)/ui/app_shell_route.c $(KRYON_DIR)/include/app_shell.h | $(TEST_BIN_DIR)
+$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.kry $(KRY_GEN_DIR)/src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui_tree_props.generated.h $(KRYON_GENERATED_SRC_DIR)/ui/app_shell_layout.c $(KRYON_GENERATED_SRC_DIR)/ui/app_shell_route.c $(KRYON_DIR)/include/ui_app_shell_props.generated.h $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \

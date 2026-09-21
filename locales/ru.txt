@@ -320,7 +320,7 @@ Finish
 OK
 ---
 [retry_button]
-Повторить
+Синхронизировать
 ---
 [audio_import_music_button]
 Импортировать музыку
@@ -628,8 +628,11 @@ Trocador
 [sync_account_create_failed]
 Не удалось создать аккаунт
 ---
+[sync_connect_account_button]
+Подключить аккаунт
+---
 [sync_import_key_button]
-Импортировать ключ аккаунта
+Импортировать файл .key
 ---
 [sync_import_key_dialog_title]
 Импорт ключа аккаунта
@@ -651,12 +654,6 @@ Trocador
 ---
 [sync_backup_key_button]
 Резервная копия ключа
----
-[sync_remote_label]
-Сервер
----
-[sync_connect_button]
-Подключить
 ---
 [sync_server_url_invalid]
 Используйте https:// или loopback, например localhost:8080
@@ -719,13 +716,16 @@ Sync review failed
 Выполнен выход. Локальные данные остаются на этом устройстве.
 ---
 [sync_account_switch_title]
-Очистить локальные данные?
+Выберите способ подключения
 ---
 [sync_account_switch_message]
-На этом устройстве есть данные другого аккаунта синхронизации. Очистите локальные данные перед использованием этого аккаунта.
+На этом устройстве найдены локальные данные. Замена удалит их и восстановит этот аккаунт. Объединение сохранит их и совместит оба набора данных.
+---
+[sync_account_switch_merge_button]
+Объединить и подключить
 ---
 [sync_account_switch_clear_button]
-Очистить и использовать аккаунт
+Заменить и подключить
 ---
 [sync_account_switch_cancelled]
 Смена аккаунта отменена
@@ -1863,8 +1863,11 @@ Dismiss forever
 [profile_account_sync_title]
 Учётная запись и синхронизация
 ---
+[profile_account_connected_body]
+Управляйте подключённым аккаунтом и автоматической синхронизацией
+---
 [profile_account_sync_body]
-Создайте новый аккаунт или импортируйте существующий ключ
+Создайте новый аккаунт или импортируйте существующий файл .key
 ---
 [profile_data_management_title]
 Данные
@@ -1893,9 +1896,6 @@ Dismiss forever
 Ошибка подключения. Повторная попытка выполняется автоматически.
 
 ---
-[sync_retry_button]
-Повторить
----
 [app_icon_label]
 Значок приложения
 ---
@@ -1920,3 +1920,36 @@ Dismiss forever
 [guide_title]
 Краткое руководство
 ---
+---
+[sync_connected_as]
+Подключено как %s
+---
+[sync_everything_up_to_date]
+Все данные актуальны
+---
+[sync_step_account_connected]
+Аккаунт подключён
+---
+[sync_step_data_restored]
+Данные восстановлены
+---
+[sync_step_automatic_on]
+Автосинхронизация включена
+---
+[sync_history_days_label]
+Дней в истории
+---
+[sync_now_button]
+Синхронизировать сейчас
+---
+[sync_progress_uploading]
+Отправка локальных элементов: %lld…
+---
+[sync_progress_securing]
+Защита элементов: %lld из %lld…
+---
+[sync_progress_restoring]
+Восстановление данных аккаунта…
+---
+[sync_progress_friends]
+Восстановление друзей…

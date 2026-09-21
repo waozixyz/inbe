@@ -1,6 +1,6 @@
 #module "platform.plan9.meditation_music"
 
-#import "app.h"
+#import "app/app.h"
 #import "practices/meditation/meditation_music.h"
 #import "runtime_assets.h"
 #import "storage.h"

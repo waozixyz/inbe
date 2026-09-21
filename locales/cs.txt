@@ -628,8 +628,11 @@ Vytvořit nový účet
 [sync_account_create_failed]
 Účet se nepodařilo vytvořit
 ---
+[sync_connect_account_button]
+Připojit účet
+---
 [sync_import_key_button]
-Importovat klíč účtu
+Importovat soubor .key
 ---
 [sync_import_key_dialog_title]
 Importovat klíč účtu
@@ -651,12 +654,6 @@ Veřejné ID zkopírováno
 ---
 [sync_backup_key_button]
 Zálohovat klíč
----
-[sync_remote_label]
-Vzdálený server
----
-[sync_connect_button]
-Připojit
 ---
 [sync_server_url_invalid]
 Použijte https:// nebo loopback jako localhost:8080
@@ -719,13 +716,16 @@ Odhlásit se
 Odhlášeno. Místní data zůstávají na tomto zařízení.
 ---
 [sync_account_switch_title]
-Vymazat místní data?
+Zvolte způsob připojení
 ---
 [sync_account_switch_message]
-Toto zařízení obsahuje data z jiného synchronizačního účtu. Před použitím tohoto účtu vymažte místní data.
+V tomto zařízení byla nalezena místní data. Nahrazení je smaže a obnoví tento účet. Sloučení je zachová a zkombinuje obě sady dat.
+---
+[sync_account_switch_merge_button]
+Sloučit a připojit
 ---
 [sync_account_switch_clear_button]
-Vymazat a použít účet
+Nahradit a připojit
 ---
 [sync_account_switch_cancelled]
 Změna účtu zrušena
@@ -1863,8 +1863,11 @@ Synchronizace tohoto profilu je připravena.
 [profile_account_sync_title]
 Účet a synchronizace
 ---
+[profile_account_connected_body]
+Správa připojeného účtu a automatické synchronizace
+---
 [profile_account_sync_body]
-Vytvořte nový účet nebo importujte existující klíč
+Vytvořte nový účet nebo importujte existující soubor .key
 ---
 [profile_data_management_title]
 Data
@@ -1893,9 +1896,6 @@ Synchronizace…
 Připojení selhalo. Automaticky se opakuje.
 
 ---
-[sync_retry_button]
-Zkusit znovu
----
 [app_icon_label]
 Ikona aplikace
 ---
@@ -1920,3 +1920,36 @@ Skrýt dokončené
 [guide_title]
 Rychlý průvodce
 ---
+---
+[sync_connected_as]
+Připojeno jako %s
+---
+[sync_everything_up_to_date]
+Vše je aktuální
+---
+[sync_step_account_connected]
+Účet připojen
+---
+[sync_step_data_restored]
+Data obnovena
+---
+[sync_step_automatic_on]
+Automatická synchronizace zapnuta
+---
+[sync_history_days_label]
+Dny historie
+---
+[sync_now_button]
+Synchronizovat nyní
+---
+[sync_progress_uploading]
+Odesílání %lld místních položek…
+---
+[sync_progress_securing]
+Zabezpečování položek: %lld z %lld…
+---
+[sync_progress_restoring]
+Obnovování dat účtu…
+---
+[sync_progress_friends]
+Obnovování přátel…

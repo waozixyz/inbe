@@ -13,11 +13,18 @@ typedef enum SyncAccountSaveResult {
     SYNC_ACCOUNT_SAVE_NEEDS_CLEAR = 2
 } SyncAccountSaveResult;
 
+typedef enum SyncAccountLocalDataChoice {
+    SYNC_ACCOUNT_LOCAL_DATA_ASK = 0,
+    SYNC_ACCOUNT_LOCAL_DATA_REPLACE = 1,
+    SYNC_ACCOUNT_LOCAL_DATA_MERGE = 2
+} SyncAccountLocalDataChoice;
+
 int sync_account_available(void);
 int sync_account_load(SyncAccount *account);
 int sync_account_generate(SyncAccount *account);
 int sync_account_import_private_key_preview(SyncAccount *account, const char *filename);
-SyncAccountSaveResult sync_account_save(SyncAccount *account, int clear_local_data);
+SyncAccountSaveResult sync_account_save(SyncAccount *account,
+                                        SyncAccountLocalDataChoice local_data_choice);
 int sync_account_clear(void);
 int sync_account_export_private_key(const SyncAccount *account, const char *filename);
 void sync_sha256_hex(const uint8_t *data, size_t len, char out_hex[65]);

@@ -1,5 +1,5 @@
 [results_write_failed]
-Impossibile salvare le modifiche. Riprova.
+Impossibile salvare le modifiche. Sincronizza.
 ---
 [app_title]
 Inner Breeze
@@ -628,8 +628,11 @@ Account creato
 [sync_account_create_failed]
 Impossibile creare l’account
 ---
+[sync_connect_account_button]
+Connetti account
+---
 [sync_import_key_button]
-Importa chiave account
+Importa file .key
 ---
 [sync_import_key_dialog_title]
 Importa chiave account
@@ -651,12 +654,6 @@ ID pubblico copiato
 ---
 [sync_backup_key_button]
 Backup chiave
----
-[sync_remote_label]
-Remoto
----
-[sync_connect_button]
-Connetti
 ---
 [sync_server_url_invalid]
 Usa https:// o loopback come localhost:8080
@@ -719,13 +716,16 @@ Esci
 Disconnesso. I dati locali restano su questo dispositivo.
 ---
 [sync_account_switch_title]
-Cancellare i dati locali?
+Scegli come connetterti
 ---
 [sync_account_switch_message]
-Questo dispositivo contiene dati di un altro account di sincronizzazione. Cancella i dati locali prima di usare questo account.
+Sono stati trovati dati locali su questo dispositivo. Sostituisci li elimina e ripristina questo account. Unisci li conserva e combina entrambi i gruppi di dati.
+---
+[sync_account_switch_merge_button]
+Unisci e connetti
 ---
 [sync_account_switch_clear_button]
-Cancella e usa account
+Sostituisci e connetti
 ---
 [sync_account_switch_cancelled]
 Cambio account annullato
@@ -1858,13 +1858,16 @@ Sessioni
 Crea un account per sincronizzare e proteggere i tuoi progressi.
 ---
 [profile_sync_ready_body]
-La sincronizzazione è pronta per questo profilo.
+Sincronizzazione automatica.
 ---
 [profile_account_sync_title]
 Account e sincronizzazione
 ---
+[profile_account_connected_body]
+Gestisci l’account connesso e la sincronizzazione automatica
+---
 [profile_account_sync_body]
-Crea un nuovo account o importa una chiave esistente
+Crea un nuovo account o importa un file .key esistente
 ---
 [profile_data_management_title]
 Dati
@@ -1893,9 +1896,6 @@ Sincronizzazione…
 Connessione non riuscita. Nuovo tentativo automatico.
 
 ---
-[sync_retry_button]
-Riprova
----
 [app_icon_label]
 Icona dell’app
 ---
@@ -1920,3 +1920,36 @@ Nascondi completati
 [guide_title]
 Guida rapida
 ---
+---
+[sync_connected_as]
+Connesso come %s
+---
+[sync_everything_up_to_date]
+Tutto è aggiornato
+---
+[sync_step_account_connected]
+Account connesso
+---
+[sync_step_data_restored]
+Dati ripristinati
+---
+[sync_step_automatic_on]
+Sincronizzazione automatica attiva
+---
+[sync_history_days_label]
+Giorni nella cronologia
+---
+[sync_now_button]
+Sincronizza ora
+---
+[sync_progress_uploading]
+Invio di %lld elementi locali…
+---
+[sync_progress_securing]
+Protezione di %lld elementi su %lld…
+---
+[sync_progress_restoring]
+Ripristino dei dati dell'account…
+---
+[sync_progress_friends]
+Ripristino degli amici…

@@ -628,8 +628,11 @@ Inner Breeze를 계속 실행할까요?
 [sync_account_create_failed]
 계정을 만들 수 없음
 ---
+[sync_connect_account_button]
+계정 연결
+---
 [sync_import_key_button]
-계정 키 가져오기
+.key 파일 가져오기
 ---
 [sync_import_key_dialog_title]
 계정 키 가져오기
@@ -651,12 +654,6 @@ ID 복사
 ---
 [sync_backup_key_button]
 키 백업
----
-[sync_remote_label]
-원격
----
-[sync_connect_button]
-연결
 ---
 [sync_server_url_invalid]
 https:// 또는 localhost:8080 같은 루프백을 사용하세요
@@ -719,13 +716,16 @@ Sync review failed
 로그아웃되었습니다. 로컬 데이터는 이 기기에 남아 있습니다.
 ---
 [sync_account_switch_title]
-로컬 데이터를 지울까요?
+연결 방법 선택
 ---
 [sync_account_switch_message]
-이 기기에 다른 동기화 계정의 데이터가 있습니다. 이 계정을 사용하기 전에 로컬 데이터를 지우세요.
+이 기기에서 로컬 데이터를 찾았습니다. 바꾸기는 로컬 데이터를 삭제하고 이 계정을 복원합니다. 병합은 로컬 데이터를 유지하고 두 데이터 세트를 합칩니다.
+---
+[sync_account_switch_merge_button]
+병합하고 연결
 ---
 [sync_account_switch_clear_button]
-지우고 계정 사용
+바꾸고 연결
 ---
 [sync_account_switch_cancelled]
 계정 전환이 취소되었습니다
@@ -1858,13 +1858,16 @@ Dismiss forever
 계정을 만들어 진행 상황을 동기화하고 보호하세요.
 ---
 [profile_sync_ready_body]
-이 프로필의 동기화가 준비되었습니다.
+자동으로 동기화 중입니다.
 ---
 [profile_account_sync_title]
 계정 및 동기화
 ---
+[profile_account_connected_body]
+연결된 계정과 자동 동기화 관리
+---
 [profile_account_sync_body]
-새 계정을 만들거나 기존 키를 가져오세요
+새 계정을 만들거나 기존 .key 파일을 가져오세요
 ---
 [profile_data_management_title]
 데이터
@@ -1893,9 +1896,6 @@ Dismiss forever
 연결에 실패했습니다. 자동으로 다시 시도합니다.
 
 ---
-[sync_retry_button]
-다시 시도
----
 [app_icon_label]
 앱 아이콘
 ---
@@ -1920,3 +1920,36 @@ Dismiss forever
 [guide_title]
 빠른 안내
 ---
+---
+[sync_connected_as]
+%s(으)로 연결됨
+---
+[sync_everything_up_to_date]
+모든 항목이 최신 상태입니다
+---
+[sync_step_account_connected]
+계정 연결됨
+---
+[sync_step_data_restored]
+데이터 복원됨
+---
+[sync_step_automatic_on]
+자동 동기화 켜짐
+---
+[sync_history_days_label]
+기록 일수
+---
+[sync_now_button]
+지금 동기화
+---
+[sync_progress_uploading]
+로컬 항목 %lld개 전송 중…
+---
+[sync_progress_securing]
+항목 %lld/%lld개 보호 중…
+---
+[sync_progress_restoring]
+계정 데이터 복원 중…
+---
+[sync_progress_friends]
+친구 복원 중…
