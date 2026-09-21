@@ -221,7 +221,7 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                 .wrap=TextWrapNone
             })
         }
-        y += Scale(8)
+        y += Scale(16)
 
         for int i = 0; i < ctx->count; i++ {
             time_text: [16] char = {0}
@@ -258,16 +258,16 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
 
             if draw {
                 Text((TextProps){
-                    .bounds={(content_x), (AppControlTextY(time_text, y, summary_h, row_font)), 0, 0},
+                    .bounds={(content_x), (y), (summary_x - content_x - Scale(8)), (summary_h)},
                     .text=(time_text),
                     .font=row_font,
-                    .wrap=TextWrapNone
+                    .wrap=TextWrapNone, .vertical_align=TextAlignCenter
                 })
                 Text((TextProps){
-                    .bounds={(summary_x), (AppControlTextY(summary_text, y, summary_h, row_font)), 0, 0},
+                    .bounds={(summary_x), (y), (trash_x - summary_x - Scale(8)), (summary_h)},
                     .text=(summary_text),
                     .font=row_font,
-                    .wrap=TextWrapNone
+                    .wrap=TextWrapNone, .vertical_align=TextAlignCenter
                 })
                 if !app->habit_session_edit.active && Button((ButtonProps){
                     .id = 0,
@@ -306,6 +306,8 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                                  app->habit_session_edit.round == r &&
                                  strcmp(app->habit_session_edit.path,
                                         ctx->entries[i].path) == 0
+                value_text_x := editing_round ? value_x - Scale(8) : value_x
+                value_text_w := editing_round ? Scale(78) : value_w
 
                 FormatLocaleText(round_label, sizeof(round_label),
                                     "round_number_label", r + 1)
@@ -330,16 +332,17 @@ draw_edit_content :: (app: InnerBreeze*, ctx: HabitLinkedContext*,
                                                      StyleTokenColor("text"))
                     }
                     Text((TextProps){
-                        .bounds={(content_x), (AppControlTextY(round_label, y, row_h, row_font)),
-                                 (value_x - content_x - Scale(8)), 0},
+                        .bounds={(content_x), (y),
+                                 (value_x - content_x - Scale(8)), (row_h)},
                         .text=(round_label), .font=row_font,
-                        .wrap=TextWrapNone
+                        .wrap=TextWrapNone, .vertical_align=TextAlignCenter
                     })
                     Text((TextProps){
-                        .bounds={(value_x), (AppControlTextY(round_value, y, row_h, Scale(19))),
-                                 (value_w), 0},
+                        .bounds={(value_text_x), (y), (value_text_w), (row_h)},
                         .text=(round_value), .font=Scale(19),
-                        .wrap=TextWrapNone
+                        .wrap=TextWrapNone,
+                        .align=editing_round ? TextAlignCenter : TextAlignStart,
+                        .vertical_align=TextAlignCenter
                     })
                     if !app->habit_session_edit.active && Button((ButtonProps){
                         .id = 0,
