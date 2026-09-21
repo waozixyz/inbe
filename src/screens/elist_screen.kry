@@ -1,4 +1,4 @@
-#import "app.h"
+#import "app/app.h"
 #import "app_nav.h"
 #import "storage.h"
 elist_types :: #import "screens/elist_types"
@@ -33,7 +33,7 @@ elist_begin_input :: (app: InnerBreeze*, editing_item: int,
     app->elist.input_cursor = (int)strlen(app->elist.input)
     app->elist.input_focused = 1
     app->elist.input_error = 0
-    SetFocus(6501)
+    KryonSetFocus(6501)
     app->elist.editing_item = editing_item
 }
 
@@ -103,7 +103,7 @@ elist_select_list :: (app: InnerBreeze*, index: int) #private {
     state->input_focused = 0
     state->input_error = 0
     state->input_committed = 0
-    SetFocus(0)
+    KryonSetFocus(0)
 }
 
 elist_item_visible :: (state: elist_types.EListState*, index: int, now: double) -> int #private {

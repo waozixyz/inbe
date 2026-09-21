@@ -26,7 +26,7 @@ int Scale(int value)
     return value;
 }
 
-void SetFocus(int id)
+void KryonSetFocus(int id)
 {
     focused_id = id;
 }
