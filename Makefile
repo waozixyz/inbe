@@ -893,7 +893,7 @@ $(STORAGE_PATHS_TEST): tests/storage_paths_test.c $(STORAGE_CORE_SRCS) $(KRY_GEN
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_paths_test.c $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRYON_DIR)/src/ui/ui_inspect.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/storage/data.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(SQLITE_SRC) \
+		tests/storage_paths_test.c $(STORAGE_CORE_SRCS) $(KRYON_DIR)/src/kry_std/kry_archive.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/storage_elist.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/storage/data.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
@@ -947,12 +947,13 @@ $(FONT_GLYPH_COVERAGE_TEST): tests/font_glyph_coverage_test.c $(FONT_FILES) $(LO
 		-o $@ \
 		tests/font_glyph_coverage_test.c
 
-$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui_tree.h $(KRYON_DIR)/src/core/app_shell.c $(KRYON_DIR)/include/app_shell.h | $(TEST_BIN_DIR)
+$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.kry $(KRY_GEN_DIR)/src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui_tree.h $(KRYON_GENERATED_SRC_DIR)/ui/app_shell_layout.c $(KRYON_GENERATED_SRC_DIR)/ui/app_shell_route.c $(KRYON_DIR)/include/app_shell.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/app_bottom_nav_test.c $(KRY_GEN_DIR)/src/app/metrics.c \
-		$(KRYON_DIR)/src/core/app_shell.c \
+		$(KRYON_GENERATED_SRC_DIR)/ui/app_shell_layout.c \
+		$(KRYON_GENERATED_SRC_DIR)/ui/app_shell_route.c \
 		$(KRY_GEN_DIR)/src/app/customize_nav.c \
 		$(KRY_GEN_DIR)/src/widgets/bottom_nav.c
 
@@ -961,31 +962,31 @@ test: elist-screen-test
 elist-screen-test: $(TEST_BIN_DIR)/elist_screen_test
 	$<
 
-$(TEST_BIN_DIR)/elist_screen_test: tests/elist_screen_test.c $(KRY_GEN_DIR)/src/screens/elist_screen.c src/app/app.h | $(TEST_BIN_DIR)
+$(TEST_BIN_DIR)/elist_screen_test: tests/elist_screen_test.c $(KRY_GEN_DIR)/src/screens/elist_screen.c src/app/app.kry $(KRY_GEN_DIR)/src/app/app.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-Wl,--gc-sections -o $@ tests/elist_screen_test.c $(KRY_GEN_DIR)/src/app/metrics.c
 
-$(TEST_BIN_DIR)/habit_form_test: tests/habit_form_test.c $(KRY_GEN_DIR)/src/screens/habits/edit.c src/app/app.h | $(TEST_BIN_DIR)
+$(TEST_BIN_DIR)/habit_form_test: tests/habit_form_test.c $(KRY_GEN_DIR)/src/screens/habits/edit.c src/app/app.kry $(KRY_GEN_DIR)/src/app/app.h $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-Wl,--gc-sections -o $@ tests/habit_form_test.c $(KRY_GEN_DIR)/src/app/metrics.c $(KRY_GEN_DIR)/src/screens/habits/edit.c
 
-$(TEST_BIN_DIR)/practice_carousel_test: tests/practice_carousel_test.c $(KRY_GEN_DIR)/src/screens/practice_screen.c src/app/app.h | $(TEST_BIN_DIR)
+$(TEST_BIN_DIR)/practice_carousel_test: tests/practice_carousel_test.c $(KRY_GEN_DIR)/src/screens/practice_screen.c src/app/app.kry $(KRY_GEN_DIR)/src/app/app.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \
 		$(APP_INCLUDE) $(SQLITE_INCLUDE) \
 		-Wl,--gc-sections -o $@ tests/practice_carousel_test.c
 
-$(HABIT_MODEL_TEST): tests/habit_model_test.c $(KRY_GEN_DIR)/src/habits/habit_model.c src/screens/habits_screen.h src/screens/habits/habits.h | $(TEST_BIN_DIR)
+$(HABIT_MODEL_TEST): tests/habit_model_test.c $(KRY_GEN_DIR)/src/habits/habit_model.c src/screens/habits_screen.h src/screens/habits/habits.h $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/habit_model_test.c \
 		$(KRY_GEN_DIR)/src/habits/habit_model.c
 
-$(HABIT_SESSIONS_TEST): tests/habit_sessions_test.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/habits/habit_model.c src/screens/habits_screen.h src/screens/habits/habits.h | $(TEST_BIN_DIR)
+$(HABIT_SESSIONS_TEST): tests/habit_sessions_test.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/habits/habit_model.c src/screens/habits_screen.h src/screens/habits/habits.h $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/habit_sessions_test.c \
 		$(KRY_GEN_DIR)/src/habits/habit_sessions.c \
@@ -998,7 +999,7 @@ $(BREATH_TIMING_TEST): tests/breath_timing_test.c $(KRY_GEN_DIR)/src/core/breath
 		tests/breath_timing_test.c \
 		$(KRY_GEN_DIR)/src/core/breath_engine.c
 
-$(TEST_BIN_DIR)/session_results_test: tests/session_results_test.c $(KRY_GEN_DIR)/src/practices/session_results.c $(KRY_GEN_DIR)/src/practices/meditation/meditation_session.c src/app/app.h | $(TEST_BIN_DIR)
+$(TEST_BIN_DIR)/session_results_test: tests/session_results_test.c $(KRY_GEN_DIR)/src/practices/session_results.c $(KRY_GEN_DIR)/src/practices/meditation/meditation_session.c src/app/app.kry $(KRY_GEN_DIR)/src/app/app.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) $(SQLITE_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
 		-o $@ tests/session_results_test.c $(KRY_GEN_DIR)/src/practices/session_results.c $(KRY_GEN_DIR)/src/practices/meditation/meditation_session.c -Wl,--gc-sections
@@ -1019,7 +1020,7 @@ $(ACTIVITY_MONITOR_TEST): tests/activity_monitor_test.c $(KRYON_DIR)/src/platfor
 		$(KRYON_DIR)/src/platform/kry_activity_monitor.c \
 		$(if $(filter linux,$(NATIVE_PLATFORM)),-ldl,)
 
-$(FRAME_PACING_TEST): tests/frame_pacing_test.c $(KRY_GEN_DIR)/src/app/app_frame_pacing.c src/app/app_frame_pacing.kry src/app/app.h | $(TEST_BIN_DIR)
+$(FRAME_PACING_TEST): tests/frame_pacing_test.c $(KRY_GEN_DIR)/src/app/app_frame_pacing.c src/app/app_frame_pacing.kry src/app/app.kry $(KRY_GEN_DIR)/src/app/app.h | $(TEST_BIN_DIR)
 	$(CC) $(CFLAGS) $(CPPFLAGS) \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-Wl,--gc-sections -o $@ tests/frame_pacing_test.c $(KRY_GEN_DIR)/src/app/app_frame_pacing.c
@@ -1035,7 +1036,7 @@ FORCE:
 $(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(KRYON_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
 	sh $(KRYON_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
 
-$(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C) $(KRYON_ICON_TYPES_H): $(KRYON_ICON_FILES) $(KRYON_DIR)/scripts/embed-icon-sheets.py $(KRYON_DIR)/include/ui_icons.h | $(BUILD_OBJ_DIR)
+$(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C) $(KRYON_ICON_TYPES_H): $(KRYON_ICON_FILES) $(KRYON_DIR)/scripts/embed-icon-sheets.py  | $(BUILD_OBJ_DIR)
 	cd $(KRYON_DIR) && python3 scripts/embed-icon-sheets.py "$(KRYON_ICON_DIR)" \
 		"$(abspath $(KRYON_ICON_ASSETS_C))" \
 		--types-output "$(abspath $(KRYON_ICON_TYPES_H))" \
