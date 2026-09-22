@@ -1,5 +1,5 @@
 #module "platform.tray"
-#import "app/app.h"
+#import "app/app"
 
 DesktopTrayAction :: enum {
     DESKTOP_TRAY_ACTION_NONE = 0
@@ -34,11 +34,12 @@ DesktopTrayAction :: enum {
 #import "kryon.h"
 
 #if #defined(DESKTOP_TRAY_ENABLED) {
-    #import "app/app.h"
-    #import "breaks/app_breaks.h"
+    #import "app/app"
+    #import "breaks/app_breaks"
     #import "habits_screen.h"
-    #import "practices/patterns/patterns_practice.h"
-    #import "practices/practice_registry.h"
+    #import "practices/patterns/patterns_practice"
+#import "practices/patterns/patterns_practice"
+    #import "practices/practice_registry"
     #import "practices/sun_salutation/sun_salutation_practice.h"
     #import <stdio.h>
     #import <string.h>

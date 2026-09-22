@@ -1,10 +1,11 @@
 #module "platform.android.lifecycle"
 
 #if ANDROID_BUILD {
-    #import "app/app.h"
+    #import "app/app"
     #import "platform/android/android_timer.h"
-    #import "practices/practice_registry.h"
-    #import "practices/meditation/meditation_practice.h"
+    #import "practices/practice_registry"
+    #import "practices/meditation/meditation_practice"
+#import "practices/meditation/meditation_music"
 
     static background_execution_active: int
     static auto_paused_for_lifecycle: int

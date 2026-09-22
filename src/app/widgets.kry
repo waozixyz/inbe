@@ -1,4 +1,4 @@
-#import "app/app.h"
+#import "app/app"
 #import "runtime/modal.h"
 #import "runtime/guide.h"
 #import "runtime/paragraph.h"

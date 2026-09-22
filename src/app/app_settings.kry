@@ -1,8 +1,8 @@
-#import "app/app.h"
+#import "app/app"
 
 #import "app_nav.h" #private
-#import "app/device_preferences.h" #private
-#import "practices/meditation/meditation_music.h" #private
+#import "app/device_preferences" #private
+#import "practices/meditation/meditation_music" #private
 #import "practices/sun_salutation/sun_salutation_practice.h" #private
 #import "practices/whm/whm_session.h" #private
 #import "storage.h" #private

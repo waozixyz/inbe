@@ -1,10 +1,10 @@
 #module "settings.theme"
 
-#import "app/app.h"
+#import "app/app"
 #import "app/app_nav.h"
-#import "app/app_settings.h"
-#import "app/app_style.h"
-#import "app/device_preferences.h"
+#import "app/app_settings"
+#import "app/app_style"
+#import "app/device_preferences"
 #import "src/screens/settings/settings_types.h"
 #import <stdio.h>
 

@@ -1,8 +1,8 @@
-#import "app/app.h"
+#import "app/app"
 #import "kry_activity_monitor.h" #private
 #import "platform/app_desktop_tray.h" #private
-#import "storage/break_stats.h" #private
-#import "practices/practice_registry.h" #private
+#import "storage/break_stats" #private
+#import "practices/practice_registry" #private
 #import "notification.h" #private
 ovl :: #import "screens/break_overlay"
 

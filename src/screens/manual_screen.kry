@@ -1,7 +1,7 @@
-#import "app/app.h"
+#import "app/app"
 #import "app_nav.h"
-#import "core/breath_engine.h"
-#import "practices/practice_registry.h"
+#import "core/breath_engine"
+#import "practices/practice_registry"
 #import "stdio.h"
 
 ManualGuideStartFn :: void (*)(InnerBreeze*) #type

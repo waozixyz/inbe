@@ -1,7 +1,7 @@
-#import "app/app.h"
-#import "app/app_settings.h"
-#import "breaks/app_breaks.h"
-#import "storage/break_stats.h"
+#import "app/app"
+#import "app/app_settings"
+#import "breaks/app_breaks"
+#import "storage/break_stats"
 #import "src/screens/settings/settings_ui.h"
 
 ANDROID :: ANDROID_BUILD

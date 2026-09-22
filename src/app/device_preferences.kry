@@ -1,5 +1,5 @@
-#import "app/app_style.h"
-#import "app/app.h"
+#import "app/app_style"
+#import "app/app"
 #import "platform.h"
 
 ANDROID :: ANDROID_BUILD

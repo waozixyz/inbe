@@ -1,9 +1,9 @@
-#import "app/app.h"
+#import "app/app"
 #import "app_nav.h"
-#import "app/app_settings.h"
-#import "screens/manual_screen.h"
-#import "practices/practice_registry.h"
-#import "practices/patterns/patterns_practice.h"
+#import "app/app_settings"
+#import "screens/manual_screen"
+#import "practices/practice_registry"
+#import "practices/patterns/patterns_practice"
 #import "storage.h"
 
 #enum {

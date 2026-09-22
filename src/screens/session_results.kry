@@ -1,6 +1,6 @@
-#import "app/app.h"
-#import "practices/practice_registry.h"
-#import "practices/session_results.h"
+#import "app/app"
+#import "practices/practice_registry"
+#import "practices/session_results"
 #import "practices/whm/whm_session.h"
 #import "stdio.h"
 

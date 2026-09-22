@@ -1,6 +1,6 @@
 #module "habit_edit"
 
-#import "practices/practice_registry.h"
+#import "practices/practice_registry"
 #import "screens/habits/habits.h"
 
 static reminder_hour_texts: [24 * 8] char = {0}

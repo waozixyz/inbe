@@ -1,7 +1,7 @@
 #module "app.route_state"
 
-#import "app/app.h"
-#import "screens/profile_social.h" #private
+#import "app/app"
+#import "screens/profile_social" #private
 #import <stdlib.h> #private
 
 app_route_debug_enabled :: () -> int #private {

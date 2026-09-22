@@ -1,7 +1,7 @@
 #module "app.route_url"
 
-#import "app/app.h"
-#import "app/app_route_state.h" #private
+#import "app/app"
+#import "app/app_route_state" #private
 #import <stdio.h> #private
 #import <string.h> #private
 

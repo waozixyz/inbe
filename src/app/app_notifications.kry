@@ -2,7 +2,7 @@
 
 WEB :: #defined(PLATFORM_WEB)
 
-#import "app/app.h"
+#import "app/app"
 #import "screens/profile_social"
 hb :: #import "screens/habits_screen"
 #import "kryon.h" #private

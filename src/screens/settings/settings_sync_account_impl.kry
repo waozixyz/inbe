@@ -1,9 +1,9 @@
 #module "settings.sync_account"
 
-#import "screens/settings/settings_screen.h"
-#import "app/app.h"
+#import "screens/settings/settings_screen"
+#import "app/app"
 #import "storage/sync_account.h"
-#import "screens/profile_social.h"
+#import "screens/profile_social"
 #import "storage.h"
 #import "sync_account.h"
 #import "sync_client.h"

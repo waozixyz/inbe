@@ -1,9 +1,9 @@
-#import "app/app.h"
+#import "app/app"
 #import "kry_archive.h"
-#import "practices/practice_registry.h"
+#import "practices/practice_registry"
 #import "runtime_assets.h"
 #import "storage.h" #private
-#import "storage/data.h" #private
+#import "storage/data" #private
 #import "storage_layout.h" #private
 #import "stdio.h"
 #import "stdlib.h"

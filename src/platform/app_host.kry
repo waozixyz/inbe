@@ -1,8 +1,8 @@
 #module "platform.app_host"
 
-#import "app/app.h"
-#import "app/screenshots.h"
-#import "breaks/app_breaks.h"
+#import "app/app"
+#import "app/screenshots"
+#import "breaks/app_breaks"
 #import "desktop.h"
 #import "platform/app_desktop_tray.h"
 #import <stdio.h>

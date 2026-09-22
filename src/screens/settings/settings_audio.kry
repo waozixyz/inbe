@@ -1,10 +1,10 @@
-#import "app/app.h"
-#import "app/app_settings.h"
+#import "app/app"
+#import "app/app_settings"
 #import "android_import.h"
 #import "file_dialog.h"
-#import "practices/meditation/meditation_practice.h"
-#import "practices/practice_registry.h"
-#import "screens/settings/settings_screen.h"
+#import "practices/meditation/meditation_music"
+#import "practices/practice_registry"
+#import "screens/settings/settings_screen"
 #import "src/screens/settings/settings_ui.h"
 
 ANDROID :: ANDROID_BUILD

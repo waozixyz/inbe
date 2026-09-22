@@ -1,7 +1,7 @@
-#import "app/app.h"
+#import "app/app"
 #import "practices/sun_salutation/sun_salutation_practice.h"
-#import "screens/manual_screen.h"
-#import "screens/practice_screen.h"
+#import "screens/manual_screen"
+#import "screens/practice_screen"
 #import "stdio.h"
 
 #enum {

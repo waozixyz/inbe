@@ -1,6 +1,6 @@
-#import "app/app.h"
-#import "practices/meditation/meditation_music.h"
-#import "practices/meditation/meditation_practice.h"
+#import "app/app"
+#import "practices/meditation/meditation_music"
+#import "practices/meditation/meditation_session"
 
 meditation_practice_init :: (app: InnerBreeze*) {
     if app == NULL {

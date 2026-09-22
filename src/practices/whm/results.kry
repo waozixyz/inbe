@@ -1,4 +1,4 @@
-#import "app/app.h"
+#import "app/app"
 
 route results {
     title "Results"

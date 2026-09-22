@@ -1,13 +1,13 @@
 #import "kryon.h"
 #import "ui_swipe_props.generated.h"
 #import "platform.h"
-#import "core/breath_engine.h"
-#import "breaks/break_engine.h"
+#import "core/breath_engine"
+#import "breaks/break_engine"
 #import "app_fwd.h"
 #import "runtime_assets.h"
 #import "screens/habits_screen.h"
 #import "src/screens/elist_types.h"
-#import "screens/settings/settings_types.h"
+#import "screens/settings/settings_types"
 #import "storage/sync_account.h"
 #import <string.h>
 

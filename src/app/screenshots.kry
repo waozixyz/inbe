@@ -1,11 +1,11 @@
-#import "app/app.h"
+#import "app/app"
 #import "storage.h"
 #import "sync_account.h"
 #import "sync_client.h"
-#import "practices/practice_registry.h"
-#import "app/device_preferences.h"
-#import "screens/settings/settings_data_ui.h"
-#import "screens/settings/settings_sync_account_impl.h"
+#import "practices/practice_registry"
+#import "app/device_preferences"
+#import "screens/settings/settings_data_ui"
+#import "screens/settings/settings_sync_account_impl"
 #import <stdio.h>
 #import <stdlib.h>
 #import <string.h>

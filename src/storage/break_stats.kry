@@ -1,5 +1,5 @@
 #import "storage.h"
-#import "breaks/break_engine.h"
+#import "breaks/break_engine"
 
 #import "storage/db.h" #private
 #import <sqlite3.h>

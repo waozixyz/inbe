@@ -4,9 +4,9 @@
 #import "app_nav.h" #private
 #import "platform.h" #private
 #import "data.h" #private
-#import "practices/meditation/meditation_music.h" #private
-#import "practices/practice_audio_controls.h" #private
-#import "practices/practice_registry.h" #private
+#import "practices/meditation/meditation_music" #private
+#import "practices/practice_audio_controls" #private
+#import "practices/practice_registry" #private
 #import <math.h>
 #import <stdio.h>
 #import <string.h>

@@ -3,7 +3,7 @@
 ANDROID :: ANDROID_BUILD
 
 #if ANDROID {
-    #import "app/app.h"
+    #import "app/app"
     #import "platform/android/android_jni"
     #import "kryon.h" #private
     #import <android/log.h>

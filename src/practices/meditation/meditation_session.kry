@@ -1,11 +1,10 @@
 #import "app/app_notifications"
-#import "app/app.h"
-#import "app_nav.h" #private
-#import "data.h"
-#import "practices/meditation/meditation_music.h"
-#import "practices/meditation/meditation_practice.h"
-#import "practices/practice_audio_controls.h"
-#import "practices/practice_registry.h"
+#import "app/app"
+#import "app/app_nav" #private
+#import "storage/data"
+#import "practices/meditation/meditation_music"
+#import "practices/practice_audio_controls"
+#import "practices/practice_registry"
 #import "stdio.h"
 
 static background_remainder_ms: int = 0

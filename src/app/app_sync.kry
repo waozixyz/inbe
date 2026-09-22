@@ -1,12 +1,12 @@
-#import "app/app.h"
+#import "app/app"
 
-#import "app/app_notifications.h" #private
+#import "app/app_notifications" #private
 #import "platform.h" #private
-#import "screens/profile_social.h" #private
+#import "screens/profile_social" #private
 #import "storage.h" #private
 #import "sync_account.h" #private
 #import "sync_client.h" #private
-#import "app/sync_retry.h" #private
+#import "app/sync_retry" #private
 #import <stdio.h>
 #import <stdlib.h>
 #import <string.h>

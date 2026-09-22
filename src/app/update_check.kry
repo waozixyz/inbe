@@ -1,5 +1,5 @@
 #import "app_update_check.h"
-#import "app/app.h"
+#import "app/app"
 #import "kry_archive.h"
 #import "storage.h"
 #import "version.h"

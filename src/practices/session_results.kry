@@ -1,5 +1,5 @@
-#import "app/app.h"
-#import "practices/practice_registry.h"
+#import "app/app"
+#import "practices/practice_registry"
 #import "data.h"
 #import "stdio.h"
 #import "string.h"

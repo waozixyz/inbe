@@ -1,6 +1,6 @@
 #module "app.donation_reminder"
 
-#import "app/app.h"
+#import "app/app"
 #import "storage.h" #private
 
 save_reminder :: (app: InnerBreeze*) #private {

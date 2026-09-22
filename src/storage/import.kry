@@ -5,7 +5,7 @@
 #import "storage/db.h" #private
 #import "storage_layout.h" #private
 #import "screens/habits_screen.h" #private
-#import "core/breath_engine.h" #private
+#import "core/breath_engine" #private
 #import "kry_archive.h"
 #import "version.h" #private
 #import "kryon.h"

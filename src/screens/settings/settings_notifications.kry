@@ -1,6 +1,6 @@
 #module "settings_notifications"
 
-#import "app/app.h"
+#import "app/app"
 #import "app/app_notifications"
 #import "screens/settings/settings_ui"
 #import "platform/android/android_push"

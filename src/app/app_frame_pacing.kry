@@ -1,7 +1,7 @@
 #module "app.frame_pacing"
 
-#import "app/app.h"
-#import "practices/practice_registry.h" #private
+#import "app/app"
+#import "practices/practice_registry" #private
 
 static last_mouse_ready: int = 0
 static last_mouse_x: int = 0

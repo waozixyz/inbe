@@ -1,6 +1,6 @@
 #module "settings_ui"
 
-#import "app/app.h"
+#import "app/app"
 
 label_paragraph :: (label: const char*, w: int) -> ParagraphSpec #private {
     return (ParagraphSpec){.text = label, .width = w}

@@ -1,7 +1,7 @@
 #module "profile_social"
 
-#import "app/app.h"
-#import "practices/practice_registry.h"
+#import "app/app"
+#import "practices/practice_registry"
 #import "src/screens/settings/settings_screen.h"
 #import "storage.h"
 #import "sync_account.h"

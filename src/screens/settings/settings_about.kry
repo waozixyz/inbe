@@ -1,5 +1,5 @@
 #import "kry_uri.h" #private
-#import "app/app.h"
+#import "app/app"
 #import "stdio.h"
 #import "version.h"
 #import "app_update_check.h"
