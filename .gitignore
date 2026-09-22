@@ -15,6 +15,7 @@
 .ccache
 *.wasm
 build/
+/output/
 tmp/
 vendor-builds/
 node_modules
