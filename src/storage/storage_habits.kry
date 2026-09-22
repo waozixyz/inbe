@@ -1,6 +1,7 @@
 #import "storage.h"
 #import "db.h"
-#import "screens/habits_screen.h"
+#import "habits/habit_types"
+#import "habits/habit_model"
 #import <sqlite3.h>
 #import <stdio.h>
 #import <string.h>

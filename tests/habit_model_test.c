@@ -1,6 +1,6 @@
 #include "app/app.h"
-#include "screens/habits_screen.h"
-#include "screens/habits/habits.h"
+#include "habits/habit_types.h"
+#include "habits/habit_model.h"
 
 #include <stdio.h>
 #include <string.h>

@@ -1,5 +1,6 @@
 #import "app/app"
-#import "habits/habits.h"
+#import "habits/habit_model"
+#import "habits/habit_sessions"
 #import "stddef.h"
 #import "stdio.h"
 #import "stdlib.h"

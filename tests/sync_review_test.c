@@ -1,6 +1,7 @@
 #include "storage.h"
 #include "db.h"
-#include "screens/habits_screen.h"
+#include "habits/habit_types.h"
+#include "habits/habit_model.h"
 
 #include <dirent.h>
 #include <sqlite3.h>

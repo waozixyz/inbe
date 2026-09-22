@@ -1,6 +1,6 @@
 #import "app/app"
-#import "screens/habits_screen.h"
-#import "screens/habits/habits.h"
+#import "habits/habit_types"
+#import "habits/habit_sessions"
 #import "data.h"
 #import "storage.h"
 #import "stdio.h"

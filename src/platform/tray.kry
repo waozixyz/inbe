@@ -36,7 +36,7 @@ DesktopTrayAction :: enum {
 #if #defined(DESKTOP_TRAY_ENABLED) {
     #import "app/app"
     #import "breaks/app_breaks"
-    #import "habits_screen.h"
+    #import "screens/habits_screen"
     #import "practices/patterns/patterns_practice"
 #import "practices/patterns/patterns_practice"
     #import "practices/practice_registry"

@@ -1,7 +1,7 @@
 #module "app.persistence"
 
 #import "app/app"
-#import "screens/habits_screen.h" #private
+#import "habits/habit_types" #private
 
 app_flush_deferred_settings :: (app: InnerBreeze*) #export {
     if app == nil || app->settings_save_delay_ticks <= 0 { return }

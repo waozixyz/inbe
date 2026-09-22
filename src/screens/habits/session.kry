@@ -1,6 +1,8 @@
 #module "habit_session"
 
-#import "screens/habits/habits.h"
+#import "app/app"
+#import "habits/habit_model"
+#import "habits/habit_sessions"
 #import "platform.h"
 #import "stdio.h"
 #import "stdlib.h"

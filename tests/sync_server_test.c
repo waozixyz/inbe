@@ -1,7 +1,7 @@
 #include "storage.h"
 #include "sync_account.h"
 #include "sync_client.h"
-#include "screens/habits_screen.h"
+#include "habits/habit_types.h"
 #include "screens/elist_types.h"
 #include <curl/curl.h>
 #include <assert.h>

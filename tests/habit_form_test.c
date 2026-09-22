@@ -1,5 +1,6 @@
 #include "app/app.h"
-#include "screens/habits_screen.h"
+#include "habits/habit_types.h"
+#include "screens/habits/edit.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -41,6 +41,7 @@
 #import "screens/practice_screen"
 #import "practices/practice_registry"
 #import "screens/session_results"
+#import "screens/habits/session"
 #import "app/device_preferences"
 #import "storage.h"
 #import "practices/meditation/meditation_music"

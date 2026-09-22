@@ -1,7 +1,9 @@
 #import "app/app"
 #import "runtime/grid.h" #private
-#import "screens/habits_screen.h"
-#import "screens/habits/habits.h"
+#import "habits/habit_types"
+#import "habits/habit_model"
+#import "habits/habit_sessions"
+#import "screens/habits/edit"
 #import "screens/practice_screen"
 #import "screens/statistics_screen"
 #import "data.h"

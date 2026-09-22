@@ -4,7 +4,7 @@
 #import "app_setting_keys.h" #private
 #import "storage/db.h" #private
 #import "storage_layout.h" #private
-#import "screens/habits_screen.h" #private
+#import "habits/habit_types" #private
 #import "core/breath_engine" #private
 #import "kry_archive.h"
 #import "version.h" #private

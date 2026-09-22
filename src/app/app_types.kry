@@ -5,7 +5,7 @@
 #import "breaks/break_engine"
 #import "app_fwd.h"
 #import "runtime_assets.h"
-#import "screens/habits_screen.h"
+#import "habits/habit_types"
 #import "src/screens/elist_types.h"
 #import "screens/settings/settings_types"
 #import "storage/sync_account.h"

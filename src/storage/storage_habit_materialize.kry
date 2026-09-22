@@ -1,6 +1,6 @@
 #import "storage.h"
 #import "db.h"
-#import "screens/habits_screen.h"
+#import "habits/habit_types"
 #import "kryon.h"
 #import <sqlite3.h>
 #import <stdio.h>

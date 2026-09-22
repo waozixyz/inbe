@@ -1,7 +1,8 @@
 #include "core/breath_engine.h"
 #include "kry_archive.h"
 #include "kryon.h"
-#include "screens/habits_screen.h"
+#include "habits/habit_types.h"
+#include "habits/habit_model.h"
 #include "src/screens/elist_types.h"
 #include "storage.h"
 #include <sqlite3.h>
