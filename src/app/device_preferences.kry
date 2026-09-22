@@ -138,6 +138,13 @@ app_refresh_theme :: (app: InnerBreeze*) {
     }
 
     SetCurrentTheme(app->theme_id, app->dark_mode)
+    background := GetThemeBackground()
+    surface := GetThemeSurface()
+    text_color := GetThemeText()
+    if background.a == 0 || surface.a == 0 || text_color.a == 0 {
+        TraceLog(LOG_WARNING, "THEME: Theme palette unavailable; using built-in colors")
+        SetTheme(app->dark_mode ? ThemeDefaultDark() : ThemeDefaultLight())
+    }
     app_apply_style(app)
 }
 

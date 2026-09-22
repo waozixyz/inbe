@@ -239,7 +239,15 @@ file(GLOB APP_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_RO
 file(GLOB APP_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 file(GLOB APP_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner*.png")
 file(GLOB APP_STYLE_ASSETS RELATIVE "${REPO_ROOT}"
-    "${KRYON_DIR}/styles/kryon/*.kss" "${REPO_ROOT}/assets/styles/*.kss")
+    "${KRYON_DIR}/styles/kryon/*.kss" "${REPO_ROOT}/assets/styles/*.kss"
+    "${REPO_ROOT}/themes/catalog_*.kss")
+foreach(mode light dark)
+    file(SHA256 "${REPO_ROOT}/themes/catalog_${mode}.kss" APP_CATALOG_HASH)
+    file(SHA256 "${KRYON_DIR}/themes/catalog_${mode}.kss" KRYON_CATALOG_HASH)
+    if(NOT APP_CATALOG_HASH STREQUAL KRYON_CATALOG_HASH)
+        message(FATAL_ERROR "Packaged ${mode} theme catalog differs from Kryon")
+    endif()
+endforeach()
 set(APP_EMBEDDED_INPUTS
     ${APP_STYLE_ASSETS}
     ${APP_LOCALE_ASSETS}

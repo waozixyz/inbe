@@ -400,7 +400,9 @@ FONT_FILES := \
 	$(FONT_SUBSET_DIR)/NotoSansKR-App-Regular.otf \
 	$(FONT_SUBSET_DIR)/NotoSansTC-App-Regular.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
-STYLE_FILES := $(wildcard $(KRYON_DIR)/styles/kryon/*.kss) $(wildcard assets/styles/*.kss)
+STYLE_FILES := $(wildcard $(KRYON_DIR)/styles/kryon/*.kss) \
+	$(wildcard assets/styles/*.kss) \
+	$(wildcard themes/catalog_*.kss)
 IMAGE_FILES += assets/app/icon-sky-cradle.png assets/app/icon-ink-and-air.png
 IMAGE_FILES += $(wildcard assets/social/*.png)
 EMBEDDED_ASSET_FILES := $(STYLE_FILES) $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
@@ -1034,7 +1036,14 @@ $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):
 
 FORCE:
 
-$(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(KRYON_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
+.PHONY: theme-catalog-bundle-check
+theme-catalog-bundle-check:
+	@cmp themes/catalog_light.kss $(KRYON_DIR)/themes/catalog_light.kss
+	@cmp themes/catalog_dark.kss $(KRYON_DIR)/themes/catalog_dark.kss
+
+test: theme-catalog-bundle-check
+
+$(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(KRYON_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR) theme-catalog-bundle-check
 	sh $(KRYON_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
 
 $(KRYON_ICON_ASSETS_C) $(KRYON_ICON_NAMES_C) $(KRYON_ICON_TYPES_H): $(KRYON_ICON_FILES) $(KRYON_DIR)/scripts/embed-icon-sheets.py  | $(BUILD_OBJ_DIR)

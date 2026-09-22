@@ -1,4 +1,8 @@
 # Changelog
+## [2.0.6] - 2026-09-22
+### Fixed
+- Selected app color themes now keep their backgrounds, cards, and text visible. Theme catalogs are included in every build, and an unavailable palette falls back to readable built-in colors.
+
 ## [2.0.5] - 2026-09-21
 ### Changed
 - Session details now show the practice name, time, and round count above clearly separated round rows with larger hold times and easier-to-tap edit and delete actions. Editing a round highlights its value and provides a labeled number pad with separate Cancel and Save actions.
