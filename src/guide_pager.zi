@@ -1,0 +1,162 @@
+#import "control_props"
+#import "drawing_props"
+#import "geometry"
+#import "style"
+
+using StyleField;
+
+GuidePagerMetrics :: struct {
+    pad: s32
+    gap: s32
+    button_height: s32
+    swipe_min_distance: float32
+    swipe_axis_bias: float32
+    swipe_max_duration: float32
+}
+
+GuidePagerLayout :: struct {
+    valid: bool
+    left_button: Rectangle
+    right_button: Rectangle
+    button_height: s32
+}
+
+GuidePagerPolicy :: struct {
+    page: s32
+    changed: bool
+    closed: bool
+    finished: bool
+}
+
+GuidePagerInput :: struct {
+    previous_requested: bool
+    next_requested: bool
+    close_requested: bool
+    keyboard_finish: bool
+}
+
+GuidePagerHas :: (fields: u32, field: u32) -> bool {
+    return (fields & field) != cast(u32)0
+}
+
+GuidePagerMetric :: (fields: u32, field: u32, value: float32,
+    fallback: float32, scale: float32, allow_zero: bool) -> s32 {
+    if !GuidePagerHas(fields, field) || value < 0.0 ||
+       (!allow_zero && value <= 0.0) {
+        value = fallback
+    }
+    return cast(s32)(value * scale)
+}
+
+GuidePagerMetricFloat :: (fields: u32, field: u32, value: float32,
+    fallback: float32, scale: float32, allow_zero: bool) -> float32 {
+    if !GuidePagerHas(fields, field) || value < 0.0 ||
+       (!allow_zero && value <= 0.0) {
+        value = fallback
+    }
+    return value * scale
+}
+
+#program_export
+GuidePagerMetricsFor :: (scale: float32, bar: StyleFrame) -> GuidePagerMetrics {
+    if scale <= 0.0 { scale = 1.0 }
+    metrics: GuidePagerMetrics
+    metrics.pad = GuidePagerMetric(bar.value.fields,
+        cast(u32)StylePaddingX, bar.value.padding_x, 12.0, scale, true)
+    metrics.gap = GuidePagerMetric(bar.value.fields,
+        cast(u32)StyleGap, bar.value.gap, 12.0, scale, true)
+    metrics.button_height = GuidePagerMetric(bar.value.fields,
+        cast(u32)StyleIconSize, bar.value.icon_size, 48.0, scale, true)
+    metrics.swipe_min_distance = GuidePagerMetricFloat(bar.value.fields,
+        cast(u32)StyleContentOffset, bar.value.offset_x, 48.0, scale, false)
+    metrics.swipe_axis_bias = 1.25
+    metrics.swipe_max_duration = 0.8
+    return metrics
+}
+
+#program_export
+GuidePagerPageCount :: (page_count: s32) -> s32 {
+    if page_count > 0 { return page_count }
+    return 1
+}
+
+#program_export
+GuidePagerPageFor :: (page: s32, page_count: s32) -> s32 {
+    count: s32 = GuidePagerPageCount(page_count)
+    if page < 0 { return 0 }
+    if page >= count { return count - 1 }
+    return page
+}
+
+#program_export
+GuidePagerLayoutFor :: (footer_bounds: Rectangle, metrics: GuidePagerMetrics) -> GuidePagerLayout {
+    layout: GuidePagerLayout
+    footer_x: s32 = cast(s32)footer_bounds.x
+    footer_y: s32 = cast(s32)footer_bounds.y
+    footer_w: s32 = cast(s32)footer_bounds.width
+    footer_h: s32 = cast(s32)footer_bounds.height
+    button_h: s32 = metrics.button_height
+    button_w: s32
+    button_y: s32
+
+    if footer_w <= 0 || footer_h <= 0 { return layout }
+    if button_h > footer_h - metrics.pad * 2 {
+        button_h = footer_h - metrics.pad * 2
+    }
+    if button_h < 1 { return layout }
+    button_w = (footer_w - metrics.pad * 2 - metrics.gap) / 2
+    if button_w < 1 { return layout }
+
+    button_y = footer_y + (footer_h - button_h) / 2
+    layout.valid = true
+    layout.button_height = button_h
+    layout.left_button.x = cast(float32)(footer_x + metrics.pad)
+    layout.left_button.y = cast(float32)button_y
+    layout.left_button.width = cast(float32)button_w
+    layout.left_button.height = cast(float32)button_h
+    layout.right_button.x = cast(float32)(footer_x + metrics.pad + button_w + metrics.gap)
+    layout.right_button.y = cast(float32)button_y
+    layout.right_button.width = cast(float32)button_w
+    layout.right_button.height = cast(float32)button_h
+    return layout
+}
+
+#program_export
+GuidePagerPolicyFor :: (page: s32, page_count: s32, previous: bool, next: bool,
+    close_requested: bool, finish_requested: bool, finish_on_next: bool) -> GuidePagerPolicy {
+    policy: GuidePagerPolicy
+    count: s32 = GuidePagerPageCount(page_count)
+    page = GuidePagerPageFor(page, count)
+    policy.page = page
+
+    if close_requested {
+        policy.closed = true
+        return policy
+    }
+    if finish_requested {
+        policy.finished = true
+        return policy
+    }
+    if previous && page > 0 {
+        policy.page = page - 1
+        policy.changed = true
+    } else if next && page < count - 1 {
+        policy.page = page + 1
+        policy.changed = true
+    } else if next && page == count - 1 && finish_on_next {
+        policy.finished = true
+    }
+    return policy
+}
+
+#program_export
+GuidePagerInputFor :: (left_pressed: bool, right_pressed: bool,
+    enter_pressed: bool, back_pressed: bool, escape_pressed: bool,
+    swipe_active: bool) -> GuidePagerInput {
+    input: GuidePagerInput
+    input.previous_requested = left_pressed
+    input.next_requested = right_pressed || enter_pressed
+    input.close_requested = back_pressed || escape_pressed
+    input.keyboard_finish = input.next_requested && !swipe_active
+    return input
+}

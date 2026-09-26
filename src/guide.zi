@@ -1,0 +1,406 @@
+#import "control_props"
+#import "drawing_props"
+#import "geometry"
+#import "style"
+
+using StyleField;
+
+GuideMetrics :: struct {
+    margin: s32
+    anchor_padding: s32
+    anchor_stroke: s32
+    gap: s32
+    pad: s32
+    button_size: s32
+    close_size: s32
+    close_icon_size: s32
+    close_icon_padding: s32
+    nav_icon_size: s32
+    nav_icon_padding: s32
+    nav_gap: s32
+    text_gap: s32
+    default_line_gap: s32
+    controls_gap: s32
+    text_guard: s32
+    min_tip_height: s32
+    default_tip_width: s32
+}
+
+GuideScrim :: struct {
+    top: Rectangle
+    bottom: Rectangle
+    left: Rectangle
+    right: Rectangle
+}
+
+GuideArrow :: struct {
+    line_start: Vector2
+    line_end: Vector2
+    tip0: Vector2
+    tip1: Vector2
+    tip2: Vector2
+    stroke_width: float32
+}
+
+GuideLayout :: struct {
+    tip: Rectangle
+    text: Rectangle
+    close_button: Rectangle
+    back_button: Rectangle
+    next_button: Rectangle
+    controls_y: s32
+    text_clip_height: s32
+    text_clipped: bool
+    finish: bool
+}
+
+GuidePolicy :: struct {
+    step: s32
+    changed: bool
+    closed: bool
+    finished: bool
+}
+
+GuideInput :: struct {
+    previous_requested: bool
+    next_requested: bool
+    close_requested: bool
+}
+
+guide_clampi :: (value: s32, minimum: s32, maximum: s32) -> s32 {
+    if value < minimum { return minimum }
+    if value > maximum { return maximum }
+    return value
+}
+
+GuideHas :: (fields: u32, field: u32) -> bool {
+    return (fields & field) != cast(u32)0
+}
+
+GuideMetric :: (fields: u32, field: u32, value: float32,
+    fallback: float32, scale: float32, allow_zero: bool) -> s32 {
+    if !GuideHas(fields, field) || value < 0.0 ||
+       (!allow_zero && value <= 0.0) {
+        value = fallback
+    }
+    return cast(s32)(value * scale)
+}
+
+#program_export
+GuideMetricsFor :: (scale: float32, panel: StyleFrame, anchor: StyleFrame,
+    label: StyleFrame, action: StyleFrame, close: StyleFrame) -> GuideMetrics {
+    if scale <= 0.0 { scale = 1.0 }
+    metrics: GuideMetrics
+    metrics.margin = GuideMetric(panel.value.fields,
+        cast(u32)StylePaddingY, panel.value.padding_y, 12.0, scale, true)
+    metrics.anchor_padding = GuideMetric(anchor.value.fields,
+        cast(u32)StylePaddingX, anchor.value.padding_x, 4.0, scale, true)
+    metrics.anchor_stroke = GuideMetric(anchor.value.fields,
+        cast(u32)StyleBorderWidth, anchor.value.border_width, 2.0, scale, true)
+    metrics.gap = GuideMetric(panel.value.fields,
+        cast(u32)StyleGap, panel.value.gap, 20.0, scale, true)
+    metrics.pad = GuideMetric(panel.value.fields,
+        cast(u32)StylePaddingX, panel.value.padding_x, 12.0, scale, true)
+    metrics.button_size = GuideMetric(action.value.fields,
+        cast(u32)StyleContentOffset, action.value.offset_y, 34.0, scale, false)
+    metrics.close_size = GuideMetric(close.value.fields,
+        cast(u32)StyleContentOffset, close.value.offset_y, 28.0, scale, false)
+    metrics.close_icon_size = GuideMetric(close.value.fields,
+        cast(u32)StyleIconSize, close.value.icon_size, 16.0, scale, true)
+    metrics.close_icon_padding = GuideMetric(close.value.fields,
+        cast(u32)StylePaddingX, close.value.padding_x, 6.0, scale, true)
+    metrics.nav_icon_size = GuideMetric(action.value.fields,
+        cast(u32)StyleIconSize, action.value.icon_size, 19.0, scale, true)
+    metrics.nav_icon_padding = GuideMetric(action.value.fields,
+        cast(u32)StylePaddingX, action.value.padding_x, 7.0, scale, true)
+    metrics.nav_gap = GuideMetric(action.value.fields,
+        cast(u32)StyleGap, action.value.gap, 8.0, scale, true)
+    metrics.text_gap = GuideMetric(label.value.fields,
+        cast(u32)StyleGap, label.value.gap, 8.0, scale, true)
+    metrics.default_line_gap = GuideMetric(label.value.fields,
+        cast(u32)StylePaddingY, label.value.padding_y, 6.0, scale, true)
+    metrics.controls_gap = GuideMetric(close.value.fields,
+        cast(u32)StyleGap, close.value.gap, 12.0, scale, true)
+    metrics.text_guard = GuideMetric(label.value.fields,
+        cast(u32)StylePaddingX, label.value.padding_x, 8.0, scale, true)
+    metrics.min_tip_height = GuideMetric(panel.value.fields,
+        cast(u32)StyleContentOffset, panel.value.offset_y, 112.0, scale, false)
+    metrics.default_tip_width = GuideMetric(panel.value.fields,
+        cast(u32)StyleContentOffset, panel.value.offset_x, 300.0, scale, false)
+    return metrics
+}
+
+#program_export
+GuideStepFor :: (step: s32, count: s32) -> s32 {
+    if count <= 0 { return 0 }
+    return guide_clampi(step, 0, count - 1)
+}
+
+#program_export
+GuidePolicyFor :: (step: s32, count: s32, previous: bool, next: bool,
+    close_requested: bool) -> GuidePolicy {
+    policy: GuidePolicy
+    step = GuideStepFor(step, count)
+    policy.step = step
+    if close_requested {
+        policy.closed = true
+        return policy
+    }
+    if previous && step > 0 {
+        policy.step = step - 1
+        policy.changed = true
+    } else if next {
+        if step >= count - 1 {
+            policy.finished = true
+        } else {
+            policy.step = step + 1
+            policy.changed = true
+        }
+    }
+    return policy
+}
+
+#program_export
+GuideInputFor :: (left_pressed: bool, right_pressed: bool,
+    enter_pressed: bool, back_pressed: bool, escape_pressed: bool) -> GuideInput {
+    input: GuideInput
+    input.previous_requested = left_pressed
+    input.next_requested = right_pressed || enter_pressed
+    input.close_requested = back_pressed || escape_pressed
+    return input
+}
+
+#program_export
+GuideTipWidth :: (view_width: s32, max_width: s32,
+    metrics: GuideMetrics) -> s32 {
+    width: s32 = view_width - metrics.margin * 2
+    if max_width > 0 && width > max_width {
+        width = max_width
+    } else if width > metrics.default_tip_width {
+        width = metrics.default_tip_width
+    }
+    if width < 1 { width = 1 }
+    return width
+}
+
+#program_export
+GuideMaxTipHeight :: (view_height: s32, reserved_top: s32,
+    reserved_bottom: s32, metrics: GuideMetrics) -> s32 {
+    max_h: s32 = view_height - reserved_top - reserved_bottom -
+                 metrics.margin * 2
+    if max_h < metrics.min_tip_height {
+        max_h = view_height - metrics.margin * 2
+    }
+    if max_h < 1 { max_h = 1 }
+    return max_h
+}
+
+#program_export
+GuideChromeHeight :: (metrics: GuideMetrics) -> s32 {
+    return metrics.pad + metrics.close_size + metrics.text_gap +
+           metrics.text_guard + metrics.controls_gap +
+           metrics.button_size + metrics.pad
+}
+
+#program_export
+GuideLineGapFor :: (requested_line_gap: s32, metrics: GuideMetrics) -> s32 {
+    if requested_line_gap > 0 { return requested_line_gap }
+    return metrics.default_line_gap
+}
+
+#program_export
+GuideParagraphFontFor :: (requested_font: s32, style_font: s32,
+    default_font: s32) -> s32 {
+    font: s32 = default_font
+    if requested_font > 0 { font = requested_font }
+    if style_font > 0 { font = style_font }
+    return font
+}
+
+#program_export
+GuideParagraphHeightLimit :: (max_tip_height: s32,
+    metrics: GuideMetrics) -> s32 {
+    return max_tip_height - GuideChromeHeight(metrics)
+}
+
+#program_export
+GuideShouldShrinkParagraphFont :: (paragraph_height: s32, height_limit: s32,
+    font: s32, min_font: s32) -> bool {
+    return font > min_font && paragraph_height > height_limit
+}
+
+#program_export
+GuideShrinkParagraphFontStep :: (paragraph_height: s32, height_limit: s32,
+    font: s32, min_font: s32) -> s32 {
+    if GuideShouldShrinkParagraphFont(paragraph_height, height_limit, font, min_font) {
+        return font - 1
+    }
+    return font
+}
+
+#program_export
+GuideTipHeight :: (paragraph_height: s32, max_tip_height: s32,
+    metrics: GuideMetrics) -> s32 {
+    height: s32 = GuideChromeHeight(metrics) + paragraph_height
+    if height < metrics.min_tip_height { height = metrics.min_tip_height }
+    if height > max_tip_height { height = max_tip_height }
+    if height < 1 { height = 1 }
+    return height
+}
+
+#program_export
+GuideTipBounds :: (anchor: Rectangle, width: s32, height: s32,
+    view_width: s32, view_height: s32, reserved_top: s32,
+    reserved_bottom: s32, metrics: GuideMetrics) -> Rectangle {
+    bottom: s32 = view_height - reserved_bottom
+    x: s32 = cast(s32)(anchor.x + anchor.width / 2.0) - width / 2
+    y: s32
+    rect: Rectangle
+
+    if bottom < reserved_top + metrics.margin {
+        bottom = view_height - metrics.margin
+    }
+    if x < metrics.margin { x = metrics.margin }
+    if x + width > view_width - metrics.margin {
+        x = view_width - metrics.margin - width
+    }
+    if x < metrics.margin { x = metrics.margin }
+
+    if anchor.y + anchor.height + cast(float32)metrics.gap + cast(float32)height <
+       cast(float32)bottom {
+        y = cast(s32)(anchor.y + anchor.height + cast(float32)metrics.gap)
+    } else {
+        y = cast(s32)(anchor.y - cast(float32)metrics.gap - cast(float32)height)
+    }
+    if y < reserved_top + metrics.margin {
+        y = reserved_top + metrics.margin
+    }
+    if y + height > bottom - metrics.margin {
+        y = bottom - metrics.margin - height
+    }
+    if y < metrics.margin { y = metrics.margin }
+
+    rect.x = cast(float32)x
+    rect.y = cast(float32)y
+    rect.width = cast(float32)width
+    rect.height = cast(float32)height
+    return rect
+}
+
+#program_export
+GuideScrimFor :: (view_width: s32, view_height: s32,
+    anchor: Rectangle, metrics: GuideMetrics) -> GuideScrim {
+    scrim: GuideScrim
+    left: s32 = guide_clampi(cast(s32)anchor.x - metrics.anchor_padding, 0, view_width)
+    top: s32 = guide_clampi(cast(s32)anchor.y - metrics.anchor_padding, 0, view_height)
+    right: s32 = guide_clampi(cast(s32)(anchor.x + anchor.width) +
+        metrics.anchor_padding, 0, view_width)
+    bottom: s32 = guide_clampi(cast(s32)(anchor.y + anchor.height) +
+        metrics.anchor_padding, 0, view_height)
+
+    scrim.top = Rectangle.{0.0, 0.0, cast(float32)view_width, cast(float32)top}
+    scrim.bottom = Rectangle.{0.0, cast(float32)bottom, cast(float32)view_width,
+        cast(float32)(view_height - bottom)}
+    scrim.left = Rectangle.{0.0, cast(float32)top, cast(float32)left,
+        cast(float32)(bottom - top)}
+    scrim.right = Rectangle.{cast(float32)right, cast(float32)top,
+        cast(float32)(view_width - right), cast(float32)(bottom - top)}
+    return scrim
+}
+
+#program_export
+GuideArrowFor :: (tip: Rectangle, anchor: Rectangle,
+    metrics: GuideMetrics) -> GuideArrow {
+    arrow: GuideArrow
+    anchor_cx: s32 = cast(s32)(anchor.x + anchor.width / 2.0)
+    anchor_cy: s32 = cast(s32)(anchor.y + anchor.height / 2.0)
+    tip_left: s32 = cast(s32)tip.x
+    tip_right: s32 = cast(s32)(tip.x + tip.width)
+    tip_top: s32 = cast(s32)tip.y
+    tip_bottom: s32 = cast(s32)(tip.y + tip.height)
+    arrow_size: s32 = metrics.gap / 2
+    if arrow_size < 0 { arrow_size = 0 }
+    arrow.stroke_width = cast(float32)metrics.anchor_stroke
+
+    if anchor_cy < tip_top {
+        arrow.line_start.x = cast(float32)anchor_cx
+        arrow.line_start.y = cast(float32)(anchor_cy + cast(s32)(anchor.height / 2.0))
+        arrow.line_end.x = cast(float32)anchor_cx
+        arrow.line_end.y = cast(float32)tip_top
+        arrow.tip0 = arrow.line_end
+        arrow.tip1.x = arrow.line_end.x - cast(float32)arrow_size
+        arrow.tip1.y = arrow.line_end.y - cast(float32)arrow_size
+        arrow.tip2.x = arrow.line_end.x + cast(float32)arrow_size
+        arrow.tip2.y = arrow.line_end.y - cast(float32)arrow_size
+    } else if anchor_cy > tip_bottom {
+        arrow.line_start.x = cast(float32)anchor_cx
+        arrow.line_start.y = cast(float32)(anchor_cy - cast(s32)(anchor.height / 2.0))
+        arrow.line_end.x = cast(float32)anchor_cx
+        arrow.line_end.y = cast(float32)tip_bottom
+        arrow.tip0 = arrow.line_end
+        arrow.tip1.x = arrow.line_end.x + cast(float32)arrow_size
+        arrow.tip1.y = arrow.line_end.y + cast(float32)arrow_size
+        arrow.tip2.x = arrow.line_end.x - cast(float32)arrow_size
+        arrow.tip2.y = arrow.line_end.y + cast(float32)arrow_size
+    } else if anchor_cx < tip_left {
+        arrow.line_start.x = cast(float32)(anchor_cx + cast(s32)(anchor.width / 2.0))
+        arrow.line_start.y = cast(float32)anchor_cy
+        arrow.line_end.x = cast(float32)tip_left
+        arrow.line_end.y = cast(float32)anchor_cy
+        arrow.tip0 = arrow.line_end
+        arrow.tip1.x = arrow.line_end.x - cast(float32)arrow_size
+        arrow.tip1.y = arrow.line_end.y - cast(float32)arrow_size
+        arrow.tip2.x = arrow.line_end.x - cast(float32)arrow_size
+        arrow.tip2.y = arrow.line_end.y + cast(float32)arrow_size
+    } else {
+        arrow.line_start.x = cast(float32)(anchor_cx - cast(s32)(anchor.width / 2.0))
+        arrow.line_start.y = cast(float32)anchor_cy
+        arrow.line_end.x = cast(float32)tip_right
+        arrow.line_end.y = cast(float32)anchor_cy
+        arrow.tip0 = arrow.line_end
+        arrow.tip1.x = arrow.line_end.x + cast(float32)arrow_size
+        arrow.tip1.y = arrow.line_end.y - cast(float32)arrow_size
+        arrow.tip2.x = arrow.line_end.x + cast(float32)arrow_size
+        arrow.tip2.y = arrow.line_end.y + cast(float32)arrow_size
+    }
+    return arrow
+}
+
+#program_export
+GuideLayoutFor :: (tip: Rectangle, paragraph_width: s32,
+    paragraph_height: s32, step: s32, count: s32,
+    metrics: GuideMetrics) -> GuideLayout {
+    layout: GuideLayout
+    y: s32 = cast(s32)tip.y + metrics.pad + metrics.close_size +
+             metrics.text_gap
+    layout.tip = tip
+    layout.controls_y = cast(s32)tip.y + cast(s32)tip.height - metrics.pad -
+                        metrics.button_size
+    layout.text_clip_height = layout.controls_y - metrics.controls_gap - y
+    layout.text_clipped = layout.text_clip_height <
+                          paragraph_height + metrics.text_guard
+    layout.finish = step >= count - 1
+    layout.text = Rectangle.{cast(float32)(cast(s32)tip.x + metrics.pad),
+        cast(float32)y, cast(float32)paragraph_width, cast(float32)layout.text_clip_height}
+    layout.close_button = Rectangle.{
+        tip.x + tip.width - cast(float32)metrics.pad - cast(float32)metrics.close_size,
+        tip.y + cast(float32)metrics.pad,
+        cast(float32)metrics.close_size,
+        cast(float32)metrics.close_size
+    }
+    layout.back_button = Rectangle.{
+        tip.x + tip.width - cast(float32)metrics.pad -
+            cast(float32)(metrics.button_size * 2) - cast(float32)metrics.nav_gap,
+        cast(float32)layout.controls_y,
+        cast(float32)metrics.button_size,
+        cast(float32)metrics.button_size
+    }
+    layout.next_button = Rectangle.{
+        tip.x + tip.width - cast(float32)metrics.pad -
+            cast(float32)metrics.button_size,
+        cast(float32)layout.controls_y,
+        cast(float32)metrics.button_size,
+        cast(float32)metrics.button_size
+    }
+    return layout
+}

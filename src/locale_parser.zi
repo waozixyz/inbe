@@ -1,0 +1,287 @@
+
+// Catalog text remains immutable. Callers supply entry and byte storage;
+// returned spans address the byte storage, never a host pointer.
+LocaleSpan :: struct {
+    start: s32
+    length: s32
+}
+
+LocaleEntrySpan :: struct {
+    key: LocaleSpan
+    value: LocaleSpan
+}
+
+LocaleLanguageSpan :: struct {
+    code: LocaleSpan
+    label: LocaleSpan
+}
+
+LocaleParseResult :: struct {
+    count: s32
+    byte_count: s32
+    complete: bool
+}
+
+LocaleLine :: struct {
+    start: s32
+    end: s32
+    next: s32
+}
+
+LocaleTextResult :: struct {
+    text: string
+    found: bool
+}
+
+LocaleNextLine :: (text: string, cursor: s32) -> LocaleLine {
+    line: LocaleLine
+    line.start = cursor
+    line.end = cursor
+    while line.end < (cast(s32)text.count) && text[line.end] != 10 &&
+        text[line.end] != 13 { line.end += 1 }
+    line.next = line.end
+    if line.next < (cast(s32)text.count) {
+        first: u8 = text[line.next]
+        line.next += 1
+        if line.next < (cast(s32)text.count) &&
+            ((first == 10 && text[line.next] == 13) ||
+             (first == 13 && text[line.next] == 10)) {
+            line.next += 1
+        }
+    }
+    return line
+}
+
+LocaleKeyMatches :: (catalog: string, start: s32, end: s32,
+    key: string) -> bool {
+    if end - start != cast(s32)key.count { return false }
+    index: s32 = 0
+    while index < cast(s32)key.count {
+        if catalog[start + index] != key[index] { return false }
+        index += 1
+    }
+    return true
+}
+
+// Return a view into the caller's immutable catalog text. The caller keeps
+// that text alive while using the result. Duplicate keys use the last complete
+// entry, and a new [key] discards an unfinished entry.
+#program_export
+LocaleFindText :: (catalog: string, key: string) -> LocaleTextResult {
+    result: LocaleTextResult
+    result.text = catalog[0:0]
+    cursor: s32 = 0
+    matching: bool = false
+    value_start: s32 = -1
+    value_end: s32 = 0
+    while cursor < cast(s32)catalog.count {
+        line: LocaleLine = LocaleNextLine(catalog, cursor)
+        cursor = line.next
+        if line.end - line.start > 2 && catalog[line.start] == 91 &&
+            catalog[line.end - 1] == 93 {
+            matching = LocaleKeyMatches(catalog, line.start + 1,
+                line.end - 1, key)
+            value_start = -1
+            continue
+        }
+        if line.end - line.start == 3 && catalog[line.start] == 45 &&
+            catalog[line.start + 1] == 45 && catalog[line.start + 2] == 45 {
+            if matching {
+                result.found = true
+                if value_start >= 0 {
+                    result.text = catalog[value_start:value_end]
+                } else {
+                    result.text = catalog[0:0]
+                }
+            }
+            matching = false
+            continue
+        }
+        if matching {
+            if value_start < 0 { value_start = line.start }
+            value_end = line.end
+        }
+    }
+    if matching {
+        result.found = true
+        if value_start >= 0 {
+            result.text = catalog[value_start:value_end]
+        } else {
+            result.text = catalog[0:0]
+        }
+    }
+    return result
+}
+
+LocaleCopyRange :: (text: string, start: s32, end: s32,
+    bytes: []u8, used: s32) -> s32 {
+    if start < 0 || end < start || end > (cast(s32)text.count) ||
+        used < 0 || used > (cast(s32)bytes.count) || end - start > (cast(s32)bytes.count) - used {
+        return -1
+    }
+    index: s32 = start
+    while index < end {
+        bytes[used] = text[index]
+        used += 1
+        index += 1
+    }
+    return used
+}
+
+LocaleSpanMatchesText :: (bytes: []u8, span: LocaleSpan,
+    text: string, start: s32, end: s32) -> bool {
+    if span.start < 0 || span.length < 0 ||
+        span.start > (cast(s32)bytes.count) ||
+        span.length > (cast(s32)bytes.count) - span.start ||
+        start < 0 || end < start || end > (cast(s32)text.count) ||
+        span.length != end - start { return false }
+    index: s32 = 0
+    while index < span.length {
+        if bytes[span.start + index] != text[start + index] { return false }
+        index += 1
+    }
+    return true
+}
+
+#program_export
+LocaleSpanEquals :: (bytes: []u8, span: LocaleSpan,
+    text: string) -> bool {
+    return LocaleSpanMatchesText(bytes, span, text, 0, (cast(s32)text.count))
+}
+
+LocaleCommitEntry :: (text: string, key_start: s32, key_end: s32,
+    body_start: s32, entries: []LocaleEntrySpan, bytes: []u8,
+    state: LocaleParseResult) -> LocaleParseResult {
+    index: s32 = 0
+    while index < state.count {
+        entry: LocaleEntrySpan = entries[index]
+        if LocaleSpanMatchesText(bytes, entry.key,
+            text, key_start, key_end) {
+            entries[index] = LocaleEntrySpan.{entry.key,
+                LocaleSpan.{body_start, state.byte_count - body_start}}
+            return state
+        }
+        index += 1
+    }
+    if state.count >= cast(s32)entries.count {
+        state.complete = false
+        return state
+    }
+    key_copy_start: s32 = state.byte_count
+    copied: s32 = LocaleCopyRange(text, key_start, key_end,
+        bytes, state.byte_count)
+    if copied < 0 {
+        state.complete = false
+        return state
+    }
+    state.byte_count = copied
+    entry: LocaleEntrySpan
+    entry.key.start = key_copy_start
+    entry.key.length = key_end - key_start
+    entry.value.start = body_start
+    entry.value.length = key_copy_start - body_start
+    entries[state.count] = entry
+    state.count += 1
+    return state
+}
+
+// A new [key] before a --- separator discards the unfinished entry, matching
+// the catalog format. Duplicate keys keep their original slot and latest value.
+#program_export
+LocaleParseEntries :: (text: string, entries: []LocaleEntrySpan,
+    bytes: []u8) -> LocaleParseResult {
+    state: LocaleParseResult
+    state.complete = true
+    cursor: s32 = 0
+    key_start: s32 = -1
+    key_end: s32 = 0
+    body_start: s32 = 0
+    while cursor < (cast(s32)text.count) {
+        line: LocaleLine = LocaleNextLine(text, cursor)
+        cursor = line.next
+        if line.end - line.start > 2 && text[line.start] == 91 &&
+            text[line.end - 1] == 93 {
+            state.byte_count = body_start
+            key_start = line.start + 1
+            key_end = line.end - 1
+            continue
+        }
+        if line.end - line.start == 3 && text[line.start] == 45 &&
+            text[line.start + 1] == 45 && text[line.start + 2] == 45 {
+            if key_start >= 0 {
+                state = LocaleCommitEntry(text, key_start, key_end,
+                    body_start, entries, bytes, state)
+                if !state.complete { return state }
+                key_start = -1
+            }
+            body_start = state.byte_count
+            continue
+        }
+        if key_start >= 0 {
+            if state.byte_count > body_start {
+                if state.byte_count >= (cast(s32)bytes.count) {
+                    state.complete = false
+                    return state
+                }
+                bytes[state.byte_count] = 10
+                state.byte_count += 1
+            }
+            copied: s32 = LocaleCopyRange(text, line.start, line.end,
+                bytes, state.byte_count)
+            if copied < 0 {
+                state.complete = false
+                return state
+            }
+            state.byte_count = copied
+        }
+    }
+    if key_start >= 0 {
+        state = LocaleCommitEntry(text, key_start, key_end,
+            body_start, entries, bytes, state)
+    }
+    return state
+}
+
+#program_export
+LocaleParseLanguages :: (text: string, languages: []LocaleLanguageSpan,
+    bytes: []u8) -> LocaleParseResult {
+    state: LocaleParseResult
+    state.complete = true
+    cursor: s32 = 0
+    while cursor < (cast(s32)text.count) {
+        line: LocaleLine = LocaleNextLine(text, cursor)
+        cursor = line.next
+        if line.end <= line.start || text[line.start] == 35 { continue }
+        separator: s32 = line.start
+        while separator < line.end && text[separator] != 124 {
+            separator += 1
+        }
+        if separator == line.start || separator >= line.end - 1 { continue }
+        if state.count >= (cast(s32)languages.count) {
+            state.complete = false
+            return state
+        }
+        language: LocaleLanguageSpan
+        language.code.start = state.byte_count
+        language.code.length = separator - line.start
+        copied: s32 = LocaleCopyRange(text, line.start, separator,
+            bytes, state.byte_count)
+        if copied < 0 {
+            state.complete = false
+            return state
+        }
+        state.byte_count = copied
+        language.label.start = state.byte_count
+        language.label.length = line.end - separator - 1
+        copied = LocaleCopyRange(text, separator + 1, line.end,
+            bytes, state.byte_count)
+        if copied < 0 {
+            state.complete = false
+            return state
+        }
+        state.byte_count = copied
+        languages[state.count] = language
+        state.count += 1
+    }
+    return state
+}

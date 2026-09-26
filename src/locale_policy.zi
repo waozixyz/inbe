@@ -1,0 +1,170 @@
+
+#import "locale_parser"
+
+// Locale catalogs own their strings. Policy only reads caller-owned slices;
+// loading files and applying a chosen locale belong to the host or app.
+LocaleEntry :: struct {
+    key: string
+    value: string
+}
+
+LocaleLanguage :: struct {
+    code: string
+    label: string
+}
+
+LocaleCode :: struct {
+    bytes: [32]u8
+    length: s32
+}
+
+#program_export
+LocaleRequestedCode :: (code: string) -> string {
+    if (cast(s32)code.count) == 0 { return "en" }
+    return code
+}
+
+#program_export
+LocaleContainsCode :: (languages: []LocaleLanguage,
+    code: string) -> bool {
+    index: s32 = 0
+    while index < (cast(s32)languages.count) {
+        if languages[index].code == code { return true }
+        index += 1
+    }
+    return false
+}
+
+#program_export
+LocaleHasEnglish :: (languages: []LocaleLanguage) -> bool {
+    return LocaleContainsCode(languages, "en")
+}
+
+#program_export
+LocaleResolveValue :: (active: []LocaleEntry, base: []LocaleEntry,
+    key: string) -> string {
+    index: s32 = 0
+    while index < (cast(s32)active.count) {
+        if active[index].key == key { return active[index].value }
+        index += 1
+    }
+    index = 0
+    while index < (cast(s32)base.count) {
+        if base[index].key == key { return base[index].value }
+        index += 1
+    }
+    return key
+}
+
+// Resolve directly from immutable catalog text without copying translated
+// values. The application owns both catalogs and keeps them alive.
+#program_export
+LocaleResolveCatalog :: (active: string, base: string,
+    key: string) -> string {
+    found: LocaleTextResult = LocaleFindText(active, key)
+    if found.found { return found.text }
+    found = LocaleFindText(base, key)
+    if found.found { return found.text }
+    return key
+}
+
+LocaleSeparator :: (byte: u8) -> bool {
+    return byte == 58 || byte == 59 || byte == 44 || byte == 32 ||
+        byte == 9 || byte == 13 || byte == 10
+}
+
+LocaleLower :: (byte: u8) -> u8 {
+    if byte >= 65 && byte <= 90 { return byte + cast(u8)32 }
+    return byte
+}
+
+LocaleNormalize :: (text: string, start: s32, end: s32) -> LocaleCode {
+    result: LocaleCode
+    if start < 0 || end < start || end > (cast(s32)text.count) { return result }
+    index: s32 = start
+    last_separator: bool = false
+    while index < end {
+        byte: u8 = text[index]
+        if byte == 46 || byte == 64 || byte == 37 { break }
+        if (byte >= 65 && byte <= 90) ||
+            (byte >= 97 && byte <= 122) ||
+            (byte >= 48 && byte <= 57) {
+            if result.length >= 31 { break }
+            result.bytes[result.length] = LocaleLower(byte)
+            result.length += 1
+            last_separator = false
+        } else if byte == 45 || byte == 95 {
+            if result.length > 0 && !last_separator {
+                if result.length >= 31 { break }
+                result.bytes[result.length] = 45
+                result.length += 1
+                last_separator = true
+            }
+        }
+        index += 1
+    }
+    if result.length > 0 && result.bytes[result.length - 1] == 45 {
+        result.length -= 1
+    }
+    if result.length == 1 && result.bytes[0] == 99 {
+        result.length = 0
+    }
+    if result.length == 5 && result.bytes[0] == 112 &&
+        result.bytes[1] == 111 && result.bytes[2] == 115 &&
+        result.bytes[3] == 105 && result.bytes[4] == 120 {
+        result.length = 0
+    }
+    return result
+}
+
+LocaleCodeEqual :: (left: LocaleCode, right: LocaleCode) -> bool {
+    if left.length == 0 || left.length != right.length { return false }
+    index: s32 = 0
+    while index < left.length {
+        if left.bytes[index] != right.bytes[index] { return false }
+        index += 1
+    }
+    return true
+}
+
+LocaleFindNormalized :: (languages: []LocaleLanguage,
+    candidate: LocaleCode) -> string {
+    if candidate.length == 0 { return "" }
+    index: s32 = 0
+    while index < (cast(s32)languages.count) {
+        language: string = languages[index].code
+        code: LocaleCode = LocaleNormalize(language, 0, (cast(s32)language.count))
+        if LocaleCodeEqual(code, candidate) { return language }
+        index += 1
+    }
+    return ""
+}
+
+#program_export
+LocalePreferredCode :: (languages: []LocaleLanguage,
+    preferences: string) -> string {
+    cursor: s32 = 0
+    while cursor < (cast(s32)preferences.count) {
+        while cursor < (cast(s32)preferences.count) &&
+            LocaleSeparator(preferences[cursor]) { cursor += 1 }
+        start: s32 = cursor
+        while cursor < (cast(s32)preferences.count) &&
+            !LocaleSeparator(preferences[cursor]) { cursor += 1 }
+        if cursor == start { continue }
+        end: s32 = cursor
+        if end - start > 63 { end = start + 63 }
+        candidate: LocaleCode = LocaleNormalize(preferences, start, end)
+        found: string = LocaleFindNormalized(languages, candidate)
+        if found.count > 0 { return found }
+        index: s32 = 0
+        while index < candidate.length && candidate.bytes[index] != 45 {
+            index += 1
+        }
+        if index < candidate.length {
+            candidate.length = index
+            found = LocaleFindNormalized(languages, candidate)
+            if found.count > 0 { return found }
+        }
+    }
+    return "en"
+}
